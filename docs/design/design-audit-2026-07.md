@@ -18,6 +18,22 @@
 
 **Thứ tự xử lý đề xuất:** F1 → F2 → F4 → F3 → F5 → F6 → F7 → F8 → F9.
 
+## Trạng thái xử lý (cập nhật 2026-07-02)
+
+| Finding | Trạng thái | Ghi chú |
+|---------|-----------|---------|
+| F1 — Token light-mode chết | ✅ Đã sửa | `globals.css`: khối light → `:root` (đặt trước), khối dark → `.dark`; hết `data-theme` |
+| F2 — Trùng token chart | ✅ Đã sửa | Xóa `--chart-1..5` OKLCH trùng ở 2 khối shadcn; còn đúng 1 bộ HIS (light+dark) |
+| F3 — Letterhead thiếu Mã CSKCB | ✅ Đã sửa | `cskcb_code` vào SELECT + `LetterheadDto.CskcbCode` + `ClinicLetterhead` prop `cskcbCode` + `QuestPdfReportExporter` |
+| F4 — Sai tên bảng PrintHandlers | ✅ Đã sửa | `diab_his_ten_tenants`→`sys_tenants`, `usr_users`→`sec_users` (đối chiếu migrations) |
+| F5 — Chart hardcode hex | ✅ Đã sửa | 6 file chart chuyển sang `var(--chart-n)` / `var(--status-*)`; thêm token `--scale-hba1c-1..10` |
+| F6 — StatusBadge trùng tên | ✅ Đã sửa | `StatusBadge.tsx` → `entity-status-badge.tsx`, tô màu bằng token HIS, import cập nhật đủ |
+| F7 — Report endpoint stub | ⏳ Chưa xử lý | P2 — cần hoàn thiện query backend (đợt sau) |
+| F8 — Hex ngoài chart (avatar, letterhead) | ⏳ Chưa xử lý | P2 — đợt sau |
+| F9 — WORKFLOW.md thiếu designer | ✅ Đã sửa | Đã bổ sung từ đợt trước |
+
+> Nghiệm thu (2026-07-02): fix F1–F6 xác minh bằng grep/đọc code trực tiếp. Build backend `dotnet build`: **PASS** (0 error, 4 warning có sẵn). Build frontend `npm run build` (Next.js 16): **PASS** (đủ route manifest, gồm cả các trang in `/reports/print/[type]`, `/encounters/[id]/print`, `/encounters/[id]/cls-print`).
+
 ---
 
 ## Chi tiết finding
