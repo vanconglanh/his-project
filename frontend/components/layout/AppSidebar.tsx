@@ -55,7 +55,7 @@ export function AppSidebar() {
     <aside
       className={cn(
         "flex flex-col border-r bg-card transition-all duration-300 shrink-0",
-        sidebarCollapsed ? "w-14" : "w-60"
+        sidebarCollapsed ? "w-16" : "w-60"
       )}
     >
       {/* Logo */}

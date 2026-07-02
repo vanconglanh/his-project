@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -178,7 +177,7 @@ export default function TenantsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Quản lý phòng khám</h1>
+          <h1 className="text-xl font-bold tracking-tight">Quản lý phòng khám</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Danh sách toàn bộ phòng khám trong hệ thống
           </p>
@@ -212,7 +211,7 @@ export default function TenantsPage() {
             }
           }}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -234,12 +233,12 @@ export default function TenantsPage() {
         onRowClick={(row) => setDetailTarget(row)}
       />
 
-      {/* Create dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Tạo phòng khám mới</DialogTitle>
-          </DialogHeader>
+      {/* Create sheet */}
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto px-6 pb-6">
+          <SheetHeader>
+            <SheetTitle>Tạo phòng khám mới</SheetTitle>
+          </SheetHeader>
           <TenantForm
             onSubmit={async (values) => {
               await createMutation.mutateAsync(
@@ -250,15 +249,15 @@ export default function TenantsPage() {
             isLoading={createMutation.isPending}
             onCancel={() => setCreateOpen(false)}
           />
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
-      {/* Edit dialog */}
-      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Sửa thông tin phòng khám</DialogTitle>
-          </DialogHeader>
+      {/* Edit sheet */}
+      <Sheet open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto px-6 pb-6">
+          <SheetHeader>
+            <SheetTitle>Sửa thông tin phòng khám</SheetTitle>
+          </SheetHeader>
           {editTarget && (
             <TenantForm
               initialValues={editTarget}
@@ -274,12 +273,12 @@ export default function TenantsPage() {
               onCancel={() => setEditTarget(null)}
             />
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Detail sheet */}
       <Sheet open={!!detailTarget} onOpenChange={(o) => !o && setDetailTarget(null)}>
-        <SheetContent className="w-[480px] sm:w-[480px] overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle>Chi tiết phòng khám</SheetTitle>
           </SheetHeader>

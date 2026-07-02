@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm, Controller } from "react-hook-form";
@@ -87,6 +87,22 @@ export default function NewEncounterPage() {
     setShowPatientList(false);
   }
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSubmit(onSubmit)();
+      }
+      if (e.key === "Escape") {
+        router.back();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function onSubmit(values: FormValues) {
     createEncounter.mutate(
       {
@@ -144,7 +160,7 @@ export default function NewEncounterPage() {
         <form id="encounter-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
           {/* Section 1: Bệnh nhân & Bác sĩ */}
-          <div className="rounded-xl border bg-card p-6 space-y-4">
+          <div className="rounded-lg border bg-card p-6 space-y-4">
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
@@ -236,7 +252,7 @@ export default function NewEncounterPage() {
           </div>
 
           {/* Section 2: Loại khám & Lý do */}
-          <div className="rounded-xl border bg-card p-6 space-y-4">
+          <div className="rounded-lg border bg-card p-6 space-y-4">
             <div className="flex items-start gap-3">
               <Stethoscope className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>

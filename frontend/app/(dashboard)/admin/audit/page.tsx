@@ -109,7 +109,7 @@ export default function AuditPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Nhật ký thao tác</h1>
+        <h1 className="text-xl font-bold tracking-tight">Nhật ký thao tác</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Theo dõi mọi thao tác trên hệ thống
         </p>
@@ -126,7 +126,7 @@ export default function AuditPage() {
           />
         </div>
         <Select value={actionFilter} onValueChange={(v) => { if (v) { setActionFilter(v); setPage(1); } }}>
-          <SelectTrigger className="w-[170px]">
+          <SelectTrigger className="w-44">
             <SelectValue placeholder="Hành động" />
           </SelectTrigger>
           <SelectContent>
@@ -153,7 +153,7 @@ export default function AuditPage() {
 
       {/* Detail sheet */}
       <Sheet open={!!selectedLog} onOpenChange={(o) => !o && setSelectedLog(null)}>
-        <SheetContent className="w-[500px] sm:w-[500px] overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle>Chi tiết nhật ký</SheetTitle>
           </SheetHeader>

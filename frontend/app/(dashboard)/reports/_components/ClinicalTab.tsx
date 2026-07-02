@@ -116,19 +116,19 @@ export function ClinicalTab() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-muted-foreground">Tổng BN</p>
-                  <p className="text-2xl font-bold">{cohort.total_patients}</p>
+                  <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{cohort.total_patients}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Type 2</p>
-                  <p className="text-2xl font-bold">{cohort.by_type.t2}</p>
+                  <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{cohort.by_type.t2}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">HbA1c kiểm soát tốt (&lt;7%)</p>
-                  <p className="text-xl font-bold text-emerald-600">{cohort.hba1c_distribution.lt_7}</p>
+                  <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums text-emerald-600">{cohort.hba1c_distribution.lt_7}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">HbA1c kém (&gt;9%)</p>
-                  <p className="text-xl font-bold text-red-500">{cohort.hba1c_distribution.gt_9}</p>
+                  <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums text-red-500">{cohort.hba1c_distribution.gt_9}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-muted-foreground mb-1">Biến chứng</p>

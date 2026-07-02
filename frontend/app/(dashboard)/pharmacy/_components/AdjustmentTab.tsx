@@ -143,7 +143,7 @@ export function AdjustmentTab({ externalOpen, onExternalOpenChange }: Adjustment
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Tạo điều chỉnh tồn kho</DialogTitle>
           </DialogHeader>

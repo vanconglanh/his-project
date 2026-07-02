@@ -142,7 +142,7 @@ export function RadResultsTab() {
 
       {/* Drawer */}
       <Sheet open={!!drawerMode} onOpenChange={(open) => !open && setDrawerMode(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
           {drawerMode === "form" && (
             <>
               <SheetHeader>

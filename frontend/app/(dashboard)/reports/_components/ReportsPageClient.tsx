@@ -10,7 +10,7 @@ export function ReportsPageClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Báo cáo &amp; Thống kê</h2>
+        <h2 className="text-xl font-bold tracking-tight">Báo cáo &amp; Thống kê</h2>
         <p className="text-sm text-muted-foreground">
           Phân tích doanh thu, lâm sàng và dược
         </p>

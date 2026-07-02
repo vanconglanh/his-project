@@ -120,6 +120,18 @@
 
 ---
 
+## Đợt 2 — Audit layout sâu (2026-07-02, cùng ngày)
+
+Sau khi F1–F6 hoàn tất, đã chạy vòng audit sâu phần **layout** (khía cạnh a + c). Kết quả tách thành 2 báo cáo chi tiết:
+- `layout-audit-shell-2026-07.md` — khung/panel/dialog/typography: **14 finding** (L-01→L-14), đã sửa 13, còn L-06 (refactor).
+- `layout-audit-forms-2026-07.md` — form nhập liệu: **9 finding** (F-01→F-09), đã sửa 6, còn F-01/F-03 (refactor) + F-09 (nợ kỹ thuật).
+
+Batch sửa: 65 file frontend, build Next.js PASS. Điểm nổi bật đã chuẩn hóa: topbar 56px, sidebar collapsed 64px, 100% Sheet có `px-6 pb-6`, Dialog về đúng thang md/xl/4xl, 36 page title về `text-xl font-bold`, Card/Dialog về `rounded-lg`, KPI dùng token `--text-kpi`, bảng dài về density `py-2`, Ctrl+S/Esc hoạt động thật ở 2 form Fullpage, DrugForm/TenantForm chuyển Dialog→Sheet.
+
+**Tồn đọng chuyển đợt sau (cần Đăng/Lành duyệt vì đổi luồng nghiệp vụ):** L-06/F-01 (gộp luồng tạo bệnh nhân ở Tiếp đón về `/patients/new`, xóa `PatientForm.tsx`), F-03 (PO/GRN/Adjustment → Fullpage route), F-09 (phổ cập `StickyActionBar`/`FieldGroup`, dựng `FullPageFormShell`), F7/F8 đợt 1 (report endpoint stub, hex avatar/letterhead), PageHeader component chống lệch title về sau.
+
+---
+
 ## Ghi chú phương pháp
 - Grep hex: `#[0-9A-Fa-f]{6}` trong `frontend/components/**/*.tsx` → 31 occurrence / 8 file.
 - Xác nhận theme: `next-themes attribute="class"` (`layout.tsx:56`); `data-theme` không set ở đâu (grep toàn frontend, 0 kết quả).

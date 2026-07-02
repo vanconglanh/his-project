@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
@@ -117,6 +117,22 @@ export default function NewPrescriptionPage() {
     setShowIcdList(false);
   }
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSubmit(handleSubmitForm)();
+      }
+      if (e.key === "Escape") {
+        router.back();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleSubmitForm(values: PrescriptionFormValues) {
     createPrescription.mutate(
       {
@@ -174,7 +190,7 @@ export default function NewPrescriptionPage() {
         <form id="prescription-form" onSubmit={handleSubmit(handleSubmitForm)} className="space-y-6">
 
           {/* Section 1: Thông tin bệnh nhân & bác sĩ */}
-          <div className="rounded-xl border bg-card p-6 space-y-4">
+          <div className="rounded-lg border bg-card p-6 space-y-4">
             <div>
               <h2 className="text-base font-semibold">Thông tin đơn thuốc</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
@@ -283,7 +299,7 @@ export default function NewPrescriptionPage() {
           </div>
 
           {/* Section 2: Chẩn đoán ICD-10 */}
-          <div className="rounded-xl border bg-card p-6 space-y-4">
+          <div className="rounded-lg border bg-card p-6 space-y-4">
             <div>
               <h2 className="text-base font-semibold">Chẩn đoán ICD-10</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
@@ -363,7 +379,7 @@ export default function NewPrescriptionPage() {
           </div>
 
           {/* Section 3: Ghi chú */}
-          <div className="rounded-xl border bg-card p-6 space-y-4">
+          <div className="rounded-lg border bg-card p-6 space-y-4">
             <h2 className="text-base font-semibold">Ghi chú đơn</h2>
             <Separator />
             <div className="space-y-1">

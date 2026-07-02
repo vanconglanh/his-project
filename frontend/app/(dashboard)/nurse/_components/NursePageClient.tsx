@@ -54,7 +54,7 @@ export function NursePageClient() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Điều dưỡng</h2>
+        <h2 className="text-xl font-bold tracking-tight">Điều dưỡng</h2>
         <p className="text-sm text-muted-foreground">
           Quản lý sinh hiệu bệnh nhân
         </p>
@@ -145,7 +145,7 @@ export function NursePageClient() {
 
       {/* Vital signs drawer */}
       <Sheet open={drawerOpen} onOpenChange={(v) => { if (!v) { setDrawerOpen(false); setSelectedEncounter(null); } }}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />

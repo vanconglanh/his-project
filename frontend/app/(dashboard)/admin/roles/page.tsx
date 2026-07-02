@@ -116,7 +116,7 @@ export default function RolesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Vai trò & Quyền hạn</h1>
+          <h1 className="text-xl font-bold tracking-tight">Vai trò & Quyền hạn</h1>
           <p className="text-muted-foreground text-sm mt-1">Quản lý vai trò và ma trận quyền hạn</p>
         </div>
         <Can permission="role.write">
@@ -136,7 +136,7 @@ export default function RolesPage() {
 
       {/* Permission matrix sheet */}
       <Sheet open={!!selectedRole} onOpenChange={(o) => !o && setSelectedRole(null)}>
-        <SheetContent className="w-[600px] sm:w-[600px] overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle>Ma trận quyền — {selectedRole?.name}</SheetTitle>
           </SheetHeader>
@@ -146,7 +146,7 @@ export default function RolesPage() {
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Tạo vai trò mới</DialogTitle>
           </DialogHeader>
@@ -165,7 +165,7 @@ export default function RolesPage() {
 
       {/* Edit dialog */}
       <Dialog open={!!editRole} onOpenChange={(o) => !o && setEditRole(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Sửa vai trò — {editRole?.name}</DialogTitle>
           </DialogHeader>

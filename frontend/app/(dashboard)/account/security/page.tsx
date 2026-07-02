@@ -127,7 +127,7 @@ export default function SecurityPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Bảo mật tài khoản</h1>
+        <h1 className="text-xl font-bold tracking-tight">Bảo mật tài khoản</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Quản lý mật khẩu và xác thực 2 lớp
         </p>

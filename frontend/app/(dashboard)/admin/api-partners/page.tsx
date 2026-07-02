@@ -112,7 +112,7 @@ export default function ApiPartnersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">API Partners</h1>
+          <h1 className="text-xl font-bold tracking-tight">API Partners</h1>
           <p className="text-sm text-muted-foreground">Quản lý đối tác tích hợp Public API</p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
@@ -277,7 +277,7 @@ export default function ApiPartnersPage() {
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Tạo đối tác mới</DialogTitle>
           </DialogHeader>
@@ -291,7 +291,7 @@ export default function ApiPartnersPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editPartner} onOpenChange={(open) => !open && setEditPartner(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Sửa đối tác: {editPartner?.name}</DialogTitle>
           </DialogHeader>
@@ -308,7 +308,7 @@ export default function ApiPartnersPage() {
 
       {/* New API key dialog (shown after create or regenerate) */}
       <Dialog open={!!newApiKey} onOpenChange={(open) => !open && setNewApiKey(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>API Key mới</DialogTitle>
           </DialogHeader>

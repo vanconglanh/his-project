@@ -80,13 +80,13 @@ export function DrugsPageClient() {
       cell: (row: DrugMasterResponse) => (
         <div className="flex gap-1 flex-wrap">
           {row.requires_prescription && (
-            <Badge variant="outline" className="text-[10px] px-1">Kê đơn</Badge>
+            <Badge variant="outline" className="text-xs px-1">Kê đơn</Badge>
           )}
           {row.is_psychotropic && (
-            <Badge variant="destructive" className="text-[10px] px-1">Hướng thần</Badge>
+            <Badge variant="destructive" className="text-xs px-1">Hướng thần</Badge>
           )}
           {row.is_narcotic && (
-            <Badge variant="destructive" className="text-[10px] px-1">Gây nghiện</Badge>
+            <Badge variant="destructive" className="text-xs px-1">Gây nghiện</Badge>
           )}
         </div>
       ),
@@ -211,13 +211,15 @@ export function DrugsPageClient() {
         </>
       )}
 
-      {/* Create dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Tạo thuốc mới</DialogTitle></DialogHeader>
-          <DrugForm onSuccess={() => setCreateOpen(false)} onCancel={() => setCreateOpen(false)} />
-        </DialogContent>
-      </Dialog>
+      {/* Create sheet */}
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto px-6 pb-6">
+          <SheetHeader className="px-0"><SheetTitle>Tạo thuốc mới</SheetTitle></SheetHeader>
+          <div className="mt-4">
+            <DrugForm onSuccess={() => setCreateOpen(false)} onCancel={() => setCreateOpen(false)} />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Edit sheet */}
       <Sheet open={!!editDrug} onOpenChange={(o) => !o && setEditDrug(null)}>

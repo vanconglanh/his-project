@@ -120,19 +120,19 @@ export function DispenseTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="text-left px-4 py-3 font-medium">Bệnh nhân</th>
-                  <th className="text-left px-4 py-3 font-medium">Dược sĩ</th>
-                  <th className="text-left px-4 py-3 font-medium">Trạng thái</th>
-                  <th className="text-left px-4 py-3 font-medium">Thời gian</th>
-                  <th className="text-left px-4 py-3 font-medium">Số thuốc</th>
+                  <th className="text-left px-4 py-2 font-medium">Bệnh nhân</th>
+                  <th className="text-left px-4 py-2 font-medium">Dược sĩ</th>
+                  <th className="text-left px-4 py-2 font-medium">Trạng thái</th>
+                  <th className="text-left px-4 py-2 font-medium">Thời gian</th>
+                  <th className="text-left px-4 py-2 font-medium">Số thuốc</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {historyItems.map((item) => (
                   <tr key={item.id} className="hover:bg-accent/50">
-                    <td className="px-4 py-3 font-medium text-muted-foreground font-mono text-xs">{item.prescription_id}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.dispensed_by_name ?? "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2 font-medium text-muted-foreground font-mono text-xs">{item.prescription_id}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{item.dispensed_by_name ?? "—"}</td>
+                    <td className="px-4 py-2">
                       <Badge
                         variant={item.status === "DISPENSED" ? "default" : item.status === "RETURNED" ? "secondary" : "outline"}
                         className="text-xs"
@@ -140,12 +140,12 @@ export function DispenseTab() {
                         {item.status === "DISPENSED" ? "Đã phát" : item.status === "RETURNED" ? "Đã hoàn trả" : item.status === "REJECTED" ? "Từ chối" : item.status}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-4 py-2 text-muted-foreground">
                       {item.dispensed_at
                         ? format(parseISO(item.dispensed_at), "HH:mm dd/MM/yyyy", { locale: vi })
                         : "—"}
                     </td>
-                    <td className="px-4 py-3 text-center">{item.items?.length ?? 0}</td>
+                    <td className="px-4 py-2 text-center">{item.items?.length ?? 0}</td>
                   </tr>
                 ))}
               </tbody>
@@ -176,10 +176,10 @@ export function DispenseTab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left px-4 py-3 font-medium">Bệnh nhân</th>
-                    <th className="text-left px-4 py-3 font-medium">Thời gian phát</th>
-                    <th className="text-left px-4 py-3 font-medium">Số thuốc</th>
-                    <th className="text-right px-4 py-3 font-medium"></th>
+                    <th className="text-left px-4 py-2 font-medium">Bệnh nhân</th>
+                    <th className="text-left px-4 py-2 font-medium">Thời gian phát</th>
+                    <th className="text-left px-4 py-2 font-medium">Số thuốc</th>
+                    <th className="text-right px-4 py-2 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -187,14 +187,14 @@ export function DispenseTab() {
                     .filter((i) => i.status === "DISPENSED")
                     .map((item) => (
                       <tr key={item.id} className="hover:bg-accent/50">
-                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{item.prescription_id}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{item.prescription_id}</td>
+                        <td className="px-4 py-2 text-muted-foreground">
                           {item.dispensed_at
                             ? format(parseISO(item.dispensed_at), "HH:mm dd/MM/yyyy", { locale: vi })
                             : "—"}
                         </td>
-                        <td className="px-4 py-3">{item.items?.length ?? 0} thuốc</td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-2">{item.items?.length ?? 0} thuốc</td>
+                        <td className="px-4 py-2 text-right">
                           <Button
                             variant="outline"
                             size="sm"

@@ -183,7 +183,7 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Thu tiền</DialogTitle>
           </DialogHeader>

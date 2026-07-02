@@ -26,7 +26,7 @@ export function VitalSignsHistoryDrawer({ encounterId, open, onClose, onEdit }: 
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto px-6 pb-6">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />

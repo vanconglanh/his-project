@@ -181,7 +181,7 @@ export function LabResultDetailClient({ id }: Props) {
 
       {/* Amend Drawer */}
       <Sheet open={amendDrawer} onOpenChange={setAmendDrawer}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle>Sửa kết quả (Amend)</SheetTitle>
           </SheetHeader>

@@ -100,7 +100,7 @@ export default function AccountNotificationsPage() {
   return (
     <div className="max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tuỳ chọn thông báo</h1>
+        <h1 className="text-xl font-bold tracking-tight">Tuỳ chọn thông báo</h1>
         <p className="text-sm text-muted-foreground">Cá nhân hoá cách nhận thông báo</p>
       </div>
 

@@ -15,7 +15,7 @@ export function Icd10PageClient() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Tra cứu ICD-10</h2>
+        <h2 className="text-xl font-bold tracking-tight">Tra cứu ICD-10</h2>
         <p className="text-sm text-muted-foreground">Tìm mã bệnh theo tiếng Việt hoặc mã ICD-10</p>
       </div>
 
@@ -35,10 +35,10 @@ export function Icd10PageClient() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="text-left px-4 py-3 font-medium">Mã ICD-10</th>
-                <th className="text-left px-4 py-3 font-medium">Tên tiếng Việt</th>
-                <th className="text-left px-4 py-3 font-medium">Nhóm</th>
-                <th className="text-left px-4 py-3 font-medium">Thanh toán</th>
+                <th className="text-left px-4 py-2 font-medium">Mã ICD-10</th>
+                <th className="text-left px-4 py-2 font-medium">Tên tiếng Việt</th>
+                <th className="text-left px-4 py-2 font-medium">Nhóm</th>
+                <th className="text-left px-4 py-2 font-medium">Thanh toán</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -46,7 +46,7 @@ export function Icd10PageClient() {
                 Array.from({ length: 10 }).map((_, i) => (
                   <tr key={i}>
                     {[1, 2, 3, 4].map((j) => (
-                      <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-full" /></td>
+                      <td key={j} className="px-4 py-2"><Skeleton className="h-4 w-full" /></td>
                     ))}
                   </tr>
                 ))
@@ -77,12 +77,12 @@ export function Icd10PageClient() {
 function Icd10Row({ item }: { item: Icd10Response }) {
   return (
     <tr className="hover:bg-accent/40 transition-colors">
-      <td className="px-4 py-3">
+      <td className="px-4 py-2">
         <span className="font-mono font-semibold text-primary">{item.code}</span>
       </td>
-      <td className="px-4 py-3">{item.name_vi}</td>
-      <td className="px-4 py-3 text-muted-foreground text-xs">{item.category}</td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-2">{item.name_vi}</td>
+      <td className="px-4 py-2 text-muted-foreground text-xs">{item.category}</td>
+      <td className="px-4 py-2">
         <Badge variant={item.is_billable ? "default" : "outline"} className="text-xs">
           {item.is_billable ? "Có" : "Không"}
         </Badge>

@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import type { DiabetesAssessmentRequest, DiabetesType } from "@/lib/api/types";
 
 const schema = z.object({
@@ -220,9 +221,11 @@ export function DiabetesAssessmentForm({ defaultValues, onSubmit, isLoading }: P
         <Textarea rows={3} {...register("note")} placeholder="Ghi chú thêm..." />
       </FormField>
 
-      <Button type="submit" disabled={isLoading} className="min-h-[44px]">
-        {isLoading ? "Đang lưu..." : "Lưu đánh giá ĐTĐ"}
-      </Button>
+      <StickyActionBar>
+        <Button type="submit" disabled={isLoading} className="min-h-[44px]">
+          {isLoading ? "Đang lưu..." : "Lưu đánh giá ĐTĐ"}
+        </Button>
+      </StickyActionBar>
     </form>
   );
 }

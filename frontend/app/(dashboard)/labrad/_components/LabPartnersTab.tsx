@@ -122,7 +122,7 @@ export function LabPartnersTab() {
 
       {/* Drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle>{editing ? "Cập nhật đối tác lab" : "Thêm đối tác lab"}</SheetTitle>
           </SheetHeader>

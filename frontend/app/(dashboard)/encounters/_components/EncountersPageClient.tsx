@@ -72,7 +72,7 @@ export function EncountersPageClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Khám bệnh</h2>
+          <h2 className="text-xl font-bold tracking-tight">Khám bệnh</h2>
           <p className="text-sm text-muted-foreground">Quản lý lượt khám bệnh</p>
         </div>
         <div className="flex gap-2">
@@ -170,13 +170,13 @@ export function EncountersPageClient() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="text-left px-4 py-3 font-medium">Bệnh nhân</th>
-              <th className="text-left px-4 py-3 font-medium">Bác sĩ</th>
-              <th className="text-left px-4 py-3 font-medium">Loại khám</th>
-              <th className="text-left px-4 py-3 font-medium">Trạng thái</th>
-              <th className="text-left px-4 py-3 font-medium">Bắt đầu</th>
-              <th className="text-left px-4 py-3 font-medium">Cảnh báo</th>
-              <th className="text-right px-4 py-3 font-medium"></th>
+              <th className="text-left px-4 py-2 font-medium">Bệnh nhân</th>
+              <th className="text-left px-4 py-2 font-medium">Bác sĩ</th>
+              <th className="text-left px-4 py-2 font-medium">Loại khám</th>
+              <th className="text-left px-4 py-2 font-medium">Trạng thái</th>
+              <th className="text-left px-4 py-2 font-medium">Bắt đầu</th>
+              <th className="text-left px-4 py-2 font-medium">Cảnh báo</th>
+              <th className="text-right px-4 py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -184,7 +184,7 @@ export function EncountersPageClient() {
               Array.from({ length: 6 }).map((_, i) => (
                 <tr key={i}>
                   {Array.from({ length: 7 }).map((__, j) => (
-                    <td key={j} className="px-4 py-3">
+                    <td key={j} className="px-4 py-2">
                       <Skeleton className="h-5 w-full" />
                     </td>
                   ))}
@@ -260,7 +260,7 @@ function EncounterRow({
       onKeyDown={(e) => e.key === "Enter" && onClick()}
       role="row"
     >
-      <td className="px-4 py-3">
+      <td className="px-4 py-2">
         <div className="flex items-center gap-3">
           <SimpleAvatar name={encounter.patient_summary?.full_name ?? "?"} size="sm" />
           <div>
@@ -273,24 +273,24 @@ function EncounterRow({
           </div>
         </div>
       </td>
-      <td className="px-4 py-3 text-muted-foreground">
+      <td className="px-4 py-2 text-muted-foreground">
         {encounter.doctor_name ?? "Chưa phân công"}
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-2">
         <Badge variant="outline" className="text-xs">
           {ENCOUNTER_TYPE_LABELS[encounter.encounter_type] ?? encounter.encounter_type}
         </Badge>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-2">
         <EncounterStatusBadge status={encounter.status} />
       </td>
-      <td className="px-4 py-3 text-muted-foreground">
+      <td className="px-4 py-2 text-muted-foreground">
         {(() => {
           const s = encounter.started_at;
           return s ? format(new Date(s), "HH:mm, dd/MM", { locale: vi }) : "—";
         })()}
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-2">
         {encounter.alert_over_12h && (
           <div className="flex items-center gap-1 text-red-600">
             <AlertTriangle className="h-4 w-4" />
@@ -298,7 +298,7 @@ function EncounterRow({
           </div>
         )}
       </td>
-      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-1">
           <Button
             variant="ghost"

@@ -60,7 +60,7 @@ export function BillingsPageClient() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Hoá đơn</h2>
+          <h2 className="text-xl font-bold tracking-tight">Hoá đơn</h2>
           <p className="text-sm text-muted-foreground">Quản lý hoá đơn khám bệnh</p>
         </div>
       </div>

@@ -48,7 +48,7 @@ export function CashierPageClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Thu ngân</h2>
+          <h2 className="text-xl font-bold tracking-tight">Thu ngân</h2>
           <p className="text-sm text-muted-foreground">Quản lý thu phí, hoá đơn, công nợ bệnh nhân</p>
         </div>
         <div className="flex items-center gap-2">
@@ -178,7 +178,7 @@ function StatCard({
         {loading ? (
           <Skeleton className="h-8 w-32" />
         ) : (
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{value}</p>
         )}
       </CardContent>
     </Card>

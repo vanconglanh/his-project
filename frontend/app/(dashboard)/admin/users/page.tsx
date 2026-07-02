@@ -173,7 +173,7 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Quản lý người dùng</h1>
+          <h1 className="text-xl font-bold tracking-tight">Quản lý người dùng</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Danh sách người dùng trong phòng khám
           </p>
@@ -195,7 +195,7 @@ export default function UsersPage() {
           />
         </div>
         <Select value={roleFilter} onValueChange={(v) => { if (v) { setRoleFilter(v); setPage(1); } }}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="Vai trò" />
           </SelectTrigger>
           <SelectContent>
@@ -210,7 +210,7 @@ export default function UsersPage() {
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={(v) => { if (v) { setStatusFilter(v); setPage(1); } }}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-36">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -234,7 +234,7 @@ export default function UsersPage() {
 
       {/* Invite dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Mời người dùng mới</DialogTitle>
           </DialogHeader>
@@ -251,7 +251,7 @@ export default function UsersPage() {
 
       {/* Detail sheet */}
       <Sheet open={!!detailTarget} onOpenChange={(o) => !o && setDetailTarget(null)}>
-        <SheetContent className="w-[480px] sm:w-[480px] overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle>Chi tiết người dùng</SheetTitle>
           </SheetHeader>
@@ -261,7 +261,7 @@ export default function UsersPage() {
 
       {/* Assign roles dialog */}
       <Dialog open={!!assignRolesTarget} onOpenChange={(o) => !o && setAssignRolesTarget(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Gán vai trò — {assignRolesTarget?.full_name}</DialogTitle>
           </DialogHeader>

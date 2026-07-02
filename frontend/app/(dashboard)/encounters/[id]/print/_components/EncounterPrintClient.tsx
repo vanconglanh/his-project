@@ -29,7 +29,7 @@ export default function EncounterPrintClient({ encounterId }: Props) {
 
   if (isLoading) {
     return (
-      <div className="p-8 space-y-4">
+      <div className="p-6 space-y-4">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-3/4" />
@@ -40,7 +40,7 @@ export default function EncounterPrintClient({ encounterId }: Props) {
 
   if (!encounter) {
     return (
-      <div className="p-8 text-center">
+      <div className="p-6 text-center">
         <p className="text-muted-foreground">Không tìm thấy lượt khám</p>
         <Link href="/encounters">
           <Button variant="outline" className="mt-4 gap-2">

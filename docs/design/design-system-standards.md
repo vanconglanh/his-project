@@ -89,7 +89,7 @@
 | Content padding | `p-6` desktop · `p-4` tablet |
 | Card / Panel | `rounded-lg` (radius gốc 10px), padding trong `p-4`~`p-6`, nền `bg-card`, viền `border-border` |
 | Dialog (Modal) | `max-w-xl` form ngắn · `max-w-4xl` bảng phức tạp |
-| Sheet (Drawer phải) | `sm:max-w-2xl`, **luôn** `px-6 pb-6` (không sát mép) |
+| Sheet (Drawer phải) | Mặc định `sm:max-w-xl` (detail read-only, form ≤8 field); form rộng 2 cột → `sm:max-w-2xl` (variant sheet-wide). **Luôn** `px-6 pb-6` (không sát mép). Không dùng width arbitrary `w-[###px]` |
 | Grid dashboard/report | 12 cột, gap `gap-4`~`gap-6` |
 | Radius | `--radius: 0.625rem` gốc; thang `sm/md/lg/xl/2xl` dẫn xuất — không đặt radius rời |
 
@@ -136,7 +136,7 @@
 | Logo | `logo_url` | ✔ (fallback: chữ cái đầu tên PK) |
 | Tên phòng khám | `name` | ✔ |
 | Tên pháp nhân | `company_name` | ✔ |
-| **Mã CSKCB** | `cskcb_code` | ✔ **(hiện thiếu trong `ClinicLetterhead` — phải bổ sung)** |
+| **Mã CSKCB** | `cskcb_code` | ✔ *(đã bổ sung 2026-07-02 — finding F3)* |
 | Địa chỉ | `address` | ✔ |
 | Điện thoại | `phone` | ✔ |
 | Email | `email` / `email_support` | ✔ |

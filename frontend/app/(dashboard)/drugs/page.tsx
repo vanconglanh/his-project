@@ -7,7 +7,7 @@ export default function DrugsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Danh mục thuốc</h2>
+        <h2 className="text-xl font-bold tracking-tight">Danh mục thuốc</h2>
         <p className="text-sm text-muted-foreground">Quản lý danh mục thuốc của phòng khám</p>
       </div>
       <DrugsPageClient />

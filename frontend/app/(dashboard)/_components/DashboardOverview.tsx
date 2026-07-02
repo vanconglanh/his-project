@@ -114,7 +114,7 @@ export function DashboardOverview() {
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
+          <h2 className="text-xl font-bold tracking-tight">{t("title")}</h2>
           <p className="text-sm text-muted-foreground" suppressHydrationWarning>
             {t("subtitle")}
             {lastRefresh && (
@@ -240,7 +240,7 @@ export function DashboardOverview() {
                 <CardTitle className="text-xs text-muted-foreground">{t("diabetes.totalPatients")}</CardTitle>
               </CardHeader>
               <CardContent>
-                <span className="text-2xl font-bold">{cohort.total_patients}</span>
+                <span className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{cohort.total_patients}</span>
               </CardContent>
             </Card>
             <Card>
@@ -248,7 +248,7 @@ export function DashboardOverview() {
                 <CardTitle className="text-xs text-muted-foreground">{t("diabetes.hba1cControlled")}</CardTitle>
               </CardHeader>
               <CardContent>
-                <span className="text-2xl font-bold text-emerald-600">
+                <span className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums text-emerald-600">
                   {cohort.hba1c_distribution.lt_7}
                 </span>
                 <span className="text-sm text-muted-foreground ml-1">
@@ -261,7 +261,7 @@ export function DashboardOverview() {
                 <CardTitle className="text-xs text-muted-foreground">{t("diabetes.type2")}</CardTitle>
               </CardHeader>
               <CardContent>
-                <span className="text-2xl font-bold">{cohort.by_type.t2}</span>
+                <span className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{cohort.by_type.t2}</span>
               </CardContent>
             </Card>
           </div>

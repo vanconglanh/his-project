@@ -551,7 +551,7 @@ function VitalSignsTabContent({ encounterId, readOnly }: { encounterId: string; 
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label htmlFor="v-hr">Mạch (lần/phút)</Label>
                   <Input id="v-hr" type="number" placeholder="vd: 80" value={vals.heart_rate_bpm} onChange={set("heart_rate_bpm")} className="min-h-[44px]" />
@@ -561,7 +561,7 @@ function VitalSignsTabContent({ encounterId, readOnly }: { encounterId: string; 
                   <Input id="v-temp" type="number" step="0.1" placeholder="vd: 37.0" value={vals.temperature_c} onChange={set("temperature_c")} className="min-h-[44px]" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label>Huyết áp (mmHg)</Label>
                   <div className="flex items-center gap-2">
@@ -575,7 +575,7 @@ function VitalSignsTabContent({ encounterId, readOnly }: { encounterId: string; 
                   <Input id="v-spo2" type="number" placeholder="vd: 98" value={vals.spo2_percent} onChange={set("spo2_percent")} className="min-h-[44px]" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label htmlFor="v-wt">Cân nặng (kg)</Label>
                   <Input id="v-wt" type="number" step="0.1" placeholder="vd: 65.0" value={vals.weight_kg} onChange={set("weight_kg")} className="min-h-[44px]" />

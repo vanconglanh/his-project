@@ -87,7 +87,7 @@ export function PharmacyTab() {
               <div className="space-y-3">
                 <div>
                   <p className="text-xs text-muted-foreground">Tổng giá trị</p>
-                  <p className="text-2xl font-bold">{vnd(inventory.total_value)} ₫</p>
+                  <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{vnd(inventory.total_value)} ₫</p>
                   <p className="text-xs text-muted-foreground">{inventory.total_skus ?? 0} SKU</p>
                 </div>
                 <Table>
@@ -127,11 +127,11 @@ export function PharmacyTab() {
             <div className="flex flex-wrap gap-4 mb-3">
               <div>
                 <p className="text-xs text-muted-foreground">Tổng lô</p>
-                <p className="text-xl font-bold">{nearExpiry.total_lots ?? 0}</p>
+                <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{nearExpiry.total_lots ?? 0}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Giá trị rủi ro</p>
-                <p className="text-xl font-bold text-amber-600">{vnd(nearExpiry.total_value_at_risk)} ₫</p>
+                <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums text-amber-600">{vnd(nearExpiry.total_value_at_risk)} ₫</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">

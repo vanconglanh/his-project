@@ -115,7 +115,7 @@ export function WarehouseTab() {
 
       {/* Create PO Dialog */}
       <Dialog open={createPoOpen} onOpenChange={setCreatePoOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Tạo đơn đặt hàng</DialogTitle>
           </DialogHeader>
@@ -125,7 +125,7 @@ export function WarehouseTab() {
 
       {/* GRN Dialog */}
       <Dialog open={!!selectedPoForGrn} onOpenChange={(o) => !o && setSelectedPoForGrn(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nhập kho từ đơn {selectedPoForGrn?.order_no}</DialogTitle>
           </DialogHeader>

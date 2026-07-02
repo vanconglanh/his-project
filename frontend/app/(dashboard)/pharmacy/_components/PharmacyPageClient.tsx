@@ -83,7 +83,7 @@ export function PharmacyPageClient() {
       {/* Render dialog outside tabs so it works even when adjustment tab is not active */}
       {activeTab !== "adjustment" && (
         <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Tạo điều chỉnh tồn kho</DialogTitle>
             </DialogHeader>

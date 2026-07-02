@@ -60,7 +60,7 @@ export default function ReceptionPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Tiếp đón bệnh nhân</h2>
+          <h2 className="text-xl font-bold tracking-tight">Tiếp đón bệnh nhân</h2>
           <p className="text-sm text-muted-foreground">
             Quản lý danh sách bệnh nhân chờ khám
           </p>
@@ -84,7 +84,7 @@ export default function ReceptionPage() {
               {statsLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <p className="text-3xl font-bold">{value ?? 0}</p>
+                <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{value ?? 0}</p>
               )}
             </CardContent>
           </Card>
@@ -94,12 +94,12 @@ export default function ReceptionPage() {
       {/* Main split layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
         {/* Left: Check-in form */}
-        <div className="border rounded-xl p-4 bg-card">
+        <div className="border rounded-lg p-4 bg-card">
           <ReceptionCheckInForm />
         </div>
 
         {/* Right: Queue board */}
-        <div className="border rounded-xl p-4 bg-card">
+        <div className="border rounded-lg p-4 bg-card">
           <h3 className="font-semibold mb-4">Bảng hàng đợi</h3>
           <ReceptionQueueBoard />
         </div>

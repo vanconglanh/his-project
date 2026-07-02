@@ -95,7 +95,7 @@ export default function BhytExportDetailPage({ params }: { params: Promise<{ id:
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase">Tổng yêu cầu</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold">{formatVnd(exportData.total_requested_amount)}</p>
+            <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums">{formatVnd(exportData.total_requested_amount)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -103,7 +103,7 @@ export default function BhytExportDetailPage({ params }: { params: Promise<{ id:
             <CardTitle className="text-xs font-medium text-green-700 uppercase">Được duyệt</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold text-green-700">{formatVnd(exportData.total_approved_amount)}</p>
+            <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums text-green-700">{formatVnd(exportData.total_approved_amount)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -111,7 +111,7 @@ export default function BhytExportDetailPage({ params }: { params: Promise<{ id:
             <CardTitle className="text-xs font-medium text-red-700 uppercase">Từ chối</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold text-red-700">{formatVnd(exportData.total_rejected_amount)}</p>
+            <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums text-red-700">{formatVnd(exportData.total_rejected_amount)}</p>
           </CardContent>
         </Card>
       </div>

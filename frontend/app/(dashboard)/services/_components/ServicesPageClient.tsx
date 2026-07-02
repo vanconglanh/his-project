@@ -85,7 +85,7 @@ export function ServicesPageClient() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Danh mục dịch vụ</h2>
+          <h2 className="text-xl font-bold tracking-tight">Danh mục dịch vụ</h2>
           <p className="text-sm text-muted-foreground">Bảng giá dịch vụ phòng khám</p>
         </div>
         <div className="flex items-center gap-2">

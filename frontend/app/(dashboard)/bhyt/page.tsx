@@ -266,7 +266,7 @@ export default function BhytPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">BHYT</h2>
+        <h2 className="text-xl font-bold tracking-tight">BHYT</h2>
         <p className="text-sm text-muted-foreground">
           Export XML giám định theo QĐ 4750/QĐ-BYT, đối soát kết quả
         </p>

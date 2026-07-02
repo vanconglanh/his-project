@@ -67,7 +67,7 @@ Lưu spec vào `docs/design/{module}-{topic}.md`. Mỗi file có:
 - Sidebar trái: 240px expanded / 64px collapsed, sticky.
 - Topbar: 56px, search global + notification + user.
 - Content padding: `p-6` desktop, `p-4` tablet.
-- Drawer (Sheet) bên phải: width `sm:max-w-2xl`, **luôn có `px-6 pb-6`** để không sát mép.
+- Drawer (Sheet) bên phải: mặc định `sm:max-w-xl` (detail/form ≤8 field); form rộng 2 cột dùng `sm:max-w-2xl` (variant sheet-wide); **luôn có `px-6 pb-6`** để không sát mép.
 - Modal (Dialog): `max-w-xl` cho form ngắn, `max-w-4xl` cho table phức tạp.
 
 ### Density
@@ -83,18 +83,18 @@ Lưu spec vào `docs/design/{module}-{topic}.md`. Mỗi file có:
 - `--muted-foreground`: xám trung tính cho metadata.
 
 ### Typography
-- Heading: `font-bold` `text-2xl` cho page title, `text-lg` cho section.
-- Body: `text-sm` mặc định (do mật độ thông tin cao).
-- Tabular data: `font-mono` cho số liệu (giá tiền, mã đơn, BHYT card no).
+- Heading: `text-xl font-bold` cho page title (thang HIS tối đa là `text-xl` = 1.375rem — KHÔNG dùng `text-2xl`/`text-3xl` mặc định Tailwind), `text-lg font-semibold` cho section.
+- Body: `text-base` (14px theo thang HIS); metadata `text-sm`.
+- Tabular data: `font-mono` + `tabular-nums` cho số liệu (giá tiền, mã đơn, BHYT card no); KPI dùng token `--text-kpi`/`--text-kpi-lg`.
 
 ### Trạng thái nghiệp vụ (Badge)
-- `WAITING` → outline xám
-- `IN_PROGRESS` → secondary xanh nhạt
-- `DONE` → success xanh lá
-- `CANCELLED` → muted xám gạch
-- `PAID` → success
-- `PENDING` → warning
-- `OVERDUE` → destructive
+Dùng DUY NHẤT `HisStatusBadge` (`components/ui/status-badge.tsx`) với 6 variant token — luôn có icon + `aria-label`:
+- `WAITING` → `waiting` (`--status-waiting`)
+- `IN_PROGRESS` → `progress` (`--status-progress`)
+- `DONE` / `PAID` → `done` (`--status-done`)
+- `PENDING` → `warning` (`--status-warning`)
+- `OVERDUE` / `CANCELLED` → `critical` (`--status-critical`)
+- BHYT → `insurance` (`--status-insurance`)
 
 ### Empty state
 - Icon outline kích thước 48px, màu `muted-foreground`.

@@ -208,7 +208,7 @@ export default function PatientsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Bệnh nhân</h2>
+          <h2 className="text-xl font-bold tracking-tight">Bệnh nhân</h2>
           <p className="text-sm text-muted-foreground">Quản lý hồ sơ bệnh nhân</p>
         </div>
         <Link href="/patients/new" className={cn(buttonVariants({ variant: "default" }), "gap-2 self-start")}>

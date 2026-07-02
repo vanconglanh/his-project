@@ -10,7 +10,7 @@ export function LabRadPageClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Cận lâm sàng (CLS)</h2>
+        <h2 className="text-xl font-bold tracking-tight">Cận lâm sàng (CLS)</h2>
         <p className="text-sm text-muted-foreground">
           Kết quả xét nghiệm, chẩn đoán hình ảnh, đối tác lab và tích hợp
         </p>

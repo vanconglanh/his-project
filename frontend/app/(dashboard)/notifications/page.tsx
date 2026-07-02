@@ -38,7 +38,7 @@ export default function NotificationsPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Hộp thư thông báo</h1>
+          <h1 className="text-xl font-bold tracking-tight">Hộp thư thông báo</h1>
           <p className="text-sm text-muted-foreground">Tất cả thông báo của bạn</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => markAllRead.mutate()}>

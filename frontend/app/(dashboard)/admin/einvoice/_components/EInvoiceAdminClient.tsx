@@ -60,7 +60,7 @@ export function EInvoiceAdminClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Hoá đơn điện tử</h2>
+        <h2 className="text-xl font-bold tracking-tight">Hoá đơn điện tử</h2>
         <p className="text-sm text-muted-foreground">Quản lý HĐĐT đã phát hành qua MISA / VNPT / EFY</p>
       </div>
 

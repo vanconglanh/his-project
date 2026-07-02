@@ -7,7 +7,7 @@ export default function SuppliersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Nhà cung cấp</h2>
+        <h2 className="text-xl font-bold tracking-tight">Nhà cung cấp</h2>
         <p className="text-sm text-muted-foreground">Quản lý danh sách nhà cung cấp thuốc</p>
       </div>
       <SuppliersPageClient />

@@ -122,7 +122,7 @@ export default function PatientDetailPage() {
         />
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold">{patient.full_name}</h1>
+            <h1 className="text-xl font-bold">{patient.full_name}</h1>
             {patient.bhyt_card_no && (
               <Badge variant={isBhytActive ? "default" : "secondary"}>
                 BHYT {isBhytActive ? "còn hạn" : "hết hạn"}
