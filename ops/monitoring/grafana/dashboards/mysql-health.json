@@ -1,0 +1,145 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.3.0" },
+    { "type": "datasource", "id": "loki", "name": "Loki", "version": "1.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "text", "name": "Text", "version": "" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Pro-Diab HIS MySQL Health — connections, slow queries, replication lag (placeholder cho mysqld_exporter)",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "MySQL Status",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "description": "PLACEHOLDER — cần thêm mysqld_exporter + Prometheus datasource để có metrics thực",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=\"prodiab_backend\"} |= \"MySQL\" [5m]))",
+          "legendFormat": "MySQL log events/5m",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2,
+      "title": "MySQL Error Log Stream",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "{service=\"prodiab_mysql\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 3,
+      "title": "MySQL Connection Errors (từ backend log)",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "sum(rate({service=\"prodiab_backend\"} |~ \"(?i)(connection refused|too many connections|deadlock|mysql error)\" [5m]))",
+          "legendFormat": "MySQL conn errors/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "fixedColor": "red", "mode": "fixed" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Slow Query Log Stream",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "description": "Slow queries từ MySQL error log (cần log_slow_queries=ON trong MySQL)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "{service=\"prodiab_mysql\"} |~ \"(?i)slow query|Query_time\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "showTime": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Replication Lag (Placeholder)",
+      "type": "text",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 20 },
+      "options": {
+        "content": "## Replication Lag\n\n**PLACEHOLDER** — Metric này yêu cầu:\n1. Cài `mysqld_exporter` trên MySQL host\n2. Thêm Prometheus datasource vào Grafana\n3. Query: `mysql_slave_status_seconds_behind_master`\n\n**Cài mysqld_exporter:**\n```bash\ndocker run -d --name mysqld_exporter \\\n  -e DATA_SOURCE_NAME=\"exporter:password@(mysql:3306)/\" \\\n  -p 9104:9104 \\\n  prom/mysqld-exporter:v0.15.1\n```",
+        "mode": "markdown"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Database Backup Status (last 24h)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "description": "Log từ backup-nightly.sh (cần Promtail scrape /var/log/prodiab/backup-nightly.log)",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "{job=\"backup\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "showTime": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["prodiab", "mysql", "database"],
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "Asia/Ho_Chi_Minh",
+  "title": "Pro-Diab MySQL Health",
+  "uid": "prodiab-mysql-health",
+  "version": 1
+}

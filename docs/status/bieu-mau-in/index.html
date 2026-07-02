@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pro-Diab HIS — Thư viện biểu mẫu in</title>
+<style>
+  :root{
+    --page:#f9f9f7;--surface:#fcfcfb;--surface-2:#f3f3f0;--ink:#0b0b0b;--ink-2:#52514e;--muted:#898781;
+    --grid:#e1e0d9;--border:rgba(11,11,11,0.10);--blue:#2a78d6;--aqua:#1baf7a;--good:#0ca30c;--warning:#fab219;--critical:#d03b3b;--serious:#ec835a;
+    --shadow:0 1px 2px rgba(11,11,11,.04),0 4px 16px rgba(11,11,11,.04);
+  }
+  [data-theme="dark"]{
+    --page:#0d0d0d;--surface:#1a1a19;--surface-2:#232322;--ink:#fff;--ink-2:#c3c2b7;--muted:#898781;
+    --grid:#2c2c2a;--border:rgba(255,255,255,0.10);--blue:#3987e5;--aqua:#199e70;--good:#0ca30c;--warning:#fab219;--critical:#d03b3b;--serious:#ec835a;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--page);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 20px 64px}
+  header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,var(--aqua),var(--blue));display:grid;place-items:center;color:#fff;font-weight:700;box-shadow:var(--shadow)}
+  h1{font-size:22px;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--ink-2);font-size:13.5px;margin-top:2px}
+  .top-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .btn{font:inherit;font-size:13px;cursor:pointer;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--ink);padding:7px 13px;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:background .15s}
+  .btn:hover{background:var(--surface-2)}
+  .intro{color:var(--ink-2);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);margin:18px 0 26px}
+  .intro b{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
+  .card .head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .card h3{margin:0;font-size:15px}
+  .paper{font-size:11px;font-weight:700;color:#fff;background:var(--blue);border-radius:6px;padding:2px 8px}
+  .paper.k{background:var(--violet,#4a3aa7)}
+  .desc{font-size:12.5px;color:var(--ink-2);flex:1}
+  .status{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;width:fit-content}
+  .status.ok{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+  .status.gap{background:color-mix(in srgb,var(--critical) 16%,transparent);color:var(--critical)}
+  .status.partial{background:color-mix(in srgb,var(--warning) 22%,transparent);color:var(--ink)}
+  .card a.open{margin-top:2px;text-align:center;font-weight:600;font-size:13px;color:#fff;background:var(--aqua);border-radius:9px;padding:8px;text-decoration:none}
+  .card a.open:hover{filter:brightness(1.05)}
+  footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--grid);color:var(--muted);font-size:12px}
+  footer a{color:var(--blue)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin:14px 0 0}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">PD</div>
+      <div>
+        <h1>Thư viện biểu mẫu in</h1>
+        <div class="sub">Chứng từ lâm sàng &amp; tài chính phòng khám cần in — bản preview print-ready</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <a class="btn" href="../dashboard-status.html">📊 Dashboard</a>
+      <a class="btn" href="../lo-trinh.html">🗺️ Lộ trình</a>
+      <button class="btn" id="themeBtn" type="button">🌙 Tối</button>
+    </div>
+  </header>
+
+  <div class="intro">
+    Mỗi biểu mẫu là một trang HTML <b>độc lập, print-ready</b> (đúng khổ giấy, có letterhead, nút 🖨️ In gọi <code>window.print()</code>).
+    Dùng để <b>duyệt layout</b> và làm <b>spec triển khai</b> cho FE/BE. Dữ liệu là mẫu minh hoạ (BN Nguyễn Văn An — ĐTĐ type 2).
+    <b>Phiếu chỉ định CLS</b> là biểu mẫu <span style="color:var(--critical);font-weight:600">đang thiếu</span> trong source — thiết kế ở đây chính là đề xuất bổ sung.
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="head"><h3>Phiếu khám bệnh</h3><span class="paper">A4</span></div>
+      <span class="status ok">✅ Đã có (encounters/print)</span>
+      <div class="desc">Bệnh án ngoại trú: hành chính, lý do khám, sinh hiệu, hỏi bệnh, khám, chẩn đoán ICD-10, xử trí.</div>
+      <a class="open" href="phieu-kham.html">Mở &amp; In →</a>
+    </div>
+
+    <div class="card">
+      <div class="head"><h3>Đơn thuốc</h3><span class="paper">A5</span></div>
+      <span class="status ok">✅ Đã có (Rx PDF + QR)</span>
+      <div class="desc">Theo TT 27/2021: thông tin BN, chẩn đoán, bảng thuốc, cách dùng, QR mã đơn Quốc gia, chữ ký bác sĩ.</div>
+      <a class="open" href="don-thuoc.html">Mở &amp; In →</a>
+    </div>
+
+    <div class="card" style="outline:2px solid color-mix(in srgb,var(--good) 40%,transparent);outline-offset:-1px">
+      <div class="head"><h3>Phiếu chỉ định CLS</h3><span class="paper">A5</span></div>
+      <span class="status ok">✅ Đã implement (cls-print)</span>
+      <div class="desc">Phiếu để BN cầm sang phòng XN/CĐHA. <b>Đã dựng trang in trong app:</b> <code>encounters/[id]/cls-print</code> (đã pass tsc &amp; build). Template A5 bên dưới là bản thiết kế tham chiếu.</div>
+      <a class="open" href="phieu-chi-dinh-cls.html">Mở &amp; In →</a>
+    </div>
+
+    <div class="card">
+      <div class="head"><h3>Phiếu kết quả xét nghiệm</h3><span class="paper">A4</span></div>
+      <span class="status ok">✅ Đã có (lab-results PDF)</span>
+      <div class="desc">Bảng kết quả: chỉ số, đơn vị, khoảng tham chiếu, cờ H/L; kết luận; KTV + bác sĩ duyệt.</div>
+      <a class="open" href="ket-qua-cls.html">Mở &amp; In →</a>
+    </div>
+
+    <div class="card">
+      <div class="head"><h3>Biên lai thu tiền</h3><span class="paper k">K80</span></div>
+      <span class="status ok">✅ Đã có (cashier receipts)</span>
+      <div class="desc">Khổ máy in nhiệt 80mm: danh sách dịch vụ, tổng, BHYT chi trả, BN thanh toán, tiền thối, QR.</div>
+      <a class="open" href="bien-lai-k80.html">Mở &amp; In →</a>
+    </div>
+
+    <div class="card">
+      <div class="head"><h3>Vé số thứ tự</h3><span class="paper k">K58</span></div>
+      <span class="status partial">⚠️ BE có, nút in UI = P2</span>
+      <div class="desc">Khổ nhiệt 58mm: số thứ tự lớn, phòng khám, tên BN, giờ lấy số, QR tra cứu. BE đã có ticket-pdf.</div>
+      <a class="open" href="ve-so.html">Mở &amp; In →</a>
+    </div>
+
+    <div class="card">
+      <div class="head"><h3>Hóa đơn dịch vụ</h3><span class="paper">A5</span></div>
+      <span class="status ok">✅ Đã có (billings PDF)</span>
+      <div class="desc">Hóa đơn KCB: bảng dịch vụ, đơn giá, thành tiền, BHYT chi trả, tự trả, số tiền bằng chữ, chữ ký.</div>
+      <a class="open" href="hoa-don-a5.html">Mở &amp; In →</a>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--good)"></i>Đã có trong source</span>
+    <span><i style="background:var(--warning)"></i>Có backend, thiếu nút in UI</span>
+    <span><i style="background:var(--critical)"></i>Thiếu — cần bổ sung</span>
+  </div>
+
+  <footer>
+    <div>7 biểu mẫu · khổ A4 · A5 · K80 · K58 · có letterhead (logo/pháp nhân/footer — migration 0065). Mỗi file mở trực tiếp bằng trình duyệt để in.</div>
+    <div style="margin-top:6px"><a href="../dashboard-status.html">← Về Dashboard trạng thái</a></div>
+  </footer>
+</div>
+<script>
+  const btn=document.getElementById('themeBtn'),root=document.documentElement;
+  function setTheme(t){root.setAttribute('data-theme',t);btn.textContent=t==='dark'?'☀️ Sáng':'🌙 Tối';try{localStorage.setItem('pd-theme',t)}catch(e){}}
+  btn.addEventListener('click',()=>setTheme(root.getAttribute('data-theme')==='dark'?'light':'dark'));
+  try{const s=localStorage.getItem('pd-theme');if(s)setTheme(s);else if(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)setTheme('dark')}catch(e){}
+</script>
+</body>
+</html>

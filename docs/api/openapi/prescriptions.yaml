@@ -1,0 +1,460 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Prescription API
+  version: 1.0.0
+  description: |
+    Sprint 6-7 EPIC 5. Kê đơn thuốc, ký số PKCS#11, Drug-Drug Interaction.
+    Status flow: DRAFT -> SIGNED -> SUBMITTED_DTQG -> DISPENSED|PARTIAL_DISPENSED|CANCELLED.
+servers:
+  - url: https://api.prodiab.vn/api/v1
+  - url: http://localhost:5000/api/v1
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Prescriptions
+  - name: Prescription Items
+  - name: Prescription Workflow
+
+paths:
+  /prescriptions:
+    get:
+      tags: [Prescriptions]
+      summary: List prescriptions
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, SIGNED, SUBMITTED_DTQG, DISPENSED, PARTIAL_DISPENSED, CANCELLED]
+        - name: patient_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: encounter_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: doctor_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: from_date
+          in: query
+          schema: { type: string, format: date }
+        - name: to_date
+          in: query
+          schema: { type: string, format: date }
+        - name: q
+          in: query
+          description: search prescription code / patient name
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/PrescriptionResponse' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+      x-permission: prescription.read
+    post:
+      tags: [Prescriptions]
+      summary: Create prescription (DRAFT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PrescriptionCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PrescriptionResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+      x-permission: prescription.create
+
+  /prescriptions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+    get:
+      tags: [Prescriptions]
+      summary: Get prescription detail
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PrescriptionResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+      x-permission: prescription.read
+    put:
+      tags: [Prescriptions]
+      summary: Update prescription (only DRAFT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PrescriptionUpdateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PrescriptionResponse' }
+        '409': { $ref: '#/components/responses/InvalidState' }
+      x-permission: prescription.update
+    delete:
+      tags: [Prescriptions]
+      summary: Soft delete (only DRAFT)
+      responses:
+        '204': { description: No Content }
+        '409': { $ref: '#/components/responses/InvalidState' }
+      x-permission: prescription.update
+
+  /prescriptions/{id}/items:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+    post:
+      tags: [Prescription Items]
+      summary: Add items (bulk)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items: { $ref: '#/components/schemas/PrescriptionItemRequest' }
+      responses:
+        '201':
+          description: Items added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/PrescriptionItemResponse' }
+      x-permission: prescription.update
+
+  /prescriptions/{id}/items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+      - name: itemId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [Prescription Items]
+      summary: Remove an item (only DRAFT)
+      responses:
+        '204': { description: No Content }
+        '409': { $ref: '#/components/responses/InvalidState' }
+      x-permission: prescription.update
+
+  /prescriptions/{id}/sign:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+    post:
+      tags: [Prescription Workflow]
+      summary: Digitally sign via USB token (PKCS#11)
+      description: Marks status SIGNED, stores PKCS#7 signature blob.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signature_data, certificate_thumbprint]
+              properties:
+                signature_data:
+                  type: string
+                  description: Base64 PKCS#7 detached signature produced by USB token (client-side).
+                certificate_thumbprint: { type: string }
+                signing_time: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Signed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PrescriptionResponse' }
+        '409':
+          description: Already signed or invalid state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: PRESCRIPTION_ALREADY_SIGNED, message: "Đơn thuốc đã được ký, không thể ký lại." }
+      x-permission: prescription.sign
+
+  /prescriptions/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+    post:
+      tags: [Prescription Workflow]
+      summary: Cancel prescription (only before dispensing)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 3 }
+      responses:
+        '200':
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PrescriptionResponse' }
+        '409': { $ref: '#/components/responses/InvalidState' }
+      x-permission: prescription.cancel
+
+  /prescriptions/{id}/ddi-check:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+    get:
+      tags: [Prescription Workflow]
+      summary: Drug-Drug Interaction check
+      responses:
+        '200':
+          description: DDI report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      prescription_id: { type: string, format: uuid }
+                      warnings:
+                        type: array
+                        items: { $ref: '#/components/schemas/DdiWarning' }
+                      has_contraindicated: { type: boolean }
+      x-permission: ddi.check
+
+  /prescriptions/{id}/qr:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+    get:
+      tags: [Prescription Workflow]
+      summary: Get QR code (PNG) for ĐTQG
+      responses:
+        '200':
+          description: OK
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        '404': { $ref: '#/components/responses/NotFound' }
+      x-permission: prescription.read
+
+  /prescriptions/{id}/pdf:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+    get:
+      tags: [Prescription Workflow]
+      summary: Print prescription PDF
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+      x-permission: prescription.read
+
+  /prescriptions/{id}/print-history:
+    parameters:
+      - $ref: '#/components/parameters/PrescriptionId'
+    get:
+      tags: [Prescription Workflow]
+      summary: List print events
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        printed_at: { type: string, format: date-time }
+                        printed_by: { type: string, format: uuid }
+                        printer_name: { type: string }
+      x-permission: prescription.read
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PrescriptionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          example:
+            error: { code: PRESCRIPTION_NOT_FOUND, message: "Không tìm thấy đơn thuốc." }
+    InvalidState:
+      description: Invalid state for this operation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          example:
+            error: { code: PRESCRIPTION_INVALID_STATE, message: "Trạng thái đơn thuốc không cho phép thao tác này." }
+  schemas:
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    PrescriptionCreateRequest:
+      type: object
+      required: [encounter_id, patient_id]
+      properties:
+        encounter_id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        note: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PrescriptionItemRequest' }
+    PrescriptionUpdateRequest:
+      type: object
+      properties:
+        note: { type: string }
+    PrescriptionItemRequest:
+      type: object
+      required: [drug_id, dosage, frequency, route, duration_days, quantity]
+      properties:
+        drug_id: { type: string, format: uuid }
+        dosage: { type: string, example: "1 viên" }
+        frequency: { type: string, example: "2 lần/ngày" }
+        route:
+          type: string
+          enum: [ORAL, IV, IM, SC, TOP, INH, OPH, OTIC, NAS, REC, OTHER]
+        duration_days: { type: integer, minimum: 1 }
+        quantity: { type: number }
+        instructions: { type: string }
+    PrescriptionItemResponse:
+      allOf:
+        - $ref: '#/components/schemas/PrescriptionItemRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            drug_name: { type: string }
+            strength: { type: string }
+            unit: { type: string }
+            batch_dispensed:
+              type: array
+              items:
+                type: object
+                properties:
+                  batch_no: { type: string }
+                  quantity: { type: number }
+    PrescriptionResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        encounter_id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        patient_summary:
+          type: object
+          properties:
+            full_name: { type: string }
+            gender: { type: string }
+            dob: { type: string, format: date }
+            bhyt_no: { type: string }
+        doctor_id: { type: string, format: uuid }
+        doctor_name: { type: string }
+        status:
+          type: string
+          enum: [DRAFT, SIGNED, SUBMITTED_DTQG, DISPENSED, PARTIAL_DISPENSED, CANCELLED]
+        prescribed_at: { type: string, format: date-time }
+        signed_at: { type: string, format: date-time, nullable: true }
+        signed_by: { type: string, format: uuid, nullable: true }
+        dtqg_code: { type: string, maxLength: 14, nullable: true }
+        dtqg_status:
+          type: string
+          enum: [NONE, PENDING, SUBMITTED, ACCEPTED, REJECTED]
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PrescriptionItemResponse' }
+        ddi_warnings:
+          type: array
+          items: { $ref: '#/components/schemas/DdiWarning' }
+        total_amount: { type: number }
+        note: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    DdiWarning:
+      type: object
+      properties:
+        drug1_id: { type: string, format: uuid }
+        drug1_name: { type: string }
+        drug2_id: { type: string, format: uuid }
+        drug2_name: { type: string }
+        severity:
+          type: string
+          enum: [MINOR, MODERATE, MAJOR, CONTRAINDICATED]
+        description: { type: string }
+        evidence_level:
+          type: string
+          enum: [A, B, C]

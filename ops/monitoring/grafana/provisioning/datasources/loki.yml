@@ -1,0 +1,25 @@
+apiVersion: 1
+
+deleteDatasources:
+  - name: Loki
+    orgId: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    uid: loki_prodiab
+    orgId: 1
+    url: http://loki:3100
+    access: proxy
+    isDefault: true
+    version: 1
+    editable: false
+    jsonData:
+      maxLines: 5000
+      timeout: 60
+      derivedFields:
+        # Link từ log request_id → trace (nếu có Tempo sau này)
+        - name: TraceID
+          matcherRegex: '"traceId":"(\w+)"'
+          url: ""
+          datasourceUid: ""

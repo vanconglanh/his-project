@@ -1,0 +1,100 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: 57.155.1.252    Database: diab_his
+-- ------------------------------------------------------
+-- Server version	8.0.23
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-8b67-11ef-b09a-0242ac130002:1-22227792';
+
+--
+-- Table structure for table `sys_hospitals`
+--
+
+DROP TABLE IF EXISTS `sys_hospitals`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sys_hospitals` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `CODE` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Hospital code',
+  `NAME` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Hospital name',
+  `SHORT_NAME` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Hospital short name',
+  `DESCRIPTION` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Hospital description',
+  `SYSTEM_ID` int NOT NULL COMMENT 'Reference to sys_systems',
+  `HOSPITAL_TYPE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Type: General, Specialist, Clinic, etc.',
+  `OWNERSHIP_TYPE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Public, Private, PPP',
+  `LICENSE_NUMBER` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Medical license number',
+  `TAX_ID` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Tax identification number',
+  `ADDRESS_LINE1` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Address line 1',
+  `ADDRESS_LINE2` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Address line 2',
+  `CITY` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'City',
+  `STATE` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'State/Province',
+  `COUNTRY` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Vietnam',
+  `POSTAL_CODE` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Postal code',
+  `PHONE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Main phone',
+  `EMERGENCY_PHONE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Emergency phone',
+  `EMAIL` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Main email',
+  `WEBSITE` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Website',
+  `TOTAL_BEDS` int DEFAULT NULL COMMENT 'Total bed capacity',
+  `TOTAL_DEPARTMENTS` int DEFAULT NULL COMMENT 'Total departments',
+  `ESTABLISHED_DATE` date DEFAULT NULL COMMENT 'Established date',
+  `ACCREDITATION_STATUS` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'JCI, ISO, etc.',
+  `TIMEZONE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '+07:00' COMMENT 'Timezone',
+  `CURRENCY_CODE` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'VND' COMMENT 'Currency code',
+  `LANGUAGE_CODE` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'vi' COMMENT 'Primary language',
+  `CREATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `LAST_UPDATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `STATUS` int NOT NULL DEFAULT '1',
+  `CREATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_PROGRAM` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `IDX_SYSTEM_ID` (`SYSTEM_ID`),
+  KEY `IDX_HOSPITAL_TYPE` (`HOSPITAL_TYPE`),
+  KEY `IDX_CITY` (`CITY`),
+  KEY `IDX_COUNTRY` (`COUNTRY`),
+  KEY `IDX_STATUS` (`STATUS`),
+  KEY `IDX_CREATED_AT` (`CREATED_AT`),
+  KEY `IDX_SYS_HOSPITALS_SYSTEM_ID` (`SYSTEM_ID`),
+  CONSTRAINT `FK_HOSPITAL_SYSTEM` FOREIGN KEY (`SYSTEM_ID`) REFERENCES `sys_systems` (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Hospitals';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `sys_hospitals`
+--
+
+LOCK TABLES `sys_hospitals` WRITE;
+/*!40000 ALTER TABLE `sys_hospitals` DISABLE KEYS */;
+INSERT INTO `sys_hospitals` VALUES (1,'diab','Phòng khám diaB','DiaB','diab',1,'1','1','123','','',NULL,NULL,NULL,'Vietnam',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'+07:00','VND','vi','2025-12-24 14:29:00','2025-12-24 14:29:00',1,NULL,NULL,NULL);
+/*!40000 ALTER TABLE `sys_hospitals` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-05-22 22:20:08

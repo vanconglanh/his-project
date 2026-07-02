@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - eInvoice API
+  version: 1.0.0-sprint8
+  description: |
+    Hóa đơn điện tử (MISA / VNPT / EFY adapter).
+    IEInvoiceProvider abstraction. Dev mock trả CQT code giả.
+    Mã CQT 13 ký tự theo NĐ 123/2020/NĐ-CP.
+servers:
+  - url: /api/v1
+
+tags:
+  - name: EInvoices
+
+paths:
+  /einvoices:
+    get:
+      tags: [EInvoices]
+      security: [{ bearerAuth: [einvoice.read] }]
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/EInvoiceStatus' } }
+        - { name: provider, in: query, schema: { type: string, enum: [MISA, VNPT, EFY] } }
+        - { name: billing_id, in: query, schema: { type: string, format: uuid } }
+        - { name: from_date, in: query, schema: { type: string, format: date } }
+        - { name: to_date, in: query, schema: { type: string, format: date } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/EInvoiceResponse' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+
+  /einvoices/issue:
+    post:
+      tags: [EInvoices]
+      summary: Issue eInvoice (call provider, get CQT code)
+      security: [{ bearerAuth: [einvoice.issue] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [billing_id, provider]
+              properties:
+                billing_id: { type: string, format: uuid }
+                provider: { type: string, enum: [MISA, VNPT, EFY] }
+                buyer:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    tax_code: { type: string, nullable: true }
+                    address: { type: string, nullable: true }
+                    email: { type: string, format: email, nullable: true }
+                    phone: { type: string, nullable: true }
+                send_email: { type: boolean, default: true }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EInvoiceResponse' }
+        '409': { description: EINVOICE_ALREADY_ISSUED }
+        '422': { description: EINVOICE_TAX_CODE_MISSING }
+        '502': { description: EINVOICE_PROVIDER_ERROR }
+
+  /einvoices/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [EInvoices]
+      security: [{ bearerAuth: [einvoice.read] }]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EInvoiceResponse' }
+
+  /einvoices/{id}/cancel:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [EInvoices]
+      summary: Cancel with CQT
+      security: [{ bearerAuth: [einvoice.cancel] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 5 }
+      responses:
+        '200': { description: Cancelled }
+
+  /einvoices/{id}/xml-download:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [EInvoices]
+      security: [{ bearerAuth: [einvoice.read] }]
+      responses:
+        '200':
+          content:
+            application/xml:
+              schema: { type: string, format: binary }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  schemas:
+    EInvoiceStatus:
+      type: string
+      enum: [DRAFT, ISSUED, CANCELLED, REPLACED]
+
+    EInvoiceResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        billing_id: { type: string, format: uuid }
+        provider: { type: string, enum: [MISA, VNPT, EFY] }
+        invoice_no: { type: string, description: 'Số HĐ do provider cấp' }
+        invoice_series: { type: string, nullable: true, description: 'Ký hiệu mẫu' }
+        cqt_code: { type: string, maxLength: 13, description: 'Mã CQT 13 ký tự' }
+        issue_date: { type: string, format: date-time }
+        total_amount: { type: number }
+        vat_amount: { type: number }
+        status: { $ref: '#/components/schemas/EInvoiceStatus' }
+        pdf_url: { type: string, nullable: true }
+        xml_url: { type: string, nullable: true }
+        signed_at: { type: string, format: date-time, nullable: true }
+        cancel_reason: { type: string, nullable: true }
+        cancelled_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        created_by: { type: string, format: uuid }
+
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }

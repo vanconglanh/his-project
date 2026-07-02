@@ -1,0 +1,1087 @@
+{
+  "App": {
+    "name": "Pro-Diab HIS",
+    "tagline": "Outpatient Clinic Management System"
+  },
+  "Dashboard": {
+    "title": "Overview",
+    "subtitle": "Today's clinic activity",
+    "todayPatients": "Today's Patients",
+    "pendingEncounters": "Pending Encounters",
+    "todayRevenue": "Today's Revenue",
+    "monthlyRevenue": "Monthly Revenue",
+    "kpi": {
+      "revenue": "Today's Revenue",
+      "encounters": "Encounters",
+      "newPatients": "New Patients",
+      "prescriptions": "Prescriptions"
+    },
+    "chart": {
+      "revenueTrend": "Revenue Trend (30 days)",
+      "encountersTrend": "Encounters (30 days)",
+      "topDoctors": "Top 10 Doctors (Revenue)",
+      "topDrugs": "Top 10 Drugs (Revenue)"
+    },
+    "diabetes": {
+      "sectionTitle": "Diabetes Clinic",
+      "hba1cDistribution": "HbA1c Distribution",
+      "complicationsRate": "Complication Rate",
+      "totalPatients": "Total Diabetic Patients",
+      "hba1cControlled": "HbA1c Well-Controlled (<7%)",
+      "type2": "Type 2 DM"
+    },
+    "recentActivity": "Recent Activity"
+  },
+  "Report": {
+    "title": "Reports & Analytics",
+    "financial": "Financial",
+    "clinical": "Clinical",
+    "pharmacy": "Pharmacy",
+    "exportSuccess": "Report exported successfully",
+    "exportError": "Report export failed"
+  },
+  "Auth": {
+    "loginTitle": "Sign In",
+    "loginSubtitle": "Enter your credentials to access the system",
+    "email": "Email",
+    "emailPlaceholder": "name@clinic.vn",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "loginButton": "Sign In",
+    "loggingIn": "Signing in...",
+    "invalidCredentials": "Invalid email or password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "serverError": "Server error, please try again later",
+    "acceptInvite": {
+      "title": "Activate Account",
+      "subtitle": "Set a password to complete account activation",
+      "fullName": "Full Name",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Activate Account",
+      "success": "Account activated successfully! Welcome.",
+      "invalidToken": "Invalid invitation link"
+    },
+    "forgotPasswordPage": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your email to receive a password reset link",
+      "submit": "Send Reset Link",
+      "sentTitle": "Check your email",
+      "sentMessage": "If the email exists in the system, we have sent a password reset link.",
+      "backToLogin": "Back to Login"
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter a new password for your account",
+      "submit": "Reset Password",
+      "success": "Password reset successfully! Please sign in.",
+      "invalidToken": "Link is invalid or has expired"
+    }
+  },
+  "Nav": {
+    "overview": "Overview",
+    "reception": "Reception",
+    "patients": "Patients",
+    "encounters": "Encounters",
+    "prescriptions": "Prescriptions",
+    "pharmacy": "Pharmacy",
+    "cashier": "Cashier",
+    "reports": "Reports",
+    "admin": "Admin",
+    "labrad": "Lab/Rad",
+    "bhyt": "Health Insurance",
+    "tenants": "Clinics",
+    "users": "Users",
+    "roles": "Roles",
+    "audit": "Audit Log",
+    "nurse": "Nursing",
+    "emrTemplates": "EMR Templates",
+    "labradResults": "Lab Results",
+    "labPartners": "Lab Partners",
+    "labIntegration": "Lab Integration",
+    "drugs": "Drug Catalog",
+    "dispense": "Dispensing",
+    "dtqg": "DTQG",
+    "suppliers": "Suppliers",
+    "billings": "Invoices",
+    "debts": "Receivables",
+    "services": "Services",
+    "einvoice": "E-Invoice",
+    "apiPartners": "API Partners",
+    "notificationsConfig": "Notification Settings"
+  },
+  "ApiPartner": {
+    "title": "API Partners",
+    "subtitle": "Manage Public API integration partners",
+    "createNew": "Create New Partner",
+    "statusActive": "Active",
+    "statusDisabled": "Disabled",
+    "statusExpired": "Expired",
+    "fields": {
+      "name": "Partner Name",
+      "contactEmail": "Contact Email",
+      "scopes": "Scopes",
+      "rateLimit": "Rate Limit (req/min)",
+      "dailyQuota": "Daily Quota",
+      "expiresAt": "Expiry Date",
+      "apiKeyMasked": "API Key",
+      "status": "Status"
+    },
+    "keyWarning": "Copy now! The API key is only shown once and cannot be retrieved.",
+    "errors": {
+      "API_KEY_INVALID": "Invalid API key",
+      "API_KEY_EXPIRED": "API key has expired",
+      "API_SCOPE_DENIED": "API key lacks required scope",
+      "API_RATE_LIMITED": "Rate limit exceeded",
+      "API_QUOTA_EXCEEDED": "Daily quota exceeded"
+    }
+  },
+  "Notification": {
+    "title": "Notifications",
+    "inbox": "Notification Inbox",
+    "preferences": "Notification Preferences",
+    "unread": "Unread",
+    "markRead": "Mark as read",
+    "markAllRead": "Mark all as read",
+    "delete": "Delete notification",
+    "noNotifications": "No new notifications",
+    "position": {
+      "topRight": "Top Right",
+      "bottomRight": "Bottom Right",
+      "center": "Center"
+    },
+    "sound": {
+      "label": "Sound",
+      "enable": "Enable notification sound",
+      "DEFAULT": "Default",
+      "CHIME": "Chime",
+      "BELL": "Bell",
+      "preview": "Preview"
+    },
+    "webPush": {
+      "enable": "Enable browser notifications",
+      "disable": "Disable browser notifications",
+      "description": "Receive notifications even when the tab is closed"
+    },
+    "errors": {
+      "WEB_PUSH_INVALID_SUBSCRIPTION": "Invalid subscription",
+      "VAPID_KEY_NOT_CONFIGURED": "Tenant has not configured VAPID key"
+    }
+  },
+  "Portal": {
+    "title": "Patient Portal",
+    "login": {
+      "title": "Patient Portal Sign In",
+      "phoneStep": "Enter your phone number to receive an OTP",
+      "otpStep": "Enter the OTP sent to your number",
+      "sendOtp": "Send OTP",
+      "verify": "Verify",
+      "changePhone": "Change Phone Number",
+      "otpTtl": "Code valid for 5 minutes"
+    },
+    "me": {
+      "patientCode": "Patient Code",
+      "bhytNumber": "Health Insurance Number"
+    },
+    "encounters": {
+      "title": "Visit History",
+      "empty": "No visit history yet"
+    },
+    "prescriptions": {
+      "title": "My Prescriptions",
+      "empty": "No prescriptions yet",
+      "download": "Download PDF"
+    },
+    "labResults": {
+      "title": "Lab Results",
+      "empty": "No lab results yet"
+    },
+    "appointments": {
+      "title": "Appointments",
+      "bookNew": "Book New Appointment",
+      "cancel": "Cancel Appointment",
+      "empty": "No appointments yet"
+    },
+    "errors": {
+      "PORTAL_OTP_INVALID": "Incorrect OTP",
+      "PORTAL_OTP_EXPIRED": "OTP has expired",
+      "PORTAL_OTP_TOO_MANY_ATTEMPTS": "Too many OTP requests, try again in 1 hour",
+      "PORTAL_PHONE_NOT_REGISTERED": "Phone number not registered",
+      "PORTAL_SESSION_EXPIRED": "Session has expired",
+      "APPOINTMENT_SLOT_TAKEN": "This time slot is already booked",
+      "APPOINTMENT_CANCEL_TOO_LATE": "Cannot cancel within 2 hours of appointment"
+    }
+  },
+  "Common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "noData": "No data",
+    "logout": "Logout",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "actions": "Actions",
+    "status": "Status",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "total": "Total",
+    "filter": "Filter",
+    "export": "Export",
+    "print": "Print",
+    "refresh": "Refresh",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "systemMode": "System",
+    "theme": "Theme",
+    "errors": {
+      "AUTH_INVALID_CREDENTIALS": "Invalid email or password",
+      "AUTH_TOKEN_INVALID": "Session expired, please sign in again",
+      "PERMISSION_DENIED": "You do not have permission to perform this action",
+      "TENANT_NOT_FOUND": "Clinic not found",
+      "TENANT_SUBDOMAIN_TAKEN": "Subdomain already in use",
+      "USER_EMAIL_EXISTS": "Email already registered",
+      "USER_INVITE_EXPIRED": "Invitation link has expired",
+      "PASSWORD_TOO_WEAK": "Password must be at least 12 characters with uppercase, lowercase, numbers, and special characters",
+      "ROLE_SYSTEM_PROTECTED": "Cannot delete a system role",
+      "TWO_FA_INVALID_CODE": "Invalid 2FA code",
+      "TWO_FA_ALREADY_ENABLED": "Two-factor authentication is already enabled",
+      "PATIENT_NOT_FOUND": "Patient not found",
+      "PATIENT_CODE_EXISTS": "Patient code already exists",
+      "AVATAR_FILE_TOO_LARGE": "Avatar exceeds 2MB limit",
+      "AVATAR_INVALID_FORMAT": "Only PNG or JPEG images are accepted",
+      "BHYT_CARD_INVALID": "Invalid health insurance card format (15 characters)",
+      "BHYT_EXPIRED": "Health insurance card has expired",
+      "RECEPTION_DUPLICATE_CHECKIN": "Patient already checked in today at this room",
+      "RECEPTION_ROOM_FULL": "Room has reached the maximum encounter limit",
+      "CLS_UPLOAD_TOO_LARGE": "Document exceeds the maximum size of 10MB",
+      "CLS_UPLOAD_INVALID_FORMAT": "Only PNG/JPEG/PDF files are accepted",
+      "FILE_NOT_FOUND": "File not found",
+      "FILE_UPLOAD_FAILED": "File upload failed, please try again",
+      "BHYT_EXPORT_NOT_FOUND": "BHYT export period not found",
+      "BHYT_EXPORT_INVALID_PERIOD": "Invalid export period",
+      "BHYT_EXPORT_NO_ENCOUNTERS": "No BHYT encounters in this period",
+      "BHYT_XML_GENERATION_FAILED": "XML generation failed",
+      "BHYT_XSD_VALIDATION_FAILED": "XSD validation failed",
+      "BHYT_SIGN_FAILED": "Digital signing failed",
+      "BHYT_SUBMIT_FAILED": "Submission to BHYT portal failed",
+      "BHYT_PERIOD_LOCKED": "Period is locked and cannot be modified",
+      "BHYT_RECONCILE_FILE_INVALID": "Reconciliation file is invalid",
+      "BHYT_RECONCILE_ITEM_NOT_FOUND": "Reconciliation item not found"
+    }
+  },
+  "Tenant": {
+    "title": "Clinic Management",
+    "subtitle": "All clinics in the system",
+    "createNew": "Create New Clinic",
+    "editTitle": "Edit Clinic",
+    "detailTitle": "Clinic Details",
+    "fields": {
+      "code": "Clinic Code",
+      "name": "Clinic Name",
+      "subdomain": "Subdomain",
+      "email": "Email",
+      "phone": "Phone",
+      "cskcbCode": "CSKCB Code",
+      "taxCode": "Tax Code",
+      "address": "Address",
+      "storageQuota": "Storage (GB)",
+      "expiresAt": "Expiry",
+      "adminEmail": "Admin Email",
+      "adminFullName": "Admin Full Name"
+    },
+    "statuses": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "TERMINATED": "Terminated"
+    },
+    "actions": {
+      "suspend": "Suspend",
+      "activate": "Reactivate",
+      "terminate": "Terminate",
+      "edit": "Edit"
+    },
+    "confirmSuspend": "Are you sure you want to suspend this clinic?",
+    "confirmTerminate": "Are you sure you want to terminate this clinic? This action cannot be undone."
+  },
+  "User": {
+    "title": "User Management",
+    "subtitle": "Users in this clinic",
+    "invite": "Invite User",
+    "inviteTitle": "Invite New User",
+    "detailTitle": "User Details",
+    "assignRoles": "Assign Roles",
+    "fields": {
+      "fullName": "Full Name",
+      "email": "Email",
+      "phone": "Phone",
+      "roles": "Roles",
+      "status": "Status",
+      "lastLogin": "Last Login",
+      "twoFa": "Two-Factor Auth"
+    },
+    "statuses": {
+      "PENDING": "Pending Activation",
+      "ACTIVE": "Active",
+      "LOCKED": "Locked",
+      "DISABLED": "Disabled"
+    },
+    "actions": {
+      "disable": "Lock Account",
+      "enable": "Unlock",
+      "delete": "Delete User",
+      "assignRoles": "Assign Roles"
+    }
+  },
+  "Role": {
+    "title": "Roles & Permissions",
+    "subtitle": "Manage roles and permission matrix",
+    "createNew": "Create New Role",
+    "types": {
+      "SYSTEM": "System",
+      "CUSTOM": "Custom"
+    },
+    "fields": {
+      "code": "Role Code",
+      "name": "Role Name",
+      "description": "Description",
+      "permissions": "Permissions",
+      "type": "Type"
+    }
+  },
+  "Audit": {
+    "title": "Audit Log",
+    "subtitle": "Track all operations in the system",
+    "actions": {
+      "CREATE": "Create",
+      "UPDATE": "Update",
+      "DELETE": "Delete",
+      "LOGIN": "Login",
+      "LOGOUT": "Logout",
+      "EXPORT": "Export",
+      "SIGN": "Sign"
+    },
+    "fields": {
+      "time": "Time",
+      "user": "User",
+      "action": "Action",
+      "resource": "Resource",
+      "ip": "IP Address",
+      "details": "Change Details"
+    }
+  },
+  "Account": {
+    "security": {
+      "title": "Account Security",
+      "subtitle": "Manage password and two-factor authentication",
+      "changePassword": "Change Password",
+      "changePasswordDesc": "Password must be at least 12 characters with uppercase, lowercase, numbers, and special characters.",
+      "oldPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "changePasswordSuccess": "Password changed successfully"
+    },
+    "twoFa": {
+      "title": "Two-Factor Authentication (2FA)",
+      "desc": "Enhance security with TOTP codes via an Authenticator app.",
+      "enabled": "Two-factor authentication is enabled",
+      "disable": "Disable 2FA",
+      "enable": "Enable 2FA",
+      "step1Title": "Step 1: Scan the QR code with your Authenticator app",
+      "step2Title": "Step 2: Enter the 6-digit code from the app",
+      "step3Title": "Step 3: Save your recovery codes (10 codes)",
+      "recoveryWarning": "Save these recovery codes now! They are shown only once and cannot be recovered.",
+      "disableTitle": "Disable Two-Factor Authentication",
+      "disableDesc": "Enter your password to confirm. This action will reduce account security."
+    }
+  },
+  "Patient": {
+    "title": "Patients",
+    "subtitle": "Manage patient records",
+    "createNew": "Create New Patient",
+    "editTitle": "Update Patient",
+    "searchPlaceholder": "Search by name, phone, ID, insurance...",
+    "emptyTitle": "No patients yet",
+    "emptyDesc": "Create the first patient record to get started",
+    "tabs": {
+      "profile": "Profile",
+      "bhyt": "Insurance",
+      "allergy": "Allergies",
+      "emergency": "Emergency Contacts",
+      "consent": "Consents",
+      "history": "Visit History",
+      "cls": "Lab Results"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "gender": "Gender",
+      "dateOfBirth": "Date of Birth",
+      "age": "Age",
+      "idNumber": "ID Number",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Address",
+      "occupation": "Occupation",
+      "ethnicity": "Ethnicity",
+      "bloodType": "Blood Type",
+      "status": "Status",
+      "receptionNote": "Reception Note",
+      "code": "Patient Code",
+      "allergiesSummary": "Allergies",
+      "bhytCardNo": "Insurance Card No.",
+      "bhytValidTo": "Insurance Expiry",
+      "lastVisit": "Last Visit"
+    },
+    "gender": {
+      "MALE": "Male",
+      "FEMALE": "Female",
+      "OTHER": "Other"
+    },
+    "bloodType": {
+      "A_POS": "A+",
+      "A_NEG": "A-",
+      "B_POS": "B+",
+      "B_NEG": "B-",
+      "AB_POS": "AB+",
+      "AB_NEG": "AB-",
+      "O_POS": "O+",
+      "O_NEG": "O-",
+      "UNKNOWN": "Unknown"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
+      "DECEASED": "Deceased"
+    },
+    "allergy": {
+      "allergen": "Allergen",
+      "reaction": "Reaction",
+      "severity": "Severity",
+      "onsetDate": "Onset Date",
+      "note": "Note",
+      "addNew": "Add Allergy",
+      "severities": {
+        "MILD": "Mild",
+        "MODERATE": "Moderate",
+        "SEVERE": "Severe",
+        "LIFE_THREATENING": "Life-Threatening"
+      }
+    },
+    "bhyt": {
+      "type": "Insurance Type",
+      "cardNo": "Card Number",
+      "validFrom": "Valid From",
+      "validTo": "Valid To",
+      "hospitalCode": "Registered Hospital Code",
+      "coveragePercent": "Coverage (%)",
+      "addNew": "Add Insurance Card",
+      "types": {
+        "BHYT": "Health Insurance",
+        "PRIVATE": "Private Insurance",
+        "OTHER": "Other"
+      }
+    },
+    "emergency": {
+      "fullName": "Full Name",
+      "relationship": "Relationship",
+      "phone": "Phone",
+      "address": "Address",
+      "addNew": "Add Contact",
+      "relationships": {
+        "FATHER": "Father",
+        "MOTHER": "Mother",
+        "SPOUSE": "Spouse",
+        "CHILD": "Child",
+        "SIBLING": "Sibling",
+        "OTHER": "Other"
+      }
+    },
+    "consent": {
+      "consentType": "Consent Type",
+      "signedBy": "Signed By",
+      "signedAt": "Signed At",
+      "addNew": "Add Consent",
+      "types": {
+        "TREATMENT": "Treatment Consent",
+        "DATA_PROCESSING": "Data Processing",
+        "MARKETING": "Marketing",
+        "SURGERY": "Surgery",
+        "RESEARCH": "Research"
+      }
+    },
+    "receptionNoteUpdated": "Reception note updated",
+    "avatarUpload": "Upload Avatar",
+    "avatarHint": "PNG or JPEG, max 2MB"
+  },
+  "Reception": {
+    "title": "Patient Reception",
+    "addPatient": "Add Patient",
+    "waitingList": "Waiting List",
+    "checkIn": "Check In",
+    "checkInSuccess": "Checked in successfully",
+    "queueBoard": "Queue Board",
+    "refresh": "Refresh",
+    "autoRefresh": "Auto-refresh every 5 seconds",
+    "printTicket": "Print Ticket",
+    "stats": {
+      "waiting": "Waiting",
+      "inProgress": "In Progress",
+      "done": "Done",
+      "cancelled": "Cancelled",
+      "avgWait": "Avg. Wait Time"
+    },
+    "priority": {
+      "NORMAL": "Normal",
+      "PRIORITY": "Priority",
+      "EMERGENCY": "Emergency"
+    },
+    "ticketStatus": {
+      "WAITING": "Waiting",
+      "CALLED": "Called",
+      "IN_PROGRESS": "In Progress",
+      "DONE": "Done",
+      "SKIPPED": "Skipped",
+      "CANCELLED": "Cancelled"
+    },
+    "actions": {
+      "call": "Call In",
+      "skip": "Skip",
+      "cancel": "Cancel",
+      "cancelReason": "Reason for Cancellation"
+    },
+    "form": {
+      "selectPatient": "Select Patient",
+      "selectRoom": "Select Room",
+      "selectServices": "Service Package",
+      "reason": "Reason for Visit",
+      "note": "Note",
+      "priority": "Priority",
+      "searchPatient": "Search patient...",
+      "orCreate": "or create a new patient"
+    }
+  },
+  "ClsUpload": {
+    "title": "Lab Results",
+    "subtitle": "External lab results brought by the patient",
+    "upload": "Upload Lab Result",
+    "dragDrop": "Drag and drop files here or",
+    "browse": "browse files",
+    "hint": "PNG, JPEG or PDF, max 10MB",
+    "docType": "Document Type",
+    "docTypePlaceholder": "e.g., Chest X-ray - Hospital",
+    "note": "Note",
+    "uploadedBy": "Uploaded By",
+    "uploadedAt": "Uploaded At",
+    "fileSize": "File Size",
+    "emptyTitle": "No lab documents",
+    "emptyDesc": "Upload lab results or imaging from other facilities"
+  },
+  "Encounter": {
+    "title": "Encounters",
+    "newEncounter": "New Encounter",
+    "status": {
+      "WAITING": "Waiting",
+      "IN_PROGRESS": "In Progress",
+      "DONE": "Done",
+      "CANCELLED": "Cancelled"
+    },
+    "type": {
+      "FIRST_VISIT": "First Visit",
+      "FOLLOW_UP": "Follow-Up",
+      "EMERGENCY": "Emergency",
+      "CONSULTATION": "Consultation"
+    },
+    "errors": {
+      "ENCOUNTER_MISSING_DIAGNOSIS": "At least one primary diagnosis is required",
+      "EMR_NOT_SIGNED": "Medical record has not been signed",
+      "EMR_ALREADY_SIGNED": "Medical record is already signed and cannot be edited"
+    }
+  },
+  "Encounters": {
+    "title": "Encounters",
+    "newEncounter": "New Encounter"
+  },
+  "VitalSign": {
+    "title": "Vital Signs",
+    "temperature": "Temperature (°C)",
+    "heartRate": "Heart Rate (bpm)",
+    "bpSystolic": "Systolic BP (mmHg)",
+    "bpDiastolic": "Diastolic BP (mmHg)",
+    "spo2": "SpO2 (%)",
+    "respiratoryRate": "Respiratory Rate",
+    "weight": "Weight (kg)",
+    "height": "Height (cm)",
+    "bmi": "BMI",
+    "painScale": "Pain Scale (0-10)",
+    "glucose": "Blood Glucose (mg/dL)",
+    "note": "Note",
+    "errors": {
+      "VITAL_INVALID_RANGE": "Vital sign value is outside the valid range",
+      "VITAL_EDIT_TIMEOUT": "Vital signs can only be edited within 24 hours"
+    }
+  },
+  "Emr": {
+    "title": "Electronic Medical Record",
+    "saveDraft": "Save Draft",
+    "sign": "Sign",
+    "signed": "Signed",
+    "unsign": "Unsign",
+    "template": "EMR Template",
+    "version": "Version"
+  },
+  "Diabetes": {
+    "title": "Diabetes Assessment",
+    "hba1c": "HbA1c (%)",
+    "fastingGlucose": "Fasting Glucose (mg/dL)",
+    "postprandialGlucose": "Post-Meal Glucose",
+    "egfr": "eGFR",
+    "complications": "Complications",
+    "treatmentTarget": "Treatment Target"
+  },
+  "Icd10": {
+    "title": "ICD-10 Lookup",
+    "search": "Search ICD-10 Code",
+    "code": "ICD-10 Code",
+    "nameVi": "Name",
+    "category": "Category"
+  },
+  "LabOrder": {
+    "title": "Lab Order",
+    "testCode": "Test Code",
+    "priority": "Priority",
+    "status": {
+      "ordered": "Ordered",
+      "sample_taken": "Sample Taken",
+      "processing": "Processing",
+      "done": "Result Available",
+      "cancelled": "Cancelled"
+    }
+  },
+  "RadOrder": {
+    "title": "Radiology Order",
+    "modality": "Modality",
+    "bodyPart": "Body Part",
+    "contrast": "Contrast",
+    "status": {
+      "ordered": "Ordered",
+      "scheduled": "Scheduled",
+      "in_progress": "In Progress",
+      "done": "Result Available",
+      "cancelled": "Cancelled"
+    }
+  },
+  "Prescriptions": {
+    "title": "Prescriptions",
+    "newPrescription": "New Prescription",
+    "statuses": {
+      "DRAFT": "Draft",
+      "SIGNED": "Signed",
+      "SUBMITTED_DTQG": "Submitted to DTQG",
+      "DISPENSED": "Dispensed",
+      "PARTIAL_DISPENSED": "Partially Dispensed",
+      "CANCELLED": "Cancelled"
+    },
+    "errors": {
+      "PRESCRIPTION_NOT_FOUND": "Prescription not found",
+      "PRESCRIPTION_ALREADY_SIGNED": "Prescription is already signed",
+      "PRESCRIPTION_INVALID_STATE": "Prescription state does not allow this action"
+    }
+  },
+  "Drug": {
+    "title": "Drug Catalog",
+    "forms": {
+      "TABLET": "Tablet",
+      "CAPSULE": "Capsule",
+      "SYRUP": "Syrup",
+      "INJ": "Injection",
+      "CREAM": "Cream",
+      "OINTMENT": "Ointment",
+      "DROP": "Drops",
+      "INHALER": "Inhaler",
+      "POWDER": "Powder",
+      "SUPPOSITORY": "Suppository",
+      "OTHER": "Other"
+    },
+    "errors": {
+      "DRUG_NOT_FOUND": "Drug not found",
+      "DRUG_CODE_EXISTS": "Drug code already exists",
+      "DRUG_IMPORT_INVALID_FORMAT": "Invalid Excel file format",
+      "DRUG_DTQG_SYNC_FAILED": "DTQG drug database sync failed"
+    }
+  },
+  "Dtqg": {
+    "title": "National Prescription System",
+    "credentials": "Connection Settings",
+    "submissions": "Submission History",
+    "statuses": {
+      "PENDING": "Pending",
+      "SUBMITTED": "Submitted",
+      "ACCEPTED": "Accepted",
+      "REJECTED": "Rejected"
+    },
+    "errors": {
+      "DTQG_PRESCRIPTION_ALREADY_SUBMITTED": "Prescription already submitted to DTQG",
+      "DTQG_SUBMIT_FAILED": "DTQG submission failed",
+      "DTQG_RETRY_EXCEEDED": "Maximum retry attempts exceeded",
+      "DTQG_TOKEN_EXPIRED": "DTQG token expired or invalid"
+    }
+  },
+  "Pharmacy": {
+    "title": "Pharmacy",
+    "inventory": "Inventory",
+    "import": "Import Stock",
+    "export": "Export Stock",
+    "dispense": "Dispense",
+    "adjustment": "Stock Count",
+    "alerts": "Alerts",
+    "warehouseTypes": {
+      "MAIN": "Main Warehouse",
+      "DISPENSING": "Dispensing Warehouse",
+      "COLD_CHAIN": "Cold Chain",
+      "NARCOTIC": "Controlled Substances"
+    },
+    "errors": {
+      "PHARMACY_WAREHOUSE_NOT_FOUND": "Warehouse not found",
+      "PHARMACY_STOCK_INSUFFICIENT": "Insufficient stock",
+      "PHARMACY_BATCH_EXPIRED": "Drug batch has expired",
+      "PHARMACY_DISPENSE_DUPLICATE": "This prescription has already been dispensed",
+      "PHARMACY_INVALID_FEFO_PICK": "Batch selection does not comply with FEFO principle",
+      "PHARMACY_BATCH_NOT_FOUND": "Drug batch not found"
+    }
+  },
+  "Dispense": {
+    "title": "Dispensing",
+    "queue": "Queue",
+    "history": "History",
+    "statuses": {
+      "DISPENSED": "Dispensed",
+      "REJECTED": "Rejected",
+      "RETURNED": "Returned",
+      "PARTIAL": "Partially Dispensed"
+    }
+  },
+  "Supplier": {
+    "title": "Suppliers",
+    "createNew": "Add Supplier",
+    "fields": {
+      "code": "Supplier Code",
+      "name": "Supplier Name",
+      "taxCode": "Tax Code",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "contactPerson": "Contact Person"
+    }
+  },
+  "Cashier": {
+    "title": "Cashier",
+    "newInvoice": "New Invoice",
+    "pendingPayment": "Pending Payment",
+    "openShift": "Open Shift",
+    "closeShift": "Close Shift",
+    "shiftOpen": "Shift Open",
+    "shiftClosed": "Shift Closed",
+    "totalToday": "Total Today",
+    "transactions": "Transactions",
+    "refundVoid": "Refund / Void",
+    "debt": "Receivables",
+    "expectedCash": "Expected Cash",
+    "actualCash": "Actual Cash",
+    "difference": "Difference"
+  },
+  "Billing": {
+    "title": "Invoices",
+    "statuses": {
+      "DRAFT": "Draft",
+      "FINALIZED": "Finalized",
+      "PARTIAL_PAID": "Partially Paid",
+      "PAID": "Paid",
+      "VOID": "Void"
+    },
+    "payers": {
+      "SELF": "Self-Pay",
+      "BHYT": "Health Insurance",
+      "MIXED": "Mixed"
+    },
+    "errors": {
+      "BILLING_NOT_FOUND": "Invoice not found",
+      "BILLING_ALREADY_FINALIZED": "Invoice is already finalized",
+      "BILLING_VOID": "Invoice has been voided",
+      "BILLING_INVALID_BHYT": "Invalid insurance information"
+    }
+  },
+  "Payment": {
+    "title": "Payment",
+    "methods": {
+      "CASH": "Cash",
+      "BANK_TRANSFER": "Bank Transfer",
+      "VISA": "Visa",
+      "MASTER": "Mastercard",
+      "QR_VIETQR": "VietQR",
+      "QR_MOMO": "MoMo",
+      "QR_VNPAY": "VNPay",
+      "OTHER": "Other"
+    },
+    "statuses": {
+      "PENDING": "Processing",
+      "COMPLETED": "Completed",
+      "FAILED": "Failed",
+      "REFUNDED": "Refunded",
+      "VOID": "Void"
+    },
+    "errors": {
+      "PAYMENT_AMOUNT_INVALID": "Invalid payment amount",
+      "PAYMENT_GATEWAY_ERROR": "Payment gateway error",
+      "PAYMENT_QR_EXPIRED": "QR code has expired"
+    }
+  },
+  "EInvoice": {
+    "title": "E-Invoice",
+    "issue": "Issue E-Invoice",
+    "statuses": {
+      "DRAFT": "Draft",
+      "ISSUED": "Issued",
+      "CANCELLED": "Cancelled",
+      "REPLACED": "Replaced"
+    },
+    "errors": {
+      "EINVOICE_ALREADY_ISSUED": "E-Invoice already issued",
+      "EINVOICE_TAX_CODE_MISSING": "Tax code missing",
+      "EINVOICE_PROVIDER_ERROR": "E-Invoice provider connection error"
+    }
+  },
+  "Service": {
+    "title": "Services",
+    "categories": {
+      "CONSULTATION": "Consultation",
+      "PROCEDURE": "Procedure",
+      "LAB": "Lab",
+      "RAD": "Radiology",
+      "PHARMACY": "Pharmacy",
+      "OTHER": "Other"
+    },
+    "errors": {
+      "SERVICE_NOT_FOUND": "Service not found",
+      "SERVICE_CODE_EXISTS": "Service code already exists"
+    }
+  },
+  "Reports": {
+    "title": "Reports & Analytics",
+    "revenue": "Revenue",
+    "topMedicines": "Top Medicines",
+    "doctorKpi": "Doctor KPI"
+  },
+  "Admin": {
+    "title": "System Admin",
+    "users": "Users",
+    "clinicSettings": "Clinic Settings",
+    "roles": "Roles"
+  },
+  "LabResult": {
+    "title": "Lab Results",
+    "subtitle": "Manage lab results and technician verification",
+    "enterResult": "Enter Result",
+    "verify": "Verify",
+    "unverify": "Unverify",
+    "amend": "Amend Result",
+    "batchVerify": "Batch Verify",
+    "import": "Import CSV/HL7",
+    "printPdf": "Print PDF",
+    "flags": {
+      "NORMAL": "Normal",
+      "H": "High",
+      "L": "Low",
+      "HH": "Very High",
+      "LL": "Very Low",
+      "CRITICAL": "Critical"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "VERIFIED": "Verified",
+      "AMENDED": "Amended"
+    },
+    "fields": {
+      "testCode": "Test Code",
+      "testName": "Test Name",
+      "value": "Value",
+      "unit": "Unit",
+      "referenceRange": "Reference Range",
+      "flag": "Abnormal Flag",
+      "method": "Method",
+      "performedAt": "Performed At",
+      "verifiedAt": "Verified At",
+      "note": "Note",
+      "source": "Source",
+      "amendReason": "Reason for Amendment"
+    },
+    "errors": {
+      "LAB_RESULT_NOT_FOUND": "Lab result not found",
+      "LAB_RESULT_ALREADY_VERIFIED": "Result has already been verified",
+      "LAB_RESULT_EDIT_TIMEOUT": "More than 15 minutes have passed since verification",
+      "LAB_IMPORT_INVALID_FORMAT": "Invalid file format (only CSV, HL7 ORU accepted)",
+      "LAB_IMPORT_PARSE_ERROR": "Error parsing import file"
+    }
+  },
+  "RadResult": {
+    "title": "Radiology Results",
+    "subtitle": "Imaging and diagnostic results",
+    "enterResult": "Enter Radiology Result",
+    "verify": "Sign & Release",
+    "uploadDicom": "Upload DICOM",
+    "printPdf": "Print PDF",
+    "statuses": {
+      "DRAFT": "Draft",
+      "VERIFIED": "Signed",
+      "AMENDED": "Amended"
+    },
+    "fields": {
+      "modality": "Modality",
+      "findings": "Findings",
+      "impression": "Impression",
+      "conclusion": "Conclusion",
+      "recommendations": "Recommendations",
+      "performedAt": "Performed At",
+      "dicomCount": "DICOM Images",
+      "amendReason": "Reason for Amendment"
+    },
+    "errors": {
+      "RAD_RESULT_NOT_FOUND": "Radiology result not found",
+      "RAD_DICOM_UPLOAD_FAILED": "DICOM upload failed"
+    }
+  },
+  "LabPartner": {
+    "title": "Lab Partners",
+    "subtitle": "Manage third-party lab partners",
+    "createNew": "Add Partner",
+    "testConnection": "Test Connection",
+    "rotateKey": "Rotate API Key",
+    "fields": {
+      "code": "Partner Code",
+      "name": "Partner Name",
+      "endpointUrl": "Endpoint URL",
+      "authType": "Auth Type",
+      "transport": "Transport",
+      "supportedTests": "Supported Tests",
+      "status": "Status",
+      "contactEmail": "Contact Email",
+      "contactPhone": "Contact Phone"
+    },
+    "authTypes": {
+      "NONE": "None",
+      "API_KEY": "API Key",
+      "BEARER": "Bearer Token"
+    },
+    "transports": {
+      "REST": "REST",
+      "HL7_MLLP": "HL7 MLLP"
+    },
+    "statuses": {
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive"
+    },
+    "errors": {
+      "LAB_PARTNER_NOT_FOUND": "Lab partner not found",
+      "LAB_PARTNER_CONNECTION_FAILED": "Connection to partner failed",
+      "LAB_PARTNER_AUTH_INVALID": "Invalid authentication credentials"
+    }
+  },
+  "LabIntegration": {
+    "title": "Lab Integration",
+    "subtitle": "Send/receive results from external lab partners",
+    "outbound": "Outbound",
+    "inbound": "Inbound",
+    "retry": "Retry",
+    "reprocess": "Reprocess",
+    "viewRaw": "View Raw Payload",
+    "stats": "Statistics",
+    "outboundStatuses": {
+      "PENDING": "Pending",
+      "SENT": "Sent",
+      "ACKED": "Acknowledged",
+      "FAILED": "Failed"
+    },
+    "inboundStatuses": {
+      "RECEIVED": "Received",
+      "PROCESSED": "Processed",
+      "FAILED": "Failed"
+    },
+    "errors": {
+      "LAB_INTEGRATION_RETRY_EXCEEDED": "Maximum retry attempts exceeded (5)",
+      "LAB_WEBHOOK_INVALID_SIGNATURE": "Invalid HMAC webhook signature"
+    }
+  },
+  "Bhyt": {
+    "title": "Health Insurance",
+    "subtitle": "Export XML for health insurance claims (QĐ 4750), reconcile results",
+    "tabs": {
+      "kyXuat": "Export Periods",
+      "doiSoat": "Reconciliation",
+      "cauHinh": "Configuration"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "GENERATED": "XML Generated",
+      "VALIDATED": "Validated",
+      "SIGNED": "Signed",
+      "SUBMITTED": "Submitted",
+      "APPROVED": "Approved",
+      "PARTIALLY_REJECTED": "Partially Rejected",
+      "REJECTED": "Rejected"
+    },
+    "actions": {
+      "createPeriod": "Create New Period",
+      "generateXml": "Generate XML",
+      "validate": "Validate XSD",
+      "sign": "Sign",
+      "submit": "Submit to BHYT Portal",
+      "downloadZip": "Download ZIP (5 tables)",
+      "regenerate": "Regenerate",
+      "uploadResult": "Upload Reconciliation Result",
+      "dispute": "Dispute",
+      "accept": "Accept"
+    },
+    "fields": {
+      "periodMonth": "Period (YYYY-MM)",
+      "encounterCount": "Encounters",
+      "totalRequested": "Requested",
+      "totalApproved": "Approved",
+      "totalRejected": "Rejected",
+      "generatedAt": "Generated At",
+      "approvalRate": "Approval Rate"
+    },
+    "steps": {
+      "draft": "Draft",
+      "generate": "Generate XML",
+      "validate": "Validate XSD",
+      "sign": "Sign",
+      "submit": "Submit",
+      "reconcile": "Reconcile"
+    },
+    "reconcileStatus": {
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "ADJUSTED": "Adjusted",
+      "DISPUTED": "Disputed",
+      "ACCEPTED": "Accepted"
+    },
+    "errors": {
+      "BHYT_EXPORT_NOT_FOUND": "Export period not found",
+      "BHYT_EXPORT_INVALID_PERIOD": "Invalid export period",
+      "BHYT_EXPORT_NO_ENCOUNTERS": "No BHYT encounters in this period",
+      "BHYT_XML_GENERATION_FAILED": "XML generation failed",
+      "BHYT_XSD_VALIDATION_FAILED": "XSD validation failed",
+      "BHYT_SIGN_FAILED": "Digital signing failed",
+      "BHYT_SUBMIT_FAILED": "Submission to BHYT portal failed",
+      "BHYT_PERIOD_LOCKED": "Period is locked and cannot be modified",
+      "BHYT_RECONCILE_FILE_INVALID": "Reconciliation file is invalid",
+      "BHYT_RECONCILE_ITEM_NOT_FOUND": "Reconciliation item not found"
+    }
+  }
+}

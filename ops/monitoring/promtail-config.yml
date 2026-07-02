@@ -1,0 +1,171 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: warn
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: prodiab
+    batchwait: 1s
+    batchsize: 1048576
+    timeout: 10s
+    backoff_config:
+      min_period: 500ms
+      max_period: 5m
+      max_retries: 10
+
+scrape_configs:
+  # --------------------------------------------------------------------------
+  # Docker container logs — autodiscover tất cả containers
+  # --------------------------------------------------------------------------
+  - job_name: docker-containers
+    docker_sd_configs:
+      - host: unix:///run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: status
+            values: [running]
+    relabel_configs:
+      # Dùng tên container làm label
+      - source_labels: [__meta_docker_container_name]
+        regex: "/(.*)"
+        target_label: container
+      # Image name
+      - source_labels: [__meta_docker_container_image_name]
+        target_label: image
+      # Compose service name
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+      # Compose project
+      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+        target_label: compose_project
+      # Drop monitoring stack tự scrape (tránh vòng lặp)
+      - source_labels: [container]
+        regex: "prodiab_loki|prodiab_promtail"
+        action: drop
+    pipeline_stages:
+      # Parse JSON log nếu có
+      - json:
+          expressions:
+            level: level
+            msg: message
+            ts: timestamp
+            req_id: requestId
+            tenant: tenantId
+            duration_ms: durationMs
+            status: statusCode
+      # Đặt level label từ JSON
+      - labels:
+          level:
+          tenant:
+      # Drop debug logs trong production
+      - match:
+          selector: '{service=~"prodiab_backend|prodiab_frontend"}'
+          stages:
+            - drop:
+                expression: '"level":"debug"'
+
+  # --------------------------------------------------------------------------
+  # Backend .NET API — Serilog JSON logs từ file (nếu mount volume)
+  # --------------------------------------------------------------------------
+  - job_name: backend-file
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: backend
+          service: prodiab_backend
+          env: production
+          __path__: /var/log/prodiab/backend/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: Level
+            message: RenderedMessage
+            timestamp: Timestamp
+            request_path: Properties.RequestPath
+            status_code: Properties.StatusCode
+            elapsed: Properties.Elapsed
+            tenant_id: Properties.TenantId
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      - labels:
+          level:
+          status_code:
+          tenant_id:
+      # Đánh dấu log lỗi
+      - match:
+          selector: '{level=~"Error|Fatal"}'
+          stages:
+            - static_labels:
+                alert: "true"
+
+  # --------------------------------------------------------------------------
+  # Frontend Next.js — stdout logs
+  # --------------------------------------------------------------------------
+  - job_name: frontend-file
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: frontend
+          service: prodiab_frontend
+          env: production
+          __path__: /var/log/prodiab/frontend/*.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\S+)\s+(?P<level>\w+)\s+(?P<message>.*)$'
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      - labels:
+          level:
+
+  # --------------------------------------------------------------------------
+  # Nginx access + error logs
+  # --------------------------------------------------------------------------
+  - job_name: nginx-access
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          service: nginx
+          log_type: access
+          env: production
+          __path__: /var/log/nginx/access.log
+    pipeline_stages:
+      # Parse nginx combined log format
+      - regex:
+          expression: '^(?P<remote_addr>\S+)\s+-\s+(?P<remote_user>\S+)\s+\[(?P<time_local>[^\]]+)\]\s+"(?P<method>\S+)\s+(?P<request_path>\S+)\s+\S+"\s+(?P<status>\d+)\s+(?P<body_bytes_sent>\d+)'
+      - labels:
+          method:
+          status:
+      # Đánh dấu 5xx là lỗi
+      - match:
+          selector: '{status=~"5.."}'
+          stages:
+            - static_labels:
+                level: error
+                alert: "true"
+      - match:
+          selector: '{status=~"4.."}'
+          stages:
+            - static_labels:
+                level: warn
+
+  - job_name: nginx-error
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          service: nginx
+          log_type: error
+          level: error
+          env: production
+          __path__: /var/log/nginx/error.log

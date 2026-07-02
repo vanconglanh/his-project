@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phiếu kết quả xét nghiệm</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9e6;font-family:"Times New Roman",Times,serif;color:#111;font-size:13px;line-height:1.42}
+.toolbar{position:sticky;top:0;z-index:9;background:#1a1a19;color:#fff;display:flex;gap:12px;align-items:center;padding:9px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
+.toolbar .sp{flex:1}
+.toolbar a,.toolbar button{font:inherit;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.35);border-radius:7px;padding:6px 12px;cursor:pointer;text-decoration:none}
+.toolbar button.pr{background:#1baf7a;border-color:transparent;font-weight:600}
+.sheet{background:#fff;margin:16px auto;box-shadow:0 3px 16px rgba(0,0,0,.18);position:relative}
+.lh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1.5px solid #111;padding-bottom:8px;margin-bottom:10px}
+.lh .org{font-size:12px;line-height:1.35}
+.lh .org b{font-size:13.5px;text-transform:uppercase;display:block}
+.lh .logo{width:52px;height:52px;flex:0 0 auto;border:1px solid #111;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-weight:700;color:#0b7285;font-size:10px;text-align:center;line-height:1.1}
+.doc-title{text-align:center;font-size:18px;font-weight:700;text-transform:uppercase;margin:8px 0 2px;letter-spacing:.02em}
+.doc-sub{text-align:center;font-size:12px;color:#333;margin-bottom:12px;font-style:italic}
+.code-line{text-align:right;font-size:11.5px;color:#333;margin-bottom:4px}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+table.grid th,table.grid td{border:1px solid #111;padding:4px 6px;vertical-align:top}
+table.grid th{background:#f0f0ee;font-weight:700;text-align:left}
+td.c,th.c{text-align:center}
+td.r,th.r{text-align:right}
+.sec-h{font-weight:700;text-transform:uppercase;margin:9px 0 3px;font-size:13px}
+.row{display:flex;gap:18px;flex-wrap:wrap}
+.field{margin:3px 0}.field .k{font-weight:700}
+.fill{border-bottom:1px dotted #444;min-width:60px;display:inline-block}
+.sign{display:flex;justify-content:space-around;margin-top:16px;text-align:center;gap:10px}
+.sign .box{min-width:40%}
+.sign .role{font-weight:700}.sign .hint{font-style:italic;font-size:11px;color:#444}
+.sign .date{font-style:italic;font-size:11.5px}.sign .name{margin-top:50px;font-weight:700}
+.muted{color:#555}.small{font-size:11px}
+.note{font-size:11px;color:#444;font-style:italic;margin-top:10px;border-top:1px dashed #999;padding-top:6px}
+@media print{body{background:#fff}.toolbar{display:none}.sheet{margin:0;box-shadow:none}}
+
+@page{size:A4 portrait;margin:12mm} .sheet{width:210mm;min-height:297mm;padding:12mm 14mm}
+
+.flag-h{color:#c0392b;font-weight:700}
+.flag-l{color:#1a5fb4;font-weight:700}
+.flag-n{color:#111}
+.legend{font-size:11px;color:#444;margin-top:4px}
+.info-box{border:1px solid #111;padding:8px 10px;margin-bottom:8px}
+.kl-box{border:1px solid #111;padding:8px 10px;min-height:44px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="toolbar"><b>Phiếu kết quả xét nghiệm</b><span class="sp"></span>
+  <a href="index.html">← Thư viện biểu mẫu</a>
+  <button class="pr" onclick="window.print()">🖨️ In</button></div>
+
+<div class="sheet">
+  <div class="lh">
+    <div class="logo">PRO<br>DIAB</div>
+    <div class="org" style="text-align:right">
+      <b>Phòng khám đa khoa Pro-Diab</b>
+      Mã CSKCB: 79123 &nbsp;·&nbsp; MST: 0312345678<br>
+      Địa chỉ: 123 Đường Sức Khỏe, P. Bến Nghé, Q.1, TP. Hồ Chí Minh<br>
+      ĐT: 028 3822 1234
+    </div>
+  </div>
+
+  <div class="doc-title">Phiếu kết quả xét nghiệm</div>
+  <div class="doc-sub">Khoa Sinh hóa — Đơn vị Xét nghiệm</div>
+  <div class="code-line">Mã KQ: <b>XN-2026-0702-042</b> &nbsp;·&nbsp; Lấy mẫu: 09:10 &nbsp;·&nbsp; Trả KQ: 10:30 ngày 02/07/2026</div>
+
+  <div class="info-box">
+    <div class="row">
+      <div class="field"><span class="k">Họ tên:</span> NGUYỄN VĂN AN &nbsp; <span class="k">Giới tính:</span> Nam &nbsp; <span class="k">Ngày sinh:</span> 12/03/1968 (58 tuổi)</div>
+    </div>
+    <div class="row">
+      <div class="field"><span class="k">Mã BN:</span> BN000123</div>
+      <div class="field"><span class="k">CCCD:</span> 079068001234</div>
+      <div class="field"><span class="k">Thẻ BHYT:</span> HN4 79 123 45678 90 (hạn 31/12/2026, đúng tuyến)</div>
+    </div>
+    <div class="row">
+      <div class="field"><span class="k">Địa chỉ:</span> 45 Lê Lợi, P.6, Q. Gò Vấp, TP.HCM</div>
+      <div class="field"><span class="k">ĐT:</span> 0909 123 456</div>
+      <div class="field"><span class="k">Cân nặng:</span> 68 kg</div>
+    </div>
+    <div class="row">
+      <div class="field"><span class="k">Mã lượt khám:</span> LK000456 &nbsp; <span class="k">Phòng khám:</span> Số 2 (Nội tiết) &nbsp; <span class="k">STT:</span> 042</div>
+    </div>
+    <div class="row">
+      <div class="field"><span class="k">Chẩn đoán:</span> E11 – Đái tháo đường type 2; E78.5 – Rối loạn lipid máu; I10 – Tăng huyết áp vô căn</div>
+    </div>
+    <div class="row">
+      <div class="field"><span class="k">Bác sĩ chỉ định:</span> BS.CKI Trần Thị Bình — Khoa Nội tiết</div>
+    </div>
+  </div>
+
+  <div class="sec-h">Kết quả xét nghiệm</div>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th style="width:34%">Tên xét nghiệm</th>
+        <th class="c" style="width:14%">Kết quả</th>
+        <th class="c" style="width:14%">Đơn vị</th>
+        <th class="c" style="width:24%">Khoảng tham chiếu</th>
+        <th class="c" style="width:10%">Cờ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Glucose (đói)</td>
+        <td class="c flag-h">8.9</td>
+        <td class="c">mmol/L</td>
+        <td class="c">3.9 – 6.4</td>
+        <td class="c flag-h">H</td>
+      </tr>
+      <tr>
+        <td>HbA1c</td>
+        <td class="c flag-h">8.2</td>
+        <td class="c">%</td>
+        <td class="c">4.0 – 6.0</td>
+        <td class="c flag-h">H</td>
+      </tr>
+      <tr>
+        <td>Cholesterol toàn phần</td>
+        <td class="c flag-h">6.1</td>
+        <td class="c">mmol/L</td>
+        <td class="c">&lt; 5.2</td>
+        <td class="c flag-h">H</td>
+      </tr>
+      <tr>
+        <td>Triglycerid</td>
+        <td class="c flag-h">2.8</td>
+        <td class="c">mmol/L</td>
+        <td class="c">&lt; 1.7</td>
+        <td class="c flag-h">H</td>
+      </tr>
+      <tr>
+        <td>HDL-Cholesterol</td>
+        <td class="c flag-n">1.05</td>
+        <td class="c">mmol/L</td>
+        <td class="c">&gt; 1.0</td>
+        <td class="c flag-n">(bt)</td>
+      </tr>
+      <tr>
+        <td>LDL-Cholesterol</td>
+        <td class="c flag-h">3.9</td>
+        <td class="c">mmol/L</td>
+        <td class="c">&lt; 3.4</td>
+        <td class="c flag-h">H</td>
+      </tr>
+      <tr>
+        <td>Creatinin</td>
+        <td class="c flag-n">88</td>
+        <td class="c">µmol/L</td>
+        <td class="c">62 – 106</td>
+        <td class="c flag-n">(bt)</td>
+      </tr>
+      <tr>
+        <td>eGFR</td>
+        <td class="c flag-l">82</td>
+        <td class="c">mL/ph/1.73m²</td>
+        <td class="c">&gt; 90</td>
+        <td class="c flag-l">L</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="legend">Chú thích: <b>H</b> = cao hơn khoảng tham chiếu &nbsp;·&nbsp; <b>L</b> = thấp hơn khoảng tham chiếu &nbsp;·&nbsp; (bt) = bình thường</div>
+
+  <div class="sec-h">Kết luận / Nhận xét</div>
+  <div class="kl-box">
+    Đường huyết đói và HbA1c tăng cao — kiểm soát đường huyết chưa đạt mục tiêu điều trị.<br>
+    Rối loạn lipid máu hỗn hợp (tăng Cholesterol TP, Triglycerid, LDL-C). Chức năng thận giảm nhẹ (eGFR 82), cần theo dõi thêm.<br>
+    Đề nghị bác sĩ lâm sàng đối chiếu kết quả với tình trạng bệnh nhân để điều chỉnh phác đồ điều trị phù hợp.
+  </div>
+
+  <div class="sign">
+    <div class="box">
+      <div class="role">KỸ THUẬT VIÊN XÉT NGHIỆM</div>
+      <div class="hint">(Ký, ghi rõ họ tên)</div>
+      <div class="date">Ngày 02 tháng 07 năm 2026</div>
+      <div class="name">KTV. Phạm Văn Dũng</div>
+    </div>
+    <div class="box">
+      <div class="role">BÁC SĨ DUYỆT KẾT QUẢ</div>
+      <div class="hint">(Ký, ghi rõ họ tên)</div>
+      <div class="date">Ngày 02 tháng 07 năm 2026</div>
+      <div class="name">BS. Nguyễn Thị Hà</div>
+    </div>
+  </div>
+
+  <div class="note">Kết quả chỉ có giá trị với mẫu bệnh phẩm đã nhận. Cần đối chiếu lâm sàng.</div>
+</div>
+</body>
+</html>

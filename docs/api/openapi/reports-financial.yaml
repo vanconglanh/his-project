@@ -1,0 +1,246 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Reports Financial API
+  version: 1.0.0
+  description: |
+    Sprint 11 EPIC 9 - Financial reports (US-RP01, RP02).
+    Permission: report.read, report.export.
+    Data source: Dapper raw SQL; for period >= 30 days uses materialized cache tables
+    (diab_his_rep_daily_revenue_cache) refreshed nightly via Hangfire.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /reports/revenue:
+    get:
+      summary: Revenue report grouped by period
+      tags: [Reports-Financial]
+      parameters:
+        - { name: period, in: query, required: true, schema: { type: string, enum: [DAY, WEEK, MONTH, YEAR] } }
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: clinic_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RevenueReportResponse' }
+
+  /reports/revenue/by-doctor:
+    get:
+      summary: Doctor KPI - revenue, encounters, RVU
+      tags: [Reports-Financial]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: top, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DoctorKpiResponse' }
+
+  /reports/revenue/by-service:
+    get:
+      summary: Top services by revenue
+      tags: [Reports-Financial]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: top, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BreakdownListResponse' } } } }
+
+  /reports/revenue/by-payment-method:
+    get:
+      summary: Revenue by payment method (CASH/TRANSFER/CARD/QR)
+      tags: [Reports-Financial]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BreakdownListResponse' } } } }
+
+  /reports/cashier/daily-summary:
+    get:
+      summary: End-of-day cashier summary
+      tags: [Reports-Financial]
+      parameters:
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+        - { name: cashier_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      date: { type: string, format: date }
+                      total_revenue: { type: number }
+                      total_invoices: { type: integer }
+                      total_refunds: { type: number }
+                      by_payment_method:
+                        type: array
+                        items: { $ref: '#/components/schemas/BreakdownItem' }
+                      opening_balance: { type: number }
+                      closing_balance: { type: number }
+
+  /reports/debts/aging:
+    get:
+      summary: Debts aging buckets (0-30, 30-60, 60-90, >90 days)
+      tags: [Reports-Financial]
+      parameters:
+        - { name: as_of, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      bucket_0_30: { type: number }
+                      bucket_30_60: { type: number }
+                      bucket_60_90: { type: number }
+                      bucket_over_90: { type: number }
+                      total: { type: number }
+                      details:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            patient_id: { type: string, format: uuid }
+                            patient_name: { type: string }
+                            amount: { type: number }
+                            days_overdue: { type: integer }
+
+  /reports/bhyt/summary:
+    get:
+      summary: BHYT summary - cards, paid, rejected
+      tags: [Reports-Financial]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_cards: { type: integer }
+                      total_amount_claimed: { type: number }
+                      total_amount_paid: { type: number }
+                      total_amount_rejected: { type: number }
+                      rejection_rate: { type: number }
+                      pending_count: { type: integer }
+
+  /reports/export:
+    post:
+      summary: Export report (sync, returns file URL)
+      tags: [Reports-Financial]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExportReportRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      file_url: { type: string, format: uri }
+                      file_name: { type: string }
+                      expires_at: { type: string, format: date-time }
+        '400':
+          description: Invalid request
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    RevenueReportResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            total: { type: number }
+            currency: { type: string, default: VND }
+            by_breakdown:
+              type: array
+              items:
+                type: object
+                properties:
+                  period_label: { type: string, example: "2026-05-22" }
+                  total: { type: number }
+                  secondary_value: { type: number, nullable: true }
+    DoctorKpiResponse:
+      type: object
+      properties:
+        doctor_id: { type: string, format: uuid }
+        name: { type: string }
+        encounter_count: { type: integer }
+        revenue: { type: number }
+        avg_revenue_per_encounter: { type: number }
+        rvu: { type: number, description: "Relative Value Unit" }
+    BreakdownItem:
+      type: object
+      properties:
+        label: { type: string }
+        value: { type: number }
+        count: { type: integer, nullable: true }
+        percentage: { type: number, nullable: true }
+    BreakdownListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/BreakdownItem' }
+    ExportReportRequest:
+      type: object
+      required: [report_type, format]
+      properties:
+        report_type:
+          type: string
+          enum: [REVENUE, REVENUE_BY_DOCTOR, REVENUE_BY_SERVICE, CASHIER_DAILY, DEBTS_AGING, BHYT_SUMMARY, ENCOUNTERS_COUNT, TOP_DIAGNOSES, DIABETES_COHORT, TOP_DRUGS, INVENTORY_VALUE]
+        format: { type: string, enum: [CSV, EXCEL, PDF] }
+        filters:
+          type: object
+          additionalProperties: true
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }

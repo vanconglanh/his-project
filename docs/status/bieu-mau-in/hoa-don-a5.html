@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hóa đơn dịch vụ khám chữa bệnh - A5</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9e6;font-family:"Times New Roman",Times,serif;color:#111;font-size:13px;line-height:1.42}
+.toolbar{position:sticky;top:0;z-index:9;background:#1a1a19;color:#fff;display:flex;gap:12px;align-items:center;padding:9px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
+.toolbar .sp{flex:1}
+.toolbar a,.toolbar button{font:inherit;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.35);border-radius:7px;padding:6px 12px;cursor:pointer;text-decoration:none}
+.toolbar button.pr{background:#1baf7a;border-color:transparent;font-weight:600}
+.sheet{background:#fff;margin:16px auto;box-shadow:0 3px 16px rgba(0,0,0,.18);position:relative}
+.lh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1.5px solid #111;padding-bottom:8px;margin-bottom:10px}
+.lh .org{font-size:12px;line-height:1.35}
+.lh .org b{font-size:13.5px;text-transform:uppercase;display:block}
+.lh .logo{width:52px;height:52px;flex:0 0 auto;border:1px solid #111;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-weight:700;color:#0b7285;font-size:10px;text-align:center;line-height:1.1}
+.doc-title{text-align:center;font-size:18px;font-weight:700;text-transform:uppercase;margin:8px 0 2px;letter-spacing:.02em}
+.doc-sub{text-align:center;font-size:12px;color:#333;margin-bottom:12px;font-style:italic}
+.code-line{text-align:right;font-size:11.5px;color:#333;margin-bottom:4px}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+table.grid th,table.grid td{border:1px solid #111;padding:4px 6px;vertical-align:top}
+table.grid th{background:#f0f0ee;font-weight:700;text-align:left}
+td.c,th.c{text-align:center}
+td.r,th.r{text-align:right}
+.sec-h{font-weight:700;text-transform:uppercase;margin:9px 0 3px;font-size:13px}
+.row{display:flex;gap:18px;flex-wrap:wrap}
+.field{margin:3px 0}.field .k{font-weight:700}
+.fill{border-bottom:1px dotted #444;min-width:60px;display:inline-block}
+.sign{display:flex;justify-content:space-around;margin-top:16px;text-align:center;gap:10px}
+.sign .box{min-width:40%}
+.sign .role{font-weight:700}.sign .hint{font-style:italic;font-size:11px;color:#444}
+.sign .date{font-style:italic;font-size:11.5px}.sign .name{margin-top:50px;font-weight:700}
+.muted{color:#555}.small{font-size:11px}
+.note{font-size:11px;color:#444;font-style:italic;margin-top:10px;border-top:1px dashed #999;padding-top:6px}
+@media print{body{background:#fff}.toolbar{display:none}.sheet{margin:0;box-shadow:none}}
+
+@page{size:A5 portrait;margin:0} .sheet{width:148mm;min-height:210mm;padding:9mm 10mm}
+
+.pay-summary{margin-top:6px;font-size:12.5px}
+.pay-summary .ln{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dotted #bbb}
+.pay-summary .ln.total{font-weight:700;font-size:13.5px;border-bottom:1.5px solid #111;border-top:1px solid #111;padding:4px 0}
+.pay-summary .ln.due{font-weight:700}
+.words{margin-top:8px;font-size:12.5px}
+.words .k{font-weight:700}
+.words .v{font-style:italic}
+.meta-tbl{width:100%;font-size:12px;margin-top:4px}
+.meta-tbl td{padding:1px 0;vertical-align:top}
+.meta-tbl td.k{font-weight:700;white-space:nowrap;padding-right:6px;width:34%}
+</style>
+</head>
+<body>
+<div class="toolbar"><b>Hóa đơn dịch vụ (A5)</b><span class="sp"></span>
+  <a href="index.html">← Thư viện biểu mẫu</a>
+  <button class="pr" onclick="window.print()">🖨️ In</button></div>
+
+<div class="sheet">
+  <div class="lh">
+    <div class="logo">PRO<br>DIAB</div>
+    <div class="org" style="text-align:right">
+      <b>Phòng khám đa khoa Pro-Diab</b>
+      Mã CSKCB: 79123 &nbsp;·&nbsp; MST: 0312345678<br>
+      123 Đường Sức Khỏe, P. Bến Nghé, Q.1, TP. Hồ Chí Minh<br>
+      ĐT: 028 3822 1234
+    </div>
+  </div>
+
+  <div class="code-line">Ký hiệu: 1C26M &nbsp;·&nbsp; Số: 0000042 &nbsp;·&nbsp; Ngày 02/07/2026</div>
+
+  <div class="doc-title">Hóa đơn dịch vụ khám chữa bệnh</div>
+  <div class="doc-sub">(Kiêm biên nhận thu tiền)</div>
+
+  <table class="meta-tbl">
+    <tr><td class="k">Họ và tên người bệnh:</td><td><b>NGUYỄN VĂN AN</b> &nbsp;— Nam &nbsp;— Sinh: 12/03/1968 (58 tuổi)</td></tr>
+    <tr><td class="k">Mã bệnh nhân:</td><td>BN000123</td></tr>
+    <tr><td class="k">Số thẻ BHYT:</td><td>HN4 79 123 45678 90 &nbsp;(giá trị đến 31/12/2026, đúng tuyến)</td></tr>
+    <tr><td class="k">Địa chỉ:</td><td>45 Lê Lợi, P.6, Q. Gò Vấp, TP. Hồ Chí Minh</td></tr>
+    <tr><td class="k">Lượt khám / Phòng:</td><td>LK000456 &nbsp;— 08:30 02/07/2026 &nbsp;— Phòng khám số 2 (Nội tiết)</td></tr>
+  </table>
+
+  <div class="sec-h">Chi tiết dịch vụ sử dụng</div>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th class="c" style="width:6%">STT</th>
+        <th>Nội dung</th>
+        <th class="c" style="width:10%">ĐVT</th>
+        <th class="c" style="width:8%">SL</th>
+        <th class="r" style="width:18%">Đơn giá</th>
+        <th class="r" style="width:20%">Thành tiền</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="c">1</td><td>Công khám bệnh</td><td class="c">Lần</td><td class="c">1</td><td class="r">150.000</td><td class="r">150.000</td></tr>
+      <tr><td class="c">2</td><td>Định lượng HbA1c</td><td class="c">Lần</td><td class="c">1</td><td class="r">120.000</td><td class="r">120.000</td></tr>
+      <tr><td class="c">3</td><td>Bộ mỡ máu (Cholesterol TP, Triglycerid, HDL-C, LDL-C)</td><td class="c">Bộ</td><td class="c">1</td><td class="r">180.000</td><td class="r">180.000</td></tr>
+      <tr><td class="c">4</td><td>Tổng phân tích nước tiểu 10 thông số</td><td class="c">Lần</td><td class="c">1</td><td class="r">60.000</td><td class="r">60.000</td></tr>
+      <tr><td class="c">5</td><td>Siêu âm ổ bụng tổng quát</td><td class="c">Lần</td><td class="c">1</td><td class="r">150.000</td><td class="r">150.000</td></tr>
+      <tr><td class="c">6</td><td>Tiền thuốc (theo đơn)</td><td class="c">Đơn</td><td class="c">1</td><td class="r">245.000</td><td class="r">245.000</td></tr>
+    </tbody>
+  </table>
+
+  <div class="pay-summary">
+    <div class="ln"><span>Cộng tiền dịch vụ:</span><span>905.000 đ</span></div>
+    <div class="ln"><span>BHYT chi trả (80% dịch vụ, trừ thuốc tự túc):</span><span>528.000 đ</span></div>
+    <div class="ln total due"><span>Người bệnh tự trả:</span><span>377.000 đ</span></div>
+  </div>
+
+  <div class="words">
+    <span class="k">Số tiền viết bằng chữ:</span>
+    <span class="v">Ba trăm bảy mươi bảy nghìn đồng.</span>
+  </div>
+
+  <table class="meta-tbl" style="margin-top:10px">
+    <tr><td class="k">Hình thức thanh toán:</td><td>Tiền mặt</td></tr>
+    <tr><td class="k">Số biên lai:</td><td>BL-2026-0702-042 &nbsp;·&nbsp; Ca: Sáng</td></tr>
+  </table>
+
+  <div class="sign">
+    <div class="box">
+      <div class="role">NGƯỜI NỘP TIỀN</div>
+      <div class="hint">(Ký, ghi rõ họ tên)</div>
+      <div class="name">Nguyễn Văn An</div>
+    </div>
+    <div class="box">
+      <div class="role">NGƯỜI THU TIỀN</div>
+      <div class="hint">(Ký, ghi rõ họ tên)</div>
+      <div class="name">Lê Thị Cẩm</div>
+    </div>
+  </div>
+
+  <div style="text-align:right;font-style:italic;font-size:12px;margin-top:14px">
+    Ngày 02 tháng 07 năm 2026
+  </div>
+
+  <div class="note">
+    Hóa đơn này là chứng từ hợp lệ để đối soát chi phí khám chữa bệnh và quyết toán BHYT. Vui lòng giữ hóa đơn để đối chiếu khi cần thiết.
+  </div>
+</div>
+</body>
+</html>

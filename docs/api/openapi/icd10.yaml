@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS — ICD-10 Lookup API
+  version: 1.0.0
+  description: Sprint 3-4 — Tra cứu ICD-10 cho chẩn đoán. Full-text VN.
+servers:
+  - url: /api/v1
+tags:
+  - name: ICD-10
+
+paths:
+  /icd10/search:
+    get:
+      tags: [ICD-10]
+      summary: Search ICD-10 (full-text name_vi/name_en + code prefix)
+      operationId: searchIcd10
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+        - { name: type, in: query, schema: { type: string, enum: [code, name, all], default: all } }
+        - { name: category, in: query, schema: { type: string, example: "E10-E14" } }
+        - { name: billable_only, in: query, schema: { type: boolean, default: false } }
+        - { name: limit, in: query, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Icd10Response' }
+
+  /icd10/{code}:
+    parameters:
+      - { name: code, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [ICD-10]
+      summary: Get ICD-10 detail
+      operationId: getIcd10
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Icd10Response' }
+        '404':
+          description: ICD10_NOT_FOUND
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /icd10/categories:
+    get:
+      tags: [ICD-10]
+      summary: List ICD-10 chapter/category groups
+      operationId: listIcd10Categories
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Icd10Category' }
+
+components:
+  schemas:
+    Icd10Response:
+      type: object
+      properties:
+        code: { type: string, example: E11.9 }
+        name_vi: { type: string, example: "Đái tháo đường type 2, không có biến chứng" }
+        name_en: { type: string, example: "Type 2 diabetes mellitus without complications" }
+        category: { type: string, example: "E10-E14" }
+        parent_code: { type: string, nullable: true }
+        is_billable: { type: boolean }
+
+    Icd10Category:
+      type: object
+      properties:
+        code_range: { type: string, example: "E10-E14" }
+        chapter: { type: string, example: "IV" }
+        name_vi: { type: string, example: "Đái tháo đường" }
+        name_en: { type: string }
+        count: { type: integer }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }

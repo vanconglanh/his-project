@@ -1,0 +1,141 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Dashboard API
+  version: 1.0.0
+  description: |
+    Sprint 11 EPIC 9 - Dashboard aggregate endpoints (US-RP08).
+    Permission: dashboard.read.
+    Caching: Redis 60s TTL for overview, 5min for charts.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /dashboard/overview:
+    get:
+      summary: Today overview KPIs
+      tags: [Dashboard]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DashboardOverviewResponse' }
+
+  /dashboard/charts/revenue-trend:
+    get:
+      summary: Revenue trend chart
+      tags: [Dashboard]
+      parameters:
+        - { name: range, in: query, schema: { type: string, enum: [7d, 30d, 90d], default: 30d } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChartResponse' } } } }
+
+  /dashboard/charts/encounters-trend:
+    get:
+      summary: Encounters trend chart
+      tags: [Dashboard]
+      parameters:
+        - { name: range, in: query, schema: { type: string, enum: [7d, 30d, 90d], default: 30d } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChartResponse' } } } }
+
+  /dashboard/charts/top-doctors:
+    get:
+      summary: Top doctors chart
+      tags: [Dashboard]
+      parameters:
+        - { name: range, in: query, schema: { type: string, enum: [7d, 30d, 90d], default: 30d } }
+        - { name: top, in: query, schema: { type: integer, default: 5 } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChartResponse' } } } }
+
+  /dashboard/charts/top-drugs:
+    get:
+      summary: Top drugs chart
+      tags: [Dashboard]
+      parameters:
+        - { name: range, in: query, schema: { type: string, enum: [7d, 30d, 90d], default: 30d } }
+        - { name: top, in: query, schema: { type: integer, default: 5 } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChartResponse' } } } }
+
+  /dashboard/charts/diabetes-hba1c:
+    get:
+      summary: HbA1c distribution chart (diabetes clinic)
+      tags: [Dashboard]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChartResponse' } } } }
+
+  /dashboard/alerts:
+    get:
+      summary: Active alerts list
+      tags: [Dashboard]
+      parameters:
+        - { name: severity, in: query, schema: { type: string, enum: [INFO, WARNING, CRITICAL] } }
+        - { name: type, in: query, schema: { type: string, enum: [LOW_STOCK, NEAR_EXPIRY, ENCOUNTER_OVER_12H, BHYT_PENDING, DTQG_FAILED] } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AlertResponse' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    DashboardOverviewResponse:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        today:
+          type: object
+          properties:
+            revenue: { type: number }
+            encounter_count: { type: integer }
+            new_patient_count: { type: integer }
+            prescription_count: { type: integer }
+            alert_count: { type: integer }
+        delta_vs_yesterday:
+          type: object
+          properties:
+            revenue_pct: { type: number }
+            encounter_pct: { type: number }
+    ChartDataPoint:
+      type: object
+      properties:
+        label: { type: string }
+        value: { type: number }
+        secondary_value: { type: number, nullable: true }
+    ChartResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            chart_type: { type: string, enum: [line, bar, pie, histogram] }
+            x_label: { type: string }
+            y_label: { type: string }
+            points:
+              type: array
+              items: { $ref: '#/components/schemas/ChartDataPoint' }
+    AlertResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [LOW_STOCK, NEAR_EXPIRY, ENCOUNTER_OVER_12H, BHYT_PENDING, DTQG_FAILED] }
+        severity: { type: string, enum: [INFO, WARNING, CRITICAL] }
+        message: { type: string }
+        link: { type: string, nullable: true }
+        count: { type: integer }
+        created_at: { type: string, format: date-time }

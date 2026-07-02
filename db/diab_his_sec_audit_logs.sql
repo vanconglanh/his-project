@@ -1,0 +1,117 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: 57.155.1.252    Database: diab_his
+-- ------------------------------------------------------
+-- Server version	8.0.23
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-8b67-11ef-b09a-0242ac130002:1-22227873';
+
+--
+-- Table structure for table `sec_audit_logs`
+--
+
+DROP TABLE IF EXISTS `sec_audit_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sec_audit_logs` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `CODE` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Audit log code',
+  `USER_ID` int DEFAULT NULL COMMENT 'User performing action',
+  `SESSION_ID` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'User session ID',
+  `ACTION_TYPE` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Action type: LOGIN, LOGOUT, CREATE, READ, UPDATE, DELETE, etc.',
+  `RESOURCE_TYPE` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Resource type affected',
+  `RESOURCE_ID` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Specific resource ID',
+  `ACTION_DESCRIPTION` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Human-readable action description',
+  `OLD_VALUES` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Previous values (JSON)',
+  `NEW_VALUES` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'New values (JSON)',
+  `IP_ADDRESS` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Client IP address',
+  `USER_AGENT` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'User agent string',
+  `LOCATION` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Geographic location',
+  `DEVICE_INFO` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Device information (JSON)',
+  `SUCCESS` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Was action successful',
+  `ERROR_MESSAGE` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Error message if failed',
+  `EXECUTION_TIME_MS` int DEFAULT NULL COMMENT 'Execution time in milliseconds',
+  `PHI_ACCESSED` tinyint(1) DEFAULT '0' COMMENT 'Was PHI accessed',
+  `PHI_ACCESS_TYPE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Type of PHI access',
+  `EMERGENCY_ACCESS` tinyint(1) DEFAULT '0' COMMENT 'Was emergency access used',
+  `APPROVAL_REQUIRED` tinyint(1) DEFAULT '0' COMMENT 'Required approval',
+  `APPROVED_BY` int DEFAULT NULL COMMENT 'Approver user ID',
+  `APPROVAL_TIMESTAMP` datetime DEFAULT NULL COMMENT 'Approval timestamp',
+  `BUSINESS_JUSTIFICATION` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Business justification',
+  `COMPLIANCE_CHECK_PASSED` tinyint(1) DEFAULT '1' COMMENT 'Passed compliance checks',
+  `RISK_LEVEL` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'LOW' COMMENT 'Risk level: LOW, MEDIUM, HIGH, CRITICAL',
+  `ALERT_TRIGGERED` tinyint(1) DEFAULT '0' COMMENT 'Triggered security alert',
+  `ALERT_ID` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Related alert ID',
+  `CORRELATION_ID` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Correlation ID for tracking',
+  `PARENT_AUDIT_ID` int DEFAULT NULL COMMENT 'Parent audit log ID',
+  `BATCH_ID` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Batch operation ID',
+  `API_ENDPOINT` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'API endpoint accessed',
+  `REQUEST_METHOD` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'HTTP method',
+  `REQUEST_HEADERS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Request headers (JSON)',
+  `RESPONSE_STATUS_CODE` int DEFAULT NULL COMMENT 'HTTP response status',
+  `ADDITIONAL_CONTEXT` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Additional context (JSON)',
+  `CREATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `STATUS` int NOT NULL DEFAULT '1',
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `IDX_USER_ID` (`USER_ID`),
+  KEY `IDX_SESSION_ID` (`SESSION_ID`),
+  KEY `IDX_ACTION_TYPE` (`ACTION_TYPE`),
+  KEY `IDX_RESOURCE_TYPE` (`RESOURCE_TYPE`),
+  KEY `IDX_RESOURCE_ID` (`RESOURCE_ID`),
+  KEY `IDX_SUCCESS` (`SUCCESS`),
+  KEY `IDX_PHI_ACCESSED` (`PHI_ACCESSED`),
+  KEY `IDX_EMERGENCY_ACCESS` (`EMERGENCY_ACCESS`),
+  KEY `IDX_RISK_LEVEL` (`RISK_LEVEL`),
+  KEY `IDX_CREATED_AT` (`CREATED_AT`),
+  KEY `IDX_CORRELATION_ID` (`CORRELATION_ID`),
+  KEY `IDX_PARENT_AUDIT_ID` (`PARENT_AUDIT_ID`),
+  KEY `IDX_BATCH_ID` (`BATCH_ID`),
+  KEY `FK_AUDIT_APPROVER` (`APPROVED_BY`),
+  KEY `IDX_SEC_AUDIT_LOGS_USER_ID` (`USER_ID`),
+  KEY `IDX_SEC_AUDIT_LOGS_ACTION_TYPE` (`ACTION_TYPE`),
+  KEY `IDX_SEC_AUDIT_LOGS_RESOURCE_TYPE` (`RESOURCE_TYPE`),
+  KEY `IDX_SEC_AUDIT_LOGS_CREATED_AT` (`CREATED_AT`),
+  CONSTRAINT `FK_AUDIT_APPROVER` FOREIGN KEY (`APPROVED_BY`) REFERENCES `sec_users` (`ID`),
+  CONSTRAINT `FK_AUDIT_PARENT` FOREIGN KEY (`PARENT_AUDIT_ID`) REFERENCES `sec_audit_logs` (`ID`),
+  CONSTRAINT `FK_AUDIT_USER` FOREIGN KEY (`USER_ID`) REFERENCES `sec_users` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Comprehensive Audit Logs for HIPAA';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `sec_audit_logs`
+--
+
+LOCK TABLES `sec_audit_logs` WRITE;
+/*!40000 ALTER TABLE `sec_audit_logs` DISABLE KEYS */;
+/*!40000 ALTER TABLE `sec_audit_logs` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-05-22 22:21:00

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ProDiabHis.Api/ProDiabHis.Api.csproj" />
+    <Project Path="src/ProDiabHis.Application/ProDiabHis.Application.csproj" />
+    <Project Path="src/ProDiabHis.Contracts/ProDiabHis.Contracts.csproj" />
+    <Project Path="src/ProDiabHis.Domain/ProDiabHis.Domain.csproj" />
+    <Project Path="src/ProDiabHis.Infrastructure/ProDiabHis.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ProDiabHis.ArchitectureTests/ProDiabHis.ArchitectureTests.csproj" />
+    <Project Path="tests/ProDiabHis.IntegrationTests/ProDiabHis.IntegrationTests.csproj" />
+    <Project Path="tests/ProDiabHis.UnitTests/ProDiabHis.UnitTests.csproj" />
+  </Folder>
+</Solution>

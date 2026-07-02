@@ -1,0 +1,93 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: 57.155.1.252    Database: diab_his
+-- ------------------------------------------------------
+-- Server version	8.0.23
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-8b67-11ef-b09a-0242ac130002:1-22227833';
+
+--
+-- Table structure for table `pat_emergency_contacts`
+--
+
+DROP TABLE IF EXISTS `pat_emergency_contacts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `pat_emergency_contacts` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `CODE` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Emergency contact code',
+  `PATIENT_ID` int NOT NULL COMMENT 'Reference to pat_patients',
+  `CONTACT_NAME` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Encrypted contact name',
+  `RELATIONSHIP` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Relationship to patient',
+  `PHONE_PRIMARY` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Encrypted primary phone',
+  `PHONE_SECONDARY` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Encrypted secondary phone',
+  `EMAIL` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Encrypted email',
+  `ADDRESS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Encrypted address',
+  `IS_PRIMARY_CONTACT` tinyint(1) DEFAULT '0' COMMENT 'Is primary emergency contact',
+  `IS_AUTHORIZED_FOR_PHI` tinyint(1) DEFAULT '0' COMMENT 'Authorized to receive PHI',
+  `CONSENT_FOR_TREATMENT` tinyint(1) DEFAULT '0' COMMENT 'Consent for emergency treatment',
+  `CONSENT_DATE` datetime DEFAULT NULL COMMENT 'Consent date',
+  `CONSENT_WITNESS` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Consent witness',
+  `LAST_CONTACTED` datetime DEFAULT NULL COMMENT 'Last contacted',
+  `CONTACT_PREFERENCE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'PHONE' COMMENT 'Preference: PHONE, EMAIL, BOTH',
+  `LANGUAGE_PREFERENCE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'vi' COMMENT 'Language preference',
+  `SPECIAL_INSTRUCTIONS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Special contact instructions',
+  `ENCRYPTION_KEY_ID` int NOT NULL COMMENT 'Encryption key used',
+  `CREATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `LAST_UPDATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `STATUS` int NOT NULL DEFAULT '1',
+  `CREATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_PROGRAM` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `IDX_PATIENT_ID` (`PATIENT_ID`),
+  KEY `IDX_RELATIONSHIP` (`RELATIONSHIP`),
+  KEY `IDX_IS_PRIMARY_CONTACT` (`IS_PRIMARY_CONTACT`),
+  KEY `IDX_IS_AUTHORIZED_FOR_PHI` (`IS_AUTHORIZED_FOR_PHI`),
+  KEY `IDX_ENCRYPTION_KEY_ID` (`ENCRYPTION_KEY_ID`),
+  KEY `IDX_STATUS` (`STATUS`),
+  KEY `IDX_CREATED_AT` (`CREATED_AT`),
+  KEY `IDX_PAT_EMERGENCY_PATIENT_ID` (`PATIENT_ID`),
+  CONSTRAINT `FK_EMERGENCY_ENCRYPTION_KEY` FOREIGN KEY (`ENCRYPTION_KEY_ID`) REFERENCES `sec_encryption_keys` (`ID`),
+  CONSTRAINT `FK_EMERGENCY_PATIENT` FOREIGN KEY (`PATIENT_ID`) REFERENCES `pat_patients` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Emergency Contacts';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pat_emergency_contacts`
+--
+
+LOCK TABLES `pat_emergency_contacts` WRITE;
+/*!40000 ALTER TABLE `pat_emergency_contacts` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pat_emergency_contacts` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-05-22 22:20:37

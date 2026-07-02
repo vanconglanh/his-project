@@ -1,0 +1,219 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Reports Clinical API
+  version: 1.0.0
+  description: |
+    Sprint 11 EPIC 9 - Clinical reports (US-RP03, RP04, RP05).
+    Permission: report.read, report.export.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /reports/encounters/count:
+    get:
+      summary: Encounter count by period / type / status
+      tags: [Reports-Clinical]
+      parameters:
+        - { name: period, in: query, required: true, schema: { type: string, enum: [DAY, WEEK, MONTH] } }
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: group_by, in: query, schema: { type: string, enum: [encounter_type, status, none], default: none } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        period_label: { type: string }
+                        group_key: { type: string, nullable: true }
+                        count: { type: integer }
+
+  /reports/diagnoses/top:
+    get:
+      summary: Top ICD-10 diagnoses
+      tags: [Reports-Clinical]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: top, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        icd10_code: { type: string }
+                        icd10_name: { type: string }
+                        count: { type: integer }
+                        percentage: { type: number }
+
+  /reports/diabetes/cohort:
+    get:
+      summary: Diabetes patient cohort summary
+      tags: [Reports-Clinical]
+      parameters:
+        - { name: as_of, in: query, schema: { type: string, format: date } }
+        - { name: dm_type, in: query, schema: { type: string, enum: [T1, T2, GDM, ALL], default: ALL } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DiabetesCohortResponse' }
+
+  /reports/diabetes/hba1c-distribution:
+    get:
+      summary: HbA1c histogram
+      tags: [Reports-Clinical]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: bin_size, in: query, schema: { type: number, default: 0.5 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        bin_label: { type: string, example: "7.0-7.5" }
+                        count: { type: integer }
+
+  /reports/diabetes/complications-rate:
+    get:
+      summary: Complication rate per type
+      tags: [Reports-Clinical]
+      parameters:
+        - { name: as_of, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_patients: { type: integer }
+                      retinopathy_rate: { type: number }
+                      neuropathy_rate: { type: number }
+                      nephropathy_rate: { type: number }
+                      cad_rate: { type: number }
+                      pad_rate: { type: number }
+
+  /reports/lab/abnormal-rate:
+    get:
+      summary: Abnormal lab result rate per test code
+      tags: [Reports-Clinical]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: top, in: query, schema: { type: integer, default: 30 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        test_code: { type: string }
+                        test_name: { type: string }
+                        total: { type: integer }
+                        abnormal: { type: integer }
+                        abnormal_rate: { type: number }
+
+  /reports/encounters/over-12h-rate:
+    get:
+      summary: TT 46 compliance - encounters open > 12h rate
+      tags: [Reports-Clinical]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_encounters: { type: integer }
+                      over_12h_count: { type: integer }
+                      over_12h_rate: { type: number }
+                      by_doctor:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            doctor_id: { type: string, format: uuid }
+                            doctor_name: { type: string }
+                            total: { type: integer }
+                            over_12h: { type: integer }
+                            rate: { type: number }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    DiabetesCohortResponse:
+      type: object
+      properties:
+        as_of: { type: string, format: date }
+        total_patients: { type: integer }
+        by_type:
+          type: object
+          properties:
+            t1: { type: integer }
+            t2: { type: integer }
+            gdm: { type: integer }
+        hba1c_distribution:
+          type: object
+          properties:
+            lt_7: { type: integer, description: "< 7%" }
+            between_7_8: { type: integer }
+            between_8_9: { type: integer }
+            gt_9: { type: integer, description: "> 9%" }
+        complications:
+          type: object
+          properties:
+            retinopathy: { type: integer }
+            neuropathy: { type: integer }
+            nephropathy: { type: integer }
+            cad: { type: integer }
+            pad: { type: integer }

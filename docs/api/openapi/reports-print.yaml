@@ -1,0 +1,268 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS — API In báo cáo A4 (PDF)
+  version: 1.0.0
+  description: |
+    Endpoint duy nhất để xuất báo cáo PDF khổ A4 dọc (Financial / Clinical / Pharmacy).
+    PDF render server-side bằng QuestPDF, layout đồng bộ 1-1 với HTML preview ở
+    `/(dashboard)/reports/print/[type]`.
+
+    - Auth: Bearer JWT (claim `tenant_id`, `user_id`, `clinic_id`).
+    - Multi-tenant: enforce ở application layer (Dapper query luôn `WHERE tenant_id = @tenantId`).
+    - Mã báo cáo: `RPT-{TYPE}-{yyyyMMdd}-{seq}`, seq sinh bởi Redis `INCR` key
+      `report:seq:{tenantId}:{yyyyMMdd}:{type}` (TTL 26h).
+    - **BUG-01 fix**: FE gọi `POST /{type}/code` để đặt trước mã trước khi render
+      HTML preview. Khi tải PDF, truyền `?reportCode=<ma-da-dat>` vào `GET /{type}/pdf`
+      để server dùng lại mã đó thay vì sinh mới — đảm bảo mã trên preview HTML = mã trong PDF.
+servers:
+  - url: https://{tenant}.prodiab.vn
+    variables:
+      tenant:
+        default: demo
+        description: Subdomain tenant
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Reports
+    description: Báo cáo nghiệp vụ — xuất PDF A4
+
+paths:
+  /api/v1/reports/{type}/code:
+    post:
+      tags: [Reports]
+      operationId: reserveReportCode
+      summary: Đặt trước mã báo cáo (dùng chung cho preview HTML + PDF download)
+      description: |
+        Sinh và trả về mã báo cáo mới qua Redis INCR.
+        FE gọi endpoint này **một lần duy nhất** trước khi render HTML preview,
+        sau đó dùng mã này để hiển thị barcode trên trang preview VÀ truyền vào
+        `GET /{type}/pdf?reportCode=...` — tránh sinh mã lần nữa khi tải PDF.
+      parameters:
+        - in: path
+          name: type
+          required: true
+          description: Loại báo cáo
+          schema:
+            $ref: '#/components/schemas/ReportType'
+      responses:
+        '200':
+          description: Mã báo cáo đã đặt trước
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      reportCode:
+                        type: string
+                        pattern: '^RPT-(FIN|CLI|PHA)-\d{8}-\d{4,}$'
+                        example: RPT-FIN-20260526-0001
+        '400':
+          description: Loại báo cáo không hợp lệ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401':
+          description: Thiếu hoặc sai JWT
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403':
+          description: User không có quyền `report.export`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/reports/{type}/pdf:
+    get:
+      tags: [Reports]
+      operationId: exportReportPdf
+      summary: Xuất báo cáo PDF khổ A4 dọc
+      description: |
+        Trả về file PDF binary theo loại báo cáo. Header `Content-Disposition`
+        kèm tên file dạng `RPT-{TYPE}-{yyyyMMdd}-{seq}.pdf`.
+      parameters:
+        - in: path
+          name: type
+          required: true
+          description: Loại báo cáo
+          schema:
+            $ref: '#/components/schemas/ReportType'
+        - in: query
+          name: from
+          required: true
+          description: Ngày bắt đầu kỳ báo cáo (yyyy-MM-dd, theo giờ Việt Nam)
+          schema:
+            type: string
+            format: date
+          example: '2026-05-01'
+        - in: query
+          name: to
+          required: true
+          description: Ngày kết thúc kỳ báo cáo (inclusive)
+          schema:
+            type: string
+            format: date
+          example: '2026-05-25'
+        - in: query
+          name: clinicId
+          required: false
+          description: Lọc theo chi nhánh; bỏ trống = tất cả chi nhánh trong tenant
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: reportCode
+          required: false
+          description: |
+            Mã báo cáo đã đặt trước qua `POST /{type}/code`.
+            Nếu truyền, server dùng lại mã này (không tốn sequence mới),
+            đảm bảo khớp với mã hiển thị trên preview HTML (BUG-01 fix).
+            Nếu không truyền, server tự sinh mã mới qua Redis INCR (hành vi cũ).
+          schema:
+            type: string
+            pattern: '^RPT-(FIN|CLI|PHA)-\d{8}-\d{4,}$'
+          example: RPT-FIN-20260526-0001
+        - in: query
+          name: exportedBy
+          required: false
+          description: |
+            User ID người xuất (mặc định lấy từ JWT claim `user_id`).
+            Truyền tay khi cần ghi log thay mặt (admin xuất hộ).
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: File PDF binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              example: 'attachment; filename="RPT-FIN-20260525-0001.pdf"'
+            X-Report-Code:
+              description: Mã báo cáo đã sinh (CODE128 vẽ trên trang)
+              schema:
+                type: string
+              example: RPT-FIN-20260525-0001
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Tham số không hợp lệ (sai định dạng ngày, from > to, type không hỗ trợ)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                invalidRange:
+                  value:
+                    error:
+                      code: REPORT_INVALID_DATE_RANGE
+                      message: 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc'
+                      details: { from: '2026-05-25', to: '2026-05-01' }
+        '401':
+          description: Thiếu hoặc sai JWT
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: UNAUTHORIZED, message: 'Phiên đăng nhập đã hết hạn' }
+        '403':
+          description: User không có quyền `report.export`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: FORBIDDEN, message: 'Bạn không có quyền xuất báo cáo' }
+        '404':
+          description: Không tìm thấy chi nhánh hoặc không thuộc tenant
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: CLINIC_NOT_FOUND, message: 'Không tìm thấy chi nhánh' }
+        '422':
+          description: Không có dữ liệu trong kỳ báo cáo (tuỳ chính sách có thể vẫn render trang rỗng)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: REPORT_EMPTY_DATASET, message: 'Không có dữ liệu trong kỳ báo cáo' }
+        '500':
+          description: Lỗi render PDF
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: REPORT_RENDER_FAILED, message: 'Không thể tạo tệp PDF' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ReportType:
+      type: string
+      enum: [financial, clinical, pharmacy]
+      description: |
+        - `financial`: Doanh thu, công nợ, hóa đơn
+        - `clinical`: Lượt khám, top ICD-10, KPI bác sĩ
+        - `pharmacy`: Nhập-xuất-tồn, top thuốc, cận HSD
+
+    ReportPdfRequest:
+      type: object
+      description: |
+        DTO nội bộ (server-side) gom tham số truy vấn + claim JWT, dùng cho
+        QuestPDF exporter. Không expose trực tiếp ra client (client gọi GET).
+      required: [reportType, fromDate, toDate, exportedByUserId, reportCode, tenantId]
+      properties:
+        tenantId:
+          type: integer
+          description: Lấy từ JWT, không trust query
+        reportType:
+          $ref: '#/components/schemas/ReportType'
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        clinicId:
+          type: integer
+          nullable: true
+        exportedByUserId:
+          type: integer
+        reportCode:
+          type: string
+          pattern: '^RPT-(FIN|CLI|PHA)-\d{8}-\d{4,}$'
+          example: RPT-FIN-20260525-0001
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Mã lỗi SCREAMING_SNAKE (FE i18n key)
+              example: REPORT_INVALID_DATE_RANGE
+            message:
+              type: string
+              description: Thông điệp tiếng Việt có dấu (fallback hiển thị)
+              example: Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc
+            details:
+              type: object
+              additionalProperties: true
+              nullable: true

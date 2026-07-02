@@ -1,0 +1,103 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: 57.155.1.252    Database: diab_his
+-- ------------------------------------------------------
+-- Server version	8.0.23
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-8b67-11ef-b09a-0242ac130002:1-22227810';
+
+--
+-- Table structure for table `sys_rooms`
+--
+
+DROP TABLE IF EXISTS `sys_rooms`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sys_rooms` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `CODE` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Room code',
+  `NAME` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Room name',
+  `DESCRIPTION` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Room description',
+  `DEPARTMENT_ID` int NOT NULL COMMENT 'Reference to sys_departments',
+  `BRANCH_ID` int NOT NULL COMMENT 'Reference to sys_branches',
+  `HOSPITAL_ID` int NOT NULL COMMENT 'Reference to sys_hospitals',
+  `ROOM_TYPE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Type: Patient, Exam, OR, ICU, etc.',
+  `ROOM_CATEGORY` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Category: Private, Semi-private, Ward',
+  `FLOOR_NUMBER` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Floor number',
+  `ROOM_NUMBER` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Room number',
+  `BUILDING` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Building name',
+  `WING` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Wing/section',
+  `TOTAL_BEDS` int DEFAULT '0' COMMENT 'Total beds in room',
+  `OCCUPIED_BEDS` int DEFAULT '0' COMMENT 'Currently occupied beds',
+  `AVAILABLE_BEDS` int DEFAULT '0' COMMENT 'Available beds',
+  `ROOM_STATUS` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'AVAILABLE' COMMENT 'Status: Available, Occupied, Maintenance, etc.',
+  `HAS_PRIVATE_BATHROOM` tinyint(1) DEFAULT '0' COMMENT 'Has private bathroom',
+  `HAS_TELEVISION` tinyint(1) DEFAULT '0' COMMENT 'Has television',
+  `HAS_REFRIGERATOR` tinyint(1) DEFAULT '0' COMMENT 'Has refrigerator',
+  `HAS_WIFI` tinyint(1) DEFAULT '1' COMMENT 'Has WiFi',
+  `DAILY_RATE` decimal(15,2) DEFAULT NULL COMMENT 'Daily room rate',
+  `CURRENCY_CODE` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'VND' COMMENT 'Currency code',
+  `EQUIPMENT_LIST` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'List of equipment in room',
+  `NOTES` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Additional notes',
+  `CREATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `LAST_UPDATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `STATUS` int NOT NULL DEFAULT '1',
+  `CREATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_PROGRAM` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `IDX_DEPARTMENT_ID` (`DEPARTMENT_ID`),
+  KEY `IDX_BRANCH_ID` (`BRANCH_ID`),
+  KEY `IDX_HOSPITAL_ID` (`HOSPITAL_ID`),
+  KEY `IDX_ROOM_TYPE` (`ROOM_TYPE`),
+  KEY `IDX_ROOM_STATUS` (`ROOM_STATUS`),
+  KEY `IDX_FLOOR_NUMBER` (`FLOOR_NUMBER`),
+  KEY `IDX_STATUS` (`STATUS`),
+  KEY `IDX_CREATED_AT` (`CREATED_AT`),
+  KEY `IDX_SYS_ROOMS_DEPARTMENT_ID` (`DEPARTMENT_ID`),
+  KEY `IDX_SYS_ROOMS_BRANCH_ID` (`BRANCH_ID`),
+  KEY `IDX_SYS_ROOMS_HOSPITAL_ID` (`HOSPITAL_ID`),
+  CONSTRAINT `FK_ROOM_BRANCH` FOREIGN KEY (`BRANCH_ID`) REFERENCES `sys_branches` (`ID`),
+  CONSTRAINT `FK_ROOM_DEPARTMENT` FOREIGN KEY (`DEPARTMENT_ID`) REFERENCES `sys_departments` (`ID`),
+  CONSTRAINT `FK_ROOM_HOSPITAL` FOREIGN KEY (`HOSPITAL_ID`) REFERENCES `sys_hospitals` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Rooms';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `sys_rooms`
+--
+
+LOCK TABLES `sys_rooms` WRITE;
+/*!40000 ALTER TABLE `sys_rooms` DISABLE KEYS */;
+/*!40000 ALTER TABLE `sys_rooms` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-05-22 22:20:23

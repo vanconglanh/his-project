@@ -1,0 +1,42 @@
+# crontab.txt — Cron schedule cho Pro-Diab HIS backup jobs
+# Cài vào server: crontab -e (user root hoặc prodiab)
+# Đặt file tại: /opt/prodiab/ops/backup/crontab.txt
+#
+# Cài đặt:
+#   sudo crontab -u prodiab /opt/prodiab/ops/backup/crontab.txt
+#
+# Biến môi trường cần export trước (đặt trong /etc/environment hoặc .env):
+#   DB_HOST, DB_USER, DB_PASS, DB_NAME
+#   ENABLE_REMOTE=true, MC_ALIAS, REMOTE_BUCKET
+#   SENTRY_DSN (tùy chọn)
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=""
+
+# ---------------------------------------------------------------------------
+# Backup MySQL hàng đêm lúc 02:00 — local 7 ngày + remote 30 ngày
+# ---------------------------------------------------------------------------
+0 2 * * * /opt/prodiab/ops/scripts/backup-nightly.sh >> /var/log/prodiab/backup-nightly.log 2>&1
+
+# ---------------------------------------------------------------------------
+# Mirror MinIO offsite lúc 03:00 (sau khi backup DB xong)
+# ---------------------------------------------------------------------------
+0 3 * * * /opt/prodiab/ops/scripts/backup-minio.sh >> /var/log/prodiab/backup-minio.log 2>&1
+
+# ---------------------------------------------------------------------------
+# Rotate log backup hàng tuần (Chủ nhật 04:00)
+# ---------------------------------------------------------------------------
+0 4 * * 0 find /var/log/prodiab -name "backup-*.log" -mtime +30 -delete
+
+# ---------------------------------------------------------------------------
+# Kiểm tra sức khỏe backup (Thứ 2 08:00 — gửi report)
+# ---------------------------------------------------------------------------
+# Kiểm tra file backup mới nhất có trong vòng 25h không
+0 8 * * 1 /opt/prodiab/ops/scripts/check-backup-health.sh >> /var/log/prodiab/backup-health.log 2>&1
+
+# ---------------------------------------------------------------------------
+# Monthly restore drill sang staging (Thứ 7 đầu tiên của tháng lúc 06:00)
+# ---------------------------------------------------------------------------
+# Uncomment sau khi có script drill
+# 0 6 1-7 * 6 /opt/prodiab/ops/scripts/restore-drill-staging.sh >> /var/log/prodiab/restore-drill.log 2>&1

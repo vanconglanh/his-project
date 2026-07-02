@@ -1,0 +1,183 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - CLS External Uploads API
+  version: 1.0.0
+  description: |
+    Upload kết quả CLS bên ngoài (XN/CĐHA do BN mang đến) - story SUNS-I.3.
+    Cho phép gắn vào patient và optionally encounter.
+    Bảng `diab_his_fil_cls_uploads` (migration 0006), file lưu MinIO.
+    Mapping FHIR: DocumentReference (category=clinical-note).
+
+servers:
+  - url: https://api.prodiab.vn
+  - url: http://localhost:5080
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: CLS Uploads
+
+paths:
+  /api/v1/patients/{patientId}/cls-uploads:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    get:
+      tags: [CLS Uploads]
+      summary: Danh sách tài liệu CLS của BN
+      description: Permission `cls_upload.read`.
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/PageQuery'
+        - $ref: '_common.yaml#/components/parameters/PageSizeQuery'
+        - name: doc_type
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '_common.yaml#/components/schemas/PagedResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ClsUploadResponse' }
+    post:
+      tags: [CLS Uploads]
+      summary: Upload tài liệu CLS mới (SUNS-I.3)
+      description: |
+        Permission `cls_upload.create`. Multipart, PNG/JPEG/PDF, tối đa 10MB.
+        `doc_type` tự nhập (vd "X-quang phổi", "Xét nghiệm máu BV Bạch Mai").
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, doc_type]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                doc_type:
+                  type: string
+                  example: X-quang phổi - BV Bạch Mai 20/05/2026
+                encounter_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                note:
+                  type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ClsUploadResponse' }
+        '413':
+          description: File quá lớn
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                tooLarge:
+                  value:
+                    error: { code: CLS_UPLOAD_TOO_LARGE, message: Tài liệu vượt quá dung lượng tối đa 10MB }
+        '415':
+          description: Định dạng không hỗ trợ
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                invalid:
+                  value:
+                    error: { code: CLS_UPLOAD_INVALID_FORMAT, message: Chỉ chấp nhận file PNG/JPEG/PDF }
+
+  /api/v1/patients/{patientId}/cls-uploads/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [CLS Uploads]
+      summary: Lấy signed URL để download
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ClsUploadResponse' }
+    delete:
+      tags: [CLS Uploads]
+      summary: Xoá tài liệu CLS
+      description: Permission `cls_upload.delete`. Soft delete + xoá file MinIO.
+      responses:
+        '204': { description: OK }
+
+  /api/v1/encounters/{encounterId}/cls-uploads:
+    parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [CLS Uploads]
+      summary: Xem tài liệu CLS gắn với encounter (SUNS-VI.3)
+      description: Hiển thị trong màn EMR khi bác sĩ khám.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ClsUploadResponse' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PatientIdPath:
+      name: patientId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    ClsUploadResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        encounter_id: { type: string, format: uuid, nullable: true }
+        doc_type: { type: string, example: X-quang phổi - BV Bạch Mai 20/05/2026 }
+        file_id: { type: string, format: uuid }
+        file_name: { type: string, example: xquang-phoi-20260520.jpg }
+        file_size_bytes: { type: integer, example: 1547823 }
+        mime_type: { type: string, example: image/jpeg }
+        signed_url:
+          type: string
+          format: uri
+          description: URL tạm, TTL 15 phút
+        uploaded_at: { type: string, format: date-time }
+        uploaded_by: { type: string, format: uuid }
+        uploaded_by_name: { type: string, example: Trần Thị Bình }
+        note: { type: string, nullable: true }

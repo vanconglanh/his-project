@@ -1,0 +1,205 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS Patient Portal API (Sprint 10)
+  version: 1.0.0
+  description: |
+    Cổng bệnh nhân — Auth bằng OTP qua SĐT. Session JWT TTL 24h, audience=`patient-portal`.
+servers: [{ url: https://api.pro-diab.vn }]
+tags:
+  - name: Portal Auth
+  - name: Portal Profile
+  - name: Portal Encounters
+  - name: Portal Prescriptions
+  - name: Portal Lab Results
+  - name: Portal Appointments
+
+paths:
+  /api/portal/v1/auth/request-otp:
+    post:
+      tags: [Portal Auth]
+      summary: Yêu cầu OTP (gửi SMS, 6 digit, TTL 5 phút, max 5 lần/giờ)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PortalAuthOtpRequest' } } }
+      responses:
+        '202': { description: OTP đã gửi }
+        '404':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: PORTAL_PHONE_NOT_REGISTERED, message: "Số điện thoại chưa đăng ký" } } } }
+        '429':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: PORTAL_OTP_TOO_MANY_ATTEMPTS, message: "Quá nhiều yêu cầu OTP, thử lại sau 1 giờ" } } } }
+
+  /api/portal/v1/auth/verify-otp:
+    post:
+      tags: [Portal Auth]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PortalVerifyRequest' } } }
+      responses:
+        '200': { content: { application/json: { schema: { $ref: '#/components/schemas/PortalAuthResponse' } } } }
+        '400':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: PORTAL_OTP_INVALID, message: "OTP không đúng" } } } }
+        '410':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: PORTAL_OTP_EXPIRED, message: "OTP đã hết hạn" } } } }
+
+  /api/portal/v1/auth/logout:
+    post:
+      tags: [Portal Auth]
+      security: [{ PortalBearer: [] }]
+      responses: { '204': { description: Logged out } }
+
+  /api/portal/v1/me:
+    get:
+      tags: [Portal Profile]
+      security: [{ PortalBearer: [] }]
+      responses: { '200': { content: { application/json: { schema: { $ref: '#/components/schemas/PortalMeResponse' } } } } }
+
+  /api/portal/v1/me/encounters:
+    get:
+      tags: [Portal Encounters]
+      security: [{ PortalBearer: [] }]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/PortalEncounterResponse' } }
+                  meta: { type: object }
+
+  /api/portal/v1/me/encounters/{id}:
+    get:
+      tags: [Portal Encounters]
+      security: [{ PortalBearer: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { content: { application/json: { schema: { $ref: '#/components/schemas/PortalEncounterResponse' } } } } }
+
+  /api/portal/v1/me/prescriptions:
+    get:
+      tags: [Portal Prescriptions]
+      security: [{ PortalBearer: [] }]
+      responses: { '200': { description: OK } }
+
+  /api/portal/v1/me/prescriptions/{id}/pdf:
+    get:
+      tags: [Portal Prescriptions]
+      security: [{ PortalBearer: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: PDF, content: { application/pdf: { schema: { type: string, format: binary } } } }
+
+  /api/portal/v1/me/lab-results:
+    get:
+      tags: [Portal Lab Results]
+      security: [{ PortalBearer: [] }]
+      responses: { '200': { description: OK } }
+
+  /api/portal/v1/me/lab-results/{id}/pdf:
+    get:
+      tags: [Portal Lab Results]
+      security: [{ PortalBearer: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { description: PDF, content: { application/pdf: { schema: { type: string, format: binary } } } } }
+
+  /api/portal/v1/me/appointments:
+    get:
+      tags: [Portal Appointments]
+      security: [{ PortalBearer: [] }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Portal Appointments]
+      security: [{ PortalBearer: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PortalAppointmentCreateRequest' } } }
+      responses:
+        '201': { description: Created }
+        '409':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: APPOINTMENT_SLOT_TAKEN, message: "Khung giờ đã được đặt" } } } }
+
+  /api/portal/v1/me/appointments/{id}:
+    delete:
+      tags: [Portal Appointments]
+      security: [{ PortalBearer: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '204': { description: Cancelled }
+        '400':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: APPOINTMENT_CANCEL_TOO_LATE, message: "Không thể huỷ trong vòng 2 giờ trước hẹn" } } } }
+
+components:
+  securitySchemes:
+    PortalBearer: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error: { type: object, properties: { code: { type: string }, message: { type: string }, details: { type: object, additionalProperties: true } } }
+    PortalAuthOtpRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone: { type: string, pattern: '^\+?[1-9]\d{7,14}$' }
+        tenant_code: { type: string, description: "Mã phòng khám (nếu cần phân biệt)" }
+    PortalVerifyRequest:
+      type: object
+      required: [phone, otp]
+      properties:
+        phone: { type: string }
+        otp: { type: string, minLength: 6, maxLength: 6 }
+    PortalAuthResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, default: Bearer }
+        expires_in: { type: integer, example: 86400 }
+        patient_code: { type: string }
+        full_name: { type: string }
+    PortalMeResponse:
+      type: object
+      properties:
+        patient_code: { type: string }
+        full_name: { type: string }
+        gender: { type: string }
+        dob: { type: string, format: date }
+        phone: { type: string }
+        address: { type: string }
+        bhyt_number: { type: string, nullable: true }
+    PortalEncounterResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        encounter_code: { type: string }
+        visited_at: { type: string, format: date-time }
+        doctor_name: { type: string }
+        chief_complaint: { type: string }
+        diagnosis: { type: array, items: { type: object, properties: { icd10: { type: string }, name: { type: string } } } }
+        status: { type: string }
+    PortalPrescriptionResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        prescription_code: { type: string }
+        issued_at: { type: string, format: date-time }
+        doctor_name: { type: string }
+        dtqg_code: { type: string, nullable: true }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              drug_name: { type: string }
+              dosage: { type: string }
+              quantity: { type: number }
+              usage_instruction: { type: string }
+    PortalAppointmentCreateRequest:
+      type: object
+      required: [appointment_at]
+      properties:
+        doctor_id: { type: string, format: uuid, nullable: true }
+        department_id: { type: string, format: uuid, nullable: true }
+        appointment_at: { type: string, format: date-time }
+        note: { type: string }

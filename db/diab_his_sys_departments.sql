@@ -1,0 +1,97 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: 57.155.1.252    Database: diab_his
+-- ------------------------------------------------------
+-- Server version	8.0.23
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-8b67-11ef-b09a-0242ac130002:1-22227840';
+
+--
+-- Table structure for table `sys_departments`
+--
+
+DROP TABLE IF EXISTS `sys_departments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sys_departments` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `CODE` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Department code',
+  `NAME` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Department name',
+  `SHORT_NAME` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Department short name',
+  `DESCRIPTION` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Department description',
+  `BRANCH_ID` int NOT NULL COMMENT 'Reference to sys_branches',
+  `HOSPITAL_ID` int NOT NULL COMMENT 'Reference to sys_hospitals',
+  `DEPARTMENT_TYPE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Type: Medical, Surgical, Admin, etc.',
+  `SPECIALTY` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Medical specialty',
+  `CATEGORY` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Category: Inpatient, Outpatient, Emergency, etc.',
+  `FLOOR_NUMBER` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Floor number/location',
+  `PHONE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Department phone',
+  `EMAIL` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Department email',
+  `HEAD_DOCTOR_ID` int DEFAULT NULL COMMENT 'Department head doctor ID',
+  `NURSE_MANAGER_ID` int DEFAULT NULL COMMENT 'Nurse manager ID',
+  `TOTAL_BEDS` int DEFAULT '0' COMMENT 'Total beds in department',
+  `OCCUPIED_BEDS` int DEFAULT '0' COMMENT 'Currently occupied beds',
+  `AVAILABLE_BEDS` int DEFAULT '0' COMMENT 'Available beds',
+  `OPERATING_HOURS` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Operating hours',
+  `EMERGENCY_SERVICES` tinyint(1) DEFAULT '0' COMMENT 'Has emergency services',
+  `ICU_CAPABILITY` tinyint(1) DEFAULT '0' COMMENT 'Has ICU capability',
+  `CREATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `LAST_UPDATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `STATUS` int NOT NULL DEFAULT '1',
+  `CREATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_PROGRAM` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `IDX_BRANCH_ID` (`BRANCH_ID`),
+  KEY `IDX_HOSPITAL_ID` (`HOSPITAL_ID`),
+  KEY `IDX_DEPARTMENT_TYPE` (`DEPARTMENT_TYPE`),
+  KEY `IDX_SPECIALTY` (`SPECIALTY`),
+  KEY `IDX_HEAD_DOCTOR_ID` (`HEAD_DOCTOR_ID`),
+  KEY `IDX_STATUS` (`STATUS`),
+  KEY `IDX_CREATED_AT` (`CREATED_AT`),
+  KEY `IDX_SYS_DEPARTMENTS_BRANCH_ID` (`BRANCH_ID`),
+  KEY `IDX_SYS_DEPARTMENTS_HOSPITAL_ID` (`HOSPITAL_ID`),
+  CONSTRAINT `FK_DEPARTMENT_BRANCH` FOREIGN KEY (`BRANCH_ID`) REFERENCES `sys_branches` (`ID`),
+  CONSTRAINT `FK_DEPARTMENT_HOSPITAL` FOREIGN KEY (`HOSPITAL_ID`) REFERENCES `sys_hospitals` (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Departments';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `sys_departments`
+--
+
+LOCK TABLES `sys_departments` WRITE;
+/*!40000 ALTER TABLE `sys_departments` DISABLE KEYS */;
+INSERT INTO `sys_departments` VALUES (1,'DEPT20251226180250764729F34','Default Department','DEFAULT',NULL,1,1,'GENERAL',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-12-26 11:02:51','2025-12-26 11:02:51',1,1,1,'Web.Application');
+/*!40000 ALTER TABLE `sys_departments` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-05-22 22:20:44

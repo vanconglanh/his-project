@@ -1,0 +1,554 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Users & Auth API
+  version: 1.0.0
+  description: |
+    API quản lý người dùng trong phạm vi 1 tenant + xác thực (login, 2FA, forgot/reset password).
+    - Bảng DB: `sec_users` (cần migration 0020 thêm cột:
+      `avatar_url`, `two_fa_secret`, `two_fa_enabled`, `two_fa_recovery_codes`,
+      `invite_token`, `invite_token_expires_at`, `status`).
+    - Cột nhạy cảm `two_fa_secret`, `two_fa_recovery_codes` MÃ HOÁ AES-256-GCM.
+    - Mọi thao tác CREATE/UPDATE/DELETE ghi vào `sec_audit_logs`.
+
+servers:
+  - url: http://localhost:5000
+  - url: https://api.staging.prodiab.example.com
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Users
+  - name: Auth
+  - name: TwoFactor
+
+paths:
+  /api/v1/users:
+    get:
+      tags: [Users]
+      summary: Danh sách user trong tenant
+      operationId: listUsers
+      x-required-permission: user.read
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/PageQuery'
+        - $ref: '_common.yaml#/components/parameters/PageSizeQuery'
+        - $ref: '_common.yaml#/components/parameters/SortQuery'
+        - $ref: '_common.yaml#/components/parameters/SearchQuery'
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [SUPER_ADMIN, ADMIN, BACSI, DIEUDUONG, LETAN, DUOCSI, KETOAN, KYTHUATVIEN]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, ACTIVE, LOCKED, DISABLED]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '_common.yaml#/components/schemas/PagedResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/UserResponse' }
+              example:
+                data:
+                  - id: 11111111-1111-1111-1111-111111111111
+                    tenant_id: 6f1c4f0a-1111-4d33-a111-aaaaaaaaaaaa
+                    email: an.nguyen@anbinh.vn
+                    full_name: Nguyễn Văn An
+                    phone: '0901234567'
+                    avatar_url: https://cdn.prodiab.vn/avatar/an.png
+                    status: ACTIVE
+                    roles:
+                      - { code: ADMIN, name: Quản trị phòng khám }
+                    permissions: [user.read, user.invite, tenant.write]
+                    two_fa_enabled: true
+                    last_login_at: '2026-05-22T08:15:00Z'
+                    created_at: '2026-01-15T08:30:00Z'
+                meta: { page: 1, page_size: 20, total: 1, total_pages: 1 }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+
+  /api/v1/users/invite:
+    post:
+      tags: [Users]
+      summary: Mời user mới qua email
+      operationId: inviteUser
+      x-required-permission: user.invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InviteUserRequest' }
+            example:
+              email: binh.tran@anbinh.vn
+              full_name: Trần Thị Bình
+              phone: '0907654321'
+              role_codes: [BACSI]
+      responses:
+        '201':
+          description: Đã gửi email mời
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user_id: { type: string, format: uuid }
+                      email: { type: string }
+                      invite_expires_at: { type: string, format: date-time }
+        '422':
+          description: Email đã tồn tại hoặc role không hợp lệ
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                emailExists:
+                  value:
+                    error: { code: USER_EMAIL_EXISTS, message: Email đã được đăng ký }
+
+  /api/v1/users/accept-invite:
+    post:
+      tags: [Auth]
+      summary: Chấp nhận lời mời và đặt mật khẩu
+      operationId: acceptInvite
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AcceptInviteRequest' }
+            example:
+              token: 9b1d-3f7a-...-c4e2
+              password: M@tKh@uManh2026!
+              full_name: Trần Thị Bình
+      responses:
+        '200':
+          description: Kích hoạt thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user: { $ref: '#/components/schemas/UserResponse' }
+                      access_token: { type: string }
+                      refresh_token: { type: string }
+        '422':
+          description: Token sai hoặc hết hạn / mật khẩu yếu
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                expired:
+                  value: { error: { code: USER_INVITE_EXPIRED, message: Liên kết mời đã hết hạn } }
+                weak:
+                  value: { error: { code: PASSWORD_TOO_WEAK, message: Mật khẩu phải có tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt } }
+
+  /api/v1/users/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Users]
+      summary: Chi tiết user
+      operationId: getUser
+      x-required-permission: user.read
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserResponse' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+    put:
+      tags: [Users]
+      summary: Cập nhật profile user (không cho đổi email)
+      operationId: updateUser
+      x-required-permission: user.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserResponse' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+    delete:
+      tags: [Users]
+      summary: Xoá mềm user
+      operationId: deleteUser
+      x-required-permission: user.delete
+      responses:
+        '204': { description: Đã xoá }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+
+  /api/v1/users/{id}/roles:
+    post:
+      tags: [Users]
+      summary: Gán role cho user
+      operationId: assignRoles
+      x-required-permission: user.assign_role
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_codes]
+              properties:
+                role_codes:
+                  type: array
+                  items: { type: string }
+                  example: [BACSI, DIEUDUONG]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserResponse' }
+        '422':
+          description: Role không tồn tại hoặc bị bảo vệ
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+
+  /api/v1/users/{id}/roles/{roleCode}:
+    delete:
+      tags: [Users]
+      summary: Thu hồi 1 role
+      operationId: revokeRole
+      x-required-permission: user.assign_role
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: roleCode, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Đã thu hồi }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+
+  /api/v1/users/{id}/disable:
+    post:
+      tags: [Users]
+      summary: Khoá user (status = LOCKED)
+      operationId: disableUser
+      x-required-permission: user.write
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserResponse' }
+
+  /api/v1/users/{id}/enable:
+    post:
+      tags: [Users]
+      summary: Mở khoá user
+      operationId: enableUser
+      x-required-permission: user.write
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserResponse' }
+
+  /api/v1/users/me:
+    get:
+      tags: [Users]
+      summary: Profile của user đang đăng nhập + permissions
+      operationId: getMe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserResponse' }
+    put:
+      tags: [Users]
+      summary: Cập nhật profile bản thân
+      operationId: updateMe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateMeRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserResponse' }
+
+  /api/v1/users/me/change-password:
+    post:
+      tags: [Auth]
+      summary: Đổi mật khẩu
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '204': { description: Đổi mật khẩu thành công }
+        '422':
+          description: Mật khẩu cũ sai hoặc mật khẩu mới yếu
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                wrongOld:
+                  value: { error: { code: AUTH_INVALID_CREDENTIALS, message: Email hoặc mật khẩu không đúng } }
+                weak:
+                  value: { error: { code: PASSWORD_TOO_WEAK, message: Mật khẩu phải có tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt } }
+
+  /api/v1/users/me/2fa/setup:
+    post:
+      tags: [TwoFactor]
+      summary: Khởi tạo TOTP - trả secret + QR
+      operationId: setup2fa
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      secret: { type: string, example: JBSWY3DPEHPK3PXP }
+                      otpauth_url: { type: string, example: 'otpauth://totp/ProDiab:an.nguyen@anbinh.vn?secret=...&issuer=ProDiab' }
+                      qr_png_base64: { type: string, description: PNG base64 cho frontend render }
+
+  /api/v1/users/me/2fa/enable:
+    post:
+      tags: [TwoFactor]
+      summary: Xác minh TOTP code và bật 2FA
+      operationId: enable2fa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, example: '123456' }
+      responses:
+        '200':
+          description: Đã bật 2FA, trả về 10 recovery codes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      recovery_codes:
+                        type: array
+                        items: { type: string }
+        '422':
+          description: Code sai hoặc đã bật rồi
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                invalid: { value: { error: { code: TWO_FA_INVALID_CODE, message: Mã xác thực 2 lớp không đúng } } }
+                already: { value: { error: { code: TWO_FA_ALREADY_ENABLED, message: Xác thực 2 lớp đã được kích hoạt } } }
+
+  /api/v1/users/me/2fa/disable:
+    post:
+      tags: [TwoFactor]
+      summary: Tắt 2FA (cần xác minh mật khẩu hoặc code)
+      operationId: disable2fa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+                code: { type: string, description: TOTP code hiện tại }
+      responses:
+        '204': { description: Đã tắt }
+        '422':
+          description: Sai mật khẩu/code
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Gửi email reset password
+      operationId: forgotPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, example: an.nguyen@anbinh.vn }
+      responses:
+        '204':
+          description: |
+            Luôn trả 204 (không leak thông tin email tồn tại hay không).
+
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Đặt lại mật khẩu bằng token
+      operationId: resetPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token: { type: string }
+                new_password: { type: string, minLength: 12 }
+      responses:
+        '204': { description: Đã đặt lại }
+        '422':
+          description: Token sai/hết hạn hoặc password yếu
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserStatus:
+      type: string
+      enum: [PENDING, ACTIVE, LOCKED, DISABLED]
+
+    RoleRef:
+      type: object
+      properties:
+        code: { type: string, example: BACSI }
+        name: { type: string, example: Bác sĩ }
+
+    UserResponse:
+      type: object
+      required: [id, tenant_id, email, full_name, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        full_name: { type: string, example: Nguyễn Văn An }
+        phone: { type: string }
+        avatar_url: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/UserStatus' }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleRef' }
+        permissions:
+          type: array
+          items: { type: string }
+          description: Tổng hợp permission từ tất cả roles (computed)
+        two_fa_enabled: { type: boolean, default: false }
+        last_login_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    InviteUserRequest:
+      type: object
+      required: [email, full_name, role_codes]
+      properties:
+        email: { type: string, format: email }
+        full_name: { type: string }
+        phone: { type: string }
+        role_codes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [ADMIN, BACSI, DIEUDUONG, LETAN, DUOCSI, KETOAN, KYTHUATVIEN]
+
+    AcceptInviteRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token: { type: string }
+        password:
+          type: string
+          minLength: 12
+          description: Tối thiểu 12 ký tự, chữ hoa, chữ thường, số, ký tự đặc biệt
+        full_name: { type: string }
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        full_name: { type: string }
+        phone: { type: string }
+        avatar_url: { type: string }
+
+    UpdateMeRequest:
+      type: object
+      properties:
+        full_name: { type: string }
+        phone: { type: string }
+        avatar_url: { type: string }
+
+    ChangePasswordRequest:
+      type: object
+      required: [old_password, new_password]
+      properties:
+        old_password: { type: string }
+        new_password: { type: string, minLength: 12 }

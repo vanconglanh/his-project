@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS — Diabetes Assessment API
+  version: 1.0.0
+  description: |
+    Sprint 3-4 — Đánh giá chuyên khoa Đái tháo đường.
+    HbA1c, đường huyết, eGFR, ACR, biến chứng, mục tiêu điều trị.
+servers:
+  - url: /api/v1
+tags:
+  - name: Diabetes
+
+paths:
+  /encounters/{encounterId}/diabetes-assessment:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Diabetes]
+      summary: Create assessment
+      operationId: createDiabetesAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiabetesAssessmentRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DiabetesAssessmentResponse' }
+        '409':
+          description: DIABETES_ASSESSMENT_EXISTS
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    get:
+      tags: [Diabetes]
+      summary: Get current assessment
+      operationId: getDiabetesAssessment
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DiabetesAssessmentResponse' }
+    put:
+      tags: [Diabetes]
+      summary: Update assessment
+      operationId: updateDiabetesAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiabetesAssessmentRequest' }
+      responses:
+        '200': { description: OK }
+
+  /patients/{patientId}/diabetes-assessments/history:
+    parameters:
+      - { name: patientId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: date_from, in: query, schema: { type: string, format: date } }
+      - { name: date_to, in: query, schema: { type: string, format: date } }
+    get:
+      tags: [Diabetes]
+      summary: HbA1c trend qua time
+      operationId: getDiabetesHistory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DiabetesAssessmentResponse' }
+
+  /diabetes-templates:
+    get:
+      tags: [Diabetes]
+      summary: List diabetes assessment templates
+      operationId: listDiabetesTemplates
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DiabetesTemplateResponse' }
+    post:
+      tags: [Diabetes]
+      summary: Create custom template
+      operationId: createDiabetesTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiabetesTemplateRequest' }
+      responses:
+        '201': { description: Created }
+
+  /diabetes-templates/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Diabetes]
+      summary: Update template
+      operationId: updateDiabetesTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiabetesTemplateRequest' }
+      responses:
+        '200': { description: OK }
+
+components:
+  schemas:
+    DiabetesType:
+      type: string
+      enum: [TYPE_1, TYPE_2, GESTATIONAL, MODY, OTHER]
+
+    Complications:
+      type: object
+      properties:
+        retinopathy: { type: boolean }
+        neuropathy: { type: boolean }
+        nephropathy: { type: boolean }
+        cad: { type: boolean, description: "Coronary artery disease" }
+        pad: { type: boolean, description: "Peripheral artery disease" }
+        diabetic_foot: { type: boolean }
+
+    TreatmentTarget:
+      type: object
+      properties:
+        hba1c_target: { type: number, format: float, example: 7.0 }
+        ldl_target: { type: number, format: float, example: 2.6 }
+        bp_target: { type: string, example: "130/80" }
+
+    DiabetesAssessmentRequest:
+      type: object
+      properties:
+        hba1c: { type: number, format: float, minimum: 3, maximum: 20 }
+        fasting_glucose: { type: number, format: float, description: "mg/dL" }
+        postprandial_glucose: { type: number, format: float }
+        random_glucose: { type: number, format: float }
+        egfr: { type: number, format: float }
+        serum_creatinine: { type: number, format: float }
+        urine_acr: { type: number, format: float, description: "Albumin/Creatinine Ratio mg/g" }
+        bp_systolic: { type: integer }
+        bp_diastolic: { type: integer }
+        bmi: { type: number, format: float }
+        waist_circumference: { type: number, format: float, description: "cm" }
+        diabetes_type: { $ref: '#/components/schemas/DiabetesType' }
+        complications: { $ref: '#/components/schemas/Complications' }
+        treatment_target: { $ref: '#/components/schemas/TreatmentTarget' }
+        note: { type: string, nullable: true }
+
+    DiabetesAssessmentResponse:
+      allOf:
+        - $ref: '#/components/schemas/DiabetesAssessmentRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            encounter_id: { type: string, format: uuid }
+            patient_id: { type: string, format: uuid }
+            assessed_at: { type: string, format: date-time }
+            assessed_by: { type: string, format: uuid }
+            assessed_by_name: { type: string }
+
+    DiabetesTemplateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        default_values: { type: object, description: "Pre-filled fields" }
+        checklist: { type: array, items: { type: string } }
+
+    DiabetesTemplateResponse:
+      allOf:
+        - $ref: '#/components/schemas/DiabetesTemplateRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            tenant_id: { type: string, format: uuid }
+            is_system: { type: boolean }
+            created_at: { type: string, format: date-time }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }

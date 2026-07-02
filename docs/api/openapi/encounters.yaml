@@ -1,0 +1,367 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS — Encounter API
+  version: 1.0.0
+  description: |
+    Sprint 3-4 EPIC 3 — Encounter lifecycle management.
+    Stories: US-E01..E15.
+    Encounter là một lượt khám bệnh, là entity trung tâm liên kết Patient, Doctor, Room, Diagnoses, CLS, EMR, Prescription.
+servers:
+  - url: /api/v1
+tags:
+  - name: Encounters
+    description: Lifecycle CRUD + chẩn đoán ICD-10 + đóng case
+
+paths:
+  /encounters:
+    get:
+      tags: [Encounters]
+      summary: List encounters (filter)
+      operationId: listEncounters
+      parameters:
+        - { name: patient_id, in: query, schema: { type: string, format: uuid } }
+        - { name: doctor_id, in: query, schema: { type: string, format: uuid } }
+        - { name: room_id, in: query, schema: { type: string, format: uuid } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/EncounterStatus' } }
+        - { name: encounter_type, in: query, schema: { $ref: '#/components/schemas/EncounterType' } }
+        - { name: date_from, in: query, schema: { type: string, format: date } }
+        - { name: date_to, in: query, schema: { type: string, format: date } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/EncounterResponse' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+    post:
+      tags: [Encounters]
+      summary: Create encounter (US-E01)
+      operationId: createEncounter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EncounterCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EncounterResponse' }
+
+  /encounters/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Encounters]
+      summary: Get encounter detail (incl. vital, diag, cls_orders, prescriptions, emr_summary)
+      operationId: getEncounter
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EncounterDetailResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Encounters]
+      summary: Update encounter (basic fields)
+      operationId: updateEncounter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EncounterUpdateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EncounterResponse' }
+
+  /encounters/{id}/start:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Encounters]
+      summary: Start encounter — WAITING -> IN_PROGRESS (US-E05)
+      description: Set `started_at = now()`, set `doctor_id` từ JWT nếu chưa có.
+      operationId: startEncounter
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EncounterResponse' }
+        '409':
+          description: Invalid transition
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /encounters/{id}/close:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Encounters]
+      summary: Close encounter — IN_PROGRESS -> DONE (US-E10)
+      description: Validate có chief_complaint, ≥1 diagnosis PRIMARY, EMR đã sign.
+      operationId: closeEncounter
+      responses:
+        '200':
+          description: OK
+        '422':
+          description: Validation failed (ENCOUNTER_MISSING_DIAGNOSIS, EMR_NOT_SIGNED)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /encounters/{id}/diagnoses:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Encounters]
+      summary: Add ICD-10 diagnosis (US-E07)
+      operationId: addDiagnosis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiagnosisRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DiagnosisResponse' }
+
+  /encounters/{id}/diagnoses/{diagnosisId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: diagnosisId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Encounters]
+      summary: Remove diagnosis
+      operationId: deleteDiagnosis
+      responses:
+        '204': { description: Deleted }
+
+  /encounters/{id}/chief-complaint:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Encounters]
+      summary: Update chief complaint (US-E06)
+      operationId: updateChiefComplaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chief_complaint]
+              properties:
+                chief_complaint: { type: string, maxLength: 2000 }
+      responses:
+        '200': { description: OK }
+
+  /encounters/{id}/timeline:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Encounters]
+      summary: Activity timeline (vital, order, prescription, note) (US-E12)
+      operationId: getEncounterTimeline
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/TimelineEvent' }
+
+  /encounters/alerts/over-12h:
+    get:
+      tags: [Encounters]
+      summary: Encounters in_progress > 12h — TT 46/2018/TT-BYT alert (US-E15)
+      description: Kết quả từ background job (Hangfire) chạy mỗi 10 phút.
+      operationId: listOver12hAlerts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Over12hAlert' }
+
+components:
+  schemas:
+    EncounterStatus:
+      type: string
+      enum: [WAITING, IN_PROGRESS, DONE, CANCELLED]
+    EncounterType:
+      type: string
+      enum: [FIRST_VISIT, FOLLOW_UP, EMERGENCY, CONSULTATION]
+    DiagnosisType:
+      type: string
+      enum: [PRIMARY, SECONDARY]
+
+    EncounterCreateRequest:
+      type: object
+      required: [patient_id, encounter_type, reason_for_visit]
+      properties:
+        patient_id: { type: string, format: uuid }
+        room_id: { type: string, format: uuid, nullable: true }
+        doctor_id: { type: string, format: uuid, nullable: true }
+        encounter_type: { $ref: '#/components/schemas/EncounterType' }
+        reason_for_visit: { type: string, maxLength: 1000 }
+        chief_complaint: { type: string, maxLength: 2000, nullable: true }
+
+    EncounterUpdateRequest:
+      type: object
+      properties:
+        room_id: { type: string, format: uuid }
+        doctor_id: { type: string, format: uuid }
+        encounter_type: { $ref: '#/components/schemas/EncounterType' }
+        reason_for_visit: { type: string }
+        chief_complaint: { type: string }
+
+    EncounterResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        patient_summary:
+          type: object
+          properties:
+            full_name: { type: string }
+            year_of_birth: { type: integer }
+            gender: { type: string }
+            phone: { type: string }
+        room_id: { type: string, format: uuid, nullable: true }
+        doctor_id: { type: string, format: uuid, nullable: true }
+        doctor_name: { type: string, nullable: true }
+        encounter_type: { $ref: '#/components/schemas/EncounterType' }
+        reason_for_visit: { type: string }
+        chief_complaint: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/EncounterStatus' }
+        started_at: { type: string, format: date-time, nullable: true }
+        finished_at: { type: string, format: date-time, nullable: true }
+        alert_over_12h: { type: boolean, description: "Computed: status=IN_PROGRESS AND started_at < now()-12h" }
+        diagnoses:
+          type: array
+          items: { $ref: '#/components/schemas/DiagnosisResponse' }
+        vital_signs_latest: { type: object, nullable: true }
+        has_emr_signed: { type: boolean }
+        has_prescription: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    EncounterDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/EncounterResponse'
+        - type: object
+          properties:
+            vital_signs: { type: array, items: { type: object } }
+            lab_orders: { type: array, items: { type: object } }
+            rad_orders: { type: array, items: { type: object } }
+            prescriptions: { type: array, items: { type: object } }
+            emr_summary:
+              type: object
+              properties:
+                id: { type: string, format: uuid }
+                signed_at: { type: string, format: date-time, nullable: true }
+                version: { type: integer }
+
+    DiagnosisRequest:
+      type: object
+      required: [icd10_code, type]
+      properties:
+        icd10_code: { type: string, example: E11.9 }
+        type: { $ref: '#/components/schemas/DiagnosisType' }
+        note: { type: string, nullable: true }
+
+    DiagnosisResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        icd10_code: { type: string }
+        name: { type: string }
+        type: { $ref: '#/components/schemas/DiagnosisType' }
+        note: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    TimelineEvent:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        event_type: { type: string, enum: [VITAL, LAB_ORDER, RAD_ORDER, PRESCRIPTION, NOTE, DIAGNOSIS, EMR_SAVED, EMR_SIGNED] }
+        actor: { type: string }
+        actor_role: { type: string }
+        ref_id: { type: string, format: uuid }
+        summary: { type: string }
+        payload: { type: object }
+
+    Over12hAlert:
+      type: object
+      properties:
+        encounter_id: { type: string, format: uuid }
+        patient_name: { type: string }
+        doctor_name: { type: string, nullable: true }
+        started_at: { type: string, format: date-time }
+        hours_open: { type: number, format: float }
+        alert_sent_at: { type: string, format: date-time, nullable: true }
+
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }
+
+  responses:
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }

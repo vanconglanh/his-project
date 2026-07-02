@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pro-Diab HIS — Dashboard trạng thái dự án</title>
+<style>
+  /* ── Palette (validated dataviz reference) ───────────────────────── */
+  :root {
+    --page:        #f9f9f7;
+    --surface:     #fcfcfb;
+    --surface-2:   #f3f3f0;
+    --ink:         #0b0b0b;
+    --ink-2:       #52514e;
+    --muted:       #898781;
+    --grid:        #e1e0d9;
+    --baseline:    #c3c2b7;
+    --border:      rgba(11,11,11,0.10);
+    /* categorical */
+    --blue:   #2a78d6;
+    --aqua:   #1baf7a;   /* brand accent (medical teal) */
+    --yellow: #eda100;
+    --violet: #4a3aa7;
+    --orange: #eb6834;
+    /* status */
+    --good:     #0ca30c;
+    --warning:  #fab219;
+    --serious:  #ec835a;
+    --critical: #d03b3b;
+    --good-text: #006300;
+    /* track = lighter step of accent ramp */
+    --track:   #d9f0e6;
+    --shadow:  0 1px 2px rgba(11,11,11,0.04), 0 4px 16px rgba(11,11,11,0.04);
+  }
+  [data-theme="dark"] {
+    --page:      #0d0d0d;
+    --surface:   #1a1a19;
+    --surface-2: #232322;
+    --ink:       #ffffff;
+    --ink-2:     #c3c2b7;
+    --muted:     #898781;
+    --grid:      #2c2c2a;
+    --baseline:  #383835;
+    --border:    rgba(255,255,255,0.10);
+    --blue:   #3987e5;
+    --aqua:   #199e70;
+    --yellow: #c98500;
+    --violet: #9085e9;
+    --orange: #d95926;
+    --good:     #0ca30c;
+    --warning:  #fab219;
+    --serious:  #ec835a;
+    --critical: #d03b3b;
+    --good-text: #0ca30c;
+    --track:   #17352a;
+    --shadow:  0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 20px 64px; }
+
+  /* ── Header ──────────────────────────────────────────────────────── */
+  header.top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 42px; height: 42px; border-radius: 11px; flex: 0 0 auto;
+    background: linear-gradient(135deg, var(--aqua), var(--blue));
+    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 18px;
+    box-shadow: var(--shadow);
+  }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-2); font-size: 13.5px; margin-top: 2px; }
+  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .asof {
+    font-size: 12px; color: var(--ink-2); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px;
+  }
+  .asof b { color: var(--ink); }
+  .btn {
+    font: inherit; font-size: 13px; cursor: pointer; border-radius: 9px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+    padding: 7px 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
+    transition: background .15s;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn.accent { background: var(--aqua); color: #fff; border-color: transparent; }
+
+  /* ── Section ─────────────────────────────────────────────────────── */
+  section { margin-top: 30px; }
+  .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+  .sec-head h2 { font-size: 15px; margin: 0; letter-spacing: .01em; text-transform: uppercase; color: var(--ink-2); }
+  .sec-head .hint { font-size: 12.5px; color: var(--muted); }
+
+  .grid { display: grid; gap: 16px; }
+  .cols-5 { grid-template-columns: repeat(5, 1fr); }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-2 { grid-template-columns: 1.4fr 1fr; }
+  @media (max-width: 900px) { .cols-5 { grid-template-columns: repeat(2,1fr);} .cols-3,.cols-2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px; box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 14px; }
+  .card .cap { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+
+  /* ── Hero tile ───────────────────────────────────────────────────── */
+  .hero {
+    display: flex; align-items: center; gap: 26px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; box-shadow: var(--shadow);
+  }
+  .ring { position: relative; width: 148px; height: 148px; flex: 0 0 auto; }
+  .ring .num {
+    position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+  }
+  .ring .num b { font-size: 40px; font-weight: 650; letter-spacing: -0.02em; }
+  .ring .num span { display: block; font-size: 11px; color: var(--muted); margin-top: -2px; }
+  .hero-meta { flex: 1 1 260px; }
+  .hero-meta .k { font-size: 13px; color: var(--ink-2); }
+  .hero-meta .v { font-size: 15px; font-weight: 600; }
+  .hero-row { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 12px; }
+  .verdict {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600;
+    padding: 5px 11px; border-radius: 999px; margin-top: 4px;
+  }
+  .verdict.warn { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--ink); }
+
+  /* ── KPI stat tiles ──────────────────────────────────────────────── */
+  .kpi { padding: 16px 16px 15px; }
+  .kpi .label { font-size: 12px; color: var(--ink-2); }
+  .kpi .value { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; margin-top: 2px; }
+  .kpi .value small { font-size: 15px; color: var(--muted); font-weight: 500; }
+  .kpi .delta { font-size: 12px; margin-top: 3px; color: var(--muted); }
+  .kpi .delta.up { color: var(--good-text); }
+
+  /* ── Meters (module completion) ──────────────────────────────────── */
+  .meter-row { display: grid; grid-template-columns: 160px 1fr 74px; align-items: center; gap: 12px; padding: 6px 0; }
+  .meter-row .name { font-size: 13px; }
+  .meter-track { height: 10px; border-radius: 999px; background: var(--track); overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 999px; }
+  .meter-row .pct { text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .meter-row .pct b { color: var(--ink); }
+
+  /* ── Legend ──────────────────────────────────────────────────────── */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+
+  /* ── Stacked priority bar ────────────────────────────────────────── */
+  .stack { display: flex; height: 34px; border-radius: 9px; overflow: hidden; margin: 6px 0 4px; }
+  .stack > div { display: grid; place-items: center; color: #fff; font-size: 12.5px; font-weight: 600; }
+  .seg-gap { width: 2px; background: var(--surface); }
+
+  /* ── Risk list ───────────────────────────────────────────────────── */
+  .risk { display: flex; gap: 12px; padding: 13px 0; border-top: 1px solid var(--grid); }
+  .risk:first-child { border-top: 0; }
+  .risk .dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; }
+  .risk .b { font-weight: 600; font-size: 13.5px; }
+  .risk .d { color: var(--ink-2); font-size: 13px; }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-left: 8px; vertical-align: middle; }
+
+  table.mini { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.mini th, table.mini td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--grid); }
+  table.mini th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  table.mini td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--grid); color: var(--muted); font-size: 12px; }
+  footer a { color: var(--blue); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 11.5px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 3px 9px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo">PD</div>
+      <div>
+        <h1>Pro-Diab HIS — Dashboard trạng thái</h1>
+        <div class="sub">Hệ thống quản lý phòng khám đa khoa · Cloud SaaS multi-tenant</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="asof">Sim lâm sàng: <b>02/07/2026</b> · CRUD: <b>R7 · 01/06</b> · Cập nhật file: <b>02/07/2026</b></span>
+      <a class="btn" href="lo-trinh.html">🗺️ Xem lộ trình</a>
+      <button class="btn" id="themeBtn" type="button">🌙 Tối</button>
+    </div>
+  </header>
+
+  <!-- ── TỔNG QUAN ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head"><h2>Tổng quan</h2><span class="hint">Ảnh chụp trạng thái hiện tại của source</span></div>
+    <div class="hero">
+      <div class="ring">
+        <svg viewBox="0 0 120 120" width="148" height="148" aria-hidden="true">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--track)" stroke-width="12"/>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--aqua)" stroke-width="12"
+                  stroke-linecap="round" stroke-dasharray="326.7"
+                  stroke-dashoffset="75.8" transform="rotate(-90 60 60)"/>
+        </svg>
+        <div class="num"><b>76.8%</b><span>Độ phủ CRUD E2E</span></div>
+      </div>
+      <div class="hero-meta">
+        <div class="k">Phiên bản phát hành</div>
+        <div class="v">v1.0.0 — 23/05/2026 · hoàn thành 13/13 sprint</div>
+        <div class="verdict" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--ink)">✅ Sim live 02/07: 6/6 BN đi trọn luồng lâm sàng trên UI thật (87/103 bước PASS) · 7/7 P0 đã implement · 76.8% là snapshot CRUD R7 (01/06)</div>
+        <div class="hero-row">
+          <div><div class="k">CRUD PASS</div><div class="v">43 / 56</div></div>
+          <div><div class="k">FAIL</div><div class="v">0</div></div>
+          <div><div class="k">SKIP (UI gap)</div><div class="v">13</div></div>
+          <div><div class="k">Action đã đóng từ 31/05</div><div class="v">13 / 26</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols-5" style="margin-top:16px">
+      <div class="card kpi"><div class="label">Backend Controllers</div><div class="value">44</div><div class="delta">.NET 8 Web API</div></div>
+      <div class="card kpi"><div class="label">Trang UI (dashboard)</div><div class="value">47</div><div class="delta">Next.js 16 App Router</div></div>
+      <div class="card kpi"><div class="label">Migration DB</div><div class="value">89</div><div class="delta">MySQL 8 · +9022–9024 (fix sim)</div></div>
+      <div class="card kpi"><div class="label">OpenAPI spec</div><div class="value">39</div><div class="delta">contract-first · +vital-signs</div></div>
+      <div class="card kpi"><div class="label">Sprint hoàn thành</div><div class="value">13<small>/13</small></div><div class="delta up">▲ v1.0 đã go-live</div></div>
+    </div>
+  </section>
+
+  <!-- ── NHẬT KÝ CẬP NHẬT ──────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head"><h2>Nhật ký cập nhật</h2><span class="hint">Việc đã hoàn thành trong phiên làm việc gần nhất</span></div>
+    <div class="card">
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Bộ trang trạng thái dự án (HTML)<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">02/07/2026</span></div>
+          <div class="d">Tạo <code>dashboard-status.html</code> (tổng quan · CRUD · BI · biểu mẫu in · rủi ro), <code>lo-trinh.html</code> (lộ trình 4 giai đoạn), và <code>bieu-mau-in/</code> (thư viện + 7 template in print-ready A4/A5/K80/K58).</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Implement phiếu chỉ định CLS (đóng gap ❌→✅)<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Code</span></div>
+          <div class="d">Thêm trang in client-side <code>encounters/[id]/cls-print</code> (gộp lab-orders + rad-orders → 1 phiếu A4) + nút "In phiếu chỉ định CLS" trong chi tiết lượt khám. <b>Verify:</b> <code>npm install</code> (809 gói) → <code>tsc --noEmit</code> 0 lỗi → <code>next build</code> compile route thành công (Next.js 16.2.6).</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Sinh biểu mẫu bằng workflow đa tác tử<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">QC</span></div>
+          <div class="d">14 agent (7 thiết kế frontend + 7 QC kiểm định), 0 lỗi. QC phát hiện lỗi tuổi BN (57→58) trong 4 file, đã sửa. 7/7 biểu mẫu đạt: DOCTYPE · @page đúng khổ · @media print · self-contained.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Hoàn thiện &amp; đồng bộ tài liệu<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Tiếp tục</span></div>
+          <div class="d">Bind <b>letterhead thật</b> cho <code>cls-print</code> (<code>GET /tenants/me/letterhead</code>) — re-verify <code>tsc</code> 0 lỗi + <code>next build</code> OK. Xác nhận nút in <b>vé số</b> đã có sẵn trong <code>TicketCard</code> (gap thực tế đã đóng). Cập nhật <b>CLAUDE.md</b> (Next 16) &amp; <b>CHANGELOG</b> ([Unreleased]: MySQL/Direction B, Next 16, cls-print).</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Điều tra P0 critical path + fix biên lai<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Tiếp tục</span></div>
+          <div class="d">Chạy workflow 7 agent kiểm chứng source: <b>7/7 P0 đã implement</b> (sinh hiệu/chẩn đoán/đóng lượt/thêm thuốc/ĐTQG/thu tiền Billing+Cashier) — triage 31/05 đã lỗi thời. Fix gap nhỏ: PaymentDialog + Cashier "In phiếu thu" nay in đúng <b>biên lai theo paymentId</b>. Verify: <code>tsc</code> 0 lỗi + <code>next build</code> OK.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">HTTP client ĐTQG + token per-tenant<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Backend</span></div>
+          <div class="d"><code>HttpDtqgClient</code> + <code>DtqgOptions</code> gọi donthuocquocgia.vn qua named HttpClient (bật bằng <code>Dtqg:Enabled</code>, mặc định false → Mock). <b>Token resolve per-tenant</b> qua <code>IDtqgCredentialProvider</code>: đọc <code>diab_his_int_dtqg_credentials</code> + giải mã AES-256-GCM → <code>Authorization: Bearer</code> (fallback config), tự điền cskcb/partner khi payload rỗng. Verify: <code>dotnet build</code> Infra + Api <b>0 error</b> + <b>12/12 unit test</b> pass. Go-live cần: spec API chính thức + ký USB token thật.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Fix luồng gửi ĐTQG + build payload đơn thuốc<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Backend · Fixed</span></div>
+          <div class="d">Phát hiện handler submit đọc/ghi nhầm bảng <b>legacy</b> <code>pha_prescriptions</code> (INT PK) → không tìm thấy đơn CRUD tạo (canonical CHAR36). Sửa toàn bộ sang canonical <code>diab_his_pha_prescriptions</code> + thêm <code>DtqgPrescriptionPayloadBuilder</code> dựng <code>don_thuoc</code> thật (BN + ICD-10 + thuốc, giải mã thẻ BHYT) thay <code>new {}</code>. Verify: <code>dotnet build</code> + <b>35 test ĐTQG</b> pass.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Dựng môi trường live + chạy sim phòng khám (6/6 BN xanh)<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Tester · 02/07</span></div>
+          <div class="d">Máy không có Docker → dựng <b>MySQL 8.0.39 portable</b> (dump + migration + seed <code>DIAB-TEST</code>), backend <code>:5000</code> (roll-forward .NET 10), frontend <code>:3100</code>, Chromium. Sim Playwright chạy thật qua UI: <b>6/6 BN đi trọn luồng lâm sàng</b> (tiếp đón → khám → sinh hiệu → chẩn đoán → ký bệnh án → đóng lượt → kê đơn → ký &amp; gửi ĐTQG → mở ca) — <b>103 bước: 87 PASS / 1 FAIL / 15 SKIP</b>. Phát hiện <b>6 bug thật, fix 5</b> (mig <code>9022–9024</code> + code); Dispensing (INT↔GUID) chờ rework. Evidence: <code>docs/test/clinic-sim-evidence.md</code>.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Gallery bằng chứng ca khám đầy đủ (14 ảnh)<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">QC · 02/07</span></div>
+          <div class="d">Trang <code>docs/test/evidence.html</code> + 14 screenshot (<code>evidence-shots/</code>) chụp từ sim: đăng nhập lễ tân → tiếp đón → gọi số → tạo lượt khám → sinh hiệu → chẩn đoán → bệnh án → ký số → kê đơn → ký &amp; gửi ĐTQG → đóng lượt khám.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Vital Signs Trend API + 21 unit test<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Backend · 02/07</span></div>
+          <div class="d"><code>GET /patients/{patientId}/vital-signs/trend</code>: thống kê sinh hiệu 8 metric (glucose, HA tâm thu/trương, mạch, nhịp thở, SpO2, cân nặng, nhiệt độ) — count/min/max/average/first/latest + series theo thời gian, lọc khoảng ngày inclusive. Contract <code>docs/api/openapi/vital-signs.yaml</code>. Verify: <b>21/21 unit test PASS</b> (review đối kháng 4 lens → fix 1 bug ordering tie-break <code>RecordedAt→CreatedAt→Id</code> + bổ sung 12 test). Evidence: <code>docs/test-reports/2026-07-02_vital-signs-trend.md</code>.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--warning)"></span>
+        <div>
+          <div class="b">Còn tồn (không chặn)<span class="tag" style="background:color-mix(in srgb,var(--warning) 20%,transparent);color:var(--ink)">Backlog</span></div>
+          <div class="d">① <s>Chưa driving runtime</s> — luồng lâm sàng <b>đã driving thật</b> qua sim 02/07; còn <b>cấp phát/thu tiền</b> chờ rework Dispensing (INT↔GUID); ② xung đột schema <code>diab_his_int_dtqg_submissions.prescription_id</code> (INT 0011 vs CHAR36 9011) cần reconcile trên DB thật; ③ chạy lại bộ CRUD 56 case để cập nhật con số từ R7 (76.8%); ④ ĐTQG go-live: bật <code>Dtqg:Enabled</code> + spec API chính thức + USB token thật (<b>token per-tenant + payload + handler canonical đã xong</b>); ⑤ rà soát mã permission seed (<code>reception.create</code> vs <code>reception.checkin</code>) để chạy RBAC vai trò thật thay admin-bypass.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TIẾN ĐỘ CRUD THEO MODULE ──────────────────────────────────── -->
+  <section>
+    <div class="sec-head"><h2>Tiến độ CRUD theo module</h2><span class="hint">Tỉ lệ action PASS / tổng action mỗi module (R7)</span></div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>15 module nghiệp vụ</h3>
+        <div class="cap">Màu thể hiện mức độ hoàn thiện · nhãn % là kênh dẫn chính</div>
+        <div id="meters"></div>
+        <div class="legend">
+          <span><i style="background:var(--good)"></i>Hoàn thiện 100%</span>
+          <span><i style="background:var(--aqua)"></i>70–99%</span>
+          <span><i style="background:var(--warning)"></i>40–69%</span>
+          <span><i style="background:var(--critical)"></i>&lt; 40%</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Xu hướng chất lượng test</h3>
+        <div class="cap">Độ phủ CRUD E2E qua các vòng kiểm thử</div>
+        <svg id="trend" viewBox="0 0 420 240" width="100%" height="240" role="img" aria-label="Biểu đồ đường độ phủ CRUD qua các vòng R4–R7"></svg>
+        <div class="legend"><span><i style="background:var(--blue)"></i>% PASS · đường ngang đứt = target 80%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ĐIỀU TRA P0 CRITICAL PATH ─────────────────────────────────── -->
+  <section>
+    <div class="sec-head"><h2>P0 critical path — điều tra source 02/07</h2><span class="hint">Kiểm chứng trực tiếp trên code hiện tại (KHÔNG theo triage 31/05 đã cũ)</span></div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>7/7 hạng mục P0 đã implement</h3>
+        <div class="cap">Điều tra bằng 7 agent đọc song song FE + BE source</div>
+        <div class="stack">
+          <div style="background:var(--good); flex:7" title="EXISTS: 7">Đã có (EXISTS) · 7</div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--good)"></i>Đã implement &amp; nối BE (7)</span>
+          <span><i style="background:var(--warning)"></i>Còn thiếu (0)</span>
+        </div>
+        <p style="font-size:13px;color:var(--ink-2);margin:14px 0 0">
+          Luồng lâm sàng → tài chính đã đi trọn end-to-end trên UI:
+          <b>nhập sinh hiệu → chẩn đoán ICD-10 → đóng lượt khám → thêm thuốc → ký &amp; gửi ĐTQG (sandbox) → thu tiền + in biên lai</b>.
+          Con số <b>R7 76.8% (01/06)</b> chỉ là snapshot test cũ — source ngày 02/07 đã đóng các action này (giống trường hợp "nút in vé" tưởng thiếu mà đã có).
+        </p>
+      </div>
+      <div class="card">
+        <h3>Kết quả điều tra từng hạng mục</h3>
+        <div class="cap">✅ EXISTS = UI + BE đã nối, hoạt động</div>
+        <table class="mini">
+          <thead><tr><th>Hạng mục P0</th><th>Bằng chứng (FE → BE)</th><th class="num">TT</th></tr></thead>
+          <tbody>
+            <tr><td>Nhập sinh hiệu</td><td>tab "Sinh hiệu" → POST /vital-signs</td><td class="num">✅</td></tr>
+            <tr><td>Chẩn đoán ICD-10</td><td>Icd10Picker → POST /diagnoses</td><td class="num">✅</td></tr>
+            <tr><td>Đóng lượt khám</td><td>nút "Đóng lượt" → POST /close (BE enforce dx)</td><td class="num">✅</td></tr>
+            <tr><td>Thêm dòng thuốc</td><td>DrugAutocomplete → POST /prescriptions/{id}/items</td><td class="num">✅</td></tr>
+            <tr><td>Gửi đơn + ĐTQG</td><td>SignPrescriptionWizard 5 bước → /dtqg/submit (sandbox) + QR</td><td class="num">✅</td></tr>
+            <tr><td>Billing thu tiền</td><td>nút "Thu tiền" + PaymentDialog → POST /payments</td><td class="num">✅</td></tr>
+            <tr><td>Cashier thu tiền</td><td>ca trực → PaymentDialog → POST /payments + in biên lai</td><td class="num">✅</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--ink-2);margin:10px 0 0">
+          Gap nhỏ đã sửa lượt này: PaymentDialog tự in <b>biên lai theo paymentId</b> sau khi thu tiền; nút "In phiếu thu" (Cashier) lấy đúng payment <b>COMPLETED</b> mới nhất.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── REPORT & DASHBOARD (BI) ───────────────────────────────────── -->
+  <section>
+    <div class="sec-head"><h2>Module Report &amp; Dashboard (BI)</h2><span class="hint">Mục tiêu sản phẩm #2 — thống kê &amp; ra quyết định · kiểm thử bằng bộ spec riêng, ngoài CRUD 56 case</span></div>
+
+    <div class="grid cols-5" style="margin-bottom:16px">
+      <div class="card kpi"><div class="label">Endpoint Reports</div><div class="value">18</div><div class="delta">/api/v1/reports/*</div></div>
+      <div class="card kpi"><div class="label">Endpoint Dashboard</div><div class="value">7</div><div class="delta">overview · 5 chart · alerts</div></div>
+      <div class="card kpi"><div class="label">Chart component</div><div class="value">10</div><div class="delta">Recharts + Tremor</div></div>
+      <div class="card kpi"><div class="label">Reports E2E</div><div class="value">9<small>/11</small></div><div class="delta up">▲ 2 fail phi-bug</div></div>
+      <div class="card kpi"><div class="label">Cohort-fix E2E</div><div class="value">30<small>/30</small></div><div class="delta up">▲ 100% PASS</div></div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>📊 Dashboard tổng quan</h3>
+        <div class="cap">Trang chủ điều hành — KPI, xu hướng, cảnh báo</div>
+        <table class="mini">
+          <thead><tr><th>Thành phần</th><th>Nguồn</th><th class="num">Test</th></tr></thead>
+          <tbody>
+            <tr><td>KPI cards (doanh thu/lượt khám/BN mới/đơn)</td><td>overview</td><td class="num">✅</td></tr>
+            <tr><td>Doanh thu 30 ngày (RevenueTrendChart)</td><td>charts/revenue-trend</td><td class="num">✅</td></tr>
+            <tr><td>Lượt khám 30 ngày (EncountersTrendChart)</td><td>charts/encounters-trend</td><td class="num">✅</td></tr>
+            <tr><td>Top bác sĩ / Top thuốc (HorizontalBarChart)</td><td>charts/top-doctors · top-drugs</td><td class="num">✅</td></tr>
+            <tr><td>Phân bố HbA1c + Tỉ lệ biến chứng</td><td>charts/diabetes-hba1c</td><td class="num">✅</td></tr>
+            <tr><td>Cohort tiểu đường widget</td><td>reports/diabetes/cohort</td><td class="num">✅</td></tr>
+            <tr><td>Cảnh báo (tồn kho / HSD)</td><td>dashboard/alerts</td><td class="num">✅</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>📑 Reports (3 nhóm)</h3>
+        <div class="cap">Xuất PDF A4 + Excel · in mã vạch/barcode</div>
+        <table class="mini">
+          <thead><tr><th>Nhóm báo cáo</th><th>Endpoint chính</th><th class="num">Test</th></tr></thead>
+          <tbody>
+            <tr><td><b>Tài chính</b> — doanh thu, thanh toán, công nợ aging</td><td>revenue · by-doctor/service/method · debts/aging</td><td class="num">⚠️</td></tr>
+            <tr><td><b>Lâm sàng</b> — KPI bác sĩ, top ICD-10, cohort DM</td><td>clinical/visits · diagnoses/top · diabetes/cohort</td><td class="num">✅</td></tr>
+            <tr><td><b>Dược phẩm</b> — top thuốc, giá trị tồn kho</td><td>pharmacy/top-drugs · inventory-value</td><td class="num">✅</td></tr>
+            <tr><td>Chốt ca thu ngân (daily summary)</td><td>cashier/daily-summary</td><td class="num">✅</td></tr>
+            <tr><td>BHYT summary</td><td>bhyt/summary</td><td class="num">✅</td></tr>
+            <tr><td>In A4 + Export Excel/PDF</td><td>{type}/pdf · {type}/code · export</td><td class="num">✅</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12.5px;color:var(--ink-2);margin:12px 0 0">
+          ⚠️ Tab <b>Tài chính</b>: popup tải PDF fail lúc cold-start (E2E STEP-03/04) — <b>không phải bug app</b> (curl trả 200, PDF 76KB). PDF Lâm sàng (91KB) + Dược (106KB) đã verify tải thật.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── BIỂU MẪU & PHIẾU IN ───────────────────────────────────────── -->
+  <section>
+    <div class="sec-head"><h2>Biểu mẫu &amp; phiếu in (phòng khám)</h2><span class="hint">Các chứng từ lâm sàng/tài chính cần in — 11 endpoint PDF/print, khổ A4·A5·K80·K58, có letterhead</span></div>
+
+    <div class="grid cols-5" style="margin-bottom:16px">
+      <div class="card kpi"><div class="label">Endpoint in/PDF</div><div class="value">11</div><div class="delta">BE render</div></div>
+      <div class="card kpi"><div class="label">Biểu mẫu phủ đủ</div><div class="value">10<small>/11</small></div><div class="delta up">▲ +1 (chỉ định CLS)</div></div>
+      <div class="card kpi"><div class="label">Khổ giấy hỗ trợ</div><div class="value" style="font-size:20px">A4·A5·K80·K58</div><div class="delta">nhiệt + laser</div></div>
+      <div class="card kpi"><div class="label">Letterhead</div><div class="value">✅</div><div class="delta">logo · pháp nhân · footer (0065)</div></div>
+      <div class="card kpi"><div class="label">Còn hở</div><div class="value">0</div><div class="delta up">▲ toàn bộ đã nối UI</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Danh mục chứng từ in</h3>
+      <div class="cap">✅ đủ BE+FE · ⚠️ có BE, UI chưa nối / thiếu phần · ❌ chưa có</div>
+      <table class="mini">
+        <thead><tr><th>Chứng từ</th><th>Module</th><th>Endpoint / Nguồn</th><th>Khổ</th><th class="num">Trạng thái</th></tr></thead>
+        <tbody>
+          <tr><td><b>Phiếu khám / Bệnh án (EMR)</b></td><td>Encounter</td><td>GET /encounters/{id}/emr/pdf · print page</td><td>A4</td><td class="num">✅</td></tr>
+          <tr><td><b>Đơn thuốc</b> (kèm QR)</td><td>Prescription</td><td>GET /prescriptions/{id}/pdf · QrPrescription</td><td>A5/A4</td><td class="num">✅</td></tr>
+          <tr><td>CLS — Kết quả xét nghiệm</td><td>LabRad</td><td>GET /lab-results/{id}/pdf</td><td>A4</td><td class="num">✅</td></tr>
+          <tr><td>CLS — Kết quả chẩn đoán hình ảnh</td><td>LabRad</td><td>GET /rad-results/{id}/pdf</td><td>A4</td><td class="num">✅</td></tr>
+          <tr><td><b>CLS — Phiếu chỉ định (order)</b></td><td>Encounter/LabRad</td><td style="color:var(--good)">MỚI: encounters/[id]/cls-print (client-side print)</td><td>A4</td><td class="num">✅</td></tr>
+          <tr><td>Biên lai / Hóa đơn</td><td>Billing</td><td>GET /billings/{id}/pdf · POST /print</td><td>A5/A4</td><td class="num">✅</td></tr>
+          <tr><td>Biên lai thu ngân (nhiệt)</td><td>Cashier</td><td>POST /cashier/receipts/{id}/print</td><td>K80</td><td class="num">✅</td></tr>
+          <tr><td>Phiếu chốt ca (X/Z-report)</td><td>Cashier</td><td>GET /cashier/closing/{id}/pdf</td><td>A4</td><td class="num">✅</td></tr>
+          <tr><td>Phiếu phát thuốc</td><td>Pharmacy</td><td>GET /pharmacy/dispense/{id}/receipt-pdf</td><td>A5/K80</td><td class="num">✅</td></tr>
+          <tr><td>Phiếu số thứ tự (vé)</td><td>Reception</td><td>GET /reception/queue/{id}/ticket-pdf · nút in trong TicketCard</td><td>K58</td><td class="num">✅</td></tr>
+          <tr><td>Báo cáo A4 (Tài chính/Lâm sàng/Dược)</td><td>Reports</td><td>GET /reports/{type}/pdf · PrintableReportA4</td><td>A4</td><td class="num">✅</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12.5px;color:var(--ink-2);margin:14px 0 0">
+        <b>✅ Đã hoàn tất:</b> 11/11 chứng từ có đường in. <b>Phiếu chỉ định CLS</b> — trang <code>encounters/[id]/cls-print</code> (letterhead bind theo tenant qua <code>/tenants/me/letterhead</code>) + nút in trong chi tiết lượt khám; đã pass <code>tsc</code> &amp; <code>next build</code>. Nút in <b>vé số thứ tự</b> đã có sẵn trong <code>TicketCard</code> (gọi <code>ticket-pdf</code>).
+        <b>Còn lại (không chặn):</b> ① nút in QR đơn thuốc phụ thuộc <b>Prescription Submit (P0)</b>; ② tuỳ chọn endpoint BE <code>GET /cls-orders/{id}/pdf</code> nếu muốn render server-side.
+      </p>
+      <a href="bieu-mau-in/index.html" style="display:inline-flex;align-items:center;gap:7px;margin-top:14px;font-size:13px;font-weight:600;color:#fff;background:var(--aqua);border-radius:9px;padding:9px 15px;text-decoration:none">🖨️ Mở thư viện biểu mẫu in (7 template print-ready)</a>
+    </div>
+  </section>
+
+  <!-- ── CẢNH BÁO & RỦI RO ─────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head"><h2>Cảnh báo &amp; rủi ro cần xử lý</h2><span class="hint">Quan sát từ source hiện tại</span></div>
+    <div class="card">
+      <div class="risk">
+        <span class="dot" style="background:var(--critical)"></span>
+        <div>
+          <div class="b">Module Dispensing xây trên khóa INT lệch GUID<span class="tag" style="background:color-mix(in srgb,var(--critical) 16%,transparent);color:var(--ink)">Chặn cấp phát/thu tiền</span></div>
+          <div class="d">Bug #6 từ sim 02/07: Dispensing dùng khóa INT (<code>PrescriptionId</code>, <code>drug_id</code>…) trong khi DB canonical dùng GUID → đơn đã ký <b>không xuất hiện trong hàng chờ phát thuốc</b>, kéo theo bước thu tiền chưa chạy được. Cần ticket rework riêng; đây cũng là điều kiện để chạy full 50 BN + 10 kịch bản ngoại lệ.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--warning)"></span>
+        <div>
+          <div class="b">Mã permission seed lệch mã controller<span class="tag" style="background:color-mix(in srgb,var(--warning) 20%,transparent);color:var(--ink)">RBAC</span></div>
+          <div class="d">Seed ghi <code>reception.create</code> nhưng controller yêu cầu <code>reception.checkin</code> → vai trò thật bị 403; sim tạm chạy <code>SIM_USE_ADMIN=1</code> (admin-bypass). Cần rà soát toàn bộ bảng mã permission trước khi test RBAC theo vai trò.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Đã xử lý: P0 critical path xác nhận bằng sim live<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Đã xử lý · 02/07</span></div>
+          <div class="d">Rủi ro "8 action P0 hở trên UI" đã đóng hẳn: sim Playwright 02/07 đưa <b>6/6 BN đi trọn luồng lâm sàng trên UI thật</b> (sinh hiệu → chẩn đoán → ký bệnh án → đóng lượt → kê đơn → ký &amp; gửi ĐTQG → mở ca thu ngân). Bằng chứng: <code>docs/test/clinic-sim-evidence.md</code> + gallery <code>docs/test/evidence.html</code>.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Đã xử lý: tài liệu đồng bộ lại với source<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Đã xử lý</span></div>
+          <div class="d">CLAUDE.md đã ghi đúng <b>MySQL 8 + multi-tenant application layer</b> và <b>Next.js 16</b>; CHANGELOG [Unreleased] ghi nhận chuyển đổi theo ADR 0007 (Direction B). RELEASE-NOTES-v1.0 giữ nguyên như snapshot lịch sử tại thời điểm phát hành (đã chú thích trong CHANGELOG).</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--warning)"></span>
+        <div>
+          <div class="b">CRUD E2E 76.8% — chưa đạt target ≥ 80%<span class="tag" style="background:color-mix(in srgb,var(--warning) 20%,transparent);color:var(--ink)">Cần theo dõi</span></div>
+          <div class="d">Còn cách target 3.2 điểm (cần +2 action PASS: 45/56). 0 FAIL, toàn bộ còn lại là SKIP do UI chưa dựng.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--warning)"></span>
+        <div>
+          <div class="b">E2E flaky do dev-server (HMR) chậm khi chạy lâu<span class="tag" style="background:color-mix(in srgb,var(--warning) 20%,transparent);color:var(--ink)">CI</span></div>
+          <div class="d">4/15 test từng fail vì login timeout &gt; 30s trên <code>pnpm dev</code> — không phải bug app. Khuyến nghị chạy <code>pnpm build &amp;&amp; pnpm start</code> cho E2E để loại HMR overhead.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
+          <div class="b">Đã bổ sung: phiếu in chỉ định CLS<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Đã xử lý</span></div>
+          <div class="d">Đã thêm trang in client-side <code>encounters/[id]/cls-print</code> (gộp lab-orders + rad-orders của lượt khám thành 1 phiếu A4) + nút "In phiếu chỉ định CLS" trong chi tiết lượt khám. Verify: <code>tsc --noEmit</code> 0 lỗi &amp; <code>next build</code> compile route thành công. <i>Tuỳ chọn còn lại:</i> endpoint BE <code>GET /cls-orders/{id}/pdf</code> nếu muốn render server-side như các phiếu khác.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--warning)"></span>
+        <div>
+          <div class="b">Reports/cohort chưa có integration test thật với BE<span class="tag" style="background:color-mix(in srgb,var(--warning) 20%,transparent);color:var(--ink)">Reports</span></div>
+          <div class="d">Endpoint <code>GET /reports/diabetes/cohort</code> mới chỉ được static review + FE chạy với mock (BE từng không build do <code>BarcodeStandard</code> NU1101, đã hết ở R7). Nên chạy lại E2E thật với token hợp lệ để xác nhận shape JSON snake_case (<code>hba1c_distribution.between_7_8</code>) và bổ sung 1 integration test xUnit + WebApplicationFactory.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--serious)"></span>
+        <div>
+          <div class="b">Known issues v1.0 (từ Release Notes)<span class="tag" style="background:color-mix(in srgb,var(--serious) 20%,transparent);color:var(--ink)">Đã biết</span></div>
+          <div class="d">DTQG trả 500 khi token hết hạn (không rõ thông báo) · VietQR webhook delay 10–30s mạng chậm · in phiếu lỗi trên Safari iOS 16.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PHỦ TÍNH NĂNG ─────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head"><h2>Độ phủ tính năng theo tầng</h2><span class="hint">Đã triển khai trong v1.0</span></div>
+    <div class="grid cols-3">
+      <div class="card">
+        <h3>✅ Nghiệp vụ lõi</h3>
+        <div class="chips">
+          <span class="chip">Auth + RBAC 7 role</span><span class="chip">2FA/TOTP</span>
+          <span class="chip">Multi-tenant</span><span class="chip">Patient CRUD</span>
+          <span class="chip">Tiếp đón + hàng đợi</span><span class="chip">Encounter + EMR</span>
+          <span class="chip">Sinh hiệu</span><span class="chip">ICD-10</span>
+          <span class="chip">Tiểu đường</span><span class="chip">CLS (XN/CĐHA)</span>
+          <span class="chip">Kê đơn + DDI</span><span class="chip">Kho dược FEFO</span>
+          <span class="chip">Thu ngân + ca</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>✅ Tích hợp &amp; báo cáo</h3>
+        <div class="chips">
+          <span class="chip">ĐTQG (TT 27/2021)</span><span class="chip">BHYT XML 4750</span>
+          <span class="chip">Đối soát giám định</span><span class="chip">HL7 FHIR R4</span>
+          <span class="chip">HĐĐT</span><span class="chip">VietQR/MoMo/VNPay</span>
+          <span class="chip">Dashboard KPI</span><span class="chip">Report tài chính/LS/dược</span>
+          <span class="chip">Export Excel/PDF</span><span class="chip">Patient Portal (OTP)</span>
+          <span class="chip">API Partners</span><span class="chip">Web Push</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🧭 Kế hoạch v1.1</h3>
+        <div class="chips">
+          <span class="chip">AI gợi ý chẩn đoán (GPT-4o)</span><span class="chip">Tóm tắt EMR</span>
+          <span class="chip">Tích hợp ĐTQG production</span><span class="chip">Đồng bộ danh mục thuốc QG</span>
+          <span class="chip">Advanced BI</span><span class="chip">Batch BHYT reconcile</span>
+          <span class="chip">Tự động cập nhật DB tương tác thuốc</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div><b>Nguồn dữ liệu:</b> CHANGELOG.md · RELEASE-NOTES-v1.0.md · docs/test/crud-evidence-r7.md · docs/test/clinic-sim-evidence.md · docs/test/evidence.html · docs/test/reports-evidence.md · docs/test-reports/2026-07-02_vital-signs-trend.md · docs/test-reports/2026-05-31_reports-cohort-fix.md · docs/prd/crud-gap-triage-2026-05-31.md · docs/adr/0007 · đếm trực tiếp backend/frontend/db.</div>
+    <div style="margin-top:4px"><b>Phạm vi số liệu CRUD 76.8%:</b> chỉ tính bộ <code>crud-actions.spec.ts</code> (56 case). Module Report &amp; Dashboard kiểm thử bằng spec riêng (<code>reports.spec.ts</code> 9/11 · <code>reports-cohort-fix.spec.ts</code> 30/30) — xem mục BI ở trên.</div>
+    <div style="margin-top:6px">Con số CRUD 76.8% là snapshot test <b>R7 (01/06)</b>. Bằng chứng mới nhất là <b>sim lâm sàng live 02/07</b>: 6/6 BN đi trọn luồng trên UI thật (87/103 bước PASS), phát hiện 6 bug thật / fix 5 — bộ CRUD 56 case chưa re-run nên giữ nguyên 76.8%. · <a href="lo-trinh.html">Xem lộ trình →</a></div>
+  </footer>
+</div>
+
+<script>
+  /* ── Theme toggle ─────────────────────────────────────────── */
+  const btn = document.getElementById('themeBtn');
+  const root = document.documentElement;
+  function setTheme(t){ root.setAttribute('data-theme', t); btn.textContent = t === 'dark' ? '☀️ Sáng' : '🌙 Tối'; try{localStorage.setItem('pd-theme',t);}catch(e){} }
+  btn.addEventListener('click', () => setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+  try { const s = localStorage.getItem('pd-theme'); if (s) setTheme(s); else if (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark'); } catch(e){}
+
+  /* ── Module meters ────────────────────────────────────────── */
+  const modules = [
+    ['Patient', 5, 5], ['PharmacyStock', 4, 4], ['PharmacyDispense', 4, 4],
+    ['BHYT', 3, 3], ['AdminUsers', 4, 4], ['AdminTenants', 3, 3],
+    ['Cashier', 3, 4], ['Billing', 3, 4], ['Reception', 2, 3],
+    ['Drug', 2, 3], ['ServiceCatalog', 2, 3], ['AdminRoles', 2, 3],
+    ['Supplier', 2, 3], ['Prescription', 2, 4], ['Encounter', 2, 6],
+  ];
+  function bandColor(p){
+    if (p >= 100) return 'var(--good)';
+    if (p >= 70)  return 'var(--aqua)';
+    if (p >= 40)  return 'var(--warning)';
+    return 'var(--critical)';
+  }
+  const mWrap = document.getElementById('meters');
+  modules.forEach(([name, pass, total]) => {
+    const p = Math.round(pass / total * 100);
+    const row = document.createElement('div');
+    row.className = 'meter-row';
+    row.innerHTML =
+      '<div class="name">' + name + '</div>' +
+      '<div class="meter-track"><div class="meter-fill" style="width:' + p + '%;background:' + bandColor(p) + '"></div></div>' +
+      '<div class="pct"><b>' + p + '%</b> <span style="color:var(--muted)">' + pass + '/' + total + '</span></div>';
+    mWrap.appendChild(row);
+  });
+
+  /* ── Trend line chart (R4–R7) ─────────────────────────────── */
+  (function(){
+    const svg = document.getElementById('trend');
+    const W = 420, H = 240, pad = { l: 38, r: 20, t: 18, b: 34 };
+    const data = [ ['R4', 67], ['R5', 66], ['R6', 70], ['R7', 76.8] ];
+    const target = 80;
+    const xmin = pad.l, xmax = W - pad.r, ymin = pad.t, ymax = H - pad.b;
+    const yLo = 50, yHi = 90;
+    const x = i => xmin + (xmax - xmin) * i / (data.length - 1);
+    const y = v => ymax - (ymax - ymin) * (v - yLo) / (yHi - yLo);
+    let s = '';
+    // gridlines + y labels
+    [50,60,70,80,90].forEach(v => {
+      s += '<line x1="'+xmin+'" y1="'+y(v)+'" x2="'+xmax+'" y2="'+y(v)+'" stroke="var(--grid)" stroke-width="1"/>';
+      s += '<text x="'+(xmin-8)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="11" fill="var(--muted)">'+v+'</text>';
+    });
+    // target line
+    s += '<line x1="'+xmin+'" y1="'+y(target)+'" x2="'+xmax+'" y2="'+y(target)+'" stroke="var(--serious)" stroke-width="1.5" stroke-dasharray="5 4"/>';
+    s += '<text x="'+(xmax)+'" y="'+(y(target)-6)+'" text-anchor="end" font-size="11" fill="var(--serious)">target 80%</text>';
+    // x labels
+    data.forEach((d,i) => s += '<text x="'+x(i)+'" y="'+(H-12)+'" text-anchor="middle" font-size="11.5" fill="var(--muted)">'+d[0]+'</text>');
+    // path
+    let path = '';
+    data.forEach((d,i) => path += (i?'L':'M') + x(i) + ' ' + y(d[1]) + ' ');
+    s += '<path d="'+path+'" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    // markers + last label
+    data.forEach((d,i) => {
+      s += '<circle cx="'+x(i)+'" cy="'+y(d[1])+'" r="4.5" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/>';
+    });
+    const last = data[data.length-1];
+    s += '<text x="'+(x(data.length-1))+'" y="'+(y(last[1])-12)+'" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">'+last[1]+'%</text>';
+    svg.innerHTML = s;
+  })();
+</script>
+</body>
+</html>

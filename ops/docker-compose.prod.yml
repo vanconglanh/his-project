@@ -1,0 +1,326 @@
+# =====================================================================
+# Pro-Diab HIS — Docker Compose PRODUCTION (hardened)
+# Sprint 12 EPIC 10: resource limits, healthcheck, log driver, restart policy
+# Deploy thực: ./deploy.sh all prod
+# =====================================================================
+
+name: prodiab-prod
+
+services:
+  # -------------------------------------------------------------------
+  # MySQL 8.0.36 — production
+  # -------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0.36
+    container_name: prodiab-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/conf.d/prodiab.cnf:ro
+      # KHÔNG expose port ra ngoài trong prod
+    healthcheck:
+      test:
+        - "CMD"
+        - "mysqladmin"
+        - "ping"
+        - "-h"
+        - "localhost"
+        - "-u"
+        - "root"
+        - "-p${DB_ROOT_PASSWORD}"
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    networks:
+      - prodiab-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "service=mysql,env=prod"
+
+  # -------------------------------------------------------------------
+  # Redis 7.4 — production, bắt buộc password + persistence
+  # -------------------------------------------------------------------
+  redis:
+    image: redis:7.4-alpine
+    container_name: prodiab-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        - "CMD"
+        - "redis-cli"
+        - "-a"
+        - "${REDIS_PASSWORD}"
+        - "ping"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 768M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    networks:
+      - prodiab-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # -------------------------------------------------------------------
+  # MinIO — production object storage
+  # -------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2025-01-20T22-07-31Z
+    container_name: prodiab-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BROWSER: "on"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    # Console chỉ mở qua SSH tunnel, không expose public
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "curl -f http://localhost:9000/minio/health/live || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.2"
+          memory: 256M
+    networks:
+      - prodiab-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # -------------------------------------------------------------------
+  # Backend API — .NET 8 Web API
+  # Image được build và push bởi CI pipeline
+  # -------------------------------------------------------------------
+  backend:
+    image: ghcr.io/your-org/prodiab-backend:${API_IMAGE_TAG:-latest}
+    container_name: prodiab-backend
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:5000"
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${DB_NAME};User=${DB_USER};Password=${DB_PASSWORD};CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=true;"
+      Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},ssl=False,abortConnect=False"
+      Minio__Endpoint: "minio:9000"
+      Minio__AccessKey: ${MINIO_ROOT_USER}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__UseSSL: "false"
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__AccessTokenExpiryMinutes: "60"
+      Jwt__RefreshTokenExpiryDays: "7"
+      Sentry__Dsn: ${SENTRY_DSN}
+      Sentry__Environment: production
+      Smtp__Host: ${SMTP_HOST}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__User: ${SMTP_USER}
+      Smtp__Pass: ${SMTP_PASS}
+      Smtp__EnableSsl: "true"
+      DonThuocQG__BaseUrl: ${DTQG_BASE_URL}
+      DonThuocQG__ApiKey: ${DTQG_API_KEY}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "curl -f http://localhost:5000/healthz || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    networks:
+      - prodiab-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "service=backend,env=prod"
+
+  # -------------------------------------------------------------------
+  # Frontend — Next.js 15
+  # -------------------------------------------------------------------
+  frontend:
+    image: ghcr.io/your-org/prodiab-frontend:${WEB_IMAGE_TAG:-latest}
+    container_name: prodiab-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${API_BASE_URL}
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "curl -f http://localhost:3000/ || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.2"
+          memory: 128M
+    networks:
+      - prodiab-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # -------------------------------------------------------------------
+  # Nginx — reverse proxy + SSL termination
+  # -------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: prodiab-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx-certs:/etc/nginx/certs:ro
+      - /var/www/certbot:/var/www/certbot:ro   # Let's Encrypt ACME
+      - /var/log/nginx:/var/log/nginx           # Log ra host để Promtail scrape
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "curl -f http://localhost/healthz || exit 1"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    networks:
+      - prodiab-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+# -------------------------------------------------------------------
+# Volumes
+# -------------------------------------------------------------------
+volumes:
+  mysql-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/prodiab/volumes/mysql_data
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/prodiab/volumes/redis_data
+  minio-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/prodiab/volumes/minio_data
+  nginx-certs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/prodiab/certs
+
+# -------------------------------------------------------------------
+# Networks
+# -------------------------------------------------------------------
+networks:
+  prodiab-net:
+    driver: bridge
+    name: prodiab-prod-net
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

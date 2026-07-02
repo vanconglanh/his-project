@@ -1,0 +1,451 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Tenant API
+  version: 1.0.0
+  description: |
+    API quản lý tenant (phòng khám) trong hệ thống Pro-Diab HIS multi-tenant.
+    - Các endpoint cấp `/tenants` chỉ dành cho `SUPER_ADMIN` (cross-tenant).
+    - Endpoint `/tenants/me` dành cho `ADMIN` của tenant tự quản trị phòng khám của mình.
+    - Bảng DB tương ứng: `diab_his_sys_tenants` (migration 0001).
+
+servers:
+  - url: http://localhost:5000
+    description: Local dev
+  - url: https://api.staging.prodiab.example.com
+    description: Staging
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Tenants
+    description: Quản lý phòng khám
+  - name: super-admin
+    description: Endpoint chỉ SUPER_ADMIN
+
+paths:
+  /api/v1/tenants:
+    get:
+      tags: [Tenants, super-admin]
+      summary: Danh sách tenant
+      description: Liệt kê toàn bộ tenant trong hệ thống, có filter và phân trang.
+      operationId: listTenants
+      x-required-role: SUPER_ADMIN
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/PageQuery'
+        - $ref: '_common.yaml#/components/parameters/PageSizeQuery'
+        - $ref: '_common.yaml#/components/parameters/SortQuery'
+        - $ref: '_common.yaml#/components/parameters/SearchQuery'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, SUSPENDED, TERMINATED]
+      responses:
+        '200':
+          description: Danh sách tenant
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '_common.yaml#/components/schemas/PagedResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TenantResponse'
+              example:
+                data:
+                  - id: 6f1c4f0a-1111-4d33-a111-aaaaaaaaaaaa
+                    code: PKAB001
+                    name: Phòng khám Đa khoa An Bình
+                    cskcb_code: '79001'
+                    status: ACTIVE
+                    tax_code: '0312345678'
+                    address: 123 Lê Lợi, Quận 1, TP. Hồ Chí Minh
+                    phone: '02838221122'
+                    email: lienhe@anbinh.vn
+                    subdomain: anbinh
+                    storage_quota_gb: 20
+                    expires_at: '2027-05-23T00:00:00Z'
+                    created_at: '2026-01-15T08:30:00Z'
+                    updated_at: '2026-05-01T10:12:00Z'
+                meta: { page: 1, page_size: 20, total: 1, total_pages: 1 }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+
+    post:
+      tags: [Tenants, super-admin]
+      summary: Tạo tenant mới
+      description: |
+        SUPER_ADMIN tạo mới phòng khám. Hệ thống tự động tạo user `ADMIN`
+        đầu tiên với `admin_email` và gửi email mời kích hoạt tài khoản.
+      operationId: createTenant
+      x-required-role: SUPER_ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantRequest'
+            example:
+              code: PKAB001
+              name: Phòng khám Đa khoa An Bình
+              cskcb_code: '79001'
+              tax_code: '0312345678'
+              address: 123 Lê Lợi, Quận 1, TP. Hồ Chí Minh
+              phone: '02838221122'
+              email: lienhe@anbinh.vn
+              subdomain: anbinh
+              storage_quota_gb: 20
+              admin_email: an.nguyen@anbinh.vn
+              admin_full_name: Nguyễn Văn An
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TenantResponse' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '422':
+          description: Subdomain đã tồn tại hoặc dữ liệu sai
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                subdomainTaken:
+                  value:
+                    error:
+                      code: TENANT_SUBDOMAIN_TAKEN
+                      message: Subdomain đã được sử dụng
+
+  /api/v1/tenants/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Tenants, super-admin]
+      summary: Chi tiết tenant
+      operationId: getTenant
+      x-required-role: SUPER_ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TenantResponse' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+    put:
+      tags: [Tenants, super-admin]
+      summary: Cập nhật tenant
+      operationId: updateTenant
+      x-required-role: SUPER_ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateTenantRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TenantResponse' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+        '422': { $ref: '_common.yaml#/components/responses/ValidationError' }
+    delete:
+      tags: [Tenants, super-admin]
+      summary: Chấm dứt tenant (soft delete)
+      description: Đặt status = TERMINATED và set deleted_at.
+      operationId: terminateTenant
+      x-required-role: SUPER_ADMIN
+      responses:
+        '204':
+          description: Đã chấm dứt
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+
+  /api/v1/tenants/{id}/suspend:
+    post:
+      tags: [Tenants, super-admin]
+      summary: Tạm ngưng tenant
+      operationId: suspendTenant
+      x-required-role: SUPER_ADMIN
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, example: Quá hạn thanh toán }
+      responses:
+        '200':
+          description: Đã suspend
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TenantResponse' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+
+  /api/v1/tenants/{id}/activate:
+    post:
+      tags: [Tenants, super-admin]
+      summary: Kích hoạt lại tenant
+      operationId: activateTenant
+      x-required-role: SUPER_ADMIN
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Đã kích hoạt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TenantResponse' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+
+  /api/v1/tenants/me:
+    get:
+      tags: [Tenants]
+      summary: Tenant của user đang đăng nhập
+      operationId: getMyTenant
+      x-required-permission: tenant.read
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TenantResponse' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+    put:
+      tags: [Tenants]
+      summary: Cập nhật profile phòng khám của mình
+      description: Chỉ ADMIN của tenant thực hiện được.
+      operationId: updateMyTenant
+      x-required-permission: tenant.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateTenantProfileRequest' }
+            example:
+              name: Phòng khám Đa khoa An Bình
+              address: 123 Lê Lợi, Quận 1, TP. Hồ Chí Minh
+              phone: '02838221122'
+              email: lienhe@anbinh.vn
+              cskcb_code: '79001'
+              bhyt_token: BHYT-XXX-YYY
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TenantResponse' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '422': { $ref: '_common.yaml#/components/responses/ValidationError' }
+
+  /api/v1/tenants/me/letterhead:
+    get:
+      tags: [Tenants]
+      summary: Thông tin letterhead phòng khám hiện tại
+      description: |
+        Trả về thông tin letterhead (tiêu đề, địa chỉ, logo, liên hệ) của tenant
+        mà user đang đăng nhập thuộc về. Dùng để render header/footer báo cáo PDF.
+        Bất kỳ user nào trong tenant đều có quyền xem.
+      operationId: getMyLetterhead
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Letterhead phòng khám
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LetterheadDto'
+              example:
+                data:
+                  clinic_name: Phòng khám Đa khoa An Bình
+                  company_name: Công ty TNHH An Bình Medical
+                  address: 123 Lê Lợi, Quận 1, TP. Hồ Chí Minh
+                  phone: '02838221122'
+                  email: lienhe@anbinh.vn
+                  email_support: support@anbinh.vn
+                  logo_url: https://minio.prodiab.example.com/logo/pkab001.png
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '404':
+          description: Không tìm thấy thông tin phòng khám
+          content:
+            application/json:
+              example:
+                error:
+                  code: TENANT_NOT_FOUND
+                  message: Không tìm thấy thông tin phòng khám
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LetterheadDto:
+      type: object
+      required: [clinic_name]
+      description: Thông tin tiêu đề in trên báo cáo PDF (letterhead)
+      properties:
+        clinic_name:
+          type: string
+          description: Tên phòng khám
+          example: Phòng khám Đa khoa An Bình
+        company_name:
+          type: string
+          nullable: true
+          description: Tên pháp nhân (in dưới tên phòng khám)
+          example: Công ty TNHH An Bình Medical
+        address:
+          type: string
+          nullable: true
+          example: 123 Lê Lợi, Quận 1, TP. Hồ Chí Minh
+        phone:
+          type: string
+          nullable: true
+          example: '02838221122'
+        email:
+          type: string
+          nullable: true
+          example: lienhe@anbinh.vn
+        email_support:
+          type: string
+          nullable: true
+          description: Email hỗ trợ in trên footer báo cáo
+          example: support@anbinh.vn
+        logo_url:
+          type: string
+          nullable: true
+          description: URL logo MinIO dùng cho letterhead PDF
+          example: https://minio.prodiab.example.com/logo/pkab001.png
+
+    TenantStatus:
+      type: string
+      enum: [ACTIVE, SUSPENDED, TERMINATED]
+
+    TenantResponse:
+      type: object
+      required: [id, code, name, status, subdomain, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        code:
+          type: string
+          description: Mã nội bộ, viết hoa
+          example: PKAB001
+        name: { type: string, example: Phòng khám Đa khoa An Bình }
+        cskcb_code:
+          type: string
+          description: Mã cơ sở khám chữa bệnh do Bộ Y tế cấp
+          example: '79001'
+        status: { $ref: '#/components/schemas/TenantStatus' }
+        tax_code: { type: string, example: '0312345678' }
+        address: { type: string }
+        phone: { type: string }
+        email: { type: string, format: email }
+        subdomain:
+          type: string
+          description: Tên subdomain, lowercase, dùng cho URL truy cập
+          example: anbinh
+        storage_quota_gb:
+          type: integer
+          minimum: 1
+          example: 20
+        expires_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    CreateTenantRequest:
+      type: object
+      required: [code, name, email, subdomain, admin_email, admin_full_name]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9]{3,20}$'
+          example: PKAB001
+        name: { type: string, minLength: 3, maxLength: 200 }
+        cskcb_code: { type: string }
+        tax_code: { type: string }
+        address: { type: string }
+        phone: { type: string }
+        email: { type: string, format: email }
+        subdomain:
+          type: string
+          pattern: '^[a-z0-9-]{3,63}$'
+        storage_quota_gb:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 20
+        admin_email:
+          type: string
+          format: email
+          description: Email user ADMIN đầu tiên sẽ được tự tạo và gửi mời
+        admin_full_name:
+          type: string
+          example: Nguyễn Văn An
+
+    UpdateTenantRequest:
+      type: object
+      properties:
+        name: { type: string }
+        cskcb_code: { type: string }
+        tax_code: { type: string }
+        address: { type: string }
+        phone: { type: string }
+        email: { type: string, format: email }
+        storage_quota_gb: { type: integer, minimum: 1 }
+        expires_at: { type: string, format: date-time, nullable: true }
+
+    UpdateTenantProfileRequest:
+      type: object
+      properties:
+        name: { type: string }
+        address: { type: string }
+        phone: { type: string }
+        email: { type: string, format: email }
+        cskcb_code: { type: string }
+        bhyt_token:
+          type: string
+          description: Token tích hợp BHYT (sẽ mã hoá AES-256-GCM trước khi lưu)
+          writeOnly: true

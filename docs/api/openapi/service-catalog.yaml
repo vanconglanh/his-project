@@ -1,0 +1,269 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Service Catalog API
+  version: 1.0.0-sprint8
+  description: |
+    Bảng giá dịch vụ + gói khám (price list).
+    Module: Cashier / Billing prerequisite.
+    DB: MySQL 8, multi-tenant via tenant_id.
+servers:
+  - url: /api/v1
+tags:
+  - name: Services
+  - name: ServicePackages
+
+paths:
+  /services:
+    get:
+      tags: [Services]
+      summary: List services (filter category, is_active, q)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/ServiceCategory' } }
+        - { name: is_active, in: query, schema: { type: boolean } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        '200': { $ref: '#/components/responses/ServiceListOk' }
+    post:
+      tags: [Services]
+      summary: Create service
+      security: [{ bearerAuth: [service.write] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServiceUpsertRequest' }
+      responses:
+        '201': { $ref: '#/components/responses/ServiceOk' }
+        '409': { description: SERVICE_CODE_EXISTS, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+
+  /services/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Services]
+      responses:
+        '200': { $ref: '#/components/responses/ServiceOk' }
+        '404': { description: SERVICE_NOT_FOUND }
+    put:
+      tags: [Services]
+      security: [{ bearerAuth: [service.write] }]
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/ServiceUpsertRequest' } } }
+      responses:
+        '200': { $ref: '#/components/responses/ServiceOk' }
+    delete:
+      tags: [Services]
+      security: [{ bearerAuth: [service.write] }]
+      responses: { '204': { description: Soft deleted } }
+
+  /services/search:
+    get:
+      tags: [Services]
+      summary: Autocomplete (limit 20)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+      responses: { '200': { $ref: '#/components/responses/ServiceListOk' } }
+
+  /services/import:
+    post:
+      tags: [Services]
+      summary: Bulk import from Excel
+      security: [{ bearerAuth: [service.write] }]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      inserted: { type: integer }
+                      updated: { type: integer }
+                      errors: { type: array, items: { type: object } }
+
+  /services/categories:
+    get:
+      tags: [Services]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ServiceCategory' }
+
+  /service-packages:
+    get:
+      tags: [ServicePackages]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: is_active, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/ServicePackageResponse' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+    post:
+      tags: [ServicePackages]
+      security: [{ bearerAuth: [service_package.write] }]
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/ServicePackageUpsertRequest' } } }
+      responses:
+        '201':
+          content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/ServicePackageResponse' } } } } }
+
+  /service-packages/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [ServicePackages]
+      responses:
+        '200': { content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/ServicePackageResponse' } } } } } }
+    put:
+      tags: [ServicePackages]
+      security: [{ bearerAuth: [service_package.write] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/ServicePackageUpsertRequest' } } } }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [ServicePackages]
+      security: [{ bearerAuth: [service_package.write] }]
+      responses: { '204': { description: Soft deleted } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  schemas:
+    ServiceCategory:
+      type: string
+      enum: [CONSULTATION, PROCEDURE, LAB, RAD, PHARMACY, OTHER]
+
+    ServiceResponse:
+      type: object
+      required: [id, tenant_id, code, name, category, price, vat_rate, is_active]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        code: { type: string, maxLength: 50 }
+        name: { type: string, maxLength: 255 }
+        category: { $ref: '#/components/schemas/ServiceCategory' }
+        price: { type: number, format: double, description: 'DECIMAL(15,2) VND' }
+        vat_rate: { type: integer, enum: [0, 5, 8, 10] }
+        bhyt_code: { type: string, nullable: true }
+        bhyt_max_amount: { type: number, format: double, nullable: true }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    ServiceUpsertRequest:
+      type: object
+      required: [code, name, category, price, vat_rate]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        category: { $ref: '#/components/schemas/ServiceCategory' }
+        price: { type: number, minimum: 0 }
+        vat_rate: { type: integer, enum: [0, 5, 8, 10] }
+        bhyt_code: { type: string, nullable: true }
+        bhyt_max_amount: { type: number, nullable: true }
+        is_active: { type: boolean, default: true }
+
+    ServicePackageItem:
+      type: object
+      required: [service_id, quantity]
+      properties:
+        service_id: { type: string, format: uuid }
+        service_name: { type: string, readOnly: true }
+        unit_price: { type: number, readOnly: true }
+        quantity: { type: integer, minimum: 1 }
+
+    ServicePackageResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        services: { type: array, items: { $ref: '#/components/schemas/ServicePackageItem' } }
+        total_price: { type: number }
+        discount_percent: { type: number, minimum: 0, maximum: 100 }
+        final_price: { type: number }
+        valid_from: { type: string, format: date, nullable: true }
+        valid_to: { type: string, format: date, nullable: true }
+        is_active: { type: boolean }
+
+    ServicePackageUpsertRequest:
+      type: object
+      required: [code, name, services]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        services:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [service_id, quantity]
+            properties:
+              service_id: { type: string, format: uuid }
+              quantity: { type: integer, minimum: 1 }
+        discount_percent: { type: number, default: 0 }
+        valid_from: { type: string, format: date, nullable: true }
+        valid_to: { type: string, format: date, nullable: true }
+        is_active: { type: boolean, default: true }
+
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }
+
+  responses:
+    ServiceOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data: { $ref: '#/components/schemas/ServiceResponse' }
+    ServiceListOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data: { type: array, items: { $ref: '#/components/schemas/ServiceResponse' } }
+              meta: { $ref: '#/components/schemas/PageMeta' }

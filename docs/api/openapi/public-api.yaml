@@ -1,0 +1,175 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS Public API (Sprint 10 / EPIC 8)
+  version: 1.0.0
+  description: |
+    Public API cho đối tác B2B (website phòng khám, app bên thứ 3, kiosk).
+    Auth bằng header `X-Api-Key` (hashed lookup, scope-based, rate-limited).
+servers:
+  - url: https://api.pro-diab.vn
+security:
+  - ApiKeyAuth: []
+tags:
+  - name: Public Patients
+  - name: Public Appointments
+  - name: Public Catalog
+  - name: Public Visit Lookup
+
+paths:
+  /api/public/v1/patients/register:
+    post:
+      tags: [Public Patients]
+      summary: Đăng ký bệnh nhân mới (scope public.patient.write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublicRegisterPatientRequest' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/PublicPatientResponse' } } } }
+        '401': { $ref: '#/components/responses/ApiKeyInvalid' }
+        '403': { $ref: '#/components/responses/ScopeDenied' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/v1/appointments/book:
+    post:
+      tags: [Public Appointments]
+      summary: Đặt lịch hẹn (scope public.appointment.write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublicAppointmentBookRequest' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/PublicAppointmentResponse' } } } }
+        '409':
+          description: Slot đã có người đặt
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: APPOINTMENT_SLOT_TAKEN, message: "Khung giờ đã được đặt" } } } }
+
+  /api/public/v1/appointments/{id}:
+    get:
+      tags: [Public Appointments]
+      summary: Xem lịch hẹn theo ID (scope public.appointment.read)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PublicAppointmentResponse' } } } }
+        '404':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: APPOINTMENT_NOT_FOUND, message: "Không tìm thấy lịch hẹn" } } } }
+
+  /api/public/v1/catalog/service-packages:
+    get:
+      tags: [Public Catalog]
+      summary: Danh sách gói dịch vụ
+      responses: { '200': { description: OK } }
+
+  /api/public/v1/catalog/services:
+    get:
+      tags: [Public Catalog]
+      summary: Danh sách dịch vụ lẻ
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: department_id, in: query, schema: { type: string, format: uuid } }
+      responses: { '200': { description: OK } }
+
+  /api/public/v1/catalog/doctors:
+    get:
+      tags: [Public Catalog]
+      summary: Danh sách bác sĩ public
+      responses: { '200': { description: OK } }
+
+  /api/public/v1/visits/{patient_code}/request-otp:
+    post:
+      tags: [Public Visit Lookup]
+      summary: Yêu cầu OTP để tra cứu lịch sử khám (gửi SMS tới SĐT đã đăng ký)
+      parameters: [{ name: patient_code, in: path, required: true, schema: { type: string } }]
+      responses:
+        '202': { description: OTP đã gửi }
+        '404':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: PORTAL_PHONE_NOT_REGISTERED, message: "Mã bệnh nhân không tồn tại" } } } }
+
+  /api/public/v1/visits/{patient_code}/verify-otp:
+    post:
+      tags: [Public Visit Lookup]
+      summary: Verify OTP, trả về short-lived lookup token (TTL 10 phút)
+      parameters: [{ name: patient_code, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [otp], properties: { otp: { type: string, minLength: 6, maxLength: 6 } } } } }
+      responses:
+        '200':
+          content: { application/json: { schema: { type: object, properties: { lookup_token: { type: string }, expires_in: { type: integer, example: 600 } } } } }
+        '400':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: PORTAL_OTP_INVALID, message: "Mã OTP không đúng" } } } }
+
+  /api/public/v1/visits/{patient_code}/lookup:
+    get:
+      tags: [Public Visit Lookup]
+      summary: Tra cứu lịch sử khám (cần header Authorization Bearer lookup_token)
+      parameters: [{ name: patient_code, in: path, required: true, schema: { type: string } }]
+      security:
+        - ApiKeyAuth: []
+        - LookupToken: []
+      responses: { '200': { description: OK } }
+
+components:
+  securitySchemes:
+    ApiKeyAuth: { type: apiKey, in: header, name: X-Api-Key }
+    LookupToken: { type: http, scheme: bearer }
+  responses:
+    ApiKeyInvalid:
+      description: API key sai/hết hạn
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: API_KEY_INVALID, message: "API key không hợp lệ" } } } }
+    ScopeDenied:
+      description: Thiếu scope
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: API_SCOPE_DENIED, message: "API key không có quyền cho endpoint này" } } } }
+    RateLimited:
+      description: Vượt rate limit / quota
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: API_RATE_LIMITED, message: "Vượt giới hạn truy cập, thử lại sau" } } } }
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    PublicRegisterPatientRequest:
+      type: object
+      required: [full_name, gender, dob, phone]
+      properties:
+        full_name: { type: string, maxLength: 200 }
+        gender: { type: string, enum: [M, F, O] }
+        dob: { type: string, format: date }
+        phone: { type: string, pattern: '^\+?[1-9]\d{7,14}$', description: "E.164" }
+        address: { type: string }
+        email: { type: string, format: email }
+    PublicPatientResponse:
+      type: object
+      properties:
+        patient_code: { type: string }
+        full_name: { type: string }
+        created_at: { type: string, format: date-time }
+    PublicAppointmentBookRequest:
+      type: object
+      required: [patient_phone, patient_name, appointment_at]
+      properties:
+        patient_phone: { type: string }
+        patient_name: { type: string }
+        doctor_id: { type: string, format: uuid, nullable: true }
+        department_id: { type: string, format: uuid, nullable: true }
+        service_id: { type: string, format: uuid, nullable: true }
+        appointment_at: { type: string, format: date-time }
+        note: { type: string }
+    PublicAppointmentResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        appointment_code: { type: string }
+        status: { type: string, enum: [BOOKED, CONFIRMED, CANCELLED, DONE] }
+        appointment_at: { type: string, format: date-time }
+        doctor_name: { type: string, nullable: true }
+        source_partner_id: { type: string, format: uuid }
+        partner_reference: { type: string, nullable: true }

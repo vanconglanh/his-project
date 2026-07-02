@@ -1,0 +1,215 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Cashier Closing API
+  version: 1.0.0-sprint8
+  description: |
+    Báo cáo cuối ngày, ca thu ngân, công nợ bệnh nhân.
+    Shift lifecycle: OPEN -> CLOSED. Mỗi payment gắn cashier_shift_id.
+servers:
+  - url: /api/v1
+
+tags:
+  - name: CashierClosing
+  - name: CashierDebt
+
+paths:
+  /cashier/closing/today:
+    get:
+      tags: [CashierClosing]
+      summary: Báo cáo trong ngày (tổng thu theo method, refund, void)
+      security: [{ bearerAuth: [cashier.report] }]
+      parameters:
+        - { name: cashier_user_id, in: query, schema: { type: string, format: uuid } }
+        - { name: date, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CashierClosingResponse' }
+
+  /cashier/closing/open:
+    post:
+      tags: [CashierClosing]
+      summary: Mở ca thu ngân
+      security: [{ bearerAuth: [cashier.shift_open] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                opening_balance: { type: number, minimum: 0, default: 0 }
+                note: { type: string }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CashierClosingResponse' }
+        '409': { description: CASHIER_SHIFT_NOT_OPEN or another shift open }
+
+  /cashier/closing/close:
+    post:
+      tags: [CashierClosing]
+      summary: Đóng ca, snapshot
+      security: [{ bearerAuth: [cashier.shift_close] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actual_cash]
+              properties:
+                shift_id: { type: string, format: uuid, nullable: true, description: 'Default = ca đang mở của user' }
+                actual_cash: { type: number, minimum: 0 }
+                note: { type: string }
+                accept_difference: { type: boolean, default: false, description: 'true thì cho phép chênh lệch, ghi log' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CashierClosingResponse' }
+        '409': { description: CASHIER_SHIFT_ALREADY_CLOSED }
+        '422': { description: CASHIER_CASH_DIFFERENCE }
+
+  /cashier/closing/history:
+    get:
+      tags: [CashierClosing]
+      security: [{ bearerAuth: [cashier.report] }]
+      parameters:
+        - { name: cashier_user_id, in: query, schema: { type: string, format: uuid } }
+        - { name: from_date, in: query, schema: { type: string, format: date } }
+        - { name: to_date, in: query, schema: { type: string, format: date } }
+        - { name: status, in: query, schema: { type: string, enum: [OPEN, CLOSED] } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/CashierClosingResponse' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+
+  /cashier/closing/{id}/pdf:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [CashierClosing]
+      security: [{ bearerAuth: [cashier.report] }]
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /cashier/debts:
+    get:
+      tags: [CashierDebt]
+      summary: Công nợ - bệnh nhân nợ / partial paid
+      security: [{ bearerAuth: [cashier.debt_view] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: min_balance, in: query, schema: { type: number, default: 1 } }
+        - { name: older_than_days, in: query, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/DebtResponse' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                  summary:
+                    type: object
+                    properties:
+                      total_patients: { type: integer }
+                      total_debt: { type: number }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  schemas:
+    ShiftStatus:
+      type: string
+      enum: [OPEN, CLOSED]
+
+    ShiftSummary:
+      type: object
+      properties:
+        total_cash: { type: number, default: 0 }
+        total_card: { type: number, default: 0 }
+        total_transfer: { type: number, default: 0 }
+        total_qr: { type: number, default: 0 }
+        total_other: { type: number, default: 0 }
+        total_refund: { type: number, default: 0 }
+        total_void: { type: number, default: 0 }
+        count_transactions: { type: integer, default: 0 }
+        gross_collected: { type: number, default: 0 }
+        net_collected: { type: number, default: 0, description: 'gross - refund - void' }
+        breakdown_by_method:
+          type: array
+          items:
+            type: object
+            properties:
+              method: { type: string }
+              amount: { type: number }
+              count: { type: integer }
+
+    CashierClosingResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        cashier_user_id: { type: string, format: uuid }
+        cashier_name: { type: string }
+        shift_date: { type: string, format: date }
+        shift_start: { type: string, format: date-time }
+        shift_end: { type: string, format: date-time, nullable: true }
+        summary: { $ref: '#/components/schemas/ShiftSummary' }
+        opening_balance: { type: number }
+        closing_balance: { type: number, nullable: true, description: 'opening + total_cash - refund' }
+        expected_cash: { type: number, nullable: true }
+        actual_cash: { type: number, nullable: true }
+        difference: { type: number, nullable: true, description: 'actual - expected' }
+        note: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/ShiftStatus' }
+        closed_by: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    DebtResponse:
+      type: object
+      properties:
+        patient_id: { type: string, format: uuid }
+        patient_code: { type: string }
+        patient_name: { type: string }
+        phone: { type: string, nullable: true }
+        total_billed: { type: number }
+        total_paid: { type: number }
+        balance: { type: number }
+        unpaid_bills_count: { type: integer }
+        last_payment_at: { type: string, format: date-time, nullable: true }
+        oldest_unpaid_at: { type: string, format: date-time, nullable: true }
+        days_overdue: { type: integer, nullable: true }
+
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }

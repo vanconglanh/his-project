@@ -1,0 +1,130 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using ProDiabHis.Api.Filters;
+using ProDiabHis.Api.Services;
+using ProDiabHis.Application.Reception;
+
+namespace ProDiabHis.Api.Controllers;
+
+[ApiController]
+[Route("api/v1/reception")]
+[Authorize]
+public class ReceptionController : ControllerBase
+{
+    private readonly IMediator _mediator;
+    private readonly ITicketPdfService _pdfService;
+
+    public ReceptionController(IMediator mediator, ITicketPdfService pdfService)
+    {
+        _mediator = mediator;
+        _pdfService = pdfService;
+    }
+
+    // POST /api/v1/reception/check-in
+    [HttpPost("check-in")]
+    [RequirePermission("reception.checkin")]
+    public async Task<IActionResult> CheckIn([FromBody] CheckInRequest request, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new CheckInCommand(request), ct);
+        if (!result.IsSuccess)
+        {
+            var statusCode = result.ErrorCode switch
+            {
+                "RECEPTION_DUPLICATE_CHECKIN" or "RECEPTION_ROOM_FULL" => 409,
+                "PATIENT_NOT_FOUND" or "ROOM_NOT_FOUND" => 404,
+                _ => 422
+            };
+            return StatusCode(statusCode, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return StatusCode(201, new { data = result.Value });
+    }
+
+    // GET /api/v1/reception/queue
+    [HttpGet("queue")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> GetQueue(
+        [FromQuery] Guid? room_id,
+        [FromQuery] string? status,
+        [FromQuery] DateOnly? date,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ListQueueQuery(room_id, status, date), ct);
+        return Ok(new { data = result });
+    }
+
+    // PUT /api/v1/reception/queue/{ticketId}/call
+    [HttpPut("queue/{ticketId:guid}/call")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> CallTicket(Guid ticketId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new CallTicketCommand(ticketId), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode == "TICKET_NOT_FOUND" ? 404 : 422;
+            return StatusCode(status, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return Ok(new { data = result.Value });
+    }
+
+    // PUT /api/v1/reception/queue/{ticketId}/skip
+    [HttpPut("queue/{ticketId:guid}/skip")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> SkipTicket(Guid ticketId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new SkipTicketCommand(ticketId), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode == "TICKET_NOT_FOUND" ? 404 : 422;
+            return StatusCode(status, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return Ok(new { data = result.Value });
+    }
+
+    // PUT /api/v1/reception/queue/{ticketId}/cancel
+    [HttpPut("queue/{ticketId:guid}/cancel")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> CancelTicket(Guid ticketId, [FromBody] CancelTicketBody? body, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new CancelTicketCommand(ticketId, body?.Reason), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode == "TICKET_NOT_FOUND" ? 404 : 422;
+            return StatusCode(status, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return Ok(new { data = result.Value });
+    }
+
+    // GET /api/v1/reception/queue/{ticketId}/ticket-pdf
+    [HttpGet("queue/{ticketId:guid}/ticket-pdf")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> GetTicketPdf(Guid ticketId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetTicketQuery(ticketId), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+
+        var pdfBytes = await _pdfService.GenerateTicketPdfAsync(result.Value!, ct);
+        return File(pdfBytes, "application/pdf", $"ticket-{result.Value!.TicketNo}.pdf");
+    }
+
+    // GET /api/v1/reception/rooms
+    [HttpGet("rooms")]
+    [RequirePermission("reception.rooms.read")]
+    public async Task<IActionResult> GetRooms(CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ListRoomsQuery(), ct);
+        return Ok(new { data = result });
+    }
+
+    // GET /api/v1/reception/stats
+    [HttpGet("stats")]
+    [RequirePermission("reception.stats.read")]
+    public async Task<IActionResult> GetStats([FromQuery] DateOnly? date, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetReceptionStatsQuery(date), ct);
+        return Ok(new { data = result });
+    }
+}
+
+public record CancelTicketBody(string? Reason);

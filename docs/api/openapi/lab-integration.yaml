@@ -1,0 +1,302 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Lab Integration API
+  version: 1.0.0-sprint5
+  description: |
+    Tích hợp 2 chiều với đối tác lab thứ 3.
+    - Outbound (US-SUNS-14): Gửi chỉ định XN sang partner (REST hoặc HL7 ORM^O01).
+    - Inbound (US-SUNS-15): Nhận webhook kết quả từ partner -> parse -> tạo lab_result.
+    Webhook public dùng API key + HMAC signature (header `X-Partner-Signature`).
+servers:
+  - url: https://api.prodiab.vn/api/v1
+
+tags:
+  - name: LabOutbound
+  - name: LabInbound
+
+paths:
+  /lab-integration/outbound/send/{lab_order_id}:
+    post:
+      tags: [LabOutbound]
+      security: [{ BearerAuth: [] }]
+      summary: Gửi chỉ định XN tới partner
+      description: |
+        Chọn partner phù hợp (theo supported_tests). Build payload JSON/HL7.
+        Lưu `lab_outbound` (status=PENDING -> SENT -> ACKED|FAILED).
+        Background job retry exponential backoff, tối đa 5 lần.
+        Permission `lab_integration.send`.
+      parameters:
+        - { in: path, name: lab_order_id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lab_partner_id]
+              properties:
+                lab_partner_id: { type: string, format: uuid }
+                priority: { type: string, enum: [NORMAL, URGENT], default: NORMAL }
+                note: { type: string, nullable: true }
+      responses:
+        '202':
+          description: Accepted, queued for send
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/LabOutbound' }
+
+  /lab-integration/outbound:
+    get:
+      tags: [LabOutbound]
+      security: [{ BearerAuth: [] }]
+      summary: Danh sách lệnh gửi đi
+      description: Permission `lab_integration.send`.
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [PENDING, SENT, ACKED, FAILED] } }
+        - { in: query, name: lab_partner_id, schema: { type: string, format: uuid } }
+        - { in: query, name: from_date, schema: { type: string, format: date } }
+        - { in: query, name: to_date, schema: { type: string, format: date } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: page_size, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabOutbound' }
+
+  /lab-integration/outbound/{id}/retry:
+    post:
+      tags: [LabOutbound]
+      security: [{ BearerAuth: [] }]
+      summary: Retry lệnh FAILED thủ công
+      description: |
+        Reset retry_count -> đẩy lại queue. Permission `lab_integration.retry`.
+        Lỗi `LAB_INTEGRATION_RETRY_EXCEEDED` nếu vượt 5 lần (cần admin force).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '202': { description: Re-queued }
+
+  /lab-integration/webhook/{partner_code}:
+    post:
+      tags: [LabInbound]
+      security: [{ PartnerApiKey: [] }]
+      summary: Webhook nhận kết quả từ partner (PUBLIC)
+      description: |
+        Permission `lab_integration.webhook`. Auth bằng `X-Partner-Api-Key` + verify HMAC-SHA256 `X-Partner-Signature`.
+        Body có thể là JSON hoặc HL7 ORU^R01 (Content-Type: application/hl7-v2).
+        Lưu thô `lab_inbound` rồi enqueue parse async. Trả 202 ngay (idempotent theo `external_result_id`).
+        Lỗi: `LAB_WEBHOOK_INVALID_SIGNATURE`.
+      parameters:
+        - { in: path, name: partner_code, required: true, schema: { type: string }, example: MEDLATEC }
+        - { in: header, name: X-Partner-Api-Key, required: true, schema: { type: string } }
+        - { in: header, name: X-Partner-Signature, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                external_order_id: { type: string }
+                external_result_id: { type: string }
+                results:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      test_code: { type: string }
+                      value: { type: string }
+                      value_numeric: { type: number, nullable: true }
+                      unit: { type: string }
+                      reference_range_low: { type: number, nullable: true }
+                      reference_range_high: { type: number, nullable: true }
+                      flag: { type: string }
+                      performed_at: { type: string, format: date-time }
+          application/hl7-v2:
+            schema: { type: string, description: HL7 ORU^R01 message }
+      responses:
+        '202':
+          description: Accepted, queued for parse
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      inbound_id: { type: string, format: uuid }
+                      received_at: { type: string, format: date-time }
+        '401':
+          description: Invalid signature/api key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /lab-integration/inbound:
+    get:
+      tags: [LabInbound]
+      security: [{ BearerAuth: [] }]
+      summary: Danh sách bản ghi inbound
+      description: Permission `lab_integration.send`.
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [RECEIVED, PROCESSED, FAILED] } }
+        - { in: query, name: lab_partner_id, schema: { type: string, format: uuid } }
+        - { in: query, name: from_date, schema: { type: string, format: date } }
+        - { in: query, name: to_date, schema: { type: string, format: date } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: page_size, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabInbound' }
+
+  /lab-integration/inbound/{id}/reprocess:
+    post:
+      tags: [LabInbound]
+      security: [{ BearerAuth: [] }]
+      summary: Reprocess inbound thủ công
+      description: Dùng khi parse lỗi đã fix code. Permission `lab_integration.retry`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '202': { description: Re-queued }
+
+  /lab-integration/inbound/{id}/raw:
+    get:
+      tags: [LabInbound]
+      security: [{ BearerAuth: [] }]
+      summary: Xem raw payload
+      description: Permission `lab_integration.send`. Hỗ trợ debug.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      payload_json: { type: object, nullable: true }
+                      raw_hl7_message: { type: string, nullable: true }
+                      headers: { type: object }
+
+  /lab-integration/stats:
+    get:
+      tags: [LabOutbound]
+      security: [{ BearerAuth: [] }]
+      summary: Thống kê 7 ngày
+      description: |
+        Đếm outbound/inbound theo status/partner. Phục vụ dashboard.
+        Permission `lab_integration.send`.
+      parameters:
+        - { in: query, name: days, schema: { type: integer, default: 7, maximum: 30 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      from_date: { type: string, format: date }
+                      to_date: { type: string, format: date }
+                      outbound_total: { type: integer }
+                      outbound_failed: { type: integer }
+                      inbound_total: { type: integer }
+                      inbound_failed: { type: integer }
+                      by_partner:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            lab_partner_id: { type: string, format: uuid }
+                            partner_name: { type: string }
+                            outbound_sent: { type: integer }
+                            inbound_received: { type: integer }
+                            avg_turnaround_minutes: { type: number }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    PartnerApiKey:
+      type: apiKey
+      in: header
+      name: X-Partner-Api-Key
+
+  schemas:
+    LabOutbound:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        lab_order_id: { type: string, format: uuid }
+        lab_partner_id: { type: string, format: uuid }
+        partner_name: { type: string }
+        external_order_id: { type: string, nullable: true }
+        payload_json: { type: object, nullable: true }
+        status: { type: string, enum: [PENDING, SENT, ACKED, FAILED] }
+        retry_count: { type: integer, default: 0 }
+        error_message: { type: string, nullable: true }
+        sent_at: { type: string, format: date-time, nullable: true }
+        acked_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    LabInbound:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        lab_partner_id: { type: string, format: uuid }
+        partner_name: { type: string }
+        external_result_id: { type: string }
+        outbound_id: { type: string, format: uuid, nullable: true }
+        payload_json: { type: object, nullable: true }
+        raw_hl7_message: { type: string, nullable: true }
+        status: { type: string, enum: [RECEIVED, PROCESSED, FAILED] }
+        processed_at: { type: string, format: date-time, nullable: true }
+        received_at: { type: string, format: date-time }
+        processed_result_count: { type: integer, default: 0 }
+        error_message: { type: string, nullable: true }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - LAB_PARTNER_NOT_FOUND
+                - LAB_PARTNER_CONNECTION_FAILED
+                - LAB_PARTNER_AUTH_INVALID
+                - LAB_INTEGRATION_RETRY_EXCEEDED
+                - LAB_WEBHOOK_INVALID_SIGNATURE
+            message: { type: string }
+            details: { type: object }

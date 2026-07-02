@@ -1,0 +1,300 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Roles, Permissions & Audit Log API
+  version: 1.0.0
+  description: |
+    Quản lý vai trò (role), danh sách permission và xem audit log.
+    - 7 role hệ thống được seed sẵn (migration 0018): ADMIN, BACSI, DIEUDUONG,
+      LETAN, DUOCSI, KETOAN, KYTHUATVIEN (cộng SUPER_ADMIN cross-tenant).
+    - Tenant ADMIN có thể tạo CUSTOM role và gán permission từ danh sách có sẵn.
+    - Role SYSTEM không xoá/sửa permission được.
+
+servers:
+  - url: http://localhost:5000
+  - url: https://api.staging.prodiab.example.com
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Roles
+  - name: Permissions
+  - name: AuditLog
+
+paths:
+  /api/v1/roles:
+    get:
+      tags: [Roles]
+      summary: Danh sách role (system + custom của tenant)
+      operationId: listRoles
+      x-required-permission: role.read
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/RoleResponse' }
+              example:
+                data:
+                  - code: ADMIN
+                    name: Quản trị phòng khám
+                    description: Toàn quyền trong phạm vi tenant
+                    role_type: SYSTEM
+                    tenant_id: null
+                    permission_codes: [tenant.read, tenant.write, user.read, user.invite, user.write, user.assign_role, role.read, role.write, audit.read]
+                  - code: BACSI
+                    name: Bác sĩ
+                    description: Khám và kê đơn
+                    role_type: SYSTEM
+                    tenant_id: null
+                    permission_codes: [patient.read, encounter.read, encounter.write, prescription.create, prescription.sign, lab.read, emr.read, emr.write]
+    post:
+      tags: [Roles]
+      summary: Tạo custom role
+      operationId: createRole
+      x-required-permission: role.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRoleRequest' }
+            example:
+              code: BACSI_TRUONG
+              name: Bác sĩ trưởng
+              description: Bác sĩ + duyệt đơn
+              permission_codes: [patient.read, encounter.write, prescription.sign, report.read]
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/RoleResponse' }
+        '422':
+          description: Code trùng hoặc permission không tồn tại
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+
+  /api/v1/roles/{code}:
+    parameters:
+      - { name: code, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Roles]
+      summary: Chi tiết role
+      operationId: getRole
+      x-required-permission: role.read
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/RoleResponse' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+    put:
+      tags: [Roles]
+      summary: Cập nhật role (chỉ CUSTOM)
+      operationId: updateRole
+      x-required-permission: role.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRoleRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/RoleResponse' }
+        '403':
+          description: Không sửa được role hệ thống
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                sys: { value: { error: { code: ROLE_SYSTEM_PROTECTED, message: Không thể xóa vai trò hệ thống } } }
+    delete:
+      tags: [Roles]
+      summary: Xoá custom role
+      operationId: deleteRole
+      x-required-permission: role.write
+      responses:
+        '204': { description: Đã xoá }
+        '403':
+          description: Role hệ thống không xoá được
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                sys: { value: { error: { code: ROLE_SYSTEM_PROTECTED, message: Không thể xóa vai trò hệ thống } } }
+
+  /api/v1/permissions:
+    get:
+      tags: [Permissions]
+      summary: Liệt kê toàn bộ permission có sẵn
+      operationId: listPermissions
+      x-required-permission: role.read
+      parameters:
+        - name: resource
+          in: query
+          schema: { type: string, example: patient }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/PermissionResponse' }
+              example:
+                data:
+                  - { code: patient.read, resource: patient, action: read, description: Xem hồ sơ bệnh nhân }
+                  - { code: patient.write, resource: patient, action: write, description: Tạo/sửa hồ sơ bệnh nhân }
+                  - { code: prescription.sign, resource: prescription, action: sign, description: Ký xác nhận đơn thuốc }
+
+  /api/v1/audit-logs:
+    get:
+      tags: [AuditLog]
+      summary: Xem nhật ký thao tác
+      operationId: listAuditLogs
+      x-required-permission: audit.read
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/PageQuery'
+        - $ref: '_common.yaml#/components/parameters/PageSizeQuery'
+        - $ref: '_common.yaml#/components/parameters/SortQuery'
+        - { name: user_id, in: query, schema: { type: string, format: uuid } }
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [CREATE, UPDATE, DELETE, LOGIN, LOGOUT, EXPORT, SIGN]
+        - { name: resource_type, in: query, schema: { type: string, example: patient } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '_common.yaml#/components/schemas/PagedResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/AuditLogResponse' }
+              example:
+                data:
+                  - id: 22222222-2222-2222-2222-222222222222
+                    tenant_id: 6f1c4f0a-1111-4d33-a111-aaaaaaaaaaaa
+                    user_id: 11111111-1111-1111-1111-111111111111
+                    user_email: an.nguyen@anbinh.vn
+                    action: UPDATE
+                    resource_type: patient
+                    resource_id: 33333333-3333-3333-3333-333333333333
+                    ip_address: 192.168.1.10
+                    user_agent: Mozilla/5.0
+                    details: { changed_fields: [phone, address] }
+                    created_at: '2026-05-22T09:00:00Z'
+                meta: { page: 1, page_size: 20, total: 1, total_pages: 1 }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RoleType:
+      type: string
+      enum: [SYSTEM, CUSTOM]
+
+    RoleResponse:
+      type: object
+      required: [code, name, role_type, permission_codes]
+      properties:
+        code: { type: string, example: BACSI }
+        name: { type: string, example: Bác sĩ }
+        description: { type: string }
+        role_type: { $ref: '#/components/schemas/RoleType' }
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: null nếu là role SYSTEM
+        permission_codes:
+          type: array
+          items: { type: string }
+
+    CreateRoleRequest:
+      type: object
+      required: [code, name, permission_codes]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z][A-Z0-9_]{2,30}$'
+        name: { type: string }
+        description: { type: string }
+        permission_codes:
+          type: array
+          items: { type: string }
+          minItems: 1
+
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        permission_codes:
+          type: array
+          items: { type: string }
+
+    PermissionResponse:
+      type: object
+      required: [code, resource, action]
+      properties:
+        code: { type: string, example: patient.read }
+        resource: { type: string, example: patient }
+        action:
+          type: string
+          enum: [read, write, delete, sign, export, invite, assign_role]
+        description: { type: string }
+
+    AuditLogResponse:
+      type: object
+      required: [id, tenant_id, action, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid, nullable: true }
+        user_email: { type: string, nullable: true }
+        action:
+          type: string
+          enum: [CREATE, UPDATE, DELETE, LOGIN, LOGOUT, EXPORT, SIGN]
+        resource_type: { type: string }
+        resource_id: { type: string, nullable: true }
+        ip_address: { type: string }
+        user_agent: { type: string }
+        details:
+          type: object
+          additionalProperties: true
+        created_at: { type: string, format: date-time }

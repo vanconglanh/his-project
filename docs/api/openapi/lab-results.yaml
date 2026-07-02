@@ -1,0 +1,361 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Lab Results API
+  version: 1.0.0-sprint5
+  description: |
+    Quản lý kết quả xét nghiệm (XN sinh hóa, huyết học, vi sinh, miễn dịch...).
+    Hỗ trợ: nhập tay, import CSV/HL7, xác thực (verify) bởi KTV trưởng,
+    đánh dấu bất thường theo khoảng tham chiếu (reference range), lịch sử trend.
+servers:
+  - url: https://api.prodiab.vn/api/v1
+tags:
+  - name: LabResults
+    description: Kết quả xét nghiệm
+
+security:
+  - BearerAuth: []
+
+paths:
+  /lab-results:
+    get:
+      tags: [LabResults]
+      summary: Danh sách kết quả XN
+      description: |
+        Filter theo patient/encounter/order/status/flag/khoảng ngày.
+        Permission: `lab_result.read`
+      parameters:
+        - { in: query, name: patient_id, schema: { type: string, format: uuid } }
+        - { in: query, name: encounter_id, schema: { type: string, format: uuid } }
+        - { in: query, name: lab_order_id, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [DRAFT, VERIFIED, AMENDED] } }
+        - { in: query, name: flag, schema: { type: string, enum: [NORMAL, H, L, HH, LL, CRITICAL] } }
+        - { in: query, name: from_date, schema: { type: string, format: date } }
+        - { in: query, name: to_date, schema: { type: string, format: date } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: page_size, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabResultResponse' }
+                  meta: { $ref: '#/components/schemas/PaginationMeta' }
+
+    post:
+      tags: [LabResults]
+      summary: Nhập kết quả XN thủ công
+      description: |
+        KTV nhập kết quả cho 1 chỉ định (lab_order_item).
+        Tự động tính `flag` dựa vào `reference_range_low/high` của test trong `diab_his_dict_lab_tests`.
+        Permission: `lab_result.write`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LabResultCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/LabResultResponse' }
+
+  /lab-results/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [LabResults]
+      summary: Cập nhật kết quả XN
+      description: |
+        Chỉ sửa được khi status=DRAFT hoặc trong vòng 15 phút sau verify (AMENDED, ghi audit).
+        Permission: `lab_result.write`. Lỗi: `LAB_RESULT_ALREADY_VERIFIED`, `LAB_RESULT_EDIT_TIMEOUT`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LabResultUpdateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/LabResultResponse' }
+
+  /lab-results/{id}/verify:
+    post:
+      tags: [LabResults]
+      summary: Xác thực kết quả (KTV trưởng)
+      description: |
+        Đổi status DRAFT -> VERIFIED, set `verified_at/by`. Sau verify mới in PDF/đẩy bác sĩ.
+        Permission: `lab_result.verify`
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Verified }
+        '409':
+          description: Đã verify trước đó
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /lab-results/{id}/unverify:
+    post:
+      tags: [LabResults]
+      summary: Hủy xác thực (rollback về DRAFT)
+      description: |
+        Chỉ admin hoặc người verify, trong vòng 30 phút. Ghi audit.
+        Permission: `lab_result.verify`
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK }
+
+  /lab-results/import:
+    post:
+      tags: [LabResults]
+      summary: Import kết quả từ CSV hoặc HL7 ORU^R01
+      description: |
+        Upload file `text/csv` hoặc `application/hl7-v2`.
+        CSV header: `lab_order_id,test_code,value,unit,performed_at,note`.
+        HL7: parse OBR/OBX segments. Trả về số dòng thành công/thất bại.
+        Permission: `lab_result.import`. Lỗi: `LAB_IMPORT_INVALID_FORMAT`, `LAB_IMPORT_PARSE_ERROR`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+                format: { type: string, enum: [CSV, HL7_ORU] }
+                auto_verify: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_rows: { type: integer }
+                      success_count: { type: integer }
+                      failed_count: { type: integer }
+                      errors:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            row: { type: integer }
+                            message: { type: string }
+
+  /lab-results/abnormal:
+    get:
+      tags: [LabResults]
+      summary: Danh sách kết quả bất thường (H/L/HH/LL/CRITICAL)
+      description: Dashboard KTV trưởng và bác sĩ. Permission `lab_result.read`.
+      parameters:
+        - { in: query, name: severity, schema: { type: string, enum: [ALL, CRITICAL_ONLY] } }
+        - { in: query, name: from_date, schema: { type: string, format: date } }
+        - { in: query, name: to_date, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabResultResponse' }
+
+  /lab-results/history-trend:
+    get:
+      tags: [LabResults]
+      summary: Trend giá trị 1 chỉ số XN theo thời gian
+      description: |
+        Dùng vẽ chart (vd HbA1c, Glucose theo tháng).
+        Permission: `lab_result.read`
+      parameters:
+        - { in: query, name: patient_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: test_code, required: true, schema: { type: string } }
+        - { in: query, name: from_date, schema: { type: string, format: date } }
+        - { in: query, name: to_date, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      test_code: { type: string }
+                      test_name: { type: string }
+                      unit: { type: string }
+                      reference_range_low: { type: number }
+                      reference_range_high: { type: number }
+                      points:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            performed_at: { type: string, format: date-time }
+                            value_numeric: { type: number }
+                            flag: { type: string }
+
+  /lab-results/{id}/pdf:
+    get:
+      tags: [LabResults]
+      summary: Xuất phiếu kết quả PDF
+      description: Chỉ in được khi status=VERIFIED. Permission `lab_result.read`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: PDF binary
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /lab-results/batch-verify:
+    post:
+      tags: [LabResults]
+      summary: Xác thực hàng loạt
+      description: Verify nhiều kết quả 1 lần. Permission `lab_result.verify`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                result_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      success_count: { type: integer }
+                      failed_count: { type: integer }
+                      errors:
+                        type: array
+                        items: { $ref: '#/components/schemas/ErrorItem' }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LabResultResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        lab_order_id: { type: string, format: uuid }
+        lab_order_item_id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        encounter_id: { type: string, format: uuid }
+        test_code: { type: string, example: GLU }
+        test_name: { type: string, example: Glucose máu }
+        value: { type: string, description: Giá trị thô (có thể là chuỗi như "Âm tính") }
+        value_numeric: { type: number, nullable: true }
+        unit: { type: string, example: mmol/L }
+        reference_range_low: { type: number, nullable: true }
+        reference_range_high: { type: number, nullable: true }
+        flag:
+          type: string
+          enum: [NORMAL, H, L, HH, LL, CRITICAL]
+          description: H=cao, L=thấp, HH=rất cao, LL=rất thấp, CRITICAL=nguy kịch
+        method: { type: string, nullable: true, example: Enzymatic }
+        performed_at: { type: string, format: date-time }
+        performed_by: { type: string, format: uuid }
+        status: { type: string, enum: [DRAFT, VERIFIED, AMENDED] }
+        verified_at: { type: string, format: date-time, nullable: true }
+        verified_by: { type: string, format: uuid, nullable: true }
+        note: { type: string, nullable: true }
+        source: { type: string, enum: [MANUAL, IMPORT, PARTNER] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    LabResultCreateRequest:
+      type: object
+      required: [lab_order_item_id, value, performed_at]
+      properties:
+        lab_order_item_id: { type: string, format: uuid }
+        value: { type: string }
+        value_numeric: { type: number, nullable: true }
+        unit: { type: string, nullable: true }
+        method: { type: string, nullable: true }
+        performed_at: { type: string, format: date-time }
+        note: { type: string, nullable: true }
+
+    LabResultUpdateRequest:
+      type: object
+      properties:
+        value: { type: string }
+        value_numeric: { type: number, nullable: true }
+        unit: { type: string, nullable: true }
+        method: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        amend_reason: { type: string, description: Bắt buộc nếu đang AMEND VERIFIED result }
+
+    PaginationMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+
+    ErrorItem:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: string }
+        message: { type: string }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - LAB_RESULT_NOT_FOUND
+                - LAB_RESULT_ALREADY_VERIFIED
+                - LAB_RESULT_EDIT_TIMEOUT
+                - LAB_IMPORT_INVALID_FORMAT
+                - LAB_IMPORT_PARSE_ERROR
+            message: { type: string, description: Thông báo tiếng Việt }
+            details: { type: object }

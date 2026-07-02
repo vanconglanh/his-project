@@ -1,0 +1,740 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Patient Master API
+  version: 1.0.0
+  description: |
+    API quản lý hồ sơ bệnh nhân (Patient Master).
+    Bao quát các story US-P01..P12 + SUNS-I.1 (reception_note).
+    Dữ liệu nhạy cảm (CMND, BHYT) được mã hoá AES-256-GCM ở DB layer (pat_pii_data, pat_phi_data).
+    Mapping FHIR: Patient, AllergyIntolerance, Coverage, Consent, RelatedPerson.
+
+servers:
+  - url: https://api.prodiab.vn
+  - url: http://localhost:5080
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Patients
+    description: CRUD bệnh nhân + tìm kiếm + lịch sử khám
+  - name: Patient Avatar
+  - name: Patient Allergies
+  - name: Patient Insurance
+  - name: Patient Emergency Contacts
+  - name: Patient Consents
+  - name: Patient Reception Note
+
+paths:
+  /api/v1/patients:
+    get:
+      tags: [Patients]
+      summary: Danh sách bệnh nhân (paged)
+      description: Yêu cầu permission `patient.read`. Tự scope theo tenant qua RLS.
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/PageQuery'
+        - $ref: '_common.yaml#/components/parameters/PageSizeQuery'
+        - $ref: '_common.yaml#/components/parameters/SortQuery'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PatientStatus'
+        - name: gender
+          in: query
+          schema:
+            $ref: '#/components/schemas/Gender'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '_common.yaml#/components/schemas/PagedResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PatientResponse'
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Patients]
+      summary: Tạo bệnh nhân mới (US-P01)
+      description: Permission `patient.write`. Mã BN tự sinh `BN{tenantcode}{6digit}`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePatientRequest'
+            example:
+              full_name: Nguyễn Văn An
+              gender: MALE
+              date_of_birth: '1985-03-12'
+              id_number: '030185001234'
+              phone: '0912345678'
+              email: an.nguyen@example.com
+              address:
+                province_code: '01'
+                district_code: '001'
+                ward_code: '00001'
+                street: 12 Ngõ 45 Hàng Bài
+              occupation: Kỹ sư
+              ethnicity: Kinh
+              blood_type: O_POS
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PatientResponse' }
+        '409':
+          description: Trùng mã BN
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                duplicate:
+                  value:
+                    error:
+                      code: PATIENT_CODE_EXISTS
+                      message: Mã bệnh nhân đã tồn tại
+        '422': { $ref: '_common.yaml#/components/responses/ValidationError' }
+
+  /api/v1/patients/search:
+    get:
+      tags: [Patients]
+      summary: Tìm kiếm bệnh nhân full-text (US-P03)
+      description: Tìm theo họ tên (unaccent VN), SĐT, CMND, mã BHYT, mã BN. Permission `patient.read`.
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/SearchQuery'
+        - $ref: '_common.yaml#/components/parameters/PageQuery'
+        - $ref: '_common.yaml#/components/parameters/PageSizeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '_common.yaml#/components/schemas/PagedResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PatientResponse'
+
+  /api/v1/patients/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    get:
+      tags: [Patients]
+      summary: Chi tiết bệnh nhân (US-P02)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PatientResponse' }
+        '404': { $ref: '#/components/responses/PatientNotFound' }
+    put:
+      tags: [Patients]
+      summary: Cập nhật bệnh nhân (US-P04)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePatientRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PatientResponse' }
+        '404': { $ref: '#/components/responses/PatientNotFound' }
+        '422': { $ref: '_common.yaml#/components/responses/ValidationError' }
+    delete:
+      tags: [Patients]
+      summary: Xoá mềm bệnh nhân (US-P05)
+      description: Permission `patient.delete`. Set deleted_at.
+      responses:
+        '204':
+          description: Đã xoá
+        '404': { $ref: '#/components/responses/PatientNotFound' }
+
+  /api/v1/patients/{id}/encounters:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    get:
+      tags: [Patients]
+      summary: Lịch sử khám (US-P06)
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/PageQuery'
+        - $ref: '_common.yaml#/components/parameters/PageSizeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '_common.yaml#/components/schemas/PagedResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/EncounterSummary'
+
+  /api/v1/patients/{id}/avatar:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    post:
+      tags: [Patient Avatar]
+      summary: Upload avatar bệnh nhân (US-P07)
+      description: Multipart, tối đa 2MB, định dạng PNG/JPEG. Permission `patient.write`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      avatar_url: { type: string, format: uri }
+        '413':
+          description: File quá lớn
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                tooLarge:
+                  value:
+                    error: { code: AVATAR_FILE_TOO_LARGE, message: Ảnh đại diện vượt quá 2MB }
+        '415':
+          description: Định dạng không hợp lệ
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                invalid:
+                  value:
+                    error: { code: AVATAR_INVALID_FORMAT, message: Chỉ chấp nhận ảnh PNG hoặc JPEG }
+
+  /api/v1/patients/{id}/allergies:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    get:
+      tags: [Patient Allergies]
+      summary: Danh sách dị ứng (US-P08)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AllergyResponse' }
+    post:
+      tags: [Patient Allergies]
+      summary: Thêm dị ứng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AllergyRequest' }
+            example:
+              allergen: Penicillin
+              reaction: Nổi mề đay, khó thở
+              severity: SEVERE
+              onset_date: '2020-06-15'
+              note: Đã từng nhập viện
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AllergyResponse' }
+
+  /api/v1/patients/{id}/allergies/{allergyId}:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+      - name: allergyId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [Patient Allergies]
+      summary: Xoá dị ứng
+      responses:
+        '204': { description: OK }
+
+  /api/v1/patients/{id}/insurance:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    get:
+      tags: [Patient Insurance]
+      summary: Danh sách thẻ BHYT (US-P09)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/InsuranceResponse' }
+    post:
+      tags: [Patient Insurance]
+      summary: Thêm thẻ BHYT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceRequest' }
+            example:
+              type: BHYT
+              card_no: HC4010112345678
+              valid_from: '2026-01-01'
+              valid_to: '2026-12-31'
+              hospital_code: '01001'
+              coverage_percent: 80
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/InsuranceResponse' }
+        '422':
+          description: Thẻ không hợp lệ
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                invalid:
+                  value:
+                    error: { code: BHYT_CARD_INVALID, message: Mã thẻ BHYT không đúng định dạng }
+                expired:
+                  value:
+                    error: { code: BHYT_EXPIRED, message: Thẻ BHYT đã hết hạn }
+
+  /api/v1/patients/{id}/insurance/{insuranceId}:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+      - name: insuranceId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Patient Insurance]
+      summary: Cập nhật thẻ BHYT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/InsuranceResponse' }
+    delete:
+      tags: [Patient Insurance]
+      summary: Xoá thẻ BHYT
+      responses:
+        '204': { description: OK }
+
+  /api/v1/patients/{id}/emergency-contacts:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    get:
+      tags: [Patient Emergency Contacts]
+      summary: Danh sách liên hệ khẩn cấp (US-P10)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/EmergencyContactResponse' }
+    post:
+      tags: [Patient Emergency Contacts]
+      summary: Thêm liên hệ khẩn cấp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmergencyContactRequest' }
+            example:
+              full_name: Trần Thị Bình
+              relationship: SPOUSE
+              phone: '0987654321'
+              address: 12 Ngõ 45 Hàng Bài, Hà Nội
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EmergencyContactResponse' }
+
+  /api/v1/patients/{id}/emergency-contacts/{contactId}:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+      - name: contactId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Patient Emergency Contacts]
+      summary: Cập nhật liên hệ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmergencyContactRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EmergencyContactResponse' }
+    delete:
+      tags: [Patient Emergency Contacts]
+      summary: Xoá liên hệ
+      responses:
+        '204': { description: OK }
+
+  /api/v1/patients/{id}/consents:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    get:
+      tags: [Patient Consents]
+      summary: Danh sách văn bản đồng ý (US-P11)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ConsentResponse' }
+    post:
+      tags: [Patient Consents]
+      summary: Tạo consent mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [consent_type]
+              properties:
+                consent_type: { $ref: '#/components/schemas/ConsentType' }
+                signed_by:
+                  type: string
+                  example: Lê Minh Cường
+                document_file_id:
+                  type: string
+                  format: uuid
+                  description: ID file PDF đã upload qua /files/upload
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ConsentResponse' }
+
+  /api/v1/patients/{id}/reception-note:
+    parameters:
+      - $ref: '#/components/parameters/PatientIdPath'
+    put:
+      tags: [Patient Reception Note]
+      summary: Cập nhật ghi chú tiếp đón (SUNS-I.1, US-P12)
+      description: |
+        Textarea ghi chú xuyên phòng do lễ tân nhập, hiển thị cho bác sĩ.
+        Permission `patient.write` hoặc `reception.checkin`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reception_note]
+              properties:
+                reception_note:
+                  type: string
+                  maxLength: 2000
+                  example: Bệnh nhân đi cùng người nhà, có tiền sử cao huyết áp, muốn khám sớm vì có việc gấp.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PatientResponse' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PatientIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    PatientNotFound:
+      description: Bệnh nhân không tồn tại
+      content:
+        application/json:
+          schema: { $ref: '_common.yaml#/components/schemas/Error' }
+          examples:
+            notFound:
+              value:
+                error: { code: PATIENT_NOT_FOUND, message: Không tìm thấy bệnh nhân }
+
+  schemas:
+    Gender:
+      type: string
+      enum: [MALE, FEMALE, OTHER]
+    PatientStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, DECEASED]
+    BloodType:
+      type: string
+      enum: [A_POS, A_NEG, B_POS, B_NEG, AB_POS, AB_NEG, O_POS, O_NEG, UNKNOWN]
+    AllergySeverity:
+      type: string
+      enum: [MILD, MODERATE, SEVERE, LIFE_THREATENING]
+    InsuranceType:
+      type: string
+      enum: [BHYT, PRIVATE, OTHER]
+    Relationship:
+      type: string
+      enum: [FATHER, MOTHER, SPOUSE, CHILD, SIBLING, OTHER]
+    ConsentType:
+      type: string
+      enum: [TREATMENT, DATA_PROCESSING, MARKETING, SURGERY, RESEARCH]
+
+    Address:
+      type: object
+      properties:
+        province_code: { type: string, example: '01' }
+        district_code: { type: string, example: '001' }
+        ward_code: { type: string, example: '00001' }
+        street: { type: string, example: 12 Ngõ 45 Hàng Bài }
+
+    PatientResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        code:
+          type: string
+          example: BNPK01000123
+          description: Mã BN auto sinh `BN{tenantcode}{6digit}`
+        full_name: { type: string, example: Nguyễn Văn An }
+        gender: { $ref: '#/components/schemas/Gender' }
+        date_of_birth: { type: string, format: date, example: '1985-03-12' }
+        age: { type: integer, example: 41, description: Tuổi tính tại thời điểm request }
+        id_number:
+          type: string
+          example: '030185******'
+          description: CMND/CCCD đã masked. Plain text mã hoá AES-256-GCM trong pat_pii_data.
+        phone: { type: string, example: '0912345678' }
+        email: { type: string, example: an.nguyen@example.com }
+        address: { $ref: '#/components/schemas/Address' }
+        occupation: { type: string, example: Kỹ sư }
+        ethnicity: { type: string, example: Kinh }
+        avatar_url: { type: string, format: uri, nullable: true }
+        reception_note: { type: string, nullable: true, example: BN có tiền sử cao huyết áp }
+        blood_type: { $ref: '#/components/schemas/BloodType' }
+        allergies_summary:
+          type: string
+          description: Denormalized từ cli_allergies (top 3 dị ứng nghiêm trọng)
+          example: Penicillin (SEVERE), Hải sản (MODERATE)
+        bhyt_card_no:
+          type: string
+          example: HC401******
+          description: Masked. Plain text trong pat_phi_data.
+        bhyt_valid_to: { type: string, format: date, nullable: true }
+        status: { $ref: '#/components/schemas/PatientStatus' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    CreatePatientRequest:
+      type: object
+      required: [full_name, date_of_birth]
+      properties:
+        full_name: { type: string, maxLength: 200 }
+        gender: { $ref: '#/components/schemas/Gender' }
+        date_of_birth: { type: string, format: date }
+        id_number: { type: string, description: CMND/CCCD, mã hoá AES-256-GCM ở DB }
+        phone: { type: string }
+        email: { type: string, format: email }
+        address: { $ref: '#/components/schemas/Address' }
+        occupation: { type: string }
+        ethnicity: { type: string }
+        blood_type: { $ref: '#/components/schemas/BloodType' }
+
+    UpdatePatientRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreatePatientRequest'
+        - type: object
+          properties:
+            status: { $ref: '#/components/schemas/PatientStatus' }
+
+    EncounterSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        encounter_no: { type: string, example: 'EN20260522001' }
+        encounter_date: { type: string, format: date-time }
+        doctor_name: { type: string, example: BS. Lê Minh Cường }
+        room_name: { type: string, example: Phòng khám 1 }
+        chief_complaint: { type: string, example: Đau đầu, chóng mặt 3 ngày }
+        diagnosis_icd10: { type: array, items: { type: string }, example: [I10, R51] }
+        status: { type: string, enum: [IN_PROGRESS, DONE, CANCELLED] }
+
+    AllergyResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        allergen: { type: string, example: Penicillin }
+        reaction: { type: string, example: Nổi mề đay, khó thở }
+        severity: { $ref: '#/components/schemas/AllergySeverity' }
+        onset_date: { type: string, format: date, nullable: true }
+        note: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    AllergyRequest:
+      type: object
+      required: [allergen, severity]
+      properties:
+        allergen: { type: string }
+        reaction: { type: string }
+        severity: { $ref: '#/components/schemas/AllergySeverity' }
+        onset_date: { type: string, format: date }
+        note: { type: string }
+
+    InsuranceResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/InsuranceType' }
+        card_no: { type: string, example: HC401******, description: Masked }
+        valid_from: { type: string, format: date }
+        valid_to: { type: string, format: date }
+        hospital_code: { type: string, example: '01001' }
+        coverage_percent: { type: integer, minimum: 0, maximum: 100, example: 80 }
+        created_at: { type: string, format: date-time }
+
+    InsuranceRequest:
+      type: object
+      required: [type, card_no, valid_from, valid_to]
+      properties:
+        type: { $ref: '#/components/schemas/InsuranceType' }
+        card_no: { type: string, description: Mã hoá AES-256-GCM trong pat_phi_data }
+        valid_from: { type: string, format: date }
+        valid_to: { type: string, format: date }
+        hospital_code: { type: string }
+        coverage_percent: { type: integer, minimum: 0, maximum: 100 }
+
+    EmergencyContactResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        full_name: { type: string, example: Trần Thị Bình }
+        relationship: { $ref: '#/components/schemas/Relationship' }
+        phone: { type: string, example: '0987654321' }
+        address: { type: string }
+
+    EmergencyContactRequest:
+      type: object
+      required: [full_name, relationship, phone]
+      properties:
+        full_name: { type: string }
+        relationship: { $ref: '#/components/schemas/Relationship' }
+        phone: { type: string }
+        address: { type: string }
+
+    ConsentResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        consent_type: { $ref: '#/components/schemas/ConsentType' }
+        signed_at: { type: string, format: date-time }
+        signed_by: { type: string, example: Lê Minh Cường }
+        document_url: { type: string, format: uri, nullable: true }
+        revoked_at: { type: string, format: date-time, nullable: true }

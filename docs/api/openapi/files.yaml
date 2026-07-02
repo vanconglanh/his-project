@@ -1,0 +1,143 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Files API
+  version: 1.0.0
+  description: |
+    Generic file upload qua MinIO với signed URL pattern.
+    Dùng chung cho avatar, CLS upload, consent document, sau này EMR attachments.
+    Bảng `fil_files` (dump cũ).
+    Workflow upload:
+    1. Client POST /files/upload (multipart) -> nhận file_id + signed_url
+    2. Client tham chiếu file_id khi tạo entity (vd consent.document_file_id)
+    3. Khi cần xem -> GET /files/{id}/signed-url để refresh URL.
+
+servers:
+  - url: https://api.prodiab.vn
+  - url: http://localhost:5080
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Files
+
+paths:
+  /api/v1/files/upload:
+    post:
+      tags: [Files]
+      summary: Upload file generic
+      description: |
+        Permission `file.upload`. Tối đa 20MB.
+        Server validate mime type + virus scan (ClamAV) trước khi commit.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+                  description: Phân loại logic (AVATAR/CLS/CONSENT/EMR_ATTACHMENT)
+                  example: AVATAR
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/FileUploadResponse' }
+        '413':
+          description: File quá lớn
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                tooLarge:
+                  value:
+                    error: { code: FILE_UPLOAD_FAILED, message: File vượt quá dung lượng tối đa 20MB }
+        '422':
+          description: Validate fail
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                failed:
+                  value:
+                    error: { code: FILE_UPLOAD_FAILED, message: Tải tệp thất bại, vui lòng thử lại }
+
+  /api/v1/files/{id}/signed-url:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Files]
+      summary: Refresh signed URL (TTL 15 phút)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/FileUploadResponse' }
+        '404':
+          description: Không tìm thấy file
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                notFound:
+                  value:
+                    error: { code: FILE_NOT_FOUND, message: Không tìm thấy tệp }
+
+  /api/v1/files/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [Files]
+      summary: Xoá file
+      description: Permission `file.delete`. Soft delete + remove khỏi MinIO.
+      responses:
+        '204': { description: OK }
+        '404':
+          description: Không tìm thấy
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    FileUploadResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        file_name: { type: string, example: avatar-nguyen-van-an.png }
+        mime_type: { type: string, example: image/png }
+        file_size_bytes: { type: integer, example: 245680 }
+        signed_url:
+          type: string
+          format: uri
+          example: https://minio.prodiab.vn/prodiab/avatars/2026/05/22/abc123.png?X-Amz-Signature=...
+        signed_url_expires_at:
+          type: string
+          format: date-time
+          description: Hết hạn sau 15 phút

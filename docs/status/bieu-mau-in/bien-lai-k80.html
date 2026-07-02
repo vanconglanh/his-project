@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biên lai thu tiền (K80)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9e6;font-family:"Times New Roman",Times,serif;color:#111;font-size:13px;line-height:1.42}
+.toolbar{position:sticky;top:0;z-index:9;background:#1a1a19;color:#fff;display:flex;gap:12px;align-items:center;padding:9px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
+.toolbar .sp{flex:1}
+.toolbar a,.toolbar button{font:inherit;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.35);border-radius:7px;padding:6px 12px;cursor:pointer;text-decoration:none}
+.toolbar button.pr{background:#1baf7a;border-color:transparent;font-weight:600}
+.sheet{background:#fff;margin:16px auto;box-shadow:0 3px 16px rgba(0,0,0,.18);position:relative}
+.lh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1.5px solid #111;padding-bottom:8px;margin-bottom:10px}
+.lh .org{font-size:12px;line-height:1.35}
+.lh .org b{font-size:13.5px;text-transform:uppercase;display:block}
+.lh .logo{width:52px;height:52px;flex:0 0 auto;border:1px solid #111;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-weight:700;color:#0b7285;font-size:10px;text-align:center;line-height:1.1}
+.doc-title{text-align:center;font-size:18px;font-weight:700;text-transform:uppercase;margin:8px 0 2px;letter-spacing:.02em}
+.doc-sub{text-align:center;font-size:12px;color:#333;margin-bottom:12px;font-style:italic}
+.code-line{text-align:right;font-size:11.5px;color:#333;margin-bottom:4px}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+table.grid th,table.grid td{border:1px solid #111;padding:4px 6px;vertical-align:top}
+table.grid th{background:#f0f0ee;font-weight:700;text-align:left}
+td.c,th.c{text-align:center}
+td.r,th.r{text-align:right}
+.sec-h{font-weight:700;text-transform:uppercase;margin:9px 0 3px;font-size:13px}
+.row{display:flex;gap:18px;flex-wrap:wrap}
+.field{margin:3px 0}.field .k{font-weight:700}
+.fill{border-bottom:1px dotted #444;min-width:60px;display:inline-block}
+.sign{display:flex;justify-content:space-around;margin-top:16px;text-align:center;gap:10px}
+.sign .box{min-width:40%}
+.sign .role{font-weight:700}.sign .hint{font-style:italic;font-size:11px;color:#444}
+.sign .date{font-style:italic;font-size:11.5px}.sign .name{margin-top:50px;font-weight:700}
+.muted{color:#555}.small{font-size:11px}
+.note{font-size:11px;color:#444;font-style:italic;margin-top:10px;border-top:1px dashed #999;padding-top:6px}
+@media print{body{background:#fff}.toolbar{display:none}.sheet{margin:0;box-shadow:none}}
+
+@page{size:80mm auto;margin:0} .sheet{width:80mm;padding:5mm 4mm;font-family:'Cascadia Mono',Consolas,'Courier New',monospace;font-size:11px;box-shadow:0 3px 16px rgba(0,0,0,.18)} .k80 .lh{display:block;text-align:center;border-bottom:1px dashed #000} .k80 hr{border:none;border-top:1px dashed #000;margin:5px 0} .k80 .line{display:flex;justify-content:space-between} .k80 .tot{font-weight:700;font-size:12.5px}
+
+.k80 .lh .org{font-size:11px}
+.k80 .lh .org b{font-size:12.5px}
+.k80 .svc-item{margin:5px 0}
+.k80 .svc-sub{font-size:10px;color:#444;padding-left:2px}
+.k80 .meta-line{display:flex;justify-content:space-between;font-size:10.5px;color:#333}
+.k80 .qr-wrap{display:flex;justify-content:center;margin:8px 0 4px}
+.k80 .center{text-align:center}
+.k80 .foot-note{text-align:center;font-size:10.5px;color:#333;margin-top:4px}
+.k80 .tot .line{margin:2px 0}
+</style>
+</head>
+<body>
+<div class="toolbar"><b>Biên lai thu tiền (K80)</b><span class="sp"></span>
+  <a href="index.html">← Thư viện biểu mẫu</a>
+  <button class="pr" onclick="window.print()">🖨️ In</button></div>
+
+<div class="sheet k80">
+  <div class="lh">
+    <div class="org">
+      <b>PHÒNG KHÁM ĐA KHOA PRO-DIAB</b>
+      Mã CSKCB: 79123 &nbsp;·&nbsp; MST: 0312345678<br>
+      123 Đường Sức Khỏe, P. Bến Nghé, Q.1, TP.HCM<br>
+      ĐT: 028 3822 1234
+    </div>
+  </div>
+
+  <div class="doc-title">Biên lai thu tiền</div>
+  <div class="doc-sub">(Kiêm phiếu thu)</div>
+
+  <div class="meta-line"><span>Số BL:</span><span><b>BL-2026-0702-042</b></span></div>
+  <div class="meta-line"><span>Thời gian:</span><span>10:35 02/07/2026</span></div>
+  <div class="meta-line"><span>Thu ngân:</span><span>Lê Thị Cẩm</span></div>
+  <div class="meta-line"><span>Ca:</span><span>Ca sáng</span></div>
+
+  <hr>
+
+  <div class="meta-line"><span>Bệnh nhân:</span><span><b>Nguyễn Văn An</b></span></div>
+  <div class="meta-line"><span>Mã BN:</span><span>BN000123</span></div>
+
+  <hr>
+
+  <div class="sec-h" style="font-size:11.5px">Chi tiết thu</div>
+
+  <div class="svc-item">
+    <div class="line"><span>1. Công khám bệnh</span><span>150.000</span></div>
+    <div class="svc-sub">SL 1 x 150.000</div>
+  </div>
+  <div class="svc-item">
+    <div class="line"><span>2. HbA1c</span><span>120.000</span></div>
+    <div class="svc-sub">SL 1 x 120.000</div>
+  </div>
+  <div class="svc-item">
+    <div class="line"><span>3. Bộ mỡ máu</span><span>180.000</span></div>
+    <div class="svc-sub">SL 1 x 180.000</div>
+  </div>
+  <div class="svc-item">
+    <div class="line"><span>4. Tổng PT nước tiểu</span><span>60.000</span></div>
+    <div class="svc-sub">SL 1 x 60.000</div>
+  </div>
+  <div class="svc-item">
+    <div class="line"><span>5. Siêu âm ổ bụng</span><span>150.000</span></div>
+    <div class="svc-sub">SL 1 x 150.000</div>
+  </div>
+  <div class="svc-item">
+    <div class="line"><span>6. Tiền thuốc</span><span>245.000</span></div>
+    <div class="svc-sub">SL 1 x 245.000</div>
+  </div>
+
+  <hr>
+
+  <div class="tot">
+    <div class="line"><span>TỔNG CỘNG</span><span>905.000</span></div>
+    <div class="line"><span>BHYT chi trả</span><span>-528.000</span></div>
+    <div class="line" style="border-top:1px dashed #000;padding-top:3px;margin-top:3px"><span>BN THANH TOÁN</span><span>377.000</span></div>
+  </div>
+
+  <hr>
+
+  <div class="line"><span>Hình thức TT</span><span>Tiền mặt</span></div>
+  <div class="line"><span>Tiền mặt</span><span>400.000</span></div>
+  <div class="line"><span>Tiền thối</span><span>23.000</span></div>
+
+  <hr>
+
+  <div class="center" style="font-weight:700;margin:4px 0">Cảm ơn Quý khách!</div>
+
+  <div class="qr-wrap">
+    <svg width="78" height="78" viewBox="0 0 78 78" role="img" aria-label="Mã QR giả lập tra cứu biên lai BL-2026-0702-042">
+      <rect x="0" y="0" width="78" height="78" fill="#fff"/>
+      <rect x="2" y="2" width="18" height="18" fill="none" stroke="#000" stroke-width="3"/>
+      <rect x="8" y="8" width="6" height="6" fill="#000"/>
+      <rect x="58" y="2" width="18" height="18" fill="none" stroke="#000" stroke-width="3"/>
+      <rect x="64" y="8" width="6" height="6" fill="#000"/>
+      <rect x="2" y="58" width="18" height="18" fill="none" stroke="#000" stroke-width="3"/>
+      <rect x="8" y="64" width="6" height="6" fill="#000"/>
+      <rect x="26" y="4" width="4" height="4" fill="#000"/>
+      <rect x="34" y="4" width="4" height="4" fill="#000"/>
+      <rect x="42" y="8" width="4" height="4" fill="#000"/>
+      <rect x="26" y="12" width="4" height="4" fill="#000"/>
+      <rect x="46" y="16" width="4" height="4" fill="#000"/>
+      <rect x="30" y="20" width="4" height="4" fill="#000"/>
+      <rect x="38" y="24" width="4" height="4" fill="#000"/>
+      <rect x="4" y="28" width="4" height="4" fill="#000"/>
+      <rect x="12" y="30" width="4" height="4" fill="#000"/>
+      <rect x="26" y="30" width="4" height="4" fill="#000"/>
+      <rect x="34" y="32" width="4" height="4" fill="#000"/>
+      <rect x="42" y="30" width="4" height="4" fill="#000"/>
+      <rect x="50" y="34" width="4" height="4" fill="#000"/>
+      <rect x="58" y="30" width="4" height="4" fill="#000"/>
+      <rect x="66" y="34" width="4" height="4" fill="#000"/>
+      <rect x="20" y="40" width="4" height="4" fill="#000"/>
+      <rect x="28" y="42" width="4" height="4" fill="#000"/>
+      <rect x="36" y="40" width="4" height="4" fill="#000"/>
+      <rect x="44" y="44" width="4" height="4" fill="#000"/>
+      <rect x="52" y="42" width="4" height="4" fill="#000"/>
+      <rect x="60" y="46" width="4" height="4" fill="#000"/>
+      <rect x="68" y="42" width="4" height="4" fill="#000"/>
+      <rect x="26" y="50" width="4" height="4" fill="#000"/>
+      <rect x="34" y="54" width="4" height="4" fill="#000"/>
+      <rect x="42" y="50" width="4" height="4" fill="#000"/>
+      <rect x="50" y="58" width="4" height="4" fill="#000"/>
+      <rect x="58" y="54" width="4" height="4" fill="#000"/>
+      <rect x="66" y="60" width="4" height="4" fill="#000"/>
+      <rect x="28" y="66" width="4" height="4" fill="#000"/>
+      <rect x="36" y="68" width="4" height="4" fill="#000"/>
+      <rect x="44" y="66" width="4" height="4" fill="#000"/>
+      <rect x="52" y="70" width="4" height="4" fill="#000"/>
+      <rect x="60" y="68" width="4" height="4" fill="#000"/>
+    </svg>
+  </div>
+
+  <div class="foot-note">Xin giữ biên lai để đối chiếu</div>
+</div>
+</body>
+</html>

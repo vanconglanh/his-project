@@ -1,0 +1,566 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - BHYT Export API
+  version: 1.0.0
+  description: |
+    Sprint 9 EPIC 7 - BHYT Export theo QĐ 4750/QĐ-BYT (XML Bảng 1-5).
+    Stories: US-BH01..BH06.
+    Generate XML, validate XSD, sign, submit to cổng giám định BHYT.
+servers:
+  - url: https://api.prodiab.vn
+    description: Production
+  - url: http://localhost:5000
+    description: Local dev
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: BHYT Export
+  - name: BHYT Export Items
+
+paths:
+  /api/v1/bhyt/exports:
+    post:
+      tags: [BHYT Export]
+      summary: Tạo kỳ export BHYT (DRAFT)
+      operationId: createBhytExport
+      description: Permission `bhyt.export`. Tạo kỳ export với period_month (YYYY-MM) và scope filter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBhytExportRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BhytExportEnvelope'
+        '400':
+          $ref: '#/components/responses/InvalidPeriod'
+        '409':
+          description: Period đã có export đang xử lý
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    get:
+      tags: [BHYT Export]
+      summary: List kỳ export
+      operationId: listBhytExports
+      parameters:
+        - name: period_month
+          in: query
+          schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, GENERATED, VALIDATED, SIGNED, SUBMITTED, APPROVED, PARTIALLY_REJECTED, REJECTED]
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BhytExportListEnvelope'
+
+  /api/v1/bhyt/exports/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    get:
+      tags: [BHYT Export]
+      summary: Chi tiết kỳ export
+      operationId: getBhytExport
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BhytExportEnvelope' }
+        '404':
+          $ref: '#/components/responses/ExportNotFound'
+    delete:
+      tags: [BHYT Export]
+      summary: Xóa kỳ export (chỉ DRAFT)
+      operationId: deleteBhytExport
+      responses:
+        '204':
+          description: Deleted
+        '409':
+          description: BHYT_PERIOD_LOCKED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/exports/{id}/generate:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    post:
+      tags: [BHYT Export]
+      summary: Generate XML Bảng 1-5 từ encounters trong kỳ
+      operationId: generateBhytXml
+      description: Permission `bhyt.generate`. Status DRAFT -> GENERATED.
+      responses:
+        '200':
+          description: Generated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BhytExportEnvelope' }
+        '400':
+          description: BHYT_EXPORT_NO_ENCOUNTERS | BHYT_XML_GENERATION_FAILED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/exports/{id}/regenerate:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    post:
+      tags: [BHYT Export]
+      summary: Regenerate (nếu có encounter mới)
+      operationId: regenerateBhytXml
+      responses:
+        '200':
+          description: Regenerated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BhytExportEnvelope' }
+        '409':
+          description: BHYT_PERIOD_LOCKED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/exports/{id}/validate:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    post:
+      tags: [BHYT Export]
+      summary: Validate XML với XSD chuẩn QĐ 4750
+      operationId: validateBhytXml
+      description: Permission `bhyt.validate`. Status GENERATED -> VALIDATED.
+      responses:
+        '200':
+          description: Validated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BhytValidationResultEnvelope' }
+        '422':
+          description: BHYT_XSD_VALIDATION_FAILED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/exports/{id}/sign:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    post:
+      tags: [BHYT Export]
+      summary: Ký số file XML
+      operationId: signBhytXml
+      description: Permission `bhyt.sign`. Status VALIDATED -> SIGNED.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cert_thumbprint: { type: string, description: 'Thumbprint chứng thư số' }
+                pin: { type: string, format: password }
+      responses:
+        '200':
+          description: Signed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BhytExportEnvelope' }
+        '400':
+          description: BHYT_SIGN_FAILED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/exports/{id}/submit:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    post:
+      tags: [BHYT Export]
+      summary: Submit lên cổng giám định BHYT
+      operationId: submitBhytXml
+      description: Permission `bhyt.submit`. Status SIGNED -> SUBMITTED.
+      responses:
+        '202':
+          description: Submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BhytExportEnvelope' }
+        '400':
+          description: BHYT_SUBMIT_FAILED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/exports/{id}/xml/{tableNo}:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+      - name: tableNo
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1, maximum: 5 }
+    get:
+      tags: [BHYT Export]
+      summary: Download XML Bảng N riêng
+      operationId: downloadBhytTableXml
+      responses:
+        '200':
+          description: XML file
+          content:
+            application/xml:
+              schema: { type: string, format: binary }
+
+  /api/v1/bhyt/exports/{id}/xml/all:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    get:
+      tags: [BHYT Export]
+      summary: Download ZIP gồm cả 5 Bảng
+      operationId: downloadBhytAllXml
+      responses:
+        '200':
+          description: ZIP file
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+
+  /api/v1/bhyt/exports/{id}/items/table/{tableNo}:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+      - name: tableNo
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1, maximum: 5 }
+      - name: page
+        in: query
+        schema: { type: integer, default: 1 }
+      - name: page_size
+        in: query
+        schema: { type: integer, default: 50 }
+    get:
+      tags: [BHYT Export Items]
+      summary: List dòng dữ liệu trong Bảng N
+      operationId: listBhytExportItems
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BhytExportItemListEnvelope' }
+
+  /api/v1/bhyt/exports/{id}/items/table/{tableNo}/{rowId}:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+      - name: tableNo
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1, maximum: 5 }
+      - name: rowId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [BHYT Export Items]
+      summary: Chi tiết 1 dòng dữ liệu
+      operationId: getBhytExportItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BhytExportItemEnvelope' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    ExportId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    ExportNotFound:
+      description: BHYT_EXPORT_NOT_FOUND
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    InvalidPeriod:
+      description: BHYT_EXPORT_INVALID_PERIOD
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - BHYT_EXPORT_NOT_FOUND
+                - BHYT_EXPORT_INVALID_PERIOD
+                - BHYT_EXPORT_NO_ENCOUNTERS
+                - BHYT_XML_GENERATION_FAILED
+                - BHYT_XSD_VALIDATION_FAILED
+                - BHYT_SIGN_FAILED
+                - BHYT_SUBMIT_FAILED
+                - BHYT_PERIOD_LOCKED
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+
+    CreateBhytExportRequest:
+      type: object
+      required: [period_month]
+      properties:
+        period_month:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2026-05'
+        scope_filter:
+          type: object
+          description: Filter encounter (clinic_id, doctor_id, encounter_type, date_from/to)
+          additionalProperties: true
+        note: { type: string }
+
+    BhytExportResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        period_month: { type: string, example: '2026-05' }
+        scope_filter_json: { type: object, additionalProperties: true }
+        status:
+          type: string
+          enum: [DRAFT, GENERATED, VALIDATED, SIGNED, SUBMITTED, APPROVED, PARTIALLY_REJECTED, REJECTED]
+        encounter_count: { type: integer }
+        total_requested_amount: { type: number, format: double }
+        total_approved_amount: { type: number, format: double }
+        total_rejected_amount: { type: number, format: double }
+        generated_at: { type: string, format: date-time, nullable: true }
+        validated_at: { type: string, format: date-time, nullable: true }
+        signed_at: { type: string, format: date-time, nullable: true }
+        submitted_at: { type: string, format: date-time, nullable: true }
+        response_at: { type: string, format: date-time, nullable: true }
+        response_message: { type: string, nullable: true }
+        xml_file_path: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        created_by: { type: string, format: uuid }
+        updated_at: { type: string, format: date-time }
+        updated_by: { type: string, format: uuid }
+
+    BhytExportEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/BhytExportResponse' }
+
+    BhytExportListEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/BhytExportResponse' }
+        meta:
+          type: object
+          properties:
+            page: { type: integer }
+            page_size: { type: integer }
+            total: { type: integer }
+
+    BhytValidationResult:
+      type: object
+      properties:
+        valid: { type: boolean }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              table_no: { type: integer }
+              row_index: { type: integer }
+              field: { type: string }
+              message: { type: string }
+
+    BhytValidationResultEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/BhytValidationResult' }
+
+    BhytExportItemResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        export_id: { type: string, format: uuid }
+        table_no: { type: integer, minimum: 1, maximum: 5 }
+        record_index: { type: integer }
+        row_data_json:
+          oneOf:
+            - $ref: '#/components/schemas/BhytTable1Row'
+            - $ref: '#/components/schemas/BhytTable2Row'
+            - $ref: '#/components/schemas/BhytTable3Row'
+            - $ref: '#/components/schemas/BhytTable4Row'
+            - $ref: '#/components/schemas/BhytTable5Row'
+        source_encounter_id: { type: string, format: uuid, nullable: true }
+        source_billing_id: { type: string, format: uuid, nullable: true }
+        request_amount: { type: number, format: double }
+        approved_amount: { type: number, format: double, nullable: true }
+        rejection_code: { type: string, nullable: true }
+        rejection_reason: { type: string, nullable: true }
+
+    BhytExportItemEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/BhytExportItemResponse' }
+
+    BhytExportItemListEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/BhytExportItemResponse' }
+        meta:
+          type: object
+          properties:
+            page: { type: integer }
+            page_size: { type: integer }
+            total: { type: integer }
+
+    BhytTable1Row:
+      type: object
+      description: Bảng 1 - Tổng hợp đợt khám/điều trị
+      properties:
+        ma_lien_ket: { type: string }
+        ma_bn: { type: string }
+        ho_ten: { type: string }
+        ngay_sinh: { type: string }
+        gioi_tinh: { type: integer, enum: [1, 2] }
+        ma_the_bhyt: { type: string }
+        ma_dkbd: { type: string }
+        gt_the_tu: { type: string, format: date }
+        gt_the_den: { type: string, format: date }
+        ma_loai_kcb: { type: integer }
+        ngay_vao: { type: string, format: date-time }
+        ngay_ra: { type: string, format: date-time }
+        so_ngay_dtri: { type: integer }
+        ket_qua_dtri: { type: integer }
+        ma_benh: { type: string }
+        ma_benh_phu: { type: string, nullable: true }
+        ly_do_vvien: { type: string }
+        chan_doan_rv: { type: string }
+        t_thuoc: { type: number, format: double }
+        t_vtyt: { type: number, format: double }
+        t_tongchi: { type: number, format: double }
+        t_bhtt: { type: number, format: double }
+        t_bntt: { type: number, format: double }
+        t_bncct: { type: number, format: double }
+
+    BhytTable2Row:
+      type: object
+      description: Bảng 2 - Thuốc
+      properties:
+        ma_lien_ket: { type: string }
+        ma_thuoc: { type: string }
+        ten_thuoc: { type: string }
+        don_vi_tinh: { type: string }
+        ham_luong: { type: string }
+        duong_dung: { type: string }
+        lieu_dung: { type: string }
+        so_dang_ky: { type: string }
+        ma_nha_thau: { type: string }
+        pham_vi_tt: { type: integer }
+        so_luong: { type: number, format: double }
+        don_gia: { type: number, format: double }
+        thanh_tien: { type: number, format: double }
+        t_bhtt: { type: number, format: double }
+        t_nguonkhac: { type: number, format: double }
+        t_nguonkhac_bhtt: { type: number, format: double }
+        t_nguonkhac_khac: { type: number, format: double }
+        muc_huong: { type: integer }
+        ngay_yl: { type: string, format: date-time }
+        ma_phong: { type: string }
+        ma_bs: { type: string }
+        ma_dichvu_kem: { type: string, nullable: true }
+        mahieu_lo: { type: string, nullable: true }
+        han_dung: { type: string, format: date, nullable: true }
+        so_hop: { type: string, nullable: true }
+
+    BhytTable3Row:
+      type: object
+      description: Bảng 3 - CLS (XN/CĐHA, vật tư)
+      properties:
+        ma_lien_ket: { type: string }
+        ma_dich_vu: { type: string }
+        ma_vat_tu: { type: string, nullable: true }
+        ten_vat_tu: { type: string, nullable: true }
+        don_vi_tinh: { type: string }
+        pham_vi: { type: integer }
+        so_luong: { type: number, format: double }
+        don_gia: { type: number, format: double }
+        tt_thau: { type: string, nullable: true }
+        thanh_tien: { type: number, format: double }
+        t_bhtt: { type: number, format: double }
+        muc_huong: { type: integer }
+        ngay_yl: { type: string, format: date-time }
+        ma_phong: { type: string }
+        ma_bs: { type: string }
+        ma_benh: { type: string }
+        ngay_kq: { type: string, format: date-time, nullable: true }
+
+    BhytTable4Row:
+      type: object
+      description: Bảng 4 - DVKT cao / chi phí ngoài định mức
+      properties:
+        ma_lien_ket: { type: string }
+        ma_dich_vu: { type: string }
+        ten_dich_vu: { type: string }
+        don_vi_tinh: { type: string }
+        so_luong: { type: number, format: double }
+        don_gia: { type: number, format: double }
+        thanh_tien: { type: number, format: double }
+        t_bhtt: { type: number, format: double }
+        muc_huong: { type: integer }
+        ngay_yl: { type: string, format: date-time }
+        ma_phong: { type: string }
+        ma_bs: { type: string }
+        ma_benh: { type: string }
+
+    BhytTable5Row:
+      type: object
+      description: Bảng 5 - Tổng hợp chi phí theo nhóm
+      properties:
+        ma_lien_ket: { type: string }
+        ma_chi_phi: { type: string }
+        ten_chi_phi: { type: string }
+        nhom_chi_phi: { type: integer }
+        thanh_tien: { type: number, format: double }
+        t_bhtt: { type: number, format: double }
+        t_bntt: { type: number, format: double }
+        t_nguonkhac: { type: number, format: double }

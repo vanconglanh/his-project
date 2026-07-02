@@ -1,0 +1,246 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS — Vital Signs API
+  version: 1.0.0
+  description: |
+    Sprint 3-4 — Sinh hiệu N record/encounter.
+    Stories: US-SUNS-09 (điều dưỡng nhập), US-N01..N03.
+    Cho phép nhiều record/encounter (theo dõi diễn biến), latest dùng cho EMR.
+servers:
+  - url: /api/v1
+tags:
+  - name: VitalSigns
+
+paths:
+  /encounters/{encounterId}/vital-signs:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [VitalSigns]
+      summary: Create vital sign record (US-SUNS-09, US-N01)
+      operationId: createVitalSign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VitalSignsRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/VitalSignsResponse' }
+        '422':
+          description: VITAL_INVALID_RANGE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    get:
+      tags: [VitalSigns]
+      summary: List vital signs of encounter
+      operationId: listVitalSigns
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/VitalSignsResponse' }
+
+  /encounters/{encounterId}/vital-signs/latest:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [VitalSigns]
+      summary: Get latest vital sign (default cho EMR form) (US-N02)
+      operationId: getLatestVitalSign
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/VitalSignsResponse' }
+
+  /encounters/{encounterId}/vital-signs/batch:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [VitalSigns]
+      summary: Batch create multiple records
+      operationId: batchCreateVitalSigns
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [records]
+              properties:
+                records:
+                  type: array
+                  items: { $ref: '#/components/schemas/VitalSignsRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/VitalSignsResponse' }
+
+  /vital-signs/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [VitalSigns]
+      summary: Update vital (chỉ trong 24h, người tạo)
+      operationId: updateVitalSign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VitalSignsRequest' }
+      responses:
+        '200': { description: OK }
+        '403':
+          description: VITAL_EDIT_TIMEOUT
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    delete:
+      tags: [VitalSigns]
+      summary: Delete vital (chỉ trong 24h, người tạo)
+      operationId: deleteVitalSign
+      responses:
+        '204': { description: Deleted }
+
+  /patients/{patientId}/vital-signs/history:
+    parameters:
+      - { name: patientId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: date_from, in: query, schema: { type: string, format: date } }
+      - { name: date_to, in: query, schema: { type: string, format: date } }
+      - { name: metric, in: query, schema: { type: string, enum: [bp, hr, temp, spo2, weight, glucose] } }
+    get:
+      tags: [VitalSigns]
+      summary: Multi-encounter trend (US-N03)
+      operationId: getVitalSignHistory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/VitalSignsResponse' }
+
+  /patients/{patientId}/vital-signs/trend:
+    parameters:
+      - { name: patientId, in: path, required: true, schema: { type: string, format: uuid } }
+      - name: metric
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [temperature_c, heart_rate_bpm, respiratory_rate, bp_systolic, bp_diastolic, spo2_percent, weight_kg, glucose_mg_dl]
+      - { name: date_from, in: query, schema: { type: string, format: date } }
+      - { name: date_to, in: query, schema: { type: string, format: date } }
+    get:
+      tags: [VitalSigns]
+      summary: Trend statistics 1 chỉ số (min/max/avg/latest/first + series)
+      description: |
+        Thống kê xu hướng của MỘT chỉ số sinh hiệu trên các bản ghi của bệnh nhân trong khoảng ngày.
+        Chỉ tính trên mẫu KHÔNG null; tập rỗng -> 200 với count=0 và mọi thống kê null.
+        Khác /history (trả danh sách bản ghi): endpoint này trả số liệu tổng hợp đã tính sẵn.
+      operationId: getVitalSignTrend
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/VitalSignsTrendResponse' }
+        '422':
+          description: VITAL_TREND_INVALID_METRIC (metric ngoài whitelist)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+components:
+  schemas:
+    VitalSignsRequest:
+      type: object
+      properties:
+        recorded_at: { type: string, format: date-time }
+        temperature_c: { type: number, format: float, minimum: 30, maximum: 45 }
+        heart_rate_bpm: { type: integer, minimum: 20, maximum: 250 }
+        respiratory_rate: { type: integer, minimum: 5, maximum: 60 }
+        bp_systolic: { type: integer, minimum: 50, maximum: 260 }
+        bp_diastolic: { type: integer, minimum: 30, maximum: 180 }
+        spo2_percent: { type: integer, minimum: 50, maximum: 100 }
+        weight_kg: { type: number, format: float, minimum: 1, maximum: 300 }
+        height_cm: { type: number, format: float, minimum: 30, maximum: 250 }
+        pain_scale: { type: integer, minimum: 0, maximum: 10 }
+        glucose_mg_dl: { type: number, format: float, minimum: 20, maximum: 800 }
+        note: { type: string, nullable: true }
+
+    VitalSignsResponse:
+      allOf:
+        - $ref: '#/components/schemas/VitalSignsRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            encounter_id: { type: string, format: uuid }
+            recorded_by: { type: string, format: uuid }
+            recorded_by_name: { type: string }
+            bmi: { type: number, format: float, description: "Computed from weight/height" }
+            record_sequence: { type: integer, description: "1-based seq trong encounter" }
+            created_at: { type: string, format: date-time }
+
+    VitalSignsTrendPoint:
+      type: object
+      properties:
+        recorded_at: { type: string, format: date-time }
+        value: { type: number, format: float }
+
+    VitalSignsTrendResponse:
+      type: object
+      properties:
+        metric: { type: string, description: "Tên chỉ số đã chuẩn hoá (snake_case)" }
+        count: { type: integer, description: "Số mẫu KHÔNG null tham gia thống kê" }
+        min: { type: number, format: float, nullable: true }
+        max: { type: number, format: float, nullable: true }
+        average: { type: number, format: float, nullable: true, description: "Làm tròn 2 chữ số thập phân" }
+        latest: { type: number, format: float, nullable: true, description: "Giá trị bản ghi mới nhất theo recorded_at" }
+        first: { type: number, format: float, nullable: true, description: "Giá trị bản ghi sớm nhất theo recorded_at" }
+        series:
+          type: array
+          description: "Chuỗi thời gian đã sắp tăng dần theo recorded_at (rỗng khi count=0)"
+          items: { $ref: '#/components/schemas/VitalSignsTrendPoint' }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }

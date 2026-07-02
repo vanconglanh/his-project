@@ -1,0 +1,291 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Đơn thuốc Quốc gia (ĐTQG) Integration API
+  version: 1.0.0
+  description: |
+    Tích hợp donthuocquocgia.vn theo TT 27/2021/TT-BYT.
+    Submit -> nhận `ma_don_thuoc` 14 ký tự -> sinh QR code.
+servers:
+  - url: https://api.prodiab.vn/api/v1
+security:
+  - BearerAuth: []
+
+tags:
+  - name: ĐTQG Submission
+  - name: ĐTQG Credentials
+
+paths:
+  /prescriptions/{id}/dtqg/submit:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [ĐTQG Submission]
+      summary: Submit prescription to ĐTQG portal
+      description: Yêu cầu trạng thái SIGNED. Async ok, response 202 nếu queue.
+      responses:
+        '200':
+          description: Submitted synchronously and accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DtqgSubmissionResponse' }
+        '202':
+          description: Queued for background submission
+        '409':
+          description: Already submitted or wrong state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: DTQG_PRESCRIPTION_ALREADY_SUBMITTED, message: "Đơn thuốc đã được gửi ĐTQG." }
+        '424':
+          description: Failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: DTQG_SUBMIT_FAILED, message: "Gửi ĐTQG thất bại, vui lòng thử lại." }
+      x-permission: dtqg.submit
+
+  /prescriptions/{id}/dtqg/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [ĐTQG Submission]
+      summary: Get latest ĐTQG status for a prescription
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DtqgSubmissionResponse' }
+      x-permission: dtqg.submit
+
+  /prescriptions/{id}/dtqg/retry:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [ĐTQG Submission]
+      summary: Retry failed submission
+      responses:
+        '200':
+          description: Retried
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DtqgSubmissionResponse' }
+        '429':
+          description: Retry limit exceeded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: DTQG_RETRY_EXCEEDED, message: "Đã vượt quá số lần thử lại cho phép." }
+      x-permission: dtqg.retry
+
+  /dtqg/submissions:
+    get:
+      tags: [ĐTQG Submission]
+      summary: List submissions (admin/audit)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, SUBMITTED, ACCEPTED, REJECTED]
+        - name: from_date
+          in: query
+          schema: { type: string, format: date }
+        - name: to_date
+          in: query
+          schema: { type: string, format: date }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DtqgSubmissionResponse' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+      x-permission: dtqg.submit
+
+  /dtqg/submissions/{id}/cancel-on-portal:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [ĐTQG Submission]
+      summary: Send cancel request to portal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Cancelled on portal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DtqgSubmissionResponse' }
+      x-permission: dtqg.admin
+
+  /dtqg/credentials:
+    get:
+      tags: [ĐTQG Credentials]
+      summary: Get current tenant ĐTQG credentials (token masked)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DtqgCredentialsResponse' }
+      x-permission: dtqg.admin
+    put:
+      tags: [ĐTQG Credentials]
+      summary: Upsert credentials for current tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DtqgCredentialsRequest' }
+      responses:
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DtqgCredentialsResponse' }
+      x-permission: dtqg.admin
+
+  /dtqg/credentials/test:
+    post:
+      tags: [ĐTQG Credentials]
+      summary: Test connection / ping portal
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      ok: { type: boolean }
+                      latency_ms: { type: integer }
+                      portal_response: { type: string }
+        '401':
+          description: Token invalid
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: DTQG_TOKEN_EXPIRED, message: "Token ĐTQG hết hạn hoặc không hợp lệ." }
+      x-permission: dtqg.admin
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    DtqgSubmissionResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        prescription_id: { type: string, format: uuid }
+        ma_don_thuoc:
+          type: string
+          maxLength: 14
+          description: 14-character national prescription code
+        qr_payload: { type: string }
+        qr_image_url: { type: string, format: uri }
+        status:
+          type: string
+          enum: [PENDING, SUBMITTED, ACCEPTED, REJECTED]
+        error_code: { type: string, nullable: true }
+        error_message: { type: string, nullable: true }
+        submitted_at: { type: string, format: date-time, nullable: true }
+        accepted_at: { type: string, format: date-time, nullable: true }
+        retry_count: { type: integer }
+        last_retry_at: { type: string, format: date-time, nullable: true }
+    DtqgCredentialsRequest:
+      type: object
+      required: [cskcb_id, partner_code, token]
+      properties:
+        cskcb_id:
+          type: string
+          description: Mã CSKCB cấp bởi Bộ Y Tế
+        partner_code: { type: string }
+        token:
+          type: string
+          format: password
+          description: Stored AES-256-GCM encrypted server-side.
+    DtqgCredentialsResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        cskcb_id: { type: string }
+        partner_code: { type: string }
+        token_masked: { type: string, example: "****abcd" }
+        is_active: { type: boolean }
+        last_tested_at: { type: string, format: date-time, nullable: true }
+        last_test_ok: { type: boolean }

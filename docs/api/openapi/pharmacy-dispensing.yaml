@@ -1,0 +1,294 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Pharmacy Dispensing API
+  version: 1.0.0
+  description: Xuất thuốc theo đơn (FEFO), từ chối, hoàn trả.
+servers:
+  - url: https://api.prodiab.vn/api/v1
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Dispensing
+
+paths:
+  /pharmacy/dispense/queue:
+    get:
+      tags: [Dispensing]
+      summary: Queue of signed prescriptions waiting to dispense
+      parameters:
+        - name: warehouse_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DispenseQueueItem' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+      x-permission: dispense.queue
+
+  /pharmacy/dispense/{prescriptionId}:
+    parameters:
+      - name: prescriptionId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Dispensing]
+      summary: Dispense prescription with FEFO auto-pick (override allowed)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DispenseRequest' }
+      responses:
+        '201':
+          description: Dispensed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DispenseRecordResponse' }
+        '409':
+          description: Duplicate dispense
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: PHARMACY_DISPENSE_DUPLICATE, message: "Đơn này đã được phát thuốc." }
+        '422':
+          description: Stock/FEFO error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                insufficient:
+                  value:
+                    error: { code: PHARMACY_STOCK_INSUFFICIENT, message: "Tồn kho không đủ phát thuốc." }
+                fefo:
+                  value:
+                    error: { code: PHARMACY_INVALID_FEFO_PICK, message: "Chọn lô không phù hợp nguyên tắc FEFO." }
+                batch_missing:
+                  value:
+                    error: { code: PHARMACY_BATCH_NOT_FOUND, message: "Không tìm thấy lô thuốc." }
+      x-permission: dispense.perform
+
+  /pharmacy/dispense/{id}/reject:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Dispensing]
+      summary: Reject prescription dispense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DispenseRecordResponse' }
+      x-permission: dispense.reject
+
+  /pharmacy/dispense/{id}/return:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Dispensing]
+      summary: Return dispensed drugs to stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, items]
+              properties:
+                reason: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [dispense_item_id, quantity]
+                    properties:
+                      dispense_item_id: { type: string, format: uuid }
+                      quantity: { type: number }
+      responses:
+        '200':
+          description: Returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DispenseRecordResponse' }
+      x-permission: dispense.return
+
+  /pharmacy/dispense/history:
+    get:
+      tags: [Dispensing]
+      summary: Dispense history
+      parameters:
+        - name: patient_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: from_date
+          in: query
+          schema: { type: string, format: date }
+        - name: to_date
+          in: query
+          schema: { type: string, format: date }
+        - name: status
+          in: query
+          schema: { type: string, enum: [DISPENSED, REJECTED, RETURNED, PARTIAL] }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DispenseRecordResponse' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+      x-permission: dispense.queue
+
+  /pharmacy/dispense/{id}/receipt-pdf:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Dispensing]
+      summary: Dispense receipt PDF
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+      x-permission: dispense.queue
+
+components:
+  securitySchemes:
+    BearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    DispenseQueueItem:
+      type: object
+      properties:
+        prescription_id: { type: string, format: uuid }
+        prescription_code: { type: string }
+        patient_id: { type: string, format: uuid }
+        patient_name: { type: string }
+        doctor_name: { type: string }
+        signed_at: { type: string, format: date-time }
+        items_count: { type: integer }
+        total_amount: { type: number }
+        is_bhyt: { type: boolean }
+    DispenseRequest:
+      type: object
+      required: [warehouse_id, items]
+      properties:
+        warehouse_id: { type: string, format: uuid }
+        note: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            required: [prescription_item_id, batch_picks]
+            properties:
+              prescription_item_id: { type: string, format: uuid }
+              batch_picks:
+                type: array
+                description: FEFO auto-suggested, can be overridden by pharmacist
+                items:
+                  type: object
+                  required: [batch_no, quantity]
+                  properties:
+                    batch_no: { type: string }
+                    quantity: { type: number }
+    DispenseRecordResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        prescription_id: { type: string, format: uuid }
+        warehouse_id: { type: string, format: uuid }
+        dispensed_at: { type: string, format: date-time }
+        dispensed_by: { type: string, format: uuid }
+        dispensed_by_name: { type: string }
+        status:
+          type: string
+          enum: [DISPENSED, REJECTED, RETURNED, PARTIAL]
+        note: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              prescription_item_id: { type: string, format: uuid }
+              drug_id: { type: string, format: uuid }
+              drug_name: { type: string }
+              batch_no: { type: string }
+              expiry_date: { type: string, format: date }
+              quantity: { type: number }
+              unit_cost: { type: number }
+              line_amount: { type: number }
+        total_amount: { type: number }

@@ -1,0 +1,186 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Radiology Results API
+  version: 1.0.0-sprint5
+  description: |
+    Kết quả chẩn đoán hình ảnh (X-quang, Siêu âm, CT, MRI).
+    Hỗ trợ upload ảnh DICOM lên MinIO + phát hành PDF có chữ ký số.
+servers:
+  - url: https://api.prodiab.vn/api/v1
+tags:
+  - name: RadResults
+
+security:
+  - BearerAuth: []
+
+paths:
+  /rad-results:
+    get:
+      tags: [RadResults]
+      summary: Danh sách kết quả CĐHA
+      description: Permission `rad_result.read`.
+      parameters:
+        - { in: query, name: patient_id, schema: { type: string, format: uuid } }
+        - { in: query, name: encounter_id, schema: { type: string, format: uuid } }
+        - { in: query, name: rad_order_id, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [DRAFT, VERIFIED, AMENDED] } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: page_size, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/RadResultResponse' }
+
+    post:
+      tags: [RadResults]
+      summary: Nhập kết quả CĐHA
+      description: BS CĐHA nhập mô tả + kết luận. Permission `rad_result.write`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RadResultCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/RadResultResponse' }
+
+  /rad-results/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [RadResults]
+      summary: Cập nhật kết quả CĐHA
+      description: Permission `rad_result.write`. Lỗi `RAD_RESULT_NOT_FOUND`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RadResultUpdateRequest' }
+      responses:
+        '200': { description: OK }
+
+  /rad-results/{id}/verify:
+    post:
+      tags: [RadResults]
+      summary: Ký phát hành kết quả (BS CĐHA)
+      description: |
+        Chuyển VERIFIED, sinh PDF có chữ ký bác sĩ (PAdES). Permission `rad_result.verify`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      signed_pdf_url: { type: string }
+
+  /rad-results/{id}/dicom-upload:
+    post:
+      tags: [RadResults]
+      summary: Upload ảnh DICOM
+      description: |
+        Multipart upload, có thể nhiều file. Lưu MinIO bucket `rad-dicom/{tenant_id}/{rad_result_id}/`.
+        Permission `rad_result.write`. Lỗi `RAD_DICOM_UPLOAD_FAILED`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        '200':
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uploaded_count: { type: integer }
+                      total_size_bytes: { type: integer }
+
+  /rad-results/{id}/pdf:
+    get:
+      tags: [RadResults]
+      summary: Xuất phiếu kết quả PDF
+      description: Permission `rad_result.read`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+components:
+  securitySchemes:
+    BearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    RadResultResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        rad_order_id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        encounter_id: { type: string, format: uuid }
+        modality: { type: string, example: XRAY }
+        findings: { type: string, description: Mô tả hình ảnh }
+        impression: { type: string, description: Ấn tượng / đánh giá }
+        conclusion: { type: string, description: Kết luận chẩn đoán }
+        recommendations: { type: string, nullable: true }
+        performed_at: { type: string, format: date-time }
+        performed_by: { type: string, format: uuid }
+        status: { type: string, enum: [DRAFT, VERIFIED, AMENDED] }
+        verified_at: { type: string, format: date-time, nullable: true }
+        verified_by: { type: string, format: uuid, nullable: true }
+        dicom_count: { type: integer, default: 0 }
+        signed_pdf_url: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    RadResultCreateRequest:
+      type: object
+      required: [rad_order_id, findings, conclusion, performed_at]
+      properties:
+        rad_order_id: { type: string, format: uuid }
+        findings: { type: string }
+        impression: { type: string, nullable: true }
+        conclusion: { type: string }
+        recommendations: { type: string, nullable: true }
+        performed_at: { type: string, format: date-time }
+
+    RadResultUpdateRequest:
+      type: object
+      properties:
+        findings: { type: string }
+        impression: { type: string, nullable: true }
+        conclusion: { type: string }
+        recommendations: { type: string, nullable: true }
+        amend_reason: { type: string, nullable: true }

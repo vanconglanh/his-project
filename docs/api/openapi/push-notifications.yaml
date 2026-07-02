@@ -1,0 +1,132 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS Push Notifications API (Sprint 10)
+  version: 1.0.0
+servers: [{ url: https://api.pro-diab.vn }]
+security: [{ BearerAuth: [] }]
+tags:
+  - name: Inbox
+  - name: Web Push
+  - name: Preferences
+
+paths:
+  /api/v1/notifications/inbox:
+    get:
+      tags: [Inbox]
+      summary: Danh sách thông báo (permission notification.read)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 20 } }
+        - { name: unread_only, in: query, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/NotificationResponse' } }
+                  meta: { type: object, properties: { page: { type: integer }, total: { type: integer } } }
+
+  /api/v1/notifications/unread-count:
+    get:
+      tags: [Inbox]
+      responses:
+        '200': { content: { application/json: { schema: { type: object, properties: { count: { type: integer } } } } } }
+
+  /api/v1/notifications/{id}/mark-read:
+    post:
+      tags: [Inbox]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '204': { description: OK } }
+
+  /api/v1/notifications/mark-all-read:
+    post:
+      tags: [Inbox]
+      responses: { '204': { description: OK } }
+
+  /api/v1/notifications/{id}:
+    delete:
+      tags: [Inbox]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '204': { description: Deleted } }
+
+  /api/v1/notifications/web-push/subscribe:
+    post:
+      tags: [Web Push]
+      summary: Đăng ký endpoint Web Push (Browser PushSubscription)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/WebPushSubscriptionRequest' } } }
+      responses:
+        '201': { description: Subscribed }
+        '400':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: WEB_PUSH_INVALID_SUBSCRIPTION, message: "Subscription không hợp lệ" } } } }
+
+  /api/v1/notifications/web-push/unsubscribe:
+    delete:
+      tags: [Web Push]
+      parameters: [{ name: endpoint, in: query, required: true, schema: { type: string } }]
+      responses: { '204': { description: Unsubscribed } }
+
+  /api/v1/notifications/web-push/vapid-public-key:
+    get:
+      tags: [Web Push]
+      summary: Lấy VAPID public key của tenant
+      security: []
+      responses:
+        '200': { content: { application/json: { schema: { type: object, properties: { public_key: { type: string } } } } } }
+        '404':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' }, example: { error: { code: VAPID_KEY_NOT_CONFIGURED, message: "Tenant chưa cấu hình VAPID key" } } } }
+
+  /api/v1/notifications/preferences:
+    get:
+      tags: [Preferences]
+      responses: { '200': { content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPreferenceResponse' } } } } }
+    put:
+      tags: [Preferences]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPreferenceRequest' } } }
+      responses: { '200': { content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPreferenceResponse' } } } } }
+
+components:
+  securitySchemes:
+    BearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error: { type: object, properties: { code: { type: string }, message: { type: string }, details: { type: object, additionalProperties: true } } }
+    NotificationResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, example: APPOINTMENT_BOOKED }
+        title: { type: string }
+        body: { type: string }
+        data_json: { type: object, additionalProperties: true }
+        read_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+    WebPushSubscriptionRequest:
+      type: object
+      required: [endpoint, p256dh_key, auth_key]
+      properties:
+        endpoint: { type: string, format: uri }
+        p256dh_key: { type: string }
+        auth_key: { type: string }
+        user_agent: { type: string }
+    NotificationPreferenceRequest:
+      type: object
+      properties:
+        position: { type: string, enum: [TOP_RIGHT, BOTTOM_RIGHT, CENTER], default: TOP_RIGHT }
+        sound_enabled: { type: boolean, default: true }
+        sound_name: { type: string, default: default }
+        browser_push_enabled: { type: boolean, default: false }
+        types_disabled: { type: array, items: { type: string } }
+    NotificationPreferenceResponse:
+      allOf:
+        - $ref: '#/components/schemas/NotificationPreferenceRequest'
+        - type: object
+          properties:
+            updated_at: { type: string, format: date-time }

@@ -1,0 +1,261 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS — CLS Orders (Lab + Rad) API
+  version: 1.0.0
+  description: |
+    Sprint 3-4 — Chỉ định CLS. Result entry để Sprint 5.
+servers:
+  - url: /api/v1
+tags:
+  - name: Lab Orders
+  - name: Rad Orders
+  - name: CLS Catalog
+
+paths:
+  /encounters/{encounterId}/lab-orders:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Lab Orders]
+      summary: Create lab orders (multi test code)
+      operationId: createLabOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tests]
+              properties:
+                tests:
+                  type: array
+                  items: { $ref: '#/components/schemas/LabOrderRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabOrderResponse' }
+    get:
+      tags: [Lab Orders]
+      summary: List lab orders of encounter
+      operationId: listLabOrders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabOrderResponse' }
+
+  /lab-orders/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Lab Orders]
+      summary: Update status (ordered -> sample_taken -> processing -> done)
+      operationId: updateLabOrderStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/LabOrderStatus' }
+                note: { type: string }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [Lab Orders]
+      summary: Delete (chỉ status=ordered)
+      operationId: deleteLabOrder
+      responses:
+        '204': { description: Deleted }
+        '409':
+          description: LAB_ORDER_CANNOT_DELETE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /encounters/{encounterId}/rad-orders:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Rad Orders]
+      summary: Create rad orders
+      operationId: createRadOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orders:
+                  type: array
+                  items: { $ref: '#/components/schemas/RadOrderRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/RadOrderResponse' }
+    get:
+      tags: [Rad Orders]
+      summary: List rad orders
+      operationId: listRadOrders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/RadOrderResponse' }
+
+  /rad-orders/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Rad Orders]
+      summary: Update rad order status
+      operationId: updateRadOrderStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { $ref: '#/components/schemas/RadOrderStatus' }
+                note: { type: string }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [Rad Orders]
+      summary: Delete (chỉ status=ordered)
+      operationId: deleteRadOrder
+      responses:
+        '204': { description: Deleted }
+
+  /cls-catalog/tests:
+    get:
+      tags: [CLS Catalog]
+      summary: Search test catalog (autocomplete) — lab + rad
+      operationId: searchClsCatalog
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: kind, in: query, schema: { type: string, enum: [LAB, RAD] } }
+        - { name: limit, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ClsCatalogItem' }
+
+components:
+  schemas:
+    LabOrderStatus:
+      type: string
+      enum: [ordered, sample_taken, processing, done, cancelled]
+    RadOrderStatus:
+      type: string
+      enum: [ordered, scheduled, in_progress, done, cancelled]
+    Priority:
+      type: string
+      enum: [NORMAL, URGENT, STAT]
+    Modality:
+      type: string
+      enum: [XRAY, US, CT, MRI, MAMMO, ECG, ENDO]
+
+    LabOrderRequest:
+      type: object
+      required: [test_code]
+      properties:
+        test_code: { type: string }
+        sample_type: { type: string }
+        priority: { $ref: '#/components/schemas/Priority' }
+        scheduled_for: { type: string, format: date-time, nullable: true }
+        lab_partner_id: { type: string, format: uuid, nullable: true }
+        note: { type: string, nullable: true }
+
+    LabOrderResponse:
+      allOf:
+        - $ref: '#/components/schemas/LabOrderRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            encounter_id: { type: string, format: uuid }
+            test_name: { type: string }
+            status: { $ref: '#/components/schemas/LabOrderStatus' }
+            ordered_at: { type: string, format: date-time }
+            ordered_by: { type: string, format: uuid }
+
+    RadOrderRequest:
+      type: object
+      required: [modality, procedure_code]
+      properties:
+        modality: { $ref: '#/components/schemas/Modality' }
+        body_part: { type: string }
+        contrast: { type: boolean, default: false }
+        procedure_code: { type: string }
+        priority: { $ref: '#/components/schemas/Priority' }
+        note: { type: string, nullable: true }
+
+    RadOrderResponse:
+      allOf:
+        - $ref: '#/components/schemas/RadOrderRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            encounter_id: { type: string, format: uuid }
+            procedure_name: { type: string }
+            status: { $ref: '#/components/schemas/RadOrderStatus' }
+            ordered_at: { type: string, format: date-time }
+            ordered_by: { type: string, format: uuid }
+
+    ClsCatalogItem:
+      type: object
+      properties:
+        code: { type: string }
+        name: { type: string }
+        kind: { type: string, enum: [LAB, RAD] }
+        sample_type: { type: string, nullable: true }
+        modality: { type: string, nullable: true }
+        default_price: { type: number, format: float }
+        bhyt_price: { type: number, format: float, nullable: true }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }

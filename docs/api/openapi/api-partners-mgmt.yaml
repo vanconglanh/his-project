@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS API Partner Management (Sprint 10)
+  version: 1.0.0
+  description: Quản trị đối tác Public API — chỉ admin nội bộ.
+servers: [{ url: https://api.pro-diab.vn }]
+security: [{ BearerAuth: [] }]
+tags: [{ name: API Partners }]
+
+paths:
+  /api/v1/api-partners:
+    get:
+      tags: [API Partners]
+      summary: Danh sách đối tác (permission api_partner.read)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [ACTIVE, DISABLED, EXPIRED] } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/ApiPartnerResponse' } }
+                  meta: { type: object }
+    post:
+      tags: [API Partners]
+      summary: Tạo đối tác mới (permission api_partner.write). Trả về api_key plain text DUY NHẤT 1 lần.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ApiPartnerCreateRequest' } } }
+      responses:
+        '201':
+          content: { application/json: { schema: { $ref: '#/components/schemas/ApiPartnerCreatedResponse' } } }
+
+  /api/v1/api-partners/{id}:
+    get:
+      tags: [API Partners]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { content: { application/json: { schema: { $ref: '#/components/schemas/ApiPartnerResponse' } } } } }
+    put:
+      tags: [API Partners]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ApiPartnerUpdateRequest' } } }
+      responses: { '200': { content: { application/json: { schema: { $ref: '#/components/schemas/ApiPartnerResponse' } } } } }
+    delete:
+      tags: [API Partners]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '204': { description: Deleted } }
+
+  /api/v1/api-partners/{id}/regenerate-key:
+    post:
+      tags: [API Partners]
+      summary: Tạo lại API key (permission api_partner.admin)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { content: { application/json: { schema: { $ref: '#/components/schemas/ApiPartnerCreatedResponse' } } } }
+
+  /api/v1/api-partners/{id}/test-call:
+    post:
+      tags: [API Partners]
+      summary: Test endpoint (gọi ping với key của đối tác)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { description: OK } }
+
+  /api/v1/api-partners/{id}/usage-stats:
+    get:
+      tags: [API Partners]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_requests: { type: integer }
+                  success_count: { type: integer }
+                  error_count: { type: integer }
+                  by_endpoint: { type: array, items: { type: object, properties: { path: { type: string }, count: { type: integer } } } }
+                  by_day: { type: array, items: { type: object, properties: { date: { type: string, format: date }, count: { type: integer } } } }
+
+  /api/v1/api-partners/{id}/request-logs:
+    get:
+      tags: [API Partners]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: status_code, in: query, schema: { type: integer } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        method: { type: string }
+                        path: { type: string }
+                        status_code: { type: integer }
+                        duration_ms: { type: integer }
+                        ip: { type: string }
+                        called_at: { type: string, format: date-time }
+                        error_code: { type: string, nullable: true }
+                  meta: { type: object }
+
+components:
+  securitySchemes:
+    BearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    ApiPartnerResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        contact_email: { type: string }
+        api_key_masked: { type: string, example: "pdh_live_****abcd" }
+        scopes: { type: array, items: { type: string }, example: [public.appointment.write, public.patient.write] }
+        rate_limit_per_min: { type: integer, default: 60 }
+        daily_quota: { type: integer, default: 10000 }
+        status: { type: string, enum: [ACTIVE, DISABLED, EXPIRED] }
+        expires_at: { type: string, format: date-time, nullable: true }
+        ip_whitelist: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+    ApiPartnerCreateRequest:
+      type: object
+      required: [name, scopes]
+      properties:
+        name: { type: string }
+        contact_email: { type: string }
+        scopes: { type: array, items: { type: string } }
+        rate_limit_per_min: { type: integer, default: 60 }
+        daily_quota: { type: integer, default: 10000 }
+        expires_at: { type: string, format: date-time, nullable: true }
+        ip_whitelist: { type: array, items: { type: string } }
+    ApiPartnerUpdateRequest:
+      type: object
+      properties:
+        name: { type: string }
+        contact_email: { type: string }
+        scopes: { type: array, items: { type: string } }
+        rate_limit_per_min: { type: integer }
+        daily_quota: { type: integer }
+        status: { type: string, enum: [ACTIVE, DISABLED] }
+        expires_at: { type: string, format: date-time, nullable: true }
+        ip_whitelist: { type: array, items: { type: string } }
+    ApiPartnerCreatedResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiPartnerResponse'
+        - type: object
+          properties:
+            api_key_plain: { type: string, description: "Hiển thị 1 lần duy nhất. Không thể lấy lại." }

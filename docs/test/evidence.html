@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<title>Evidence — Ca khám đầy đủ (Pro-Diab HIS)</title>
+<style>
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f5f6f8;
+    color: #1f2937;
+    margin: 0;
+    padding: 24px 32px 64px;
+  }
+  h1 {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: #6b7280;
+    margin-bottom: 20px;
+  }
+  .source-box {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-left: 5px solid #4f46e5;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+  .source-box h2 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: #4338ca;
+  }
+  .source-box p {
+    margin: 0;
+    font-size: 14px;
+  }
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 32px;
+    font-size: 13px;
+  }
+  .flow span {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 4px 10px;
+    color: #374151;
+  }
+  .step {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .step h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+  }
+  .step .file-name {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 10px;
+    font-family: Consolas, monospace;
+  }
+  .step img {
+    max-width: 100%;
+    display: block;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+  }
+  .badge {
+    display: inline-block;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  footer {
+    color: #9ca3af;
+    font-size: 12px;
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Evidence — Ca khám đầy đủ Pro-Diab HIS</h1>
+<p class="subtitle">
+  14 ảnh chụp fullPage tại từng bước THÀNH CÔNG của luồng nghiệp vụ: Tiếp đón → Khám → Kê đơn → Ký &amp; gửi ĐTQG → Đóng lượt khám.
+</p>
+
+<div class="source-box">
+  <h2>Dữ liệu test chuẩn bị từ đâu</h2>
+  <p>
+    <strong>Nguồn dữ liệu test:</strong> Toàn bộ dữ liệu thuộc tenant riêng biệt <strong>DIAB-TEST (tenant_id=2)</strong>,
+    seed từ <code>db/seeds/diab_test_tenant.sql</code> (7 tài khoản/6 vai trò mật khẩu <code>admin123</code>,
+    4 phòng khám, 8 thuốc gồm thuốc thiếu tồn &amp; cận HSD, 15 bệnh nhân nền, 1 luật tương tác thuốc).
+    Danh mục dùng chung (ICD-10, dịch vụ, quyền, vai trò) từ <code>db/migrations/9007_seed_master_data.sql</code>.
+    Bệnh nhân trong evidence được tạo MỚI ngay trong lượt chạy qua UI (<code>/patients/new</code>).
+    Dữ liệu tách hoàn toàn khỏi tenant demo DIAB-HCM (id=1).
+  </p>
+</div>
+
+<div class="flow">
+  <span>1. Đăng nhập lễ tân</span>
+  <span>→</span><span>2. Trang tiếp đón</span>
+  <span>→</span><span>3. Chọn bệnh nhân</span>
+  <span>→</span><span>4. Tiếp đón xong</span>
+  <span>→</span><span>5. Gọi số</span>
+  <span>→</span><span>6. Tạo lượt khám</span>
+  <span>→</span><span>7. Bắt đầu khám</span>
+  <span>→</span><span>8. Sinh hiệu</span>
+  <span>→</span><span>9. Chẩn đoán</span>
+  <span>→</span><span>10. Bệnh án</span>
+  <span>→</span><span>11. Ký bệnh án</span>
+  <span>→</span><span>12. Kê đơn thuốc</span>
+  <span>→</span><span>13. Ký &amp; gửi ĐTQG</span>
+  <span>→</span><span>14. Đóng lượt khám</span>
+</div>
+
+<div class="step">
+  <h3>Bước 1 — Đăng nhập lễ tân<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/01-dang-nhap-le-tan.png</div>
+  <img src="evidence-shots/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân" />
+</div>
+
+<div class="step">
+  <h3>Bước 2 — Mở trang tiếp đón<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/02-trang-tiep-don.png</div>
+  <img src="evidence-shots/02-trang-tiep-don.png" alt="Trang tiếp đón bệnh nhân" />
+</div>
+
+<div class="step">
+  <h3>Bước 3 — Tìm/tạo &amp; chọn bệnh nhân trong form tiếp đón<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/03-chon-benh-nhan.png</div>
+  <img src="evidence-shots/03-chon-benh-nhan.png" alt="Chọn bệnh nhân trong form tiếp đón" />
+</div>
+
+<div class="step">
+  <h3>Bước 4 — Tiếp đón xong (vé vào hàng đợi)<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/04-tiep-don-xong.png</div>
+  <img src="evidence-shots/04-tiep-don-xong.png" alt="Tiếp đón xong, vé vào hàng đợi" />
+</div>
+
+<div class="step">
+  <h3>Bước 5 — Gọi số bệnh nhân vào khám<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/05-goi-so.png</div>
+  <img src="evidence-shots/05-goi-so.png" alt="Gọi số bệnh nhân vào khám" />
+</div>
+
+<div class="step">
+  <h3>Bước 6 — Tạo lượt khám (trang chi tiết)<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/06-tao-luot-kham.png</div>
+  <img src="evidence-shots/06-tao-luot-kham.png" alt="Tạo lượt khám" />
+</div>
+
+<div class="step">
+  <h3>Bước 7 — Bắt đầu khám (chuyển IN_PROGRESS)<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/07-bat-dau-kham.png</div>
+  <img src="evidence-shots/07-bat-dau-kham.png" alt="Bắt đầu khám" />
+</div>
+
+<div class="step">
+  <h3>Bước 8 — Ghi sinh hiệu<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/08-sinh-hieu.png</div>
+  <img src="evidence-shots/08-sinh-hieu.png" alt="Ghi sinh hiệu" />
+</div>
+
+<div class="step">
+  <h3>Bước 9 — Ghi chẩn đoán ICD-10<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/09-chan-doan.png</div>
+  <img src="evidence-shots/09-chan-doan.png" alt="Ghi chẩn đoán" />
+</div>
+
+<div class="step">
+  <h3>Bước 10 — Viết bệnh án (EMR)<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/10-benh-an.png</div>
+  <img src="evidence-shots/10-benh-an.png" alt="Viết bệnh án" />
+</div>
+
+<div class="step">
+  <h3>Bước 11 — Ký số bệnh án điện tử<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/11-ky-benh-an.png</div>
+  <img src="evidence-shots/11-ky-benh-an.png" alt="Ký số bệnh án" />
+</div>
+
+<div class="step">
+  <h3>Bước 12 — Kê đơn thuốc<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/12-ke-don-thuoc.png</div>
+  <img src="evidence-shots/12-ke-don-thuoc.png" alt="Kê đơn thuốc" />
+</div>
+
+<div class="step">
+  <h3>Bước 13 — Ký số &amp; gửi ĐTQG đơn thuốc<span class="badge" style="background:#fdecea;color:#c0392b">KÝ OK · ĐTQG LỖI</span></h3>
+  <div class="file-name">evidence-shots/13-ky-va-gui-dtqg.png</div>
+  <img src="evidence-shots/13-ky-va-gui-dtqg.png" alt="Ký số và gửi ĐTQG" />
+  <p style="font-size:13px;color:#c0392b;margin:8px 0 0">⚠️ Đơn thuốc <b>đã ký số thành công</b> (badge "Đã ký"), nhưng bước <b>đẩy lên cổng ĐTQG lỗi</b>: <code>POST /prescriptions/{id}/dtqg/submit</code> trả <b>HTTP 500</b> (toast đỏ "Gửi ĐTQG thất bại"). Đây là bug backend thật (nghi cùng họ lệch GUID/INT ở đường ĐTQG) — chưa sửa, KHÔNG che giấu trong evidence.</p>
+</div>
+
+<div class="step">
+  <h3>Bước 14 — Đóng lượt khám (chuyển DONE)<span class="badge">PASS</span></h3>
+  <div class="file-name">evidence-shots/14-dong-luot-kham.png</div>
+  <img src="evidence-shots/14-dong-luot-kham.png" alt="Đóng lượt khám" />
+</div>
+
+<footer>
+  Sinh bởi <code>frontend/e2e/sim/evidence.spec.ts</code> (Playwright) — cấu hình <code>frontend/e2e/sim/playwright.sim.config.ts</code>.
+  Cấp phát thuốc / thu ngân KHÔNG nằm trong phạm vi evidence này (còn vướng bug Dispensing INT&harr;GUID).
+</footer>
+
+</body>
+</html>

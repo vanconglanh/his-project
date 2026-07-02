@@ -1,0 +1,210 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Lab Partners API
+  version: 1.0.0-sprint5
+  description: |
+    Quản lý đối tác xét nghiệm thứ 3 (Medlatec, Diag, SUNS lab...).
+    US-SUNS-13. Lưu cấu hình endpoint + credentials (mã hóa AES-256-GCM).
+servers:
+  - url: https://api.prodiab.vn/api/v1
+tags:
+  - name: LabPartners
+
+security:
+  - BearerAuth: []
+
+paths:
+  /lab-partners:
+    get:
+      tags: [LabPartners]
+      summary: Danh sách đối tác lab
+      description: Permission `lab_partner.read`.
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [ACTIVE, INACTIVE] } }
+        - { in: query, name: q, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LabPartner' }
+
+    post:
+      tags: [LabPartners]
+      summary: Tạo đối tác lab mới
+      description: Permission `lab_partner.write`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LabPartnerCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/LabPartner' }
+
+  /lab-partners/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [LabPartners]
+      summary: Chi tiết đối tác
+      description: Permission `lab_partner.read`. Lỗi `LAB_PARTNER_NOT_FOUND`.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/LabPartner' }
+    put:
+      tags: [LabPartners]
+      summary: Cập nhật đối tác
+      description: Permission `lab_partner.write`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LabPartnerUpdateRequest' }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [LabPartners]
+      summary: Xóa (soft delete) đối tác
+      description: Permission `lab_partner.admin`.
+      responses:
+        '204': { description: Deleted }
+
+  /lab-partners/{id}/test-connection:
+    post:
+      tags: [LabPartners]
+      summary: Test kết nối tới đối tác
+      description: |
+        Gọi healthcheck endpoint của partner, verify credentials.
+        Permission `lab_partner.write`. Lỗi: `LAB_PARTNER_CONNECTION_FAILED`, `LAB_PARTNER_AUTH_INVALID`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      ok: { type: boolean }
+                      latency_ms: { type: integer }
+                      message: { type: string }
+
+  /lab-partners/{id}/credentials:
+    put:
+      tags: [LabPartners]
+      summary: Cập nhật credentials
+      description: |
+        Lưu mã hóa AES-256-GCM. Field nhạy cảm. Permission `lab_partner.admin`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                auth_type: { type: string, enum: [NONE, API_KEY, BEARER] }
+                api_key: { type: string, description: Plain text — sẽ encrypt server-side }
+                bearer_token: { type: string, nullable: true }
+      responses:
+        '200': { description: Updated }
+
+  /lab-partners/{id}/credentials/rotate:
+    post:
+      tags: [LabPartners]
+      summary: Xoay (rotate) credentials
+      description: Sinh API key mới, vô hiệu key cũ. Permission `lab_partner.admin`.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Rotated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      api_key_masked: { type: string, example: "sk_***Z9Q" }
+                      rotated_at: { type: string, format: date-time }
+
+components:
+  securitySchemes:
+    BearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    LabPartner:
+      type: object
+      description: Trường `api_key`, `bearer_token` lưu mã hóa AES-256-GCM trong DB
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        code: { type: string, example: MEDLATEC }
+        name: { type: string, example: Medlatec Lab }
+        endpoint_url: { type: string, format: uri }
+        auth_type: { type: string, enum: [NONE, API_KEY, BEARER] }
+        api_key_masked: { type: string, nullable: true, example: "sk_***A9Q" }
+        transport: { type: string, enum: [REST, HL7_MLLP], default: REST }
+        supported_tests:
+          type: array
+          items: { type: string }
+          description: Danh sách test_code mà partner xử lý
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+        contact_email: { type: string, nullable: true }
+        contact_phone: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    LabPartnerCreateRequest:
+      type: object
+      required: [code, name, endpoint_url, auth_type, transport]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        endpoint_url: { type: string, format: uri }
+        auth_type: { type: string, enum: [NONE, API_KEY, BEARER] }
+        api_key: { type: string, nullable: true }
+        bearer_token: { type: string, nullable: true }
+        transport: { type: string, enum: [REST, HL7_MLLP] }
+        supported_tests:
+          type: array
+          items: { type: string }
+        contact_email: { type: string, nullable: true }
+        contact_phone: { type: string, nullable: true }
+
+    LabPartnerUpdateRequest:
+      type: object
+      properties:
+        name: { type: string }
+        endpoint_url: { type: string, format: uri }
+        transport: { type: string, enum: [REST, HL7_MLLP] }
+        supported_tests:
+          type: array
+          items: { type: string }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+        contact_email: { type: string, nullable: true }
+        contact_phone: { type: string, nullable: true }

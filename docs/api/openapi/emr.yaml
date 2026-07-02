@@ -1,0 +1,298 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS — EMR (Electronic Medical Record) API
+  version: 1.0.0
+  description: |
+    Sprint 3-4 — Bệnh án điện tử rich content (Tiptap JSON), template, ký số, PDF export.
+    Stories: US-E08, US-E09, US-E11, US-E13, US-E14, US-SUNS-06..08.
+servers:
+  - url: /api/v1
+tags:
+  - name: EMR
+  - name: EMR Templates
+
+paths:
+  /encounters/{encounterId}/emr:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [EMR]
+      summary: Get EMR content + metadata
+      operationId: getEmr
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EmrContentResponse' }
+    put:
+      tags: [EMR]
+      summary: Save draft (US-E08)
+      operationId: saveEmrDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmrSaveRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EmrContentResponse' }
+        '409':
+          description: EMR_ALREADY_SIGNED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /encounters/{encounterId}/emr/sign:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [EMR]
+      summary: Sign EMR (USB token, đóng EMR) (US-E09, US-SUNS-08)
+      operationId: signEmr
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignEmrRequest' }
+      responses:
+        '200':
+          description: Signed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EmrContentResponse' }
+        '400':
+          description: EMR_SIGNATURE_INVALID | EMR_USB_TOKEN_ERROR
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /encounters/{encounterId}/emr/unsign:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [EMR]
+      summary: Unsign EMR (Admin only, trong 24h)
+      operationId: unsignEmr
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, maxLength: 500 }
+      responses:
+        '200': { description: OK }
+        '403':
+          description: EMR_NOT_SIGNED | timeout
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /encounters/{encounterId}/emr/pdf:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [EMR]
+      summary: Export PDF (QuestPDF + chữ ký số chèn) (US-E13)
+      operationId: exportEmrPdf
+      responses:
+        '200':
+          description: PDF binary
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /encounters/{encounterId}/emr/versions:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [EMR]
+      summary: Version history (US-E14)
+      operationId: getEmrVersions
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/EmrVersionMeta' }
+
+  /encounters/{encounterId}/emr/versions/{versionId}/diff:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: compare_to, in: query, schema: { type: string, format: uuid } }
+    get:
+      tags: [EMR]
+      summary: Diff between two versions
+      operationId: getEmrVersionDiff
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      ops: { type: array, items: { type: object }, description: "JSON-patch ops" }
+
+  /emr-templates:
+    get:
+      tags: [EMR Templates]
+      summary: List templates (system + custom theo tenant) (US-SUNS-06)
+      operationId: listEmrTemplates
+      parameters:
+        - { name: speciality, in: query, schema: { type: string } }
+        - { name: is_system, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/EmrTemplateResponse' }
+    post:
+      tags: [EMR Templates]
+      summary: Create custom template (US-SUNS-07)
+      operationId: createEmrTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmrTemplateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/EmrTemplateResponse' }
+
+  /emr-templates/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [EMR Templates]
+      summary: Update custom template
+      operationId: updateEmrTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmrTemplateRequest' }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [EMR Templates]
+      summary: Delete custom template (chặn is_system=true)
+      operationId: deleteEmrTemplate
+      responses:
+        '204': { description: Deleted }
+
+components:
+  schemas:
+    EmrSaveRequest:
+      type: object
+      required: [content_json]
+      properties:
+        content_json: { type: object, description: "Tiptap JSON document" }
+        content_html: { type: string, nullable: true, description: "Optional, server có thể render lại" }
+        template_id: { type: string, format: uuid, nullable: true }
+
+    EmrContentResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        encounter_id: { type: string, format: uuid }
+        content_json: { type: object }
+        content_html: { type: string, description: "Rendered cache" }
+        template_id: { type: string, format: uuid, nullable: true }
+        signed_at: { type: string, format: date-time, nullable: true }
+        signed_by: { type: string, format: uuid, nullable: true }
+        signed_by_name: { type: string, nullable: true }
+        signature_certificate:
+          type: object
+          nullable: true
+          properties:
+            serial: { type: string }
+            subject: { type: string }
+            algorithm: { type: string }
+        version: { type: integer }
+        updated_at: { type: string, format: date-time }
+        updated_by: { type: string, format: uuid }
+
+    SignEmrRequest:
+      type: object
+      required: [signature_data, certificate_id]
+      properties:
+        signature_data: { type: string, format: byte, description: "Base64 PKCS#7 detached signature" }
+        certificate_id: { type: string, description: "USB token slot / cert identifier" }
+        signature_algorithm: { type: string, default: SHA256withRSA }
+
+    EmrVersionMeta:
+      type: object
+      properties:
+        version_id: { type: string, format: uuid }
+        version: { type: integer }
+        saved_at: { type: string, format: date-time }
+        saved_by: { type: string, format: uuid }
+        saved_by_name: { type: string }
+        is_signed: { type: boolean }
+        bytes_size: { type: integer }
+
+    EmrTemplateRequest:
+      type: object
+      required: [name, content_json, speciality]
+      properties:
+        name: { type: string, maxLength: 200 }
+        content_json: { type: object }
+        speciality: { type: string, enum: [GENERAL, DIABETES, CARDIOLOGY, ENDOCRINOLOGY, NEPHROLOGY, OPHTHALMOLOGY, OTHER] }
+
+    EmrTemplateResponse:
+      allOf:
+        - $ref: '#/components/schemas/EmrTemplateRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            is_system: { type: boolean }
+            tenant_id: { type: string, format: uuid, nullable: true }
+            created_by: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }

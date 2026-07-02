@@ -1,0 +1,55 @@
+-- Migration 0041: Billing extensions
+-- Idempotent via IF NOT EXISTS / IGNORE
+
+CREATE TABLE IF NOT EXISTS diab_his_bil_billing (
+    id               CHAR(36)       NOT NULL DEFAULT (UUID()),
+    tenant_id        INT            NOT NULL,
+    patient_id       CHAR(36)       NOT NULL,
+    encounter_id     CHAR(36)       NULL,
+    bill_no          VARCHAR(30)    NULL COMMENT 'HD-YYYYMM-XXXXX',
+    payer            VARCHAR(10)    NOT NULL DEFAULT 'SELF' COMMENT 'SELF|BHYT|MIXED',
+    subtotal         DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    vat_total        DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    discount_amount  DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    bhyt_amount      DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    patient_payable  DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    paid_amount      DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    balance          DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    status           VARCHAR(20)    NOT NULL DEFAULT 'DRAFT' COMMENT 'DRAFT|FINALIZED|PARTIAL_PAID|PAID|VOID',
+    right_route      ENUM('DUNG_TUYEN','TRAI_TUYEN','CAP_CUU') NULL,
+    payment_due_date DATE           NULL,
+    note             TEXT           NULL,
+    void_reason      TEXT           NULL,
+    finalized_at     DATETIME(3)    NULL,
+    created_at       DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    created_by       CHAR(36)       NULL,
+    updated_at       DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    updated_by       CHAR(36)       NULL,
+    deleted_at       DATETIME(3)    NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_bill_no (tenant_id, bill_no),
+    INDEX idx_billing_tenant_patient (tenant_id, patient_id),
+    INDEX idx_billing_encounter (encounter_id),
+    INDEX idx_billing_status (tenant_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS diab_his_bil_billing_items (
+    id               CHAR(36)       NOT NULL DEFAULT (UUID()),
+    billing_id       CHAR(36)       NOT NULL,
+    tenant_id        INT            NOT NULL,
+    item_type        VARCHAR(20)    NOT NULL COMMENT 'SERVICE|DRUG|PROCEDURE|LAB|RAD|PACKAGE|OTHER',
+    ref_id           CHAR(36)       NULL,
+    code             VARCHAR(50)    NULL,
+    name             VARCHAR(255)   NOT NULL,
+    quantity         DECIMAL(10,3)  NOT NULL DEFAULT 1.000,
+    unit_price       DECIMAL(15,2)  NOT NULL,
+    vat_rate         TINYINT        NOT NULL DEFAULT 0,
+    discount_percent DECIMAL(5,2)   NOT NULL DEFAULT 0.00,
+    line_total       DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    bhyt_applicable  TINYINT(1)     NOT NULL DEFAULT 0,
+    bhyt_amount      DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    created_at       DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT fk_bil_item_billing FOREIGN KEY (billing_id) REFERENCES diab_his_bil_billing(id) ON DELETE CASCADE,
+    INDEX idx_bil_item_billing (billing_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

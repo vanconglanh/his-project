@@ -1,0 +1,104 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: 57.155.1.252    Database: diab_his
+-- ------------------------------------------------------
+-- Server version	8.0.23
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-8b67-11ef-b09a-0242ac130002:1-22227800';
+
+--
+-- Table structure for table `sta_performance_reviews`
+--
+
+DROP TABLE IF EXISTS `sta_performance_reviews`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sta_performance_reviews` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `CODE` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Review code',
+  `STAFF_ID` int NOT NULL COMMENT 'Reference to sta_staff',
+  `REVIEW_PERIOD_START` date NOT NULL COMMENT 'Review period start',
+  `REVIEW_PERIOD_END` date NOT NULL COMMENT 'Review period end',
+  `REVIEW_TYPE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'ANNUAL' COMMENT 'Type: ANNUAL, MIDYEAR, PROBATION, PROJECT',
+  `REVIEWER_ID` int NOT NULL COMMENT 'Reviewer staff ID',
+  `REVIEW_DATE` date NOT NULL COMMENT 'Review date',
+  `OVERALL_RATING` decimal(3,2) DEFAULT NULL COMMENT 'Overall rating (1-5 scale)',
+  `PERFORMANCE_CATEGORY` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Category: EXCELLENT, GOOD, SATISFACTORY, NEEDS_IMPROVEMENT',
+  `GOALS_ACHIEVEMENT` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Goals achievement assessment',
+  `STRENGTHS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Strengths identified',
+  `AREAS_FOR_IMPROVEMENT` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Areas for improvement',
+  `DEVELOPMENT_PLAN` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Development plan',
+  `TRAINING_RECOMMENDATIONS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Training recommendations',
+  `CAREER_ASPIRATIONS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Staff career aspirations',
+  `MANAGER_COMMENTS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Manager comments',
+  `STAFF_COMMENTS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Staff self-assessment comments',
+  `ACKNOWLEDGED_BY_STAFF` tinyint(1) DEFAULT '0' COMMENT 'Acknowledged by staff',
+  `ACKNOWLEDGED_AT` datetime DEFAULT NULL COMMENT 'Acknowledgment timestamp',
+  `SALARY_ADJUSTMENT` decimal(15,2) DEFAULT NULL COMMENT 'Recommended salary adjustment',
+  `PROMOTION_RECOMMENDED` tinyint(1) DEFAULT '0' COMMENT 'Promotion recommended',
+  `NEXT_REVIEW_DATE` date DEFAULT NULL COMMENT 'Next review date',
+  `FOLLOW_UP_REQUIRED` tinyint(1) DEFAULT '0' COMMENT 'Follow-up required',
+  `FOLLOW_UP_DATE` date DEFAULT NULL COMMENT 'Follow-up date',
+  `DOCUMENT_URL` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Review document URL',
+  `NOTES` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Additional notes',
+  `CREATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `LAST_UPDATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `STATUS` int NOT NULL DEFAULT '1',
+  `CREATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_PROGRAM` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `IDX_STAFF_ID` (`STAFF_ID`),
+  KEY `IDX_REVIEW_PERIOD_START` (`REVIEW_PERIOD_START`),
+  KEY `IDX_REVIEW_PERIOD_END` (`REVIEW_PERIOD_END`),
+  KEY `IDX_REVIEW_TYPE` (`REVIEW_TYPE`),
+  KEY `IDX_REVIEWER_ID` (`REVIEWER_ID`),
+  KEY `IDX_REVIEW_DATE` (`REVIEW_DATE`),
+  KEY `IDX_OVERALL_RATING` (`OVERALL_RATING`),
+  KEY `IDX_PERFORMANCE_CATEGORY` (`PERFORMANCE_CATEGORY`),
+  KEY `IDX_STATUS` (`STATUS`),
+  KEY `IDX_CREATED_AT` (`CREATED_AT`),
+  KEY `IDX_STA_REVIEWS_STAFF_ID` (`STAFF_ID`),
+  CONSTRAINT `FK_REVIEW_REVIEWER` FOREIGN KEY (`REVIEWER_ID`) REFERENCES `sta_staff` (`ID`),
+  CONSTRAINT `FK_REVIEW_STAFF` FOREIGN KEY (`STAFF_ID`) REFERENCES `sta_staff` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Performance Reviews';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `sta_performance_reviews`
+--
+
+LOCK TABLES `sta_performance_reviews` WRITE;
+/*!40000 ALTER TABLE `sta_performance_reviews` DISABLE KEYS */;
+/*!40000 ALTER TABLE `sta_performance_reviews` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-05-22 22:20:16

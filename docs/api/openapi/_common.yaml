@@ -1,0 +1,155 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Common Components
+  version: 1.0.0
+  description: |
+    Các component dùng chung cho toàn bộ API Pro-Diab HIS:
+    security scheme, error envelope, paging, query parameters,
+    và các response chuẩn (401/403/404/422/500).
+    Các file YAML khác $ref vào file này để tránh duplicate.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token. Claim bắt buộc: `sub` (user_id), `tenant_id`,
+        `clinic_id`, `roles` (array), `permissions` (array).
+
+  parameters:
+    PageQuery:
+      name: page
+      in: query
+      description: Số trang (1-based)
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSizeQuery:
+      name: page_size
+      in: query
+      description: Số bản ghi mỗi trang
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 20
+    SortQuery:
+      name: sort
+      in: query
+      description: 'Trường sort, prefix `-` để DESC. VD: `-created_at,name`'
+      required: false
+      schema:
+        type: string
+    SearchQuery:
+      name: q
+      in: query
+      description: Từ khoá tìm kiếm full-text
+      required: false
+      schema:
+        type: string
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Mã lỗi SCREAMING_SNAKE_CASE
+              example: PATIENT_NOT_FOUND
+            message:
+              type: string
+              description: Thông điệp tiếng Việt cho người dùng
+              example: Không tìm thấy bệnh nhân
+            details:
+              type: object
+              additionalProperties: true
+              description: Thông tin bổ sung (field errors, trace id...)
+
+    PageMeta:
+      type: object
+      required: [page, page_size, total, total_pages]
+      properties:
+        page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 134
+        total_pages:
+          type: integer
+          example: 7
+
+    PagedResult:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: {}
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+  responses:
+    Unauthorized:
+      description: Chưa đăng nhập hoặc token hết hạn
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            invalidToken:
+              value:
+                error:
+                  code: AUTH_TOKEN_INVALID
+                  message: Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại
+    Forbidden:
+      description: Không đủ quyền
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            permissionDenied:
+              value:
+                error:
+                  code: PERMISSION_DENIED
+                  message: Bạn không có quyền thực hiện thao tác này
+    NotFound:
+      description: Tài nguyên không tồn tại
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Dữ liệu đầu vào không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            weakPassword:
+              value:
+                error:
+                  code: PASSWORD_TOO_WEAK
+                  message: Mật khẩu phải có tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt
+                  details:
+                    field: new_password
+    InternalError:
+      description: Lỗi máy chủ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

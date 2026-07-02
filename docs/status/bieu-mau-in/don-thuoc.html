@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đơn thuốc — Pro-Diab HIS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9e6;font-family:"Times New Roman",Times,serif;color:#111;font-size:13px;line-height:1.42}
+.toolbar{position:sticky;top:0;z-index:9;background:#1a1a19;color:#fff;display:flex;gap:12px;align-items:center;padding:9px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
+.toolbar .sp{flex:1}
+.toolbar a,.toolbar button{font:inherit;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.35);border-radius:7px;padding:6px 12px;cursor:pointer;text-decoration:none}
+.toolbar button.pr{background:#1baf7a;border-color:transparent;font-weight:600}
+.sheet{background:#fff;margin:16px auto;box-shadow:0 3px 16px rgba(0,0,0,.18);position:relative}
+.lh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1.5px solid #111;padding-bottom:8px;margin-bottom:10px}
+.lh .org{font-size:12px;line-height:1.35}
+.lh .org b{font-size:13.5px;text-transform:uppercase;display:block}
+.lh .logo{width:52px;height:52px;flex:0 0 auto;border:1px solid #111;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-weight:700;color:#0b7285;font-size:10px;text-align:center;line-height:1.1}
+.doc-title{text-align:center;font-size:18px;font-weight:700;text-transform:uppercase;margin:8px 0 2px;letter-spacing:.02em}
+.doc-sub{text-align:center;font-size:12px;color:#333;margin-bottom:12px;font-style:italic}
+.code-line{text-align:right;font-size:11.5px;color:#333;margin-bottom:4px}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+table.grid th,table.grid td{border:1px solid #111;padding:4px 6px;vertical-align:top}
+table.grid th{background:#f0f0ee;font-weight:700;text-align:left}
+td.c,th.c{text-align:center}
+td.r,th.r{text-align:right}
+.sec-h{font-weight:700;text-transform:uppercase;margin:9px 0 3px;font-size:13px}
+.row{display:flex;gap:18px;flex-wrap:wrap}
+.field{margin:3px 0}.field .k{font-weight:700}
+.fill{border-bottom:1px dotted #444;min-width:60px;display:inline-block}
+.sign{display:flex;justify-content:space-around;margin-top:16px;text-align:center;gap:10px}
+.sign .box{min-width:40%}
+.sign .role{font-weight:700}.sign .hint{font-style:italic;font-size:11px;color:#444}
+.sign .date{font-style:italic;font-size:11.5px}.sign .name{margin-top:50px;font-weight:700}
+.muted{color:#555}.small{font-size:11px}
+.note{font-size:11px;color:#444;font-style:italic;margin-top:10px;border-top:1px dashed #999;padding-top:6px}
+@media print{body{background:#fff}.toolbar{display:none}.sheet{margin:0;box-shadow:none}}
+
+@page{size:A5 portrait;margin:0} .sheet{width:148mm;min-height:210mm;padding:9mm 10mm}
+
+.qr-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
+.qr-wrap .qr-cap{font-size:9.5px;color:#333;text-align:right;max-width:110px}
+.pat-info{font-size:12.5px;margin-bottom:6px}
+.pat-info .field{display:inline-block;margin-right:14px}
+.dx-line{font-size:12.5px;margin:6px 0 8px;padding:5px 7px;border:1px solid #111;border-radius:4px;background:#fbfbf9}
+.dx-line .k{font-weight:700;text-transform:uppercase;margin-right:4px}
+.advice{font-size:12.5px;margin-top:8px}
+.advice .k{font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px}
+.advice ul{margin:0 0 0 16px;padding:0}
+.advice li{margin-bottom:2px}
+.foot-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;gap:10px}
+.foot-row .contact{font-size:10.5px;color:#444;max-width:55mm;line-height:1.5}
+.med-name{font-weight:700}
+.med-strength{font-weight:400;color:#333}
+</style>
+</head>
+<body>
+<div class="toolbar"><b>Đơn thuốc (A5)</b><span class="sp"></span>
+  <a href="index.html">← Thư viện biểu mẫu</a>
+  <button class="pr" onclick="window.print()">🖨️ In</button></div>
+
+<div class="sheet">
+  <div class="lh">
+    <div class="logo">PRO<br>DIAB</div>
+    <div class="org">
+      <b>Phòng khám đa khoa Pro-Diab</b>
+      Mã CSKCB: 79123 &nbsp;·&nbsp; MST: 0312345678<br>
+      123 Đường Sức Khỏe, P. Bến Nghé, Q.1, TP. Hồ Chí Minh<br>
+      ĐT: 028 3822 1234
+    </div>
+    <div class="qr-wrap">
+      <svg width="70" height="70" viewBox="0 0 70 70" aria-label="Mã QR đơn thuốc điện tử (giả lập)" role="img">
+        <rect x="0" y="0" width="70" height="70" fill="#fff"/>
+        <rect x="2" y="2" width="18" height="18" fill="none" stroke="#111" stroke-width="2"/>
+        <rect x="7" y="7" width="8" height="8" fill="#111"/>
+        <rect x="50" y="2" width="18" height="18" fill="none" stroke="#111" stroke-width="2"/>
+        <rect x="55" y="7" width="8" height="8" fill="#111"/>
+        <rect x="2" y="50" width="18" height="18" fill="none" stroke="#111" stroke-width="2"/>
+        <rect x="7" y="55" width="8" height="8" fill="#111"/>
+        <g fill="#111">
+          <rect x="24" y="4" width="4" height="4"/><rect x="32" y="4" width="4" height="4"/><rect x="40" y="4" width="4" height="4"/>
+          <rect x="24" y="12" width="4" height="4"/><rect x="36" y="12" width="4" height="4"/>
+          <rect x="28" y="20" width="4" height="4"/><rect x="40" y="20" width="4" height="4"/>
+          <rect x="24" y="28" width="4" height="4"/><rect x="32" y="28" width="4" height="4"/><rect x="44" y="28" width="4" height="4"/><rect x="52" y="28" width="4" height="4"/><rect x="60" y="28" width="4" height="4"/>
+          <rect x="4" y="24" width="4" height="4"/><rect x="12" y="24" width="4" height="4"/><rect x="4" y="32" width="4" height="4"/><rect x="12" y="36" width="4" height="4"/>
+          <rect x="24" y="36" width="4" height="4"/><rect x="32" y="40" width="4" height="4"/><rect x="40" y="36" width="4" height="4"/><rect x="48" y="40" width="4" height="4"/>
+          <rect x="24" y="44" width="4" height="4"/><rect x="32" y="48" width="4" height="4"/><rect x="40" y="44" width="4" height="4"/><rect x="48" y="48" width="4" height="4"/>
+          <rect x="56" y="40" width="4" height="4"/><rect x="60" y="48" width="4" height="4"/><rect x="56" y="56" width="4" height="4"/><rect x="64" y="56" width="4" height="4"/>
+          <rect x="24" y="56" width="4" height="4"/><rect x="32" y="60" width="4" height="4"/><rect x="40" y="56" width="4" height="4"/><rect x="48" y="60" width="4" height="4"/>
+        </g>
+      </svg>
+      <div class="qr-cap">Mã đơn: DTQG-2026-0702-000123</div>
+    </div>
+  </div>
+
+  <div class="doc-title">Đơn thuốc</div>
+  <div class="doc-sub">(Ban hành kèm theo Thông tư 27/2021/TT-BYT)</div>
+  <div class="code-line">Mã lượt khám: LK000456 &nbsp;·&nbsp; Ngày 02/07/2026</div>
+
+  <div class="pat-info">
+    <div class="field"><span class="k">Họ tên:</span> <b>NGUYỄN VĂN AN</b></div>
+    <div class="field"><span class="k">Nam</span></div>
+    <div class="field"><span class="k">Sinh:</span> 12/03/1968 (58 tuổi)</div>
+    <div class="field"><span class="k">Cân nặng:</span> 68 kg</div><br>
+    <div class="field"><span class="k">Mã BN:</span> BN000123</div>
+    <div class="field"><span class="k">Số thẻ BHYT:</span> HN4 79 123 45678 90 (HSD 31/12/2026, đúng tuyến)</div><br>
+    <div class="field" style="display:block;margin-right:0"><span class="k">Địa chỉ:</span> 45 Lê Lợi, P.6, Q. Gò Vấp, TP.HCM &nbsp;·&nbsp; ĐT: 0909 123 456</div>
+  </div>
+
+  <div class="dx-line">
+    <span class="k">Chẩn đoán:</span> E11 – Đái tháo đường type 2; E78.5 – Rối loạn lipid máu; I10 – Tăng huyết áp vô căn
+  </div>
+
+  <table class="grid">
+    <thead>
+      <tr>
+        <th class="c" style="width:7%">STT</th>
+        <th style="width:38%">Tên thuốc – hàm lượng</th>
+        <th class="c" style="width:10%">ĐVT</th>
+        <th class="c" style="width:15%">Số lượng</th>
+        <th style="width:30%">Cách dùng</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="c">1</td>
+        <td><span class="med-name">Metformin</span> <span class="med-strength">500mg</span></td>
+        <td class="c">Viên</td>
+        <td class="c">60<br><span class="small muted">(sáu mươi)</span></td>
+        <td>Uống 1 viên x 2 lần/ngày, sau ăn sáng và tối</td>
+      </tr>
+      <tr>
+        <td class="c">2</td>
+        <td><span class="med-name">Gliclazide MR</span> <span class="med-strength">30mg</span></td>
+        <td class="c">Viên</td>
+        <td class="c">30<br><span class="small muted">(ba mươi)</span></td>
+        <td>Uống 1 viên/ngày, trước ăn sáng 30 phút</td>
+      </tr>
+      <tr>
+        <td class="c">3</td>
+        <td><span class="med-name">Atorvastatin</span> <span class="med-strength">20mg</span></td>
+        <td class="c">Viên</td>
+        <td class="c">30<br><span class="small muted">(ba mươi)</span></td>
+        <td>Uống 1 viên/ngày vào buổi tối</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="advice">
+    <span class="k">Lời dặn của bác sĩ:</span>
+    <ul>
+      <li>Tái khám sau 4 tuần hoặc khi có bất thường, mang theo đơn thuốc này.</li>
+      <li>Tiết chế đường, hạn chế tinh bột hấp thu nhanh, tăng cường vận động thể lực.</li>
+      <li>Theo dõi đường huyết mao mạch tại nhà, ghi nhật ký; đề phòng dấu hiệu hạ đường huyết.</li>
+    </ul>
+  </div>
+
+  <div class="foot-row">
+    <div class="contact">
+      Mọi thắc mắc về đơn thuốc vui lòng liên hệ tổng đài tư vấn: <b>1900 6789</b> (giờ hành chính).
+    </div>
+    <div class="sign box">
+      <div class="role">BÁC SĨ KÊ ĐƠN</div>
+      <div class="hint">(Ký, ghi rõ họ tên)</div>
+      <div class="date">Ngày 02/07/2026</div>
+      <div class="name">BS.CKI Trần Thị Bình</div>
+    </div>
+  </div>
+
+  <div class="note">Đơn thuốc được lập và đồng bộ với hệ thống Đơn thuốc Quốc gia theo Thông tư 27/2021/TT-BYT. Mã đơn thuốc dùng để tra cứu và mua thuốc tại các cơ sở bán lẻ dược hợp pháp.</div>
+</div>
+</body>
+</html>

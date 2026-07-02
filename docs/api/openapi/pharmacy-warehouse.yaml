@@ -1,0 +1,561 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Pharmacy Warehouse API
+  version: 1.0.0
+  description: Kho dược - PO/GRN, tồn kho, kiểm kê, chuyển kho, cảnh báo.
+servers:
+  - url: https://api.prodiab.vn/api/v1
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Warehouses
+  - name: Purchase Orders
+  - name: Stock
+  - name: Adjustments
+  - name: Movements
+  - name: Transfers
+  - name: Alerts
+
+paths:
+  /warehouses:
+    get:
+      tags: [Warehouses]
+      summary: List warehouses
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Warehouse' }
+      x-permission: warehouse.read
+    post:
+      tags: [Warehouses]
+      summary: Create warehouse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WarehouseRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Warehouse' }
+      x-permission: warehouse.write
+
+  /warehouses/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Warehouses]
+      summary: Get warehouse
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Warehouse' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: PHARMACY_WAREHOUSE_NOT_FOUND, message: "Không tìm thấy kho." }
+      x-permission: warehouse.read
+    put:
+      tags: [Warehouses]
+      summary: Update warehouse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WarehouseRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Warehouse' }
+      x-permission: warehouse.write
+    delete:
+      tags: [Warehouses]
+      summary: Soft delete warehouse
+      responses:
+        '204': { description: No Content }
+      x-permission: warehouse.write
+
+  /pharmacy/purchase-orders:
+    get:
+      tags: [Purchase Orders]
+      summary: List POs
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [DRAFT, SENT, PARTIAL, RECEIVED, CANCELLED] }
+        - name: supplier_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/PurchaseOrderResponse' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+      x-permission: warehouse.read
+    post:
+      tags: [Purchase Orders]
+      summary: Create PO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PurchaseOrderRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PurchaseOrderResponse' }
+      x-permission: warehouse.write
+
+  /pharmacy/purchase-orders/{id}/grn:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Purchase Orders]
+      summary: Goods Received Note - nhập thực tế theo batch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GoodsReceivedRequest' }
+      responses:
+        '201':
+          description: GRN created, stock updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      grn_id: { type: string, format: uuid }
+                      po_status: { type: string, enum: [PARTIAL, RECEIVED] }
+                      stocks_updated:
+                        type: array
+                        items: { $ref: '#/components/schemas/StockResponse' }
+      x-permission: warehouse.write
+
+  /pharmacy/stocks:
+    get:
+      tags: [Stock]
+      summary: List stocks (filter near_expiry/low_stock)
+      parameters:
+        - name: warehouse_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: drug_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: batch_no
+          in: query
+          schema: { type: string }
+        - name: low_stock
+          in: query
+          schema: { type: boolean }
+        - name: near_expiry
+          in: query
+          schema: { type: boolean }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StockResponse' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+      x-permission: stock.read
+
+  /pharmacy/adjustments:
+    post:
+      tags: [Adjustments]
+      summary: Stock adjustment (kiểm kê / hao hụt / hỏng)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [warehouse_id, reason, items]
+              properties:
+                warehouse_id: { type: string, format: uuid }
+                reason:
+                  type: string
+                  enum: [STOCKTAKE, DAMAGED, EXPIRED, LOST, OTHER]
+                note: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [drug_id, batch_no, quantity_diff]
+                    properties:
+                      drug_id: { type: string, format: uuid }
+                      batch_no: { type: string }
+                      quantity_diff: { type: number, description: "+ tăng / - giảm" }
+      responses:
+        '201':
+          description: Adjusted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      adjustment_id: { type: string, format: uuid }
+                      movements:
+                        type: array
+                        items: { $ref: '#/components/schemas/StockMovementResponse' }
+      x-permission: stock.adjust
+
+  /pharmacy/movements:
+    get:
+      tags: [Movements]
+      summary: List stock movements
+      parameters:
+        - name: warehouse_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: drug_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: movement_type
+          in: query
+          schema: { type: string, enum: [IMPORT, EXPORT, TRANSFER, ADJUST, RETURN] }
+        - name: from_date
+          in: query
+          schema: { type: string, format: date }
+        - name: to_date
+          in: query
+          schema: { type: string, format: date }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StockMovementResponse' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+      x-permission: stock.read
+
+  /pharmacy/transfers:
+    post:
+      tags: [Transfers]
+      summary: Transfer stock between warehouses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from_warehouse_id, to_warehouse_id, items]
+              properties:
+                from_warehouse_id: { type: string, format: uuid }
+                to_warehouse_id: { type: string, format: uuid }
+                note: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [drug_id, batch_no, quantity]
+                    properties:
+                      drug_id: { type: string, format: uuid }
+                      batch_no: { type: string }
+                      quantity: { type: number }
+      responses:
+        '201':
+          description: Transferred
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      transfer_id: { type: string, format: uuid }
+                      movements:
+                        type: array
+                        items: { $ref: '#/components/schemas/StockMovementResponse' }
+        '422':
+          description: Insufficient stock or expired batch
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                insufficient:
+                  value:
+                    error: { code: PHARMACY_STOCK_INSUFFICIENT, message: "Tồn kho không đủ để chuyển." }
+                expired:
+                  value:
+                    error: { code: PHARMACY_BATCH_EXPIRED, message: "Lô thuốc đã hết hạn." }
+      x-permission: stock.adjust
+
+  /pharmacy/alerts/low-stock:
+    get:
+      tags: [Alerts]
+      summary: Low stock alerts
+      parameters:
+        - name: warehouse_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StockResponse' }
+      x-permission: stock.read
+
+  /pharmacy/alerts/near-expiry:
+    get:
+      tags: [Alerts]
+      summary: Near expiry alerts (30/60/90 ngày)
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, enum: [30, 60, 90], default: 60 }
+        - name: warehouse_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StockResponse' }
+      x-permission: stock.read
+
+  /pharmacy/stocktake:
+    get:
+      tags: [Adjustments]
+      summary: Generate stocktake sheet (PDF)
+      parameters:
+        - name: warehouse_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+      x-permission: stock.read
+
+components:
+  securitySchemes:
+    BearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    WarehouseRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [MAIN, DISPENSING, COLD_CHAIN, NARCOTIC], default: MAIN }
+        address: { type: string }
+        manager_user_id: { type: string, format: uuid, nullable: true }
+    Warehouse:
+      allOf:
+        - $ref: '#/components/schemas/WarehouseRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            tenant_id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+    PurchaseOrderRequest:
+      type: object
+      required: [supplier_id, warehouse_id, items]
+      properties:
+        supplier_id: { type: string, format: uuid }
+        warehouse_id: { type: string, format: uuid }
+        order_no: { type: string }
+        ordered_at: { type: string, format: date-time }
+        expected_delivery: { type: string, format: date }
+        note: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            required: [drug_id, quantity_ordered, unit_price]
+            properties:
+              drug_id: { type: string, format: uuid }
+              quantity_ordered: { type: number }
+              unit_price: { type: number }
+    PurchaseOrderResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        supplier_id: { type: string, format: uuid }
+        supplier_name: { type: string }
+        warehouse_id: { type: string, format: uuid }
+        order_no: { type: string }
+        ordered_at: { type: string, format: date-time }
+        expected_delivery: { type: string, format: date }
+        status:
+          type: string
+          enum: [DRAFT, SENT, PARTIAL, RECEIVED, CANCELLED]
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              drug_id: { type: string, format: uuid }
+              drug_name: { type: string }
+              quantity_ordered: { type: number }
+              quantity_received: { type: number }
+              unit_price: { type: number }
+        total_amount: { type: number }
+        created_at: { type: string, format: date-time }
+    GoodsReceivedRequest:
+      type: object
+      required: [received_at, items]
+      properties:
+        po_id: { type: string, format: uuid }
+        received_at: { type: string, format: date-time }
+        note: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            required: [drug_id, batch_no, expiry_date, quantity_received, unit_cost]
+            properties:
+              drug_id: { type: string, format: uuid }
+              batch_no: { type: string }
+              manufacture_date: { type: string, format: date }
+              expiry_date: { type: string, format: date }
+              quantity_received: { type: number }
+              unit_cost: { type: number }
+    StockResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        warehouse_id: { type: string, format: uuid }
+        drug_id: { type: string, format: uuid }
+        drug_name: { type: string }
+        batch_no: { type: string }
+        manufacture_date: { type: string, format: date, nullable: true }
+        expiry_date: { type: string, format: date }
+        quantity_available: { type: number }
+        quantity_reserved: { type: number }
+        unit_cost: { type: number }
+        days_to_expiry: { type: integer, description: computed }
+        is_near_expiry: { type: boolean, description: computed }
+        is_low_stock: { type: boolean, description: computed }
+    StockMovementResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        warehouse_id: { type: string, format: uuid }
+        movement_type:
+          type: string
+          enum: [IMPORT, EXPORT, TRANSFER, ADJUST, RETURN]
+        drug_id: { type: string, format: uuid }
+        drug_name: { type: string }
+        batch_no: { type: string }
+        quantity: { type: number }
+        unit_cost: { type: number }
+        reference_type: { type: string, enum: [PO, GRN, PRESCRIPTION, ADJUSTMENT, TRANSFER, RETURN] }
+        reference_id: { type: string, format: uuid }
+        movement_at: { type: string, format: date-time }
+        performed_by: { type: string, format: uuid }
+        reason: { type: string }

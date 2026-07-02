@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pro-Diab HIS — Lộ trình phát triển</title>
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f3f3f0;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --blue: #2a78d6; --aqua: #1baf7a; --yellow: #eda100; --violet: #4a3aa7; --orange: #eb6834;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --shadow: 0 1px 2px rgba(11,11,11,0.04), 0 4px 16px rgba(11,11,11,0.04);
+  }
+  [data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232322;
+    --ink: #fff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+    --blue: #3987e5; --aqua: #199e70; --yellow: #c98500; --violet: #9085e9; --orange: #d95926;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
+  }
+  * { box-sizing: border-box; }
+  html,body { margin:0; padding:0; }
+  body { font-family: system-ui,-apple-system,"Segoe UI",sans-serif; background: var(--page); color: var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 20px 64px; }
+
+  header.top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .logo { width:42px; height:42px; border-radius:11px; background:linear-gradient(135deg,var(--aqua),var(--blue)); display:grid; place-items:center; color:#fff; font-weight:700; box-shadow:var(--shadow); }
+  h1 { font-size:22px; margin:0; letter-spacing:-0.01em; }
+  .sub { color:var(--ink-2); font-size:13.5px; margin-top:2px; }
+  .top-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn { font:inherit; font-size:13px; cursor:pointer; border-radius:9px; border:1px solid var(--border); background:var(--surface); color:var(--ink); padding:7px 13px; text-decoration:none; display:inline-flex; align-items:center; gap:7px; transition:background .15s; }
+  .btn:hover { background:var(--surface-2); }
+
+  /* progress bar of phases */
+  .phasebar { display:flex; gap:2px; margin:6px 0 30px; height:12px; border-radius:999px; overflow:hidden; }
+  .phasebar > div { flex:1; }
+  .phasebar .done { background:var(--good); }
+  .phasebar .active { background:var(--warning); }
+  .phasebar .next { background:var(--track,#d9f0e6); }
+  [data-theme="dark"] .phasebar .next { background:#17352a; }
+  .phaselabels { display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted); margin-top:-24px; margin-bottom:26px; }
+
+  /* timeline */
+  .tl { position:relative; margin-left:8px; padding-left:34px; }
+  .tl::before { content:""; position:absolute; left:9px; top:6px; bottom:6px; width:2px; background:var(--grid); }
+  .node { position:relative; margin-bottom:22px; }
+  .node::before { content:""; position:absolute; left:-33px; top:22px; width:16px; height:16px; border-radius:50%; background:var(--surface); border:3px solid var(--muted); box-shadow:0 0 0 4px var(--page); }
+  .node.done::before { border-color:var(--good); background:var(--good); }
+  .node.active::before { border-color:var(--warning); background:var(--warning); }
+  .node.next::before { border-color:var(--blue); }
+  .node.future::before { border-color:var(--baseline); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow); }
+  .node .head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px; }
+  .node h2 { font-size:16.5px; margin:0; }
+  .node .when { font-size:12.5px; color:var(--muted); }
+  .badge { font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; letter-spacing:.02em; }
+  .badge.done { background:color-mix(in srgb,var(--good) 16%,transparent); color:var(--good-text,#0ca30c); }
+  .badge.active { background:color-mix(in srgb,var(--warning) 22%,transparent); color:var(--ink); }
+  .badge.next { background:color-mix(in srgb,var(--blue) 16%,transparent); color:var(--blue); }
+  .badge.future { background:var(--surface-2); color:var(--ink-2); }
+  .node p.desc { margin:6px 0 12px; color:var(--ink-2); font-size:13.5px; }
+
+  ul.items { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; }
+  @media (max-width:720px){ ul.items { grid-template-columns:1fr; } }
+  ul.items li { font-size:13px; color:var(--ink-2); padding-left:20px; position:relative; }
+  ul.items li::before { content:"✓"; position:absolute; left:0; color:var(--good); font-weight:700; }
+  ul.items.todo li::before { content:"○"; color:var(--muted); font-weight:700; }
+  ul.items.plan li::before { content:"→"; color:var(--blue); font-weight:700; }
+
+  .sprint-strip { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .sp { font-size:11.5px; background:var(--surface-2); border:1px solid var(--border); border-radius:7px; padding:4px 9px; color:var(--ink-2); }
+  .sp b { color:var(--ink); }
+
+  .milestone { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px; }
+  .milestone .m-ic { width:22px; height:22px; border-radius:6px; display:grid; place-items:center; font-size:12px; flex:0 0 auto; }
+
+  .note { font-size:12.5px; color:var(--ink-2); background:color-mix(in srgb,var(--warning) 12%,transparent); border:1px solid color-mix(in srgb,var(--warning) 30%,transparent); border-radius:10px; padding:11px 14px; margin:18px 0 28px; }
+
+  footer { margin-top:34px; padding-top:18px; border-top:1px solid var(--grid); color:var(--muted); font-size:12px; }
+  footer a { color:var(--blue); }
+  .legend2 { display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); margin-bottom:18px; }
+  .legend2 i { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+
+  /* ==== Khối Kế hoạch & tiến độ kiểm thử ==== */
+  .sechead { display:flex; align-items:center; gap:12px; margin:42px 0 16px; }
+  .sechead h2 { font-size:19px; margin:0; letter-spacing:-0.01em; }
+  .sechead .line { height:1px; background:var(--grid); flex:1; }
+  .sechead .ic { width:36px; height:36px; border-radius:9px; background:linear-gradient(135deg,var(--violet),var(--blue)); display:grid; place-items:center; font-size:17px; box-shadow:var(--shadow); }
+  .card + .card { margin-top:16px; }
+  .card h3 { font-size:15px; margin:0; }
+
+  .kv { display:grid; grid-template-columns:132px 1fr; gap:7px 16px; font-size:13px; color:var(--ink-2); margin:2px 0; }
+  @media (max-width:720px){ .kv { grid-template-columns:1fr; gap:2px 0; } .kv b { margin-top:8px; } }
+  .kv b { color:var(--ink); font-weight:600; }
+
+  table.tt { width:100%; border-collapse:collapse; margin:12px 0 4px; font-size:12.5px; }
+  table.tt th, table.tt td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  table.tt th { color:var(--ink); font-weight:700; background:var(--surface-2); border-bottom:1px solid var(--baseline); }
+  table.tt td { color:var(--ink-2); }
+  table.tt tr:hover td { background:color-mix(in srgb,var(--blue) 5%,transparent); }
+  table.tt code, .kv code, .note code { background:var(--surface-2); border:1px solid var(--border); border-radius:5px; padding:1px 5px; font-size:11.5px; color:var(--ink); }
+  table.tt .n { color:var(--muted); font-weight:700; text-align:center; width:26px; }
+  .pill { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .pill.err  { background:color-mix(in srgb,var(--critical) 15%,transparent); color:var(--critical); }
+  .pill.ok   { background:color-mix(in srgb,var(--good) 16%,transparent); color:var(--good); }
+  .pill.wait { background:color-mix(in srgb,var(--warning) 24%,transparent); color:var(--ink); }
+  .note.info { background:color-mix(in srgb,var(--blue) 10%,transparent); border-color:color-mix(in srgb,var(--blue) 30%,transparent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo">PD</div>
+      <div>
+        <h1>Pro-Diab HIS — Lộ trình phát triển</h1>
+        <div class="sub">Từ nền tảng v1.0 đến đóng khoảng trống CRUD và v1.1</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <a class="btn" href="#kiem-thu">🧪 Kế hoạch test</a>
+      <a class="btn" href="dashboard-status.html">📊 Dashboard trạng thái</a>
+      <button class="btn" id="themeBtn" type="button">🌙 Tối</button>
+    </div>
+  </header>
+
+  <div class="phasebar">
+    <div class="done" title="Giai đoạn 1 hoàn thành"></div>
+    <div class="done" title="Giai đoạn 2 hoàn thành (P0)"></div>
+    <div class="active" title="Giai đoạn 3 đang tới"></div>
+    <div class="next" title="Giai đoạn 4"></div>
+  </div>
+  <div class="phaselabels">
+    <span>GĐ1 · Nền tảng v1.0</span><span>GĐ2 · Đóng P0</span><span>GĐ3 · P1</span><span>GĐ4 · v1.1</span>
+  </div>
+
+  <div class="legend2">
+    <span><i style="background:var(--good)"></i>Hoàn thành</span>
+    <span><i style="background:var(--warning)"></i>Đang thực hiện</span>
+    <span><i style="background:var(--blue);border:2px solid var(--blue);background:transparent"></i>Kế tiếp</span>
+    <span><i style="background:var(--baseline);border:2px solid var(--baseline);background:transparent"></i>Tương lai</span>
+  </div>
+
+  <div class="note">
+    ⚠️ <b>Lưu ý mốc thời gian:</b> Con số CRUD lấy từ snapshot <b>R7 (01/06/2026)</b>; cửa sổ sprint đóng P0 (14/06) và P1 (28/06) đã trôi qua theo lịch.
+    Bằng chứng mới nhất là <b>sim lâm sàng live 02/07/2026</b> (mục C bên dưới): 6/6 BN đi trọn luồng lâm sàng trên UI thật, phát hiện 6 bug thật / fix 5.
+    Bộ CRUD 56 case vẫn cần re-run để cập nhật con số 76.8%.
+  </div>
+
+  <div class="tl">
+
+    <!-- GĐ1 -->
+    <div class="node done">
+      <div class="card">
+        <div class="head">
+          <h2>Giai đoạn 1 — Nền tảng &amp; v1.0</h2>
+          <span class="badge done">HOÀN THÀNH</span>
+          <span class="when">Sprint 0–13 · phát hành 23/05/2026</span>
+        </div>
+        <p class="desc">13 sprint liên tục (~6 tháng) dựng trọn luồng nghiệp vụ Tiếp đón → Khám → CLS → Kê đơn → Thu ngân → Kho dược → BHYT, cùng hạ tầng SaaS multi-tenant.</p>
+        <ul class="items">
+          <li>Auth JWT + Refresh, RBAC 7 role, 2FA/TOTP</li>
+          <li>Multi-tenant + phân quyền, audit log</li>
+          <li>Patient, Reception + hàng đợi realtime</li>
+          <li>Encounter + EMR (Tiptap) + ký số</li>
+          <li>Sinh hiệu, ICD-10, module Tiểu đường</li>
+          <li>CLS (XN/CĐHA) + tích hợp lab ngoài</li>
+          <li>Kê đơn + DDI + ĐTQG + QR</li>
+          <li>Kho dược FEFO, lô/HSD, kiểm kê</li>
+          <li>Thu ngân, ca trực, công nợ, HĐĐT</li>
+          <li>BHYT XML 4750 + đối soát</li>
+          <li>Dashboard + báo cáo + export</li>
+          <li>Patient Portal, API Partners, Web Push</li>
+        </ul>
+        <div class="sprint-strip">
+          <span class="sp"><b>S0</b> Foundation</span><span class="sp"><b>S1</b> Auth/Tenant</span>
+          <span class="sp"><b>S2</b> Patient</span><span class="sp"><b>S3</b> Reception</span>
+          <span class="sp"><b>S4</b> Encounter/EMR</span><span class="sp"><b>S5</b> Vitals/Dx</span>
+          <span class="sp"><b>S6</b> CLS</span><span class="sp"><b>S7</b> Rx/ĐTQG</span>
+          <span class="sp"><b>S8</b> Pharmacy</span><span class="sp"><b>S9</b> Cashier</span>
+          <span class="sp"><b>S10</b> BHYT/Noti</span><span class="sp"><b>S11</b> Reports</span>
+          <span class="sp"><b>S12</b> Portal/API</span><span class="sp"><b>S13</b> Polish</span>
+        </div>
+        <div class="milestone">
+          <span class="m-ic" style="background:color-mix(in srgb,var(--good) 18%,transparent)">🎉</span>
+          <span><b>Mốc:</b> v1.0.0 go-live — không breaking change, 8 user guide, PWA.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GĐ chuyển schema -->
+    <div class="node done">
+      <div class="card">
+        <div class="head">
+          <h2>Chuyển đổi schema — Direction B (MySQL)</h2>
+          <span class="badge done">HOÀN THÀNH</span>
+          <span class="when">ADR 0007 · batch migration 9000–9021</span>
+        </div>
+        <p class="desc">Chuyển nền tảng dữ liệu từ PostgreSQL/RLS sang <b>MySQL 8 + multi-tenant ở application layer</b> để kế thừa schema dump production. EF Core Global Query Filter thay cho Row-Level Security.</p>
+        <ul class="items">
+          <li>Drop legacy + dựng lại sec / patient / encounter / labrad / pharmacy / clinic</li>
+          <li>Seed master data + demo, legacy views tương thích</li>
+          <li>Index hiệu năng, migration idempotent (stored proc check information_schema)</li>
+          <li>Multi-tenant enforce ở service + query filter</li>
+        </ul>
+        <div class="milestone">
+          <span class="m-ic" style="background:color-mix(in srgb,var(--critical) 16%,transparent)">📌</span>
+          <span><b>Nợ kỹ thuật:</b> CHANGELOG/RELEASE-NOTES vẫn ghi PostgreSQL/RLS — cần cập nhật cho khớp source.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GĐ2 -->
+    <div class="node done">
+      <div class="card">
+        <div class="head">
+          <h2>Giai đoạn 2 — Đóng khoảng trống CRUD P0</h2>
+          <span class="badge done">HOÀN THÀNH</span>
+          <span class="when">Xác minh source 02/07/2026</span>
+        </div>
+        <p class="desc">Điều tra source (7 agent đọc code) xác nhận <b>7/7 hạng mục P0 đã implement &amp; nối BE</b> — một lượt khám đi trọn end-to-end trên UI. Con số R7 43/56 = 76.8% là snapshot test cũ 01/06; cần chạy lại E2E để cập nhật.</p>
+        <ul class="items">
+          <li>Encounter: nhập sinh hiệu (tab Sinh hiệu → POST /vital-signs)</li>
+          <li>Encounter: chẩn đoán ICD-10 (Icd10Picker → POST /diagnoses)</li>
+          <li>Encounter: đóng lượt khám (nút → POST /close, BE enforce dx)</li>
+          <li>Prescription: thêm dòng thuốc (DrugAutocomplete → POST /items)</li>
+          <li>Prescription: ký &amp; gửi ĐTQG (wizard 5 bước → /dtqg/submit sandbox + QR)</li>
+          <li>Billing: thu tiền (PaymentDialog → POST /payments)</li>
+          <li>Cashier: thu tiền tại ca + in biên lai theo paymentId</li>
+        </ul>
+        <div class="milestone">
+          <span class="m-ic" style="background:color-mix(in srgb,var(--good) 18%,transparent)">✅</span>
+          <span><b>P0 critical path hoàn tất</b> · fix thêm: in biên lai theo paymentId (tsc + next build pass).</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GĐ3 -->
+    <div class="node next">
+      <div class="card">
+        <div class="head">
+          <h2>Giai đoạn 3 — Khoảng trống P1</h2>
+          <span class="badge next">KẾ TIẾP</span>
+          <span class="when">Sprint 15/06 → 28/06/2026 · ~12 ngày FE</span>
+        </div>
+        <p class="desc">Đóng nhóm P1 (có workaround) + buffer regression từ P0. Song song BE fix BUG-CRUD-01 (Cashier shift timeout).</p>
+        <ul class="items todo">
+          <li>AdminRoles: tạo role mới (CREATE)</li>
+          <li>AdminRoles: sửa permission theo module</li>
+          <li>AdminTenants: tạm khoá / kích hoạt</li>
+          <li>AdminUsers: khoá / mở khoá tài khoản</li>
+          <li>BHYT: xem chi tiết export XML</li>
+          <li>PharmacyDispense: tab Hàng đợi / Lịch sử</li>
+          <li>PharmacyStock: tab &amp; tạo phiếu điều chỉnh</li>
+          <li><s>In phiếu chỉ định CLS</s> — <b>✅ đã làm</b> (trang <code>cls-print</code> client-side, đã build)</li>
+        </ul>
+        <div class="milestone">
+          <span class="m-ic" style="background:color-mix(in srgb,var(--blue) 16%,transparent)">✅</span>
+          <span><b>Mốc:</b> Ổn định vận hành đầy đủ cho phòng khám — sẵn sàng nhân rộng tenant.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GĐ4 -->
+    <div class="node future">
+      <div class="card">
+        <div class="head">
+          <h2>Giai đoạn 4 — v1.1 &amp; nâng cao</h2>
+          <span class="badge future">TƯƠNG LAI</span>
+          <span class="when">Q3/2026 · sau go-live</span>
+        </div>
+        <p class="desc">Nâng cao trải nghiệm và mở rộng năng lực AI/BI. P2 (Drug Search, PrintTicket, UpdatePrice, Supplier Update) đưa vào backlog Q3.</p>
+        <ul class="items todo">
+          <li>AI gợi ý chẩn đoán (Azure OpenAI GPT-4o)</li>
+          <li>AI tóm tắt bệnh án (EMR summarization)</li>
+          <li><b>Tích hợp Đơn thuốc Quốc gia (ĐTQG) production</b> — <i>đã xong phần backend verify được</i>: <code>HttpDtqgClient</code> + token per-tenant (<code>IDtqgCredentialProvider</code> giải mã AES-256-GCM) + payload <code>don_thuoc</code> thật (<code>DtqgPrescriptionPayloadBuilder</code>) + fix handler submit sang schema canonical (build + 35 test pass); còn lại: spec API chính thức + ký USB token thật + reconcile schema <code>dtqg_submissions</code> trên DB (TT 27/2021)</li>
+          <li>Đồng bộ danh mục thuốc/dược Quốc gia (drug master sync từ ĐTQG)</li>
+          <li>Advanced BI — dashboard tuỳ khoảng ngày</li>
+          <li>Batch xử lý đối soát BHYT</li>
+          <li>Tự động cập nhật DB tương tác thuốc</li>
+          <li>P2 backlog: Drug Search, UpdatePrice, Supplier Update…</li>
+          <li><s>Nút in vé số thứ tự</s> — <b>✅ đã có sẵn</b> trong TicketCard (gọi ticket-pdf)</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       KẾ HOẠCH & TIẾN ĐỘ KIỂM THỬ — PHÒNG KHÁM MÔ PHỎNG
+       ============================================================ -->
+  <div class="sechead" id="kiem-thu">
+    <span class="ic">🧪</span>
+    <h2>Kế hoạch &amp; tiến độ kiểm thử — Phòng khám mô phỏng</h2>
+    <span class="line"></span>
+  </div>
+
+  <div class="note info">
+    🎯 <b>Mục đích:</b> Kiểm thử toàn hệ thống HIS như một phòng khám vận hành thực tế — giả lập <b>50 bệnh nhân</b>
+    (thông tin &amp; nhu cầu khác nhau, đến rải theo 5 ngày), agent <b>Lễ tân</b> tiếp nhận bệnh cũ/mới,
+    <b>Bác sĩ</b> khám đúng quy trình, <b>Dược</b> cấp phát, <b>Thu ngân</b> thu tiền — kèm <b>10 kịch bản ngoại lệ</b>.
+    Chạy bằng <b>Playwright E2E qua UI thật</b> trên tenant test riêng <code>DIAB-TEST</code> (tenant_id=2, tách biệt với dữ liệu demo).
+  </div>
+
+  <!-- A) KẾ HOẠCH -->
+  <div class="card">
+    <div class="head">
+      <h3>A · Kế hoạch test</h3>
+      <span class="badge active">ĐANG TRIỂN KHAI</span>
+    </div>
+    <div class="kv" style="margin-top:10px">
+      <b>Mục tiêu</b><span>Xác nhận luồng nghiệp vụ end-to-end + 10 ngoại lệ hoạt động đúng như phòng khám thực; đo tính ổn định và cách ly multi-tenant.</span>
+      <b>Phạm vi</b><span>Tiếp đón → Khám (sinh hiệu, ICD-10, EMR) → CLS → Kê đơn (ĐTQG mock) → Cấp phát (FEFO) → Thu ngân (ca, BHYT, thanh toán).</span>
+      <b>Môi trường</b><span>Backend .NET 8 <code>:5000</code>, Frontend Next.js <code>:3000</code>, MySQL 8 + Redis (Docker <code>ops/docker-compose.yml</code>). Tích hợp ngoài (ĐTQG/BHYT/SMS/ký số) là <b>Mock</b> nên chạy offline được.</span>
+      <b>Công cụ</b><span>Playwright E2E (TypeScript) qua UI thật — <code>frontend/e2e/sim/</code>. Chạy tuần tự <code>workers:1</code>, chia lô theo "ngày".</span>
+      <b>Dữ liệu</b><span>Tenant <code>DIAB-TEST</code>: 7 tài khoản/6 vai trò, 4 phòng, 8 thuốc (có thuốc <b>thiếu tồn</b> &amp; <b>cận HSD</b>), 1 luật DDI chống chỉ định, 15 BN nền. Seed: <code>db/seeds/diab_test_tenant.sql</code>.</span>
+      <b>Chiến lược</b><span>Smoke 10 BN (<code>SIM_PATIENTS=10</code>) → nếu PASS chạy full 50 BN + bộ ngoại lệ. Mỗi bước bọc PASS/SKIP/FAIL, chụp màn hình, xuất <code>test-results/clinic-sim-report.json</code>.</span>
+      <b>Tiêu chí PASS</b><span>Đăng nhập OK; mỗi BN đi trọn luồng không lỗi chặn; ngoại lệ trả đúng mã lỗi kỳ vọng; dữ liệu tenant 2 <b>không</b> lộ sang tenant 1.</span>
+    </div>
+    <div class="sprint-strip">
+      <span class="sp"><b>devops</b> dựng môi trường</span>
+      <span class="sp"><b>tester</b> chạy &amp; thu bằng chứng</span>
+      <span class="sp"><b>backend</b> fix bug phát hiện</span>
+      <span class="sp"><b>qc</b> review + kiểm tra cách ly tenant</span>
+    </div>
+  </div>
+
+  <!-- B) NỘI DUNG / KỊCH BẢN -->
+  <div class="card">
+    <div class="head">
+      <h3>B · Nội dung test — Kịch bản</h3>
+      <span class="badge done">ĐÃ SOẠN</span>
+    </div>
+
+    <p class="desc" style="margin:10px 0 0"><b>B1 · Luồng chuẩn một lượt khám</b> (áp cho cả 50 bệnh nhân):</p>
+    <table class="tt">
+      <thead><tr><th class="n">#</th><th>Vai trò</th><th>Hành động trên UI</th><th>Kết quả kỳ vọng</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td>Lễ tân</td><td><code>/login</code> → nhập email/mật khẩu → "Đăng nhập"</td><td>Vào dashboard</td></tr>
+        <tr><td class="n">2</td><td>Lễ tân</td><td><code>/reception</code>: tìm BN <b>cũ</b> (search) hoặc "Thêm bệnh nhân" tạo BN <b>mới</b> → chọn phòng → "Tiếp đón (F4)"</td><td>Vé hàng đợi <code>WAITING</code> + số thứ tự</td></tr>
+        <tr><td class="n">3</td><td>Bác sĩ</td><td><code>/encounters/new</code>: chọn BN + bác sĩ + loại khám + lý do → "Tạo lượt khám"</td><td>Lượt khám <code>WAITING</code></td></tr>
+        <tr><td class="n">4</td><td>Bác sĩ</td><td>Nút "Bắt đầu khám"</td><td>Chuyển <code>IN_PROGRESS</code></td></tr>
+        <tr><td class="n">5</td><td>Bác sĩ</td><td>Tab "Sinh hiệu": mạch, nhiệt độ, huyết áp, SpO2 → "Lưu sinh hiệu"</td><td>Lưu sinh hiệu + tính BMI</td></tr>
+        <tr><td class="n">6</td><td>Bác sĩ</td><td>Tab "Chẩn đoán": chọn ICD-10 (E11.9, I10…) → "Lưu chẩn đoán"</td><td>Ghi chẩn đoán</td></tr>
+        <tr><td class="n">7</td><td>Bác sĩ</td><td>Tab "Đơn thuốc": tìm thuốc, thêm liều → "Ký số &amp; gửi ĐTQG"</td><td>Đơn <code>SIGNED</code> + mã ĐTQG (mock) + QR</td></tr>
+        <tr><td class="n">8</td><td>Bác sĩ</td><td>Nút "Đóng lượt khám"</td><td>Chuyển <code>DONE</code></td></tr>
+        <tr><td class="n">9</td><td>Dược sĩ</td><td><code>/pharmacy/dispense</code> tab "Hàng chờ" → "Phát thuốc" (tự FEFO)</td><td>Trừ tồn theo lô, đơn <code>DISPENSED</code></td></tr>
+        <tr><td class="n">10</td><td>Kế toán</td><td><code>/cashier</code>: "Mở ca" → hóa đơn → "Thu tiền" → "Đóng ca"</td><td>Hóa đơn <code>PAID</code>, ca khớp tiền</td></tr>
+      </tbody>
+    </table>
+
+    <p class="desc" style="margin:18px 0 0"><b>B2 · Ma trận 10 kịch bản ngoại lệ</b> (bệnh cũ/mới, hết thuốc, quá tải…):</p>
+    <table class="tt">
+      <thead><tr><th class="n">#</th><th>Ngoại lệ</th><th>Kích hoạt</th><th>Kết quả kỳ vọng</th><th>Phục hồi</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td>Hết thuốc</td><td>Cấp phát thuốc thiếu tồn (Gliclazide)</td><td><span class="pill err">422 PHARMACY_STOCK_INSUFFICIENT</span></td><td>Dược nhập kho rồi phát lại</td></tr>
+        <tr><td class="n">2</td><td>Nhập kho</td><td>Tạo phiếu nhập PO + GRN</td><td>Tồn tăng, <code>stocks_updated</code></td><td>Phát thuốc thành công</td></tr>
+        <tr><td class="n">3</td><td>Cận HSD / FEFO</td><td>Thuốc 2 lô, 1 lô cận HSD (Insulin)</td><td>Cảnh báo <code>near-expiry</code>; FEFO chọn lô hết hạn sớm trước</td><td>—</td></tr>
+        <tr><td class="n">4</td><td>Bác sĩ bận / quá tải</td><td>Dồn nhiều BN 1 bác sĩ; lượt khám treo &gt;12h</td><td><code>waiting</code> cao; alert <code>over-12h</code></td><td>Phân phối lại phòng/bác sĩ</td></tr>
+        <tr><td class="n">5</td><td>Tương tác thuốc (DDI)</td><td>Kê cặp chống chỉ định (Atorvastatin + Gemfibrozil)</td><td><span class="pill err">409 PRESCRIPTION_DDI_BLOCKED</span> — chặn ký</td><td>Bác sĩ đổi thuốc</td></tr>
+        <tr><td class="n">6</td><td>Thẻ BHYT lỗi</td><td>apply-bhyt thẻ hết hạn / sai tuyến</td><td><span class="pill err">400 BILLING_INVALID_BHYT</span></td><td>Chuyển tự trả / sửa thẻ</td></tr>
+        <tr><td class="n">7</td><td>Sai luồng trạng thái</td><td>Đóng lượt chưa "Bắt đầu"; finalize hóa đơn 2 lần</td><td><code>ENCOUNTER_INVALID_TRANSITION</code>, <code>BILLING_ALREADY_FINALIZED</code></td><td>Thao tác đúng thứ tự</td></tr>
+        <tr><td class="n">8</td><td>Đóng ca lệch tiền</td><td>Tiền thực đếm ≠ hệ thống</td><td><span class="pill err">422 CASHIER_CASH_DIFFERENCE</span></td><td>Chấp nhận chênh có ghi chú</td></tr>
+        <tr><td class="n">9</td><td>Tài khoản bị khoá</td><td>Đăng nhập sai nhiều lần</td><td>User <code>LOCKED</code></td><td>Admin mở khoá</td></tr>
+        <tr><td class="n">10</td><td>Quá tải hệ thống</td><td>Bắn nhiều request (nhiều user)</td><td><span class="pill err">429 RATE_LIMIT_EXCEEDED</span> + Retry-After</td><td>Backoff theo Retry-After</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- C) TIẾN ĐỘ -->
+  <div class="sechead" style="margin-top:28px">
+    <span class="ic" style="background:linear-gradient(135deg,var(--aqua),var(--blue))">📈</span>
+    <h2>C · Tiến độ kiểm thử</h2>
+    <span class="line"></span>
+  </div>
+
+  <div class="tl">
+    <div class="node done">
+      <div class="card">
+        <div class="head"><h2>1 · Soạn kế hoạch &amp; kịch bản</h2><span class="badge done">HOÀN THÀNH</span></div>
+        <p class="desc">Kế hoạch test, luồng chuẩn 10 bước, ma trận 10 ngoại lệ — trình bày ngay trong trang này (mục A/B).</p>
+      </div>
+    </div>
+    <div class="node done">
+      <div class="card">
+        <div class="head"><h2>2 · Seed tenant DIAB-TEST</h2><span class="badge done">HOÀN THÀNH</span></div>
+        <p class="desc">Script SQL <code>db/seeds/diab_test_tenant.sql</code>: tenant_id=2, 7 tài khoản/6 vai trò, 4 phòng, 8 thuốc (thiếu tồn + cận HSD), luật DDI, 15 BN nền. Idempotent.</p>
+      </div>
+    </div>
+    <div class="node done">
+      <div class="card">
+        <div class="head"><h2>3 · Harness Playwright</h2><span class="badge done">HOÀN THÀNH</span></div>
+        <p class="desc">Bộ mô phỏng <code>frontend/e2e/sim/</code>: 50 persona (5 ngày×10), agent Lễ tân/Bác sĩ/Dược/Thu ngân/KTV, orchestrator + bộ ngoại lệ. Đã typecheck.</p>
+      </div>
+    </div>
+    <div class="node done">
+      <div class="card">
+        <div class="head"><h2>4 · Dựng môi trường chạy live</h2><span class="badge done">HOÀN THÀNH</span></div>
+        <p class="desc">Máy không có Docker/MySQL (nguồn tải bị chặn) → dùng <b>MySQL 8.0.39 portable</b> có sẵn: seed dump + migration + <code>DIAB-TEST</code>; <b>backend :5000</b> (roll-forward .NET 10, tắt Redis, CORS +:3100); <b>frontend :3100</b>; <b>Chromium</b>. Đăng nhập 6 vai trò OK.</p>
+      </div>
+    </div>
+    <div class="node done">
+      <div class="card">
+        <div class="head"><h2>5 · Chạy sim · hardening · sửa bug</h2><span class="badge done">HOÀN THÀNH</span></div>
+        <p class="desc">Hardening selector theo DOM thật + thêm bước ký số bệnh án. Bộ mô phỏng <b>phát hiện 6 bug thật, đã sửa 5</b> (xem bảng "Bug thật" bên dưới).</p>
+      </div>
+    </div>
+    <div class="node done">
+      <div class="card">
+        <div class="head"><h2>6 · Luồng lâm sàng end-to-end</h2><span class="badge done">XANH</span></div>
+        <p class="desc"><b>6/6 bệnh nhân đi trọn</b>: tiếp đón → khám → sinh hiệu → chẩn đoán → bệnh án → <b>ký số → đóng lượt khám → kê đơn → ký &amp; gửi ĐTQG → mở ca thu ngân</b> đều PASS.</p>
+      </div>
+    </div>
+    <div class="node next">
+      <div class="card">
+        <div class="head"><h2>7 · Cấp phát/thu tiền · full 50 · ngoại lệ</h2><span class="badge next">CHỜ FIX</span></div>
+        <p class="desc">Cấp phát/thu tiền còn SKIP: module <b>Dispensing xây trên khóa INT lệch GUID</b> — cần ticket rework riêng. Sau đó: full 50 BN + 10 ngoại lệ + RBAC vai trò thật (rà mã permission seed).</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="tt">
+    <thead><tr><th>Hạng mục</th><th class="n">Tổng bước</th><th class="n">PASS</th><th class="n">FAIL</th><th class="n">SKIP</th><th>Trạng thái</th></tr></thead>
+    <tbody>
+      <tr><td>Artifact (kế hoạch · seed · harness)</td><td class="n">3</td><td class="n">3</td><td class="n">0</td><td class="n">0</td><td><span class="pill ok">Hoàn thành</span></td></tr>
+      <tr><td>Luồng lâm sàng (6 BN, admin-bypass)</td><td class="n">103</td><td class="n">87</td><td class="n">1</td><td class="n">15</td><td><span class="pill ok">Đã chạy · xanh tới ĐTQG</span></td></tr>
+      <tr><td>Cấp phát thuốc + thu tiền</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td><span class="pill wait">Chờ fix Dispensing (INT↔GUID)</span></td></tr>
+      <tr><td>Full 50 BN + 10 ngoại lệ + RBAC role</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td><span class="pill wait">Sau khi fix</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="card" style="margin-top:16px">
+    <div class="head"><h3>🐞 Bug thật do mô phỏng phát hiện</h3><span class="badge done">5/6 ĐÃ FIX</span></div>
+    <table class="tt">
+      <thead><tr><th class="n">#</th><th>Bug</th><th>Ảnh hưởng</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td>Thiếu view <code>sec_permissions</code>/<code>sec_role_permissions</code> (9009 bỏ sót) → <code>JwtService</code> nuốt lỗi → token role thật mất claim quyền</td><td>Mọi vai trò thật bị 403</td><td><span class="pill ok">Fixed · mig 9022</span></td></tr>
+        <tr><td class="n">2</td><td>Check-in query cột <code>queue_number</code> không tồn tại; <code>patient_id</code> sai kiểu INT (phải GUID)</td><td>Tiếp đón lỗi 500</td><td><span class="pill ok">Fixed · mig 9023</span></td></tr>
+        <tr><td class="n">3</td><td><code>/drugs/search</code> trỏ view cũ thiếu cột <code>name_vi</code>; seed <code>name_vi</code> rỗng</td><td>Không kê được thuốc (500)</td><td><span class="pill ok">Fixed</span></td></tr>
+        <tr><td class="n">4</td><td><code>/reception/queue</code> cùng gốc lỗi <code>queue_number</code></td><td>Hàng đợi lỗi 500</td><td><span class="pill ok">Fixed</span></td></tr>
+        <tr><td class="n">5</td><td><code>drug_id</code> lệch kiểu (search trả GUID, DTO nhận INT); cột <code>prescription_items</code> còn INT</td><td>Thêm dòng thuốc 400/500</td><td><span class="pill ok">Fixed · mig 9024</span></td></tr>
+        <tr><td class="n">6</td><td>Module <b>Dispensing</b> xây trên khóa INT trong khi DB dùng GUID (<code>PrescriptionId</code>, <code>drug_id</code>…)</td><td>Cấp phát/thu tiền chưa chạy</td><td><span class="pill err">Cần rework riêng</span></td></tr>
+      </tbody>
+    </table>
+    <p class="desc" style="margin-top:8px">Phụ: mã permission seed (<code>reception.create</code>) lệch mã controller (<code>reception.checkin</code>) → cần rà soát RBAC (tạm chạy admin-bypass để kiểm luồng nghiệp vụ).</p>
+  </div>
+
+  <div class="note info">
+    ✅ <b>Trạng thái thật (cập nhật <span id="test-updated">02/07/2026</span>):</b> Môi trường đã dựng thành công (MySQL portable + backend + frontend + Chromium) dù máy không có Docker.
+    Bộ mô phỏng đã chạy thật, đưa <b>6/6 bệnh nhân đi trọn luồng lâm sàng</b> (tiếp đón → khám → ký bệnh án → đóng lượt → kê đơn → ký &amp; gửi ĐTQG → mở ca) và <b>phát hiện 6 bug thật, đã sửa 5</b>.
+    Bước <b>cấp phát/thu tiền</b> chờ rework module Dispensing (khóa INT ↔ GUID). Chi tiết: <code>docs/test/clinic-sim-evidence.md</code> · gallery 14 ảnh <a href="../test/evidence.html"><code>docs/test/evidence.html</code></a> · harness <code>frontend/e2e/sim/</code>.
+  </div>
+
+  <footer>
+    <div><b>Nguồn:</b> RELEASE-NOTES-v1.0.md (sprint 0–13) · docs/prd/crud-gap-triage-2026-05-31.md · docs/test/crud-evidence-r7.md · docs/adr/0007-direction-b-schema-cleanup.md · CHANGELOG.md [Unreleased].</div>
+    <div style="margin-top:6px"><a href="dashboard-status.html">← Về Dashboard trạng thái</a></div>
+  </footer>
+</div>
+
+<script>
+  const btn = document.getElementById('themeBtn');
+  const root = document.documentElement;
+  function setTheme(t){ root.setAttribute('data-theme', t); btn.textContent = t === 'dark' ? '☀️ Sáng' : '🌙 Tối'; try{localStorage.setItem('pd-theme',t);}catch(e){} }
+  btn.addEventListener('click', () => setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+  try { const s = localStorage.getItem('pd-theme'); if (s) setTheme(s); else if (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark'); } catch(e){}
+</script>
+</body>
+</html>

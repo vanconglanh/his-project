@@ -1,0 +1,402 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Drug Master API
+  version: 1.0.0
+  description: Drug master catalog, import Excel, sync with Cục QLD CSDL Dược QG.
+servers:
+  - url: https://api.prodiab.vn/api/v1
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Drugs
+  - name: Drug Categories
+  - name: Drug Integration
+
+paths:
+  /drugs:
+    get:
+      tags: [Drugs]
+      summary: List drugs
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, INACTIVE] }
+        - name: requires_prescription
+          in: query
+          schema: { type: boolean }
+        - name: atc_code
+          in: query
+          schema: { type: string }
+        - name: category_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DrugMasterResponse' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+      x-permission: drug.read
+    post:
+      tags: [Drugs]
+      summary: Create drug
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DrugMasterRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DrugMasterResponse' }
+        '409':
+          description: Duplicate code
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: DRUG_CODE_EXISTS, message: "Mã thuốc đã tồn tại." }
+      x-permission: drug.write
+
+  /drugs/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Drugs]
+      summary: Get drug
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DrugMasterResponse' }
+        '404': { $ref: '#/components/responses/DrugNotFound' }
+      x-permission: drug.read
+    put:
+      tags: [Drugs]
+      summary: Update drug
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DrugMasterRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DrugMasterResponse' }
+      x-permission: drug.write
+    delete:
+      tags: [Drugs]
+      summary: Soft delete drug
+      responses:
+        '204': { description: No Content }
+      x-permission: drug.write
+
+  /drugs/import:
+    post:
+      tags: [Drugs]
+      summary: Import drugs from Excel
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                mode:
+                  type: string
+                  enum: [INSERT, UPSERT]
+                  default: UPSERT
+      responses:
+        '200':
+          description: Import summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_rows: { type: integer }
+                      inserted: { type: integer }
+                      updated: { type: integer }
+                      failed: { type: integer }
+                      errors:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            row: { type: integer }
+                            message: { type: string }
+        '400':
+          description: Invalid format
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: DRUG_IMPORT_INVALID_FORMAT, message: "Định dạng file Excel không hợp lệ." }
+      x-permission: drug.import
+
+  /drugs/search:
+    get:
+      tags: [Drugs]
+      summary: Autocomplete for prescribing
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DrugMasterResponse' }
+      x-permission: drug.read
+
+  /drugs/{id}/equivalents:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Drugs]
+      summary: Equivalent drugs (same ATC / generic)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DrugMasterResponse' }
+      x-permission: drug.read
+
+  /drugs/{id}/interactions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Drugs]
+      summary: List DDI rules for this drug
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DdiRule' }
+      x-permission: ddi.check
+
+  /drugs/categories:
+    get:
+      tags: [Drug Categories]
+      summary: List categories
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DrugCategory' }
+      x-permission: drug.read
+    post:
+      tags: [Drug Categories]
+      summary: Create category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string }
+                name: { type: string }
+                parent_id: { type: string, format: uuid, nullable: true }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DrugCategory' }
+      x-permission: drug.write
+
+  /drugs/sync-cuc-qld:
+    post:
+      tags: [Drug Integration]
+      summary: Sync drug master with CSDL Dược Quốc Gia
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: [FULL, INCREMENTAL]
+                  default: INCREMENTAL
+                since: { type: string, format: date-time }
+      responses:
+        '202':
+          description: Background job started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      job_id: { type: string, format: uuid }
+        '424':
+          description: Sync failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                error: { code: DRUG_DTQG_SYNC_FAILED, message: "Đồng bộ CSDL Dược QG thất bại." }
+      x-permission: drug.sync
+
+components:
+  securitySchemes:
+    BearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    DrugNotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          example:
+            error: { code: DRUG_NOT_FOUND, message: "Không tìm thấy thuốc." }
+  schemas:
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    DrugMasterRequest:
+      type: object
+      required: [code, name_vi, unit, form]
+      properties:
+        code: { type: string }
+        name_vi: { type: string }
+        name_en: { type: string }
+        generic_name: { type: string }
+        atc_code: { type: string, maxLength: 20 }
+        strength: { type: string, example: "500mg" }
+        unit: { type: string, example: "viên" }
+        form:
+          type: string
+          enum: [TABLET, CAPSULE, SYRUP, INJ, CREAM, OINTMENT, DROP, INHALER, POWDER, SUPPOSITORY, OTHER]
+        manufacturer: { type: string }
+        country: { type: string }
+        price: { type: number, format: double }
+        category_id: { type: string, format: uuid, nullable: true }
+        requires_prescription: { type: boolean, default: true }
+        is_psychotropic: { type: boolean, default: false }
+        is_narcotic: { type: boolean, default: false }
+        dtqg_drug_code: { type: string, maxLength: 50 }
+        status: { type: string, enum: [ACTIVE, INACTIVE], default: ACTIVE }
+    DrugMasterResponse:
+      allOf:
+        - $ref: '#/components/schemas/DrugMasterRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            tenant_id: { type: string, format: uuid }
+            interactions_count: { type: integer }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    DrugCategory:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        parent_id: { type: string, format: uuid, nullable: true }
+    DdiRule:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        drug1_id: { type: string, format: uuid }
+        drug1_name: { type: string }
+        drug2_id: { type: string, format: uuid }
+        drug2_name: { type: string }
+        severity:
+          type: string
+          enum: [MINOR, MODERATE, MAJOR, CONTRAINDICATED]
+        description: { type: string }
+        evidence_level: { type: string, enum: [A, B, C] }

@@ -1,0 +1,108 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: 57.155.1.252    Database: diab_his
+-- ------------------------------------------------------
+-- Server version	8.0.23
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-8b67-11ef-b09a-0242ac130002:1-22227759';
+
+--
+-- Table structure for table `pat_consents`
+--
+
+DROP TABLE IF EXISTS `pat_consents`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `pat_consents` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `CODE` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Consent code',
+  `PATIENT_ID` int NOT NULL COMMENT 'Reference to pat_patients',
+  `CONSENT_TYPE` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Type: TREATMENT, DISCLOSURE, RESEARCH, PHOTOS, etc.',
+  `CONSENT_TITLE` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Consent title',
+  `CONSENT_DESCRIPTION` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Consent description',
+  `CONSENT_VERSION` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Consent form version',
+  `CONSENTED` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Consent given',
+  `CONSENT_DATE` datetime DEFAULT NULL COMMENT 'Date consent was given',
+  `EXPIRATION_DATE` datetime DEFAULT NULL COMMENT 'Consent expiration date',
+  `WITHDRAWN` tinyint(1) DEFAULT '0' COMMENT 'Consent withdrawn',
+  `WITHDRAWAL_DATE` datetime DEFAULT NULL COMMENT 'Withdrawal date',
+  `WITHDRAWAL_REASON` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Reason for withdrawal',
+  `AUTHORIZING_PERSON` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Person authorizing (if not patient)',
+  `RELATIONSHIP_TO_PATIENT` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Relationship to patient',
+  `LEGAL_GUARDIAN_REQUIRED` tinyint(1) DEFAULT '0' COMMENT 'Legal guardian required',
+  `GUARDIAN_NAME` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Legal guardian name',
+  `GUARDIAN_RELATIONSHIP` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Guardian relationship',
+  `WITNESSES` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Witnesses (JSON)',
+  `CONSENT_FORM_URL` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Consent form URL',
+  `DIGITAL_SIGNATURE` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Digital signature data',
+  `IP_ADDRESS` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'IP address where consent was given',
+  `DEVICE_INFO` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Device information',
+  `VERIFIED_BY` int DEFAULT NULL COMMENT 'Verified by user ID',
+  `VERIFICATION_METHOD` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Method: DIGITAL, PAPER, VERBAL',
+  `CONSENT_SCOPE` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Scope of consent (JSON)',
+  `LIMITATIONS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Consent limitations',
+  `SPECIAL_CONDITIONS` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Special conditions',
+  `ENCRYPTION_KEY_ID` int DEFAULT NULL COMMENT 'Encryption key used for sensitive data',
+  `AUDIT_TRAIL` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Consent audit trail (JSON)',
+  `CREATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `LAST_UPDATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `STATUS` int NOT NULL DEFAULT '1',
+  `CREATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_PROGRAM` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `IDX_PATIENT_ID` (`PATIENT_ID`),
+  KEY `IDX_CONSENT_TYPE` (`CONSENT_TYPE`),
+  KEY `IDX_CONSENTED` (`CONSENTED`),
+  KEY `IDX_CONSENT_DATE` (`CONSENT_DATE`),
+  KEY `IDX_EXPIRATION_DATE` (`EXPIRATION_DATE`),
+  KEY `IDX_WITHDRAWN` (`WITHDRAWN`),
+  KEY `IDX_VERIFIED_BY` (`VERIFIED_BY`),
+  KEY `IDX_STATUS` (`STATUS`),
+  KEY `IDX_CREATED_AT` (`CREATED_AT`),
+  KEY `FK_CONSENT_ENCRYPTION_KEY` (`ENCRYPTION_KEY_ID`),
+  KEY `IDX_PAT_CONSENTS_PATIENT_ID` (`PATIENT_ID`),
+  CONSTRAINT `FK_CONSENT_ENCRYPTION_KEY` FOREIGN KEY (`ENCRYPTION_KEY_ID`) REFERENCES `sec_encryption_keys` (`ID`),
+  CONSTRAINT `FK_CONSENT_PATIENT` FOREIGN KEY (`PATIENT_ID`) REFERENCES `pat_patients` (`ID`),
+  CONSTRAINT `FK_CONSENT_VERIFIED_BY` FOREIGN KEY (`VERIFIED_BY`) REFERENCES `sec_users` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Patient Consents and Authorizations';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pat_consents`
+--
+
+LOCK TABLES `pat_consents` WRITE;
+/*!40000 ALTER TABLE `pat_consents` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pat_consents` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-05-22 22:19:49

@@ -1,0 +1,278 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - BHYT Reconcile API
+  version: 1.0.0
+  description: |
+    Sprint 9 EPIC 7 - Đối soát kết quả giám định BHYT.
+    Story US-BH06.
+servers:
+  - url: https://api.prodiab.vn
+  - url: http://localhost:5000
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: BHYT Reconcile
+
+paths:
+  /api/v1/bhyt/reconcile/import:
+    post:
+      tags: [BHYT Reconcile]
+      summary: Upload file kết quả giám định từ cổng BHYT
+      operationId: importReconcileFile
+      description: Permission `bhyt.reconcile`. Parse XML kết quả giám định, cập nhật approved/rejected amount cho items.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [export_id, file]
+              properties:
+                export_id: { type: string, format: uuid }
+                file: { type: string, format: binary }
+          application/json:
+            schema:
+              type: object
+              required: [export_id, xml_file_path]
+              properties:
+                export_id: { type: string, format: uuid }
+                xml_file_path: { type: string }
+      responses:
+        '202':
+          description: Imported - background parse
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReconcileUploadEnvelope' }
+        '400':
+          description: BHYT_RECONCILE_FILE_INVALID
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/reconcile/{exportId}:
+    parameters:
+      - name: exportId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: status_filter
+        in: query
+        description: Filter theo trạng thái item
+        schema:
+          type: string
+          enum: [ALL, APPROVED, REJECTED, ADJUSTED, DISPUTED]
+      - name: page
+        in: query
+        schema: { type: integer, default: 1 }
+      - name: page_size
+        in: query
+        schema: { type: integer, default: 50 }
+    get:
+      tags: [BHYT Reconcile]
+      summary: List items theo kết quả giám định (từ chối / sửa / chấp nhận)
+      operationId: listReconcileItems
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReconcileItemListEnvelope' }
+
+  /api/v1/bhyt/reconcile/{itemId}/dispute:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [BHYT Reconcile]
+      summary: Khiếu nại 1 item bị từ chối
+      operationId: disputeReconcileItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+                evidence_file_path: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Disputed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReconcileItemEnvelope' }
+        '404':
+          description: BHYT_RECONCILE_ITEM_NOT_FOUND
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/reconcile/{itemId}/accept:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [BHYT Reconcile]
+      summary: Chấp nhận kết quả giám định
+      operationId: acceptReconcileItem
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string }
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReconcileItemEnvelope' }
+        '404':
+          description: BHYT_RECONCILE_ITEM_NOT_FOUND
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/bhyt/reconcile/{exportId}/summary:
+    parameters:
+      - name: exportId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [BHYT Reconcile]
+      summary: Tổng tiền yêu cầu vs duyệt vs từ chối
+      operationId: getReconcileSummary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReconcileSummaryEnvelope' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - BHYT_RECONCILE_FILE_INVALID
+                - BHYT_RECONCILE_ITEM_NOT_FOUND
+                - BHYT_EXPORT_NOT_FOUND
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+
+    ReconcileUploadResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        export_id: { type: string, format: uuid }
+        file_path: { type: string }
+        uploaded_at: { type: string, format: date-time }
+        parsed_at: { type: string, format: date-time, nullable: true }
+        parse_status:
+          type: string
+          enum: [PENDING, PARSING, PARSED, FAILED]
+        parse_error: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        created_by: { type: string, format: uuid }
+
+    ReconcileUploadEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/ReconcileUploadResponse' }
+
+    ReconcileItemResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        export_id: { type: string, format: uuid }
+        export_item_id: { type: string, format: uuid }
+        table_no: { type: integer }
+        ma_lien_ket: { type: string }
+        request_amount: { type: number, format: double }
+        approved_amount: { type: number, format: double }
+        rejected_amount: { type: number, format: double }
+        rejection_code: { type: string, nullable: true }
+        rejection_reason: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [APPROVED, REJECTED, ADJUSTED, DISPUTED, ACCEPTED]
+        dispute_reason: { type: string, nullable: true }
+        dispute_evidence_path: { type: string, nullable: true }
+        updated_at: { type: string, format: date-time }
+
+    ReconcileItemEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/ReconcileItemResponse' }
+
+    ReconcileItemListEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ReconcileItemResponse' }
+        meta:
+          type: object
+          properties:
+            page: { type: integer }
+            page_size: { type: integer }
+            total: { type: integer }
+
+    ReconcileSummary:
+      type: object
+      properties:
+        export_id: { type: string, format: uuid }
+        period_month: { type: string }
+        total_items: { type: integer }
+        approved_items: { type: integer }
+        rejected_items: { type: integer }
+        adjusted_items: { type: integer }
+        disputed_items: { type: integer }
+        total_requested_amount: { type: number, format: double }
+        total_approved_amount: { type: number, format: double }
+        total_rejected_amount: { type: number, format: double }
+        by_table:
+          type: array
+          items:
+            type: object
+            properties:
+              table_no: { type: integer }
+              requested: { type: number, format: double }
+              approved: { type: number, format: double }
+              rejected: { type: number, format: double }
+        top_rejection_reasons:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { type: string }
+              reason: { type: string }
+              count: { type: integer }
+              amount: { type: number, format: double }
+
+    ReconcileSummaryEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/ReconcileSummary' }

@@ -1,0 +1,189 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Reports Pharmacy API
+  version: 1.0.0
+  description: |
+    Sprint 11 EPIC 9 - Pharmacy reports (US-RP06, RP07).
+    Permission: report.read, report.export.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /reports/pharmacy/top-drugs:
+    get:
+      summary: Top selling drugs
+      tags: [Reports-Pharmacy]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: top, in: query, schema: { type: integer, default: 20 } }
+        - { name: order_by, in: query, schema: { type: string, enum: [QUANTITY, REVENUE], default: REVENUE } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        drug_id: { type: string, format: uuid }
+                        drug_code: { type: string }
+                        drug_name: { type: string }
+                        quantity_sold: { type: number }
+                        revenue: { type: number }
+                        prescription_count: { type: integer }
+
+  /reports/pharmacy/inventory-value:
+    get:
+      summary: Current inventory value at cost
+      tags: [Reports-Pharmacy]
+      parameters:
+        - { name: warehouse_id, in: query, schema: { type: string, format: uuid } }
+        - { name: as_of, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_value: { type: number }
+                      total_skus: { type: integer }
+                      by_category:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            category: { type: string }
+                            value: { type: number }
+                            sku_count: { type: integer }
+
+  /reports/pharmacy/near-expiry-summary:
+    get:
+      summary: Near-expiry drugs summary
+      tags: [Reports-Pharmacy]
+      parameters:
+        - { name: days_threshold, in: query, schema: { type: integer, default: 90 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_lots: { type: integer }
+                      total_value_at_risk: { type: number }
+                      by_bucket:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            bucket: { type: string, example: "0-30d" }
+                            lot_count: { type: integer }
+                            value: { type: number }
+
+  /reports/pharmacy/stock-movements-summary:
+    get:
+      summary: Stock movements summary (IN/OUT/ADJUST)
+      tags: [Reports-Pharmacy]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: warehouse_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_in_qty: { type: number }
+                      total_out_qty: { type: number }
+                      total_adjust_qty: { type: number }
+                      total_in_value: { type: number }
+                      total_out_value: { type: number }
+                      by_day:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date: { type: string, format: date }
+                            in_qty: { type: number }
+                            out_qty: { type: number }
+
+  /reports/prescriptions/by-doctor:
+    get:
+      summary: Prescriptions count/value per doctor
+      tags: [Reports-Pharmacy]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: top, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        doctor_id: { type: string, format: uuid }
+                        doctor_name: { type: string }
+                        prescription_count: { type: integer }
+                        total_items: { type: integer }
+                        total_value: { type: number }
+                        avg_items_per_rx: { type: number }
+
+  /reports/dtqg/submission-rate:
+    get:
+      summary: DTQG submission success rate
+      tags: [Reports-Pharmacy]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_prescriptions: { type: integer }
+                      submitted: { type: integer }
+                      success: { type: integer }
+                      failed: { type: integer }
+                      pending: { type: integer }
+                      success_rate: { type: number }
+                      avg_submission_time_ms: { type: integer }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

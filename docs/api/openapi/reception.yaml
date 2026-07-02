@@ -1,0 +1,301 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Reception API
+  version: 1.0.0
+  description: |
+    API tiếp đón bệnh nhân (Reception) - US-RC01..RC06.
+    Bao gồm check-in, quản lý queue, gọi BN vào phòng, in phiếu PDF, dashboard.
+    Mapping FHIR: Appointment, Encounter (status=arrived/triaged).
+    Bảng chính: `diab_his_rcp_queue_tickets` (migration 0022).
+
+servers:
+  - url: https://api.prodiab.vn
+  - url: http://localhost:5080
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Reception Check-in
+  - name: Reception Queue
+  - name: Reception Rooms
+  - name: Reception Stats
+
+paths:
+  /api/v1/reception/check-in:
+    post:
+      tags: [Reception Check-in]
+      summary: Tiếp đón bệnh nhân (US-RC01)
+      description: |
+        Permission `reception.checkin`. Tạo queue ticket cho BN.
+        Tự sinh `ticket_no` 3 chữ số theo room+ngày (001..999).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckInRequest' }
+            example:
+              patient_id: 6f2a5b8e-1234-4abc-9def-0123456789ab
+              room_id: aa11bb22-3344-5566-7788-99aabbccddee
+              service_package_ids: [pk-kham-noi-tong-quat]
+              reason_for_visit: Đau đầu, chóng mặt 3 ngày nay
+              note: BN có hẹn trước qua điện thoại
+              priority: NORMAL
+      responses:
+        '201':
+          description: Đã tiếp đón
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ReceptionTicketResponse' }
+        '409':
+          description: Trùng check-in hoặc phòng đầy
+          content:
+            application/json:
+              schema: { $ref: '_common.yaml#/components/schemas/Error' }
+              examples:
+                duplicate:
+                  value:
+                    error: { code: RECEPTION_DUPLICATE_CHECKIN, message: Bệnh nhân đã được tiếp đón hôm nay tại phòng này }
+                roomFull:
+                  value:
+                    error: { code: RECEPTION_ROOM_FULL, message: Phòng khám đã đạt giới hạn lượt khám tối đa }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+        '422': { $ref: '_common.yaml#/components/responses/ValidationError' }
+
+  /api/v1/reception/queue:
+    get:
+      tags: [Reception Queue]
+      summary: Danh sách chờ hôm nay (US-RC02)
+      description: Permission `reception.queue.manage`. Lọc theo room/status/date.
+      parameters:
+        - name: room_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/TicketStatus' }
+        - name: date
+          in: query
+          description: Ngày (YYYY-MM-DD), mặc định hôm nay
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ReceptionTicketResponse' }
+
+  /api/v1/reception/queue/{ticketId}/call:
+    parameters:
+      - $ref: '#/components/parameters/TicketIdPath'
+    put:
+      tags: [Reception Queue]
+      summary: Gọi BN vào phòng (US-RC03)
+      description: Chuyển trạng thái WAITING -> CALLED, set called_at.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ReceptionTicketResponse' }
+
+  /api/v1/reception/queue/{ticketId}/skip:
+    parameters:
+      - $ref: '#/components/parameters/TicketIdPath'
+    put:
+      tags: [Reception Queue]
+      summary: Bỏ qua lượt (US-RC04)
+      description: BN không có mặt, đẩy về cuối hàng. Status -> SKIPPED.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ReceptionTicketResponse' }
+
+  /api/v1/reception/queue/{ticketId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TicketIdPath'
+    put:
+      tags: [Reception Queue]
+      summary: Huỷ tiếp đón (US-RC05)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, example: Bệnh nhân tự rời khỏi phòng khám }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ReceptionTicketResponse' }
+
+  /api/v1/reception/queue/{ticketId}/ticket-pdf:
+    parameters:
+      - $ref: '#/components/parameters/TicketIdPath'
+    get:
+      tags: [Reception Queue]
+      summary: In phiếu tiếp đón PDF (US-RC06)
+      description: Trả file PDF (A6) gồm mã BN, ticket_no, phòng, BS, QR.
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /api/v1/reception/rooms:
+    get:
+      tags: [Reception Rooms]
+      summary: Danh sách phòng + BS trực hôm nay
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/RoomResponse' }
+
+  /api/v1/reception/stats:
+    get:
+      tags: [Reception Stats]
+      summary: Thống kê queue hôm nay
+      description: BN chờ / đang khám / đã khám / huỷ.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ReceptionStats' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TicketIdPath:
+      name: ticketId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    TicketStatus:
+      type: string
+      enum: [WAITING, CALLED, IN_PROGRESS, DONE, SKIPPED, CANCELLED]
+    TicketPriority:
+      type: string
+      enum: [NORMAL, PRIORITY, EMERGENCY]
+
+    PatientSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, example: BNPK01000123 }
+        full_name: { type: string, example: Nguyễn Văn An }
+        dob: { type: string, format: date }
+        gender: { type: string, enum: [MALE, FEMALE, OTHER] }
+        bhyt_summary: { type: string, nullable: true, example: 'BHYT 80% - HSD 31/12/2026' }
+
+    CheckInRequest:
+      type: object
+      required: [patient_id, room_id]
+      properties:
+        patient_id: { type: string, format: uuid }
+        room_id: { type: string, format: uuid }
+        service_package_ids:
+          type: array
+          items: { type: string }
+          example: [pk-kham-noi-tong-quat]
+        reason_for_visit: { type: string, maxLength: 1000 }
+        note: { type: string, maxLength: 1000 }
+        priority: { $ref: '#/components/schemas/TicketPriority' }
+
+    ReceptionTicketResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        patient_id: { type: string, format: uuid }
+        patient_summary: { $ref: '#/components/schemas/PatientSummary' }
+        ticket_no: { type: string, example: '003' }
+        room_id: { type: string, format: uuid }
+        room_name: { type: string, example: Phòng khám 1 }
+        doctor_id: { type: string, format: uuid, nullable: true }
+        doctor_name: { type: string, example: BS. Lê Minh Cường }
+        service_packages:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string, example: Khám nội tổng quát }
+              price: { type: number, example: 200000 }
+        reason_for_visit: { type: string }
+        status: { $ref: '#/components/schemas/TicketStatus' }
+        priority: { $ref: '#/components/schemas/TicketPriority' }
+        checked_in_at: { type: string, format: date-time }
+        called_at: { type: string, format: date-time, nullable: true }
+        started_at: { type: string, format: date-time, nullable: true }
+        finished_at: { type: string, format: date-time, nullable: true }
+        created_by: { type: string, format: uuid }
+        note: { type: string, nullable: true }
+
+    RoomResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: Phòng khám 1 }
+        room_code: { type: string, example: P01 }
+        on_duty_doctor:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string, format: uuid }
+            full_name: { type: string, example: BS. Lê Minh Cường }
+        max_per_day: { type: integer, example: 40 }
+        current_waiting: { type: integer, example: 5 }
+
+    ReceptionStats:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        total_checked_in: { type: integer, example: 47 }
+        waiting: { type: integer, example: 8 }
+        in_progress: { type: integer, example: 3 }
+        done: { type: integer, example: 34 }
+        skipped: { type: integer, example: 1 }
+        cancelled: { type: integer, example: 1 }
+        avg_wait_minutes: { type: number, example: 14.5 }

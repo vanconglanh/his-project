@@ -1,0 +1,111 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: 57.155.1.252    Database: diab_his
+-- ------------------------------------------------------
+-- Server version	8.0.23
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-8b67-11ef-b09a-0242ac130002:1-22227900';
+
+--
+-- Table structure for table `sys_beds`
+--
+
+DROP TABLE IF EXISTS `sys_beds`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sys_beds` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `CODE` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Bed code',
+  `NAME` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Bed name/number',
+  `DESCRIPTION` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Bed description',
+  `ROOM_ID` int NOT NULL COMMENT 'Reference to sys_rooms',
+  `DEPARTMENT_ID` int NOT NULL COMMENT 'Reference to sys_departments',
+  `BRANCH_ID` int NOT NULL COMMENT 'Reference to sys_branches',
+  `HOSPITAL_ID` int NOT NULL COMMENT 'Reference to sys_hospitals',
+  `BED_TYPE` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Type: Manual, Electric, ICU, etc.',
+  `BED_CATEGORY` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Category: Standard, VIP, Isolation',
+  `BED_NUMBER` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Bed number within room',
+  `POSITION_X` decimal(10,2) DEFAULT NULL COMMENT 'Position X coordinate in room',
+  `POSITION_Y` decimal(10,2) DEFAULT NULL COMMENT 'Position Y coordinate in room',
+  `BED_STATUS` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'AVAILABLE' COMMENT 'Status: Available, Occupied, Maintenance, Reserved',
+  `CURRENT_PATIENT_ID` int DEFAULT NULL COMMENT 'Current patient occupying bed',
+  `ADMISSION_DATE` datetime DEFAULT NULL COMMENT 'Patient admission date',
+  `EXPECTED_DISCHARGE_DATE` datetime DEFAULT NULL COMMENT 'Expected discharge date',
+  `IS_ISOLATION_BED` tinyint(1) DEFAULT '0' COMMENT 'Is isolation bed',
+  `HAS_OXYGEN_OUTLET` tinyint(1) DEFAULT '0' COMMENT 'Has oxygen outlet',
+  `HAS_SUCTION_OUTLET` tinyint(1) DEFAULT '0' COMMENT 'Has suction outlet',
+  `HAS_VACUUM_OUTLET` tinyint(1) DEFAULT '0' COMMENT 'Has vacuum outlet',
+  `HAS_COMPRESSED_AIR` tinyint(1) DEFAULT '0' COMMENT 'Has compressed air',
+  `MONITORING_EQUIPMENT` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Monitoring equipment available',
+  `DAILY_RATE` decimal(15,2) DEFAULT NULL COMMENT 'Daily bed rate',
+  `CURRENCY_CODE` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'VND' COMMENT 'Currency code',
+  `MAINTENANCE_SCHEDULE` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Maintenance schedule',
+  `LAST_MAINTENANCE_DATE` date DEFAULT NULL COMMENT 'Last maintenance date',
+  `NEXT_MAINTENANCE_DATE` date DEFAULT NULL COMMENT 'Next maintenance date',
+  `NOTES` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Additional notes',
+  `CREATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `LAST_UPDATED_AT` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `STATUS` int NOT NULL DEFAULT '1',
+  `CREATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_BY` int DEFAULT NULL,
+  `LAST_UPDATED_PROGRAM` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `IDX_ROOM_ID` (`ROOM_ID`),
+  KEY `IDX_DEPARTMENT_ID` (`DEPARTMENT_ID`),
+  KEY `IDX_BRANCH_ID` (`BRANCH_ID`),
+  KEY `IDX_HOSPITAL_ID` (`HOSPITAL_ID`),
+  KEY `IDX_BED_TYPE` (`BED_TYPE`),
+  KEY `IDX_BED_STATUS` (`BED_STATUS`),
+  KEY `IDX_CURRENT_PATIENT_ID` (`CURRENT_PATIENT_ID`),
+  KEY `IDX_IS_ISOLATION_BED` (`IS_ISOLATION_BED`),
+  KEY `IDX_STATUS` (`STATUS`),
+  KEY `IDX_CREATED_AT` (`CREATED_AT`),
+  KEY `IDX_SYS_BEDS_ROOM_ID` (`ROOM_ID`),
+  KEY `IDX_SYS_BEDS_DEPARTMENT_ID` (`DEPARTMENT_ID`),
+  KEY `IDX_SYS_BEDS_BRANCH_ID` (`BRANCH_ID`),
+  KEY `IDX_SYS_BEDS_HOSPITAL_ID` (`HOSPITAL_ID`),
+  CONSTRAINT `FK_BED_BRANCH` FOREIGN KEY (`BRANCH_ID`) REFERENCES `sys_branches` (`ID`),
+  CONSTRAINT `FK_BED_DEPARTMENT` FOREIGN KEY (`DEPARTMENT_ID`) REFERENCES `sys_departments` (`ID`),
+  CONSTRAINT `FK_BED_HOSPITAL` FOREIGN KEY (`HOSPITAL_ID`) REFERENCES `sys_hospitals` (`ID`),
+  CONSTRAINT `FK_BED_ROOM` FOREIGN KEY (`ROOM_ID`) REFERENCES `sys_rooms` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Beds';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `sys_beds`
+--
+
+LOCK TABLES `sys_beds` WRITE;
+/*!40000 ALTER TABLE `sys_beds` DISABLE KEYS */;
+/*!40000 ALTER TABLE `sys_beds` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-05-22 22:21:19

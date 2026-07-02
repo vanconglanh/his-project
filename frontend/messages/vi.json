@@ -1,0 +1,1131 @@
+{
+  "App": {
+    "name": "Pro-Diab HIS",
+    "tagline": "Hệ thống quản lý phòng khám đa khoa"
+  },
+  "Dashboard": {
+    "title": "Tổng quan",
+    "subtitle": "Hoạt động phòng khám hôm nay",
+    "todayPatients": "Bệnh nhân hôm nay",
+    "pendingEncounters": "Chờ khám",
+    "todayRevenue": "Doanh thu hôm nay",
+    "monthlyRevenue": "Doanh thu tháng",
+    "kpi": {
+      "revenue": "Doanh thu hôm nay",
+      "encounters": "Lượt khám",
+      "newPatients": "BN mới",
+      "prescriptions": "Đơn thuốc"
+    },
+    "chart": {
+      "revenueTrend": "Xu hướng doanh thu 30 ngày",
+      "encountersTrend": "Lượt khám 30 ngày",
+      "topDoctors": "Top 10 bác sĩ (doanh thu)",
+      "topDrugs": "Top 10 thuốc (doanh thu)"
+    },
+    "diabetes": {
+      "sectionTitle": "Phòng khám tiểu đường",
+      "hba1cDistribution": "Phân bố HbA1c",
+      "complicationsRate": "Tỉ lệ biến chứng",
+      "totalPatients": "Tổng BN ĐTĐ",
+      "hba1cControlled": "HbA1c kiểm soát tốt (<7%)",
+      "type2": "ĐTĐ Type 2"
+    },
+    "recentActivity": "Hoạt động gần đây"
+  },
+  "Report": {
+    "title": "Báo cáo & Thống kê",
+    "financial": "Tài chính",
+    "clinical": "Lâm sàng",
+    "pharmacy": "Dược",
+    "exportSuccess": "Xuất báo cáo thành công",
+    "exportError": "Xuất báo cáo thất bại"
+  },
+  "Auth": {
+    "loginTitle": "Đăng nhập",
+    "loginSubtitle": "Nhập thông tin để truy cập hệ thống",
+    "email": "Email",
+    "emailPlaceholder": "ten@phongkham.vn",
+    "password": "Mật khẩu",
+    "passwordPlaceholder": "••••••••",
+    "loginButton": "Đăng nhập",
+    "loggingIn": "Đang đăng nhập...",
+    "invalidCredentials": "Email hoặc mật khẩu không đúng",
+    "rememberMe": "Ghi nhớ đăng nhập",
+    "forgotPassword": "Quên mật khẩu?",
+    "serverError": "Lỗi hệ thống, vui lòng thử lại sau",
+    "acceptInvite": {
+      "title": "Kích hoạt tài khoản",
+      "subtitle": "Đặt mật khẩu để hoàn tất kích hoạt tài khoản",
+      "fullName": "Họ và tên",
+      "password": "Mật khẩu",
+      "confirmPassword": "Xác nhận mật khẩu",
+      "submit": "Kích hoạt tài khoản",
+      "success": "Kích hoạt tài khoản thành công! Chào mừng bạn.",
+      "invalidToken": "Liên kết mời không hợp lệ"
+    },
+    "forgotPasswordPage": {
+      "title": "Quên mật khẩu",
+      "subtitle": "Nhập email để nhận liên kết đặt lại mật khẩu",
+      "submit": "Gửi liên kết đặt lại",
+      "sentTitle": "Kiểm tra email của bạn",
+      "sentMessage": "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi liên kết đặt lại mật khẩu.",
+      "backToLogin": "Quay lại đăng nhập"
+    },
+    "resetPassword": {
+      "title": "Đặt lại mật khẩu",
+      "subtitle": "Nhập mật khẩu mới cho tài khoản của bạn",
+      "submit": "Đặt lại mật khẩu",
+      "success": "Đặt lại mật khẩu thành công! Vui lòng đăng nhập.",
+      "invalidToken": "Liên kết không hợp lệ hoặc đã hết hạn"
+    }
+  },
+  "Nav": {
+    "overview": "Tổng quan",
+    "reception": "Tiếp đón",
+    "patients": "Bệnh nhân",
+    "encounters": "Khám bệnh",
+    "prescriptions": "Kê đơn",
+    "pharmacy": "Kho dược",
+    "cashier": "Thu ngân",
+    "reports": "Báo cáo",
+    "admin": "Quản trị",
+    "labrad": "CLS",
+    "bhyt": "BHYT",
+    "tenants": "Phòng khám",
+    "users": "Người dùng",
+    "roles": "Vai trò",
+    "audit": "Nhật ký",
+    "nurse": "Điều dưỡng",
+    "emrTemplates": "Mẫu bệnh án",
+    "labradResults": "Kết quả CLS",
+    "labPartners": "Đối tác lab",
+    "labIntegration": "Tích hợp lab",
+    "drugs": "Danh mục thuốc",
+    "dispense": "Phát thuốc",
+    "dtqg": "ĐTQG",
+    "suppliers": "Nhà cung cấp",
+    "billings": "Hoá đơn",
+    "debts": "Công nợ",
+    "services": "Dịch vụ",
+    "einvoice": "HĐĐT",
+    "apiPartners": "API Partners",
+    "notificationsConfig": "Cấu hình thông báo"
+  },
+  "ApiPartner": {
+    "title": "API Partners",
+    "subtitle": "Quản lý đối tác tích hợp Public API",
+    "createNew": "Tạo partner mới",
+    "statusActive": "Hoạt động",
+    "statusDisabled": "Tắt",
+    "statusExpired": "Hết hạn",
+    "fields": {
+      "name": "Tên đối tác",
+      "contactEmail": "Email liên hệ",
+      "scopes": "Scopes",
+      "rateLimit": "Rate limit (req/phút)",
+      "dailyQuota": "Hạn mức / ngày",
+      "expiresAt": "Ngày hết hạn",
+      "apiKeyMasked": "API Key",
+      "status": "Trạng thái"
+    },
+    "keyWarning": "Copy ngay! API key chỉ hiển thị một lần duy nhất và không thể lấy lại.",
+    "errors": {
+      "API_KEY_INVALID": "API key không hợp lệ",
+      "API_KEY_EXPIRED": "API key đã hết hạn",
+      "API_SCOPE_DENIED": "API key không có quyền",
+      "API_RATE_LIMITED": "Vượt giới hạn truy cập",
+      "API_QUOTA_EXCEEDED": "Vượt hạn mức ngày"
+    }
+  },
+  "Notification": {
+    "title": "Thông báo",
+    "inbox": "Hộp thư thông báo",
+    "preferences": "Tuỳ chọn thông báo",
+    "unread": "Chưa đọc",
+    "markRead": "Đánh dấu đã đọc",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "delete": "Xoá thông báo",
+    "noNotifications": "Không có thông báo mới",
+    "position": {
+      "topRight": "Góc trên phải",
+      "bottomRight": "Góc dưới phải",
+      "center": "Giữa màn hình"
+    },
+    "sound": {
+      "label": "Âm thanh",
+      "enable": "Bật âm thanh thông báo",
+      "DEFAULT": "Mặc định",
+      "CHIME": "Chuông (Chime)",
+      "BELL": "Chuông nhỏ (Bell)",
+      "preview": "Nghe thử"
+    },
+    "webPush": {
+      "enable": "Bật thông báo trình duyệt",
+      "disable": "Tắt thông báo trình duyệt",
+      "description": "Nhận thông báo ngay cả khi không mở trang web"
+    },
+    "errors": {
+      "WEB_PUSH_INVALID_SUBSCRIPTION": "Subscription không hợp lệ",
+      "VAPID_KEY_NOT_CONFIGURED": "Tenant chưa cấu hình VAPID key"
+    }
+  },
+  "Portal": {
+    "title": "Cổng bệnh nhân",
+    "login": {
+      "title": "Đăng nhập Cổng bệnh nhân",
+      "phoneStep": "Nhập số điện thoại để nhận mã OTP",
+      "otpStep": "Nhập mã OTP đã gửi đến số của bạn",
+      "sendOtp": "Gửi mã OTP",
+      "verify": "Xác thực",
+      "changePhone": "Đổi số điện thoại",
+      "otpTtl": "Mã có hiệu lực trong 5 phút"
+    },
+    "me": {
+      "patientCode": "Mã bệnh nhân",
+      "bhytNumber": "Số thẻ BHYT"
+    },
+    "encounters": {
+      "title": "Lịch sử khám bệnh",
+      "empty": "Chưa có lịch sử khám"
+    },
+    "prescriptions": {
+      "title": "Đơn thuốc của tôi",
+      "empty": "Chưa có đơn thuốc",
+      "download": "Tải PDF"
+    },
+    "labResults": {
+      "title": "Kết quả xét nghiệm",
+      "empty": "Chưa có kết quả xét nghiệm"
+    },
+    "appointments": {
+      "title": "Lịch hẹn",
+      "bookNew": "Đặt lịch mới",
+      "cancel": "Huỷ lịch hẹn",
+      "empty": "Chưa có lịch hẹn"
+    },
+    "errors": {
+      "PORTAL_OTP_INVALID": "Mã OTP không đúng",
+      "PORTAL_OTP_EXPIRED": "OTP đã hết hạn",
+      "PORTAL_OTP_TOO_MANY_ATTEMPTS": "Quá nhiều yêu cầu OTP, thử lại sau 1 giờ",
+      "PORTAL_PHONE_NOT_REGISTERED": "Số điện thoại chưa đăng ký",
+      "PORTAL_SESSION_EXPIRED": "Phiên đăng nhập đã hết hạn",
+      "APPOINTMENT_SLOT_TAKEN": "Khung giờ đã được đặt",
+      "APPOINTMENT_CANCEL_TOO_LATE": "Không thể huỷ trong vòng 2 giờ trước hẹn"
+    }
+  },
+  "Common": {
+    "save": "Lưu",
+    "cancel": "Huỷ",
+    "delete": "Xoá",
+    "edit": "Sửa",
+    "add": "Thêm",
+    "search": "Tìm kiếm",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu",
+    "logout": "Đăng xuất",
+    "confirm": "Xác nhận",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "previous": "Trước",
+    "actions": "Thao tác",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "updatedAt": "Ngày cập nhật",
+    "total": "Tổng cộng",
+    "filter": "Lọc",
+    "export": "Xuất file",
+    "print": "In",
+    "refresh": "Làm mới",
+    "darkMode": "Chế độ tối",
+    "lightMode": "Chế độ sáng",
+    "systemMode": "Theo hệ thống",
+    "theme": "Giao diện",
+    "errors": {
+      "AUTH_INVALID_CREDENTIALS": "Email hoặc mật khẩu không đúng",
+      "AUTH_TOKEN_INVALID": "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại",
+      "PERMISSION_DENIED": "Bạn không có quyền thực hiện thao tác này",
+      "TENANT_NOT_FOUND": "Không tìm thấy phòng khám",
+      "TENANT_SUBDOMAIN_TAKEN": "Subdomain đã được sử dụng",
+      "USER_EMAIL_EXISTS": "Email đã được đăng ký",
+      "USER_INVITE_EXPIRED": "Liên kết mời đã hết hạn",
+      "PASSWORD_TOO_WEAK": "Mật khẩu phải có tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt",
+      "ROLE_SYSTEM_PROTECTED": "Không thể xóa vai trò hệ thống",
+      "TWO_FA_INVALID_CODE": "Mã xác thực 2 lớp không đúng",
+      "TWO_FA_ALREADY_ENABLED": "Xác thực 2 lớp đã được kích hoạt",
+      "PATIENT_NOT_FOUND": "Không tìm thấy bệnh nhân",
+      "PATIENT_CODE_EXISTS": "Mã bệnh nhân đã tồn tại",
+      "AVATAR_FILE_TOO_LARGE": "Ảnh đại diện vượt quá 2MB",
+      "AVATAR_INVALID_FORMAT": "Chỉ chấp nhận ảnh PNG hoặc JPEG",
+      "BHYT_CARD_INVALID": "Mã thẻ BHYT không đúng định dạng (15 ký tự)",
+      "BHYT_EXPIRED": "Thẻ BHYT đã hết hạn",
+      "RECEPTION_DUPLICATE_CHECKIN": "Bệnh nhân đã được tiếp đón hôm nay tại phòng này",
+      "RECEPTION_ROOM_FULL": "Phòng khám đã đạt giới hạn lượt khám tối đa",
+      "CLS_UPLOAD_TOO_LARGE": "Tài liệu vượt quá dung lượng tối đa 10MB",
+      "CLS_UPLOAD_INVALID_FORMAT": "Chỉ chấp nhận file PNG/JPEG/PDF",
+      "FILE_NOT_FOUND": "Không tìm thấy tệp",
+      "FILE_UPLOAD_FAILED": "Tải tệp thất bại, vui lòng thử lại",
+      "BHYT_EXPORT_NOT_FOUND": "Không tìm thấy kỳ export BHYT",
+      "BHYT_EXPORT_INVALID_PERIOD": "Kỳ export không hợp lệ",
+      "BHYT_EXPORT_NO_ENCOUNTERS": "Không có lượt khám BHYT trong kỳ này",
+      "BHYT_XML_GENERATION_FAILED": "Sinh XML thất bại",
+      "BHYT_XSD_VALIDATION_FAILED": "Validate XSD thất bại",
+      "BHYT_SIGN_FAILED": "Ký số thất bại",
+      "BHYT_SUBMIT_FAILED": "Gửi cổng BHYT thất bại",
+      "BHYT_PERIOD_LOCKED": "Kỳ đã bị khoá, không thể thay đổi",
+      "BHYT_RECONCILE_FILE_INVALID": "File kết quả giám định không hợp lệ",
+      "BHYT_RECONCILE_ITEM_NOT_FOUND": "Không tìm thấy dòng đối soát"
+    }
+  },
+  "Tenant": {
+    "title": "Quản lý phòng khám",
+    "subtitle": "Danh sách toàn bộ phòng khám trong hệ thống",
+    "createNew": "Tạo phòng khám mới",
+    "editTitle": "Sửa thông tin phòng khám",
+    "detailTitle": "Chi tiết phòng khám",
+    "fields": {
+      "code": "Mã phòng khám",
+      "name": "Tên phòng khám",
+      "subdomain": "Subdomain",
+      "email": "Email",
+      "phone": "Điện thoại",
+      "cskcbCode": "Mã CSKCB",
+      "taxCode": "Mã số thuế",
+      "address": "Địa chỉ",
+      "storageQuota": "Dung lượng (GB)",
+      "expiresAt": "Hết hạn",
+      "adminEmail": "Email quản trị",
+      "adminFullName": "Họ tên quản trị"
+    },
+    "statuses": {
+      "ACTIVE": "Hoạt động",
+      "SUSPENDED": "Tạm ngưng",
+      "TERMINATED": "Chấm dứt"
+    },
+    "actions": {
+      "suspend": "Tạm ngưng",
+      "activate": "Kích hoạt lại",
+      "terminate": "Chấm dứt",
+      "edit": "Sửa thông tin"
+    },
+    "confirmSuspend": "Bạn có chắc muốn tạm ngưng phòng khám này?",
+    "confirmTerminate": "Bạn có chắc muốn chấm dứt phòng khám này? Hành động này không thể hoàn tác."
+  },
+  "User": {
+    "title": "Quản lý người dùng",
+    "subtitle": "Danh sách người dùng trong phòng khám",
+    "invite": "Mời người dùng",
+    "inviteTitle": "Mời người dùng mới",
+    "detailTitle": "Chi tiết người dùng",
+    "assignRoles": "Gán vai trò",
+    "fields": {
+      "fullName": "Họ và tên",
+      "email": "Email",
+      "phone": "Điện thoại",
+      "roles": "Vai trò",
+      "status": "Trạng thái",
+      "lastLogin": "Đăng nhập cuối",
+      "twoFa": "Xác thực 2 lớp"
+    },
+    "statuses": {
+      "PENDING": "Chờ kích hoạt",
+      "ACTIVE": "Hoạt động",
+      "LOCKED": "Bị khoá",
+      "DISABLED": "Vô hiệu"
+    },
+    "actions": {
+      "disable": "Khoá tài khoản",
+      "enable": "Mở khoá",
+      "delete": "Xoá người dùng",
+      "assignRoles": "Gán vai trò"
+    }
+  },
+  "Role": {
+    "title": "Vai trò & Quyền hạn",
+    "subtitle": "Quản lý vai trò và ma trận quyền hạn",
+    "createNew": "Tạo vai trò mới",
+    "types": {
+      "SYSTEM": "Hệ thống",
+      "CUSTOM": "Tuỳ chỉnh"
+    },
+    "fields": {
+      "code": "Mã vai trò",
+      "name": "Tên vai trò",
+      "description": "Mô tả",
+      "permissions": "Quyền hạn",
+      "type": "Loại"
+    }
+  },
+  "Audit": {
+    "title": "Nhật ký thao tác",
+    "subtitle": "Theo dõi mọi thao tác trên hệ thống",
+    "actions": {
+      "CREATE": "Tạo mới",
+      "UPDATE": "Cập nhật",
+      "DELETE": "Xoá",
+      "LOGIN": "Đăng nhập",
+      "LOGOUT": "Đăng xuất",
+      "EXPORT": "Xuất file",
+      "SIGN": "Ký xác nhận"
+    },
+    "fields": {
+      "time": "Thời gian",
+      "user": "Người dùng",
+      "action": "Hành động",
+      "resource": "Đối tượng",
+      "ip": "Địa chỉ IP",
+      "details": "Chi tiết thay đổi"
+    }
+  },
+  "Account": {
+    "security": {
+      "title": "Bảo mật tài khoản",
+      "subtitle": "Quản lý mật khẩu và xác thực 2 lớp",
+      "changePassword": "Đổi mật khẩu",
+      "changePasswordDesc": "Mật khẩu tối thiểu 12 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.",
+      "oldPassword": "Mật khẩu hiện tại",
+      "newPassword": "Mật khẩu mới",
+      "confirmPassword": "Xác nhận mật khẩu mới",
+      "changePasswordSuccess": "Đổi mật khẩu thành công"
+    },
+    "twoFa": {
+      "title": "Xác thực 2 lớp (2FA)",
+      "desc": "Tăng cường bảo mật bằng mã xác thực TOTP qua ứng dụng Authenticator.",
+      "enabled": "Xác thực 2 lớp đã được bật",
+      "disable": "Tắt 2FA",
+      "enable": "Bật 2FA",
+      "step1Title": "Bước 1: Quét mã QR bằng ứng dụng Authenticator",
+      "step2Title": "Bước 2: Nhập mã 6 số từ ứng dụng Authenticator",
+      "step3Title": "Bước 3: Lưu mã khôi phục (10 mã)",
+      "recoveryWarning": "Lưu các mã khôi phục này ngay! Chúng chỉ hiển thị 1 lần và không thể khôi phục.",
+      "disableTitle": "Tắt xác thực 2 lớp",
+      "disableDesc": "Nhập mật khẩu để xác nhận. Hành động này sẽ giảm bảo mật tài khoản."
+    }
+  },
+  "Patient": {
+    "title": "Bệnh nhân",
+    "subtitle": "Quản lý hồ sơ bệnh nhân",
+    "createNew": "Tạo bệnh nhân mới",
+    "editTitle": "Cập nhật bệnh nhân",
+    "searchPlaceholder": "Tìm theo tên, SĐT, CMND, BHYT...",
+    "emptyTitle": "Chưa có bệnh nhân",
+    "emptyDesc": "Tạo hồ sơ bệnh nhân đầu tiên để bắt đầu",
+    "tabs": {
+      "profile": "Hồ sơ",
+      "bhyt": "BHYT",
+      "allergy": "Dị ứng",
+      "emergency": "Liên hệ khẩn cấp",
+      "consent": "Đồng ý",
+      "history": "Lịch sử khám",
+      "cls": "Kết quả CLS"
+    },
+    "fields": {
+      "fullName": "Họ và tên",
+      "gender": "Giới tính",
+      "dateOfBirth": "Ngày sinh",
+      "age": "Tuổi",
+      "idNumber": "CMND/CCCD",
+      "phone": "Số điện thoại",
+      "email": "Email",
+      "address": "Địa chỉ",
+      "occupation": "Nghề nghiệp",
+      "ethnicity": "Dân tộc",
+      "bloodType": "Nhóm máu",
+      "status": "Trạng thái",
+      "receptionNote": "Ghi chú tiếp đón",
+      "code": "Mã bệnh nhân",
+      "allergiesSummary": "Dị ứng",
+      "bhytCardNo": "Mã thẻ BHYT",
+      "bhytValidTo": "HSD BHYT",
+      "lastVisit": "Lần khám cuối",
+      "idCardIssuedDate": "Ngày cấp CMND/CCCD",
+      "idCardIssuedPlace": "Nơi cấp",
+      "nationality": "Quốc tịch",
+      "patientType": "Đối tượng",
+      "maritalStatus": "Tình trạng hôn nhân",
+      "visitType": "Loại khám"
+    },
+    "sections": {
+      "personal": "Thông tin cá nhân",
+      "idCard": "Giấy tờ tùy thân",
+      "administrative": "Thông tin hành chính",
+      "address": "Địa chỉ"
+    },
+    "patientType": {
+      "SERVICE": "Dịch vụ",
+      "BHYT": "Bảo hiểm y tế",
+      "FREE": "Miễn phí",
+      "CONTRACT": "Hợp đồng"
+    },
+    "maritalStatus": {
+      "SINGLE": "Độc thân",
+      "MARRIED": "Đã kết hôn",
+      "DIVORCED": "Ly hôn",
+      "WIDOWED": "Goá",
+      "OTHER": "Khác"
+    },
+    "visitType": {
+      "FIRST_VISIT": "Khám lần đầu",
+      "FOLLOW_UP": "Tái khám",
+      "EMERGENCY": "Cấp cứu",
+      "SPECIALIST": "Khám chuyên khoa"
+    },
+    "gender": {
+      "MALE": "Nam",
+      "FEMALE": "Nữ",
+      "OTHER": "Khác"
+    },
+    "bloodType": {
+      "A_POS": "A+",
+      "A_NEG": "A-",
+      "B_POS": "B+",
+      "B_NEG": "B-",
+      "AB_POS": "AB+",
+      "AB_NEG": "AB-",
+      "O_POS": "O+",
+      "O_NEG": "O-",
+      "UNKNOWN": "Chưa xác định"
+    },
+    "status": {
+      "ACTIVE": "Hoạt động",
+      "INACTIVE": "Không hoạt động",
+      "DECEASED": "Đã mất"
+    },
+    "allergy": {
+      "allergen": "Chất gây dị ứng",
+      "reaction": "Phản ứng",
+      "severity": "Mức độ",
+      "onsetDate": "Ngày khởi phát",
+      "note": "Ghi chú",
+      "addNew": "Thêm dị ứng",
+      "severities": {
+        "MILD": "Nhẹ",
+        "MODERATE": "Trung bình",
+        "SEVERE": "Nặng",
+        "LIFE_THREATENING": "Nguy hiểm tính mạng"
+      }
+    },
+    "bhyt": {
+      "type": "Loại bảo hiểm",
+      "cardNo": "Số thẻ",
+      "validFrom": "Từ ngày",
+      "validTo": "Đến ngày",
+      "hospitalCode": "Mã bệnh viện đăng ký",
+      "coveragePercent": "Mức hưởng (%)",
+      "addNew": "Thêm thẻ BHYT",
+      "types": {
+        "BHYT": "Bảo hiểm y tế",
+        "PRIVATE": "Bảo hiểm tư nhân",
+        "OTHER": "Khác"
+      }
+    },
+    "emergency": {
+      "fullName": "Họ và tên",
+      "relationship": "Mối quan hệ",
+      "phone": "Điện thoại",
+      "address": "Địa chỉ",
+      "addNew": "Thêm liên hệ",
+      "relationships": {
+        "FATHER": "Cha",
+        "MOTHER": "Mẹ",
+        "SPOUSE": "Vợ/Chồng",
+        "CHILD": "Con",
+        "SIBLING": "Anh/Chị/Em",
+        "OTHER": "Khác"
+      }
+    },
+    "consent": {
+      "consentType": "Loại đồng ý",
+      "signedBy": "Người ký",
+      "signedAt": "Ngày ký",
+      "addNew": "Thêm đồng ý",
+      "types": {
+        "TREATMENT": "Đồng ý điều trị",
+        "DATA_PROCESSING": "Xử lý dữ liệu",
+        "MARKETING": "Tiếp thị",
+        "SURGERY": "Phẫu thuật",
+        "RESEARCH": "Nghiên cứu"
+      }
+    },
+    "receptionNoteUpdated": "Đã cập nhật ghi chú tiếp đón",
+    "avatarUpload": "Tải ảnh đại diện",
+    "avatarHint": "PNG hoặc JPEG, tối đa 2MB",
+    "editor": {
+      "tabs": {
+        "general": "Thông tin chung",
+        "bhyt": "Bảo hiểm y tế",
+        "emergency": "Liên hệ khẩn cấp",
+        "allergies": "Dị ứng",
+        "consents": "Đồng thuận"
+      },
+      "saveAndContinue": "Lưu & tiếp tục",
+      "saveAndClose": "Lưu & đóng",
+      "discardChanges": "Bỏ thay đổi",
+      "unsavedChangesWarning": "Bạn có thay đổi chưa lưu. Rời trang sẽ mất dữ liệu."
+    }
+  },
+  "Reception": {
+    "title": "Tiếp đón bệnh nhân",
+    "addPatient": "Thêm bệnh nhân",
+    "waitingList": "Danh sách chờ",
+    "checkIn": "Tiếp đón",
+    "checkInSuccess": "Tiếp đón thành công",
+    "queueBoard": "Bảng hàng đợi",
+    "refresh": "Tải lại",
+    "autoRefresh": "Tự động làm mới mỗi 5 giây",
+    "printTicket": "In phiếu",
+    "stats": {
+      "waiting": "Đang chờ",
+      "inProgress": "Đang khám",
+      "done": "Đã khám",
+      "cancelled": "Đã huỷ",
+      "avgWait": "Thời gian chờ TB"
+    },
+    "priority": {
+      "NORMAL": "Thông thường",
+      "PRIORITY": "Ưu tiên",
+      "EMERGENCY": "Khẩn cấp"
+    },
+    "ticketStatus": {
+      "WAITING": "Chờ",
+      "CALLED": "Đã gọi",
+      "IN_PROGRESS": "Đang khám",
+      "DONE": "Hoàn thành",
+      "SKIPPED": "Bỏ qua",
+      "CANCELLED": "Đã huỷ"
+    },
+    "actions": {
+      "call": "Gọi vào",
+      "skip": "Bỏ qua",
+      "cancel": "Huỷ",
+      "cancelReason": "Lý do huỷ"
+    },
+    "form": {
+      "selectPatient": "Chọn bệnh nhân",
+      "selectRoom": "Chọn phòng khám",
+      "selectServices": "Gói dịch vụ",
+      "reason": "Lý do khám",
+      "note": "Ghi chú",
+      "priority": "Ưu tiên",
+      "searchPatient": "Tìm bệnh nhân...",
+      "orCreate": "hoặc tạo bệnh nhân mới"
+    }
+  },
+  "ClsUpload": {
+    "title": "Kết quả CLS",
+    "subtitle": "Kết quả cận lâm sàng do bệnh nhân mang đến",
+    "upload": "Tải lên kết quả CLS",
+    "dragDrop": "Kéo thả file vào đây hoặc",
+    "browse": "chọn file",
+    "hint": "PNG, JPEG hoặc PDF, tối đa 10MB",
+    "docType": "Loại hồ sơ",
+    "docTypePlaceholder": "VD: X-quang phổi - BV Bạch Mai",
+    "note": "Ghi chú",
+    "uploadedBy": "Tải lên bởi",
+    "uploadedAt": "Ngày tải",
+    "fileSize": "Dung lượng",
+    "emptyTitle": "Chưa có tài liệu CLS",
+    "emptyDesc": "Tải lên kết quả xét nghiệm hoặc hình ảnh từ cơ sở y tế khác"
+  },
+  "Encounter": {
+    "title": "Khám bệnh",
+    "newEncounter": "Tạo lượt khám",
+    "status": {
+      "WAITING": "Chờ khám",
+      "IN_PROGRESS": "Đang khám",
+      "DONE": "Hoàn thành",
+      "CANCELLED": "Đã hủy"
+    },
+    "type": {
+      "FIRST_VISIT": "Khám mới",
+      "FOLLOW_UP": "Tái khám",
+      "EMERGENCY": "Cấp cứu",
+      "CONSULTATION": "Hội chẩn"
+    },
+    "errors": {
+      "ENCOUNTER_MISSING_DIAGNOSIS": "Cần có ít nhất 1 chẩn đoán chính",
+      "EMR_NOT_SIGNED": "Bệnh án chưa được ký số",
+      "EMR_ALREADY_SIGNED": "Bệnh án đã ký số, không thể sửa"
+    }
+  },
+  "Encounters": {
+    "title": "Khám bệnh",
+    "newEncounter": "Tạo lượt khám"
+  },
+  "VitalSign": {
+    "title": "Sinh hiệu",
+    "temperature": "Nhiệt độ (°C)",
+    "heartRate": "Mạch (lần/phút)",
+    "bpSystolic": "HA tâm thu (mmHg)",
+    "bpDiastolic": "HA tâm trương (mmHg)",
+    "spo2": "SpO2 (%)",
+    "respiratoryRate": "Nhịp thở",
+    "weight": "Cân nặng (kg)",
+    "height": "Chiều cao (cm)",
+    "bmi": "BMI",
+    "painScale": "Điểm đau (0-10)",
+    "glucose": "Đường huyết (mg/dL)",
+    "note": "Ghi chú",
+    "errors": {
+      "VITAL_INVALID_RANGE": "Giá trị sinh hiệu nằm ngoài phạm vi hợp lệ",
+      "VITAL_EDIT_TIMEOUT": "Chỉ có thể sửa sinh hiệu trong vòng 24h"
+    }
+  },
+  "Emr": {
+    "title": "Bệnh án điện tử",
+    "saveDraft": "Lưu nháp",
+    "sign": "Ký số",
+    "signed": "Đã ký số",
+    "unsign": "Hủy ký",
+    "template": "Mẫu bệnh án",
+    "version": "Phiên bản"
+  },
+  "Diabetes": {
+    "title": "Đánh giá Đái tháo đường",
+    "hba1c": "HbA1c (%)",
+    "fastingGlucose": "Đường huyết đói (mg/dL)",
+    "postprandialGlucose": "Đường huyết sau ăn",
+    "egfr": "eGFR",
+    "complications": "Biến chứng",
+    "treatmentTarget": "Mục tiêu điều trị"
+  },
+  "Icd10": {
+    "title": "Tra cứu ICD-10",
+    "search": "Tìm mã ICD-10",
+    "code": "Mã ICD-10",
+    "nameVi": "Tên tiếng Việt",
+    "category": "Nhóm bệnh"
+  },
+  "LabOrder": {
+    "title": "Chỉ định xét nghiệm",
+    "testCode": "Mã xét nghiệm",
+    "priority": "Độ ưu tiên",
+    "status": {
+      "ordered": "Đã chỉ định",
+      "sample_taken": "Đã lấy mẫu",
+      "processing": "Đang xử lý",
+      "done": "Có kết quả",
+      "cancelled": "Đã hủy"
+    }
+  },
+  "RadOrder": {
+    "title": "Chỉ định CĐHA",
+    "modality": "Phương thức",
+    "bodyPart": "Vùng cơ thể",
+    "contrast": "Cản quang",
+    "status": {
+      "ordered": "Đã chỉ định",
+      "scheduled": "Đã lên lịch",
+      "in_progress": "Đang thực hiện",
+      "done": "Có kết quả",
+      "cancelled": "Đã hủy"
+    }
+  },
+  "Prescriptions": {
+    "title": "Kê đơn thuốc",
+    "newPrescription": "Tạo đơn thuốc",
+    "statuses": {
+      "DRAFT": "Nháp",
+      "SIGNED": "Đã ký",
+      "SUBMITTED_DTQG": "Đã gửi ĐTQG",
+      "DISPENSED": "Đã phát",
+      "PARTIAL_DISPENSED": "Phát một phần",
+      "CANCELLED": "Đã hủy"
+    },
+    "errors": {
+      "PRESCRIPTION_NOT_FOUND": "Không tìm thấy đơn thuốc",
+      "PRESCRIPTION_ALREADY_SIGNED": "Đơn thuốc đã được ký, không thể ký lại",
+      "PRESCRIPTION_INVALID_STATE": "Trạng thái đơn thuốc không cho phép thao tác này"
+    }
+  },
+  "Drug": {
+    "title": "Danh mục thuốc",
+    "forms": {
+      "TABLET": "Viên nén",
+      "CAPSULE": "Viên nang",
+      "SYRUP": "Syrup",
+      "INJ": "Tiêm",
+      "CREAM": "Kem",
+      "OINTMENT": "Mỡ",
+      "DROP": "Nhỏ giọt",
+      "INHALER": "Hít",
+      "POWDER": "Bột",
+      "SUPPOSITORY": "Đặt",
+      "OTHER": "Khác"
+    },
+    "errors": {
+      "DRUG_NOT_FOUND": "Không tìm thấy thuốc",
+      "DRUG_CODE_EXISTS": "Mã thuốc đã tồn tại",
+      "DRUG_IMPORT_INVALID_FORMAT": "Định dạng file Excel không hợp lệ",
+      "DRUG_DTQG_SYNC_FAILED": "Đồng bộ CSDL Dược QG thất bại"
+    }
+  },
+  "Dtqg": {
+    "title": "Đơn Thuốc Quốc Gia",
+    "credentials": "Thông tin kết nối",
+    "submissions": "Lịch sử gửi",
+    "statuses": {
+      "PENDING": "Đang chờ",
+      "SUBMITTED": "Đã gửi",
+      "ACCEPTED": "Chấp nhận",
+      "REJECTED": "Từ chối"
+    },
+    "errors": {
+      "DTQG_PRESCRIPTION_ALREADY_SUBMITTED": "Đơn thuốc đã được gửi ĐTQG",
+      "DTQG_SUBMIT_FAILED": "Gửi ĐTQG thất bại",
+      "DTQG_RETRY_EXCEEDED": "Đã vượt quá số lần thử lại cho phép",
+      "DTQG_TOKEN_EXPIRED": "Token ĐTQG hết hạn hoặc không hợp lệ"
+    }
+  },
+  "Pharmacy": {
+    "title": "Kho dược",
+    "inventory": "Tồn kho",
+    "import": "Nhập kho",
+    "export": "Xuất kho",
+    "dispense": "Phát thuốc",
+    "adjustment": "Kiểm kê",
+    "alerts": "Cảnh báo",
+    "warehouseTypes": {
+      "MAIN": "Kho chính",
+      "DISPENSING": "Kho phát",
+      "COLD_CHAIN": "Dây chuyền lạnh",
+      "NARCOTIC": "Gây nghiện"
+    },
+    "errors": {
+      "PHARMACY_WAREHOUSE_NOT_FOUND": "Không tìm thấy kho",
+      "PHARMACY_STOCK_INSUFFICIENT": "Tồn kho không đủ",
+      "PHARMACY_BATCH_EXPIRED": "Lô thuốc đã hết hạn",
+      "PHARMACY_DISPENSE_DUPLICATE": "Đơn này đã được phát thuốc",
+      "PHARMACY_INVALID_FEFO_PICK": "Chọn lô không phù hợp nguyên tắc FEFO",
+      "PHARMACY_BATCH_NOT_FOUND": "Không tìm thấy lô thuốc"
+    }
+  },
+  "Dispense": {
+    "title": "Phát thuốc",
+    "queue": "Hàng đợi",
+    "history": "Lịch sử",
+    "statuses": {
+      "DISPENSED": "Đã phát",
+      "REJECTED": "Từ chối",
+      "RETURNED": "Hoàn trả",
+      "PARTIAL": "Phát một phần"
+    }
+  },
+  "Supplier": {
+    "title": "Nhà cung cấp",
+    "createNew": "Thêm NCC",
+    "fields": {
+      "code": "Mã NCC",
+      "name": "Tên NCC",
+      "taxCode": "Mã số thuế",
+      "address": "Địa chỉ",
+      "phone": "Điện thoại",
+      "email": "Email",
+      "contactPerson": "Người liên hệ"
+    }
+  },
+  "Cashier": {
+    "title": "Thu ngân",
+    "newInvoice": "Tạo hoá đơn",
+    "pendingPayment": "Chờ thanh toán",
+    "openShift": "Mở ca",
+    "closeShift": "Đóng ca",
+    "shiftOpen": "Ca đang mở",
+    "shiftClosed": "Ca đóng",
+    "totalToday": "Tổng thu hôm nay",
+    "transactions": "Số giao dịch",
+    "refundVoid": "Refund / Void",
+    "debt": "Công nợ",
+    "expectedCash": "Tiền mặt kỳ vọng",
+    "actualCash": "Tiền mặt thực tế",
+    "difference": "Chênh lệch"
+  },
+  "Billing": {
+    "title": "Hoá đơn",
+    "statuses": {
+      "DRAFT": "Nháp",
+      "FINALIZED": "Đã xác nhận",
+      "PARTIAL_PAID": "Thanh toán một phần",
+      "PAID": "Đã thanh toán",
+      "VOID": "Đã huỷ"
+    },
+    "payers": {
+      "SELF": "Tự trả",
+      "BHYT": "BHYT",
+      "MIXED": "Hỗn hợp"
+    },
+    "errors": {
+      "BILLING_NOT_FOUND": "Không tìm thấy hoá đơn",
+      "BILLING_ALREADY_FINALIZED": "Hoá đơn đã được xác nhận",
+      "BILLING_VOID": "Hoá đơn đã bị huỷ",
+      "BILLING_INVALID_BHYT": "Thông tin BHYT không hợp lệ"
+    }
+  },
+  "Payment": {
+    "title": "Thanh toán",
+    "methods": {
+      "CASH": "Tiền mặt",
+      "BANK_TRANSFER": "Chuyển khoản",
+      "VISA": "Visa",
+      "MASTER": "Mastercard",
+      "QR_VIETQR": "VietQR",
+      "QR_MOMO": "MoMo",
+      "QR_VNPAY": "VNPay",
+      "OTHER": "Khác"
+    },
+    "statuses": {
+      "PENDING": "Đang xử lý",
+      "COMPLETED": "Hoàn thành",
+      "FAILED": "Thất bại",
+      "REFUNDED": "Hoàn tiền",
+      "VOID": "Đã huỷ"
+    },
+    "errors": {
+      "PAYMENT_AMOUNT_INVALID": "Số tiền thanh toán không hợp lệ",
+      "PAYMENT_GATEWAY_ERROR": "Lỗi cổng thanh toán",
+      "PAYMENT_QR_EXPIRED": "Mã QR đã hết hạn"
+    }
+  },
+  "EInvoice": {
+    "title": "Hoá đơn điện tử",
+    "issue": "Phát hành HĐĐT",
+    "statuses": {
+      "DRAFT": "Nháp",
+      "ISSUED": "Đã phát hành",
+      "CANCELLED": "Đã huỷ",
+      "REPLACED": "Thay thế"
+    },
+    "errors": {
+      "EINVOICE_ALREADY_ISSUED": "Hoá đơn điện tử đã được phát hành",
+      "EINVOICE_TAX_CODE_MISSING": "Thiếu mã số thuế",
+      "EINVOICE_PROVIDER_ERROR": "Lỗi kết nối nhà cung cấp HĐĐT"
+    }
+  },
+  "Service": {
+    "title": "Dịch vụ",
+    "categories": {
+      "CONSULTATION": "Khám bệnh",
+      "PROCEDURE": "Thủ thuật",
+      "LAB": "Xét nghiệm",
+      "RAD": "CĐHA",
+      "PHARMACY": "Dược",
+      "OTHER": "Khác"
+    },
+    "errors": {
+      "SERVICE_NOT_FOUND": "Không tìm thấy dịch vụ",
+      "SERVICE_CODE_EXISTS": "Mã dịch vụ đã tồn tại"
+    }
+  },
+  "Reports": {
+    "title": "Báo cáo & Thống kê",
+    "revenue": "Doanh thu",
+    "topMedicines": "Thuốc dùng nhiều nhất",
+    "doctorKpi": "KPI bác sĩ"
+  },
+  "Admin": {
+    "title": "Quản trị hệ thống",
+    "users": "Người dùng",
+    "clinicSettings": "Cài đặt phòng khám",
+    "roles": "Phân quyền"
+  },
+  "LabResult": {
+    "title": "Kết quả xét nghiệm",
+    "subtitle": "Quản lý kết quả XN và xác thực KTV",
+    "enterResult": "Nhập kết quả",
+    "verify": "Xác thực",
+    "unverify": "Hủy xác thực",
+    "amend": "Sửa kết quả",
+    "batchVerify": "Xác thực hàng loạt",
+    "import": "Import CSV/HL7",
+    "printPdf": "In PDF",
+    "flags": {
+      "NORMAL": "Bình thường",
+      "H": "Cao",
+      "L": "Thấp",
+      "HH": "Rất cao",
+      "LL": "Rất thấp",
+      "CRITICAL": "Nguy kịch"
+    },
+    "statuses": {
+      "DRAFT": "Nháp",
+      "VERIFIED": "Đã xác thực",
+      "AMENDED": "Đã sửa"
+    },
+    "fields": {
+      "testCode": "Mã chỉ số",
+      "testName": "Tên chỉ số",
+      "value": "Giá trị",
+      "unit": "Đơn vị",
+      "referenceRange": "Khoảng tham chiếu",
+      "flag": "Cờ bất thường",
+      "method": "Phương pháp",
+      "performedAt": "Thời gian thực hiện",
+      "verifiedAt": "Xác thực lúc",
+      "note": "Ghi chú",
+      "source": "Nguồn",
+      "amendReason": "Lý do sửa"
+    },
+    "errors": {
+      "LAB_RESULT_NOT_FOUND": "Không tìm thấy kết quả xét nghiệm",
+      "LAB_RESULT_ALREADY_VERIFIED": "Kết quả đã được xác thực trước đó",
+      "LAB_RESULT_EDIT_TIMEOUT": "Đã quá 15 phút kể từ khi xác thực, không thể sửa",
+      "LAB_IMPORT_INVALID_FORMAT": "Định dạng file không hợp lệ (chỉ chấp nhận CSV, HL7 ORU)",
+      "LAB_IMPORT_PARSE_ERROR": "Lỗi phân tích file import"
+    }
+  },
+  "RadResult": {
+    "title": "Kết quả CĐHA",
+    "subtitle": "Chẩn đoán hình ảnh và kết quả",
+    "enterResult": "Nhập kết quả CĐHA",
+    "verify": "Ký phát hành",
+    "uploadDicom": "Upload DICOM",
+    "printPdf": "In PDF",
+    "statuses": {
+      "DRAFT": "Nháp",
+      "VERIFIED": "Đã ký",
+      "AMENDED": "Đã sửa"
+    },
+    "fields": {
+      "modality": "Kỹ thuật",
+      "findings": "Mô tả hình ảnh",
+      "impression": "Ấn tượng",
+      "conclusion": "Kết luận",
+      "recommendations": "Đề nghị",
+      "performedAt": "Thực hiện lúc",
+      "dicomCount": "Số ảnh DICOM",
+      "amendReason": "Lý do sửa"
+    },
+    "errors": {
+      "RAD_RESULT_NOT_FOUND": "Không tìm thấy kết quả CĐHA",
+      "RAD_DICOM_UPLOAD_FAILED": "Tải ảnh DICOM thất bại"
+    }
+  },
+  "LabPartner": {
+    "title": "Đối tác lab",
+    "subtitle": "Quản lý đối tác xét nghiệm thứ 3",
+    "createNew": "Thêm đối tác",
+    "testConnection": "Test kết nối",
+    "rotateKey": "Xoay API Key",
+    "fields": {
+      "code": "Mã đối tác",
+      "name": "Tên đối tác",
+      "endpointUrl": "Endpoint URL",
+      "authType": "Kiểu xác thực",
+      "transport": "Giao thức",
+      "supportedTests": "Chỉ số hỗ trợ",
+      "status": "Trạng thái",
+      "contactEmail": "Email liên hệ",
+      "contactPhone": "SĐT liên hệ"
+    },
+    "authTypes": {
+      "NONE": "Không có",
+      "API_KEY": "API Key",
+      "BEARER": "Bearer Token"
+    },
+    "transports": {
+      "REST": "REST",
+      "HL7_MLLP": "HL7 MLLP"
+    },
+    "statuses": {
+      "ACTIVE": "Hoạt động",
+      "INACTIVE": "Tạm ngưng"
+    },
+    "errors": {
+      "LAB_PARTNER_NOT_FOUND": "Không tìm thấy đối tác lab",
+      "LAB_PARTNER_CONNECTION_FAILED": "Kết nối tới đối tác thất bại",
+      "LAB_PARTNER_AUTH_INVALID": "Thông tin xác thực không hợp lệ"
+    }
+  },
+  "LabIntegration": {
+    "title": "Tích hợp lab",
+    "subtitle": "Gửi / nhận kết quả từ đối tác lab bên ngoài",
+    "outbound": "Gửi đi",
+    "inbound": "Nhận về",
+    "retry": "Gửi lại",
+    "reprocess": "Xử lý lại",
+    "viewRaw": "Xem raw payload",
+    "stats": "Thống kê",
+    "outboundStatuses": {
+      "PENDING": "Chờ gửi",
+      "SENT": "Đã gửi",
+      "ACKED": "Xác nhận",
+      "FAILED": "Thất bại"
+    },
+    "inboundStatuses": {
+      "RECEIVED": "Đã nhận",
+      "PROCESSED": "Đã xử lý",
+      "FAILED": "Thất bại"
+    },
+    "errors": {
+      "LAB_INTEGRATION_RETRY_EXCEEDED": "Đã vượt quá số lần retry tối đa (5 lần)",
+      "LAB_WEBHOOK_INVALID_SIGNATURE": "Chữ ký HMAC webhook không hợp lệ"
+    }
+  },
+  "Bhyt": {
+    "title": "BHYT",
+    "subtitle": "Export XML giám định theo QĐ 4750/QĐ-BYT, đối soát kết quả",
+    "tabs": {
+      "kyXuat": "Kỳ xuất",
+      "doiSoat": "Đối soát giám định",
+      "cauHinh": "Cấu hình"
+    },
+    "status": {
+      "DRAFT": "Nháp",
+      "GENERATED": "Đã sinh XML",
+      "VALIDATED": "Đã validate",
+      "SIGNED": "Đã ký số",
+      "SUBMITTED": "Đã gửi",
+      "APPROVED": "Được duyệt",
+      "PARTIALLY_REJECTED": "Từ chối 1 phần",
+      "REJECTED": "Bị từ chối"
+    },
+    "actions": {
+      "createPeriod": "Tạo kỳ mới",
+      "generateXml": "Sinh XML",
+      "validate": "Validate XSD",
+      "sign": "Ký số",
+      "submit": "Gửi cổng BHYT",
+      "downloadZip": "Tải ZIP 5 bảng",
+      "regenerate": "Sinh lại",
+      "uploadResult": "Tải kết quả giám định",
+      "dispute": "Khiếu nại",
+      "accept": "Chấp nhận"
+    },
+    "fields": {
+      "periodMonth": "Kỳ (YYYY-MM)",
+      "encounterCount": "Số lượt",
+      "totalRequested": "Yêu cầu",
+      "totalApproved": "Được duyệt",
+      "totalRejected": "Từ chối",
+      "generatedAt": "Sinh XML lúc",
+      "approvalRate": "Tỉ lệ duyệt"
+    },
+    "steps": {
+      "draft": "Tạo nháp",
+      "generate": "Sinh XML",
+      "validate": "Validate XSD",
+      "sign": "Ký số",
+      "submit": "Gửi cổng BHYT",
+      "reconcile": "Đối soát"
+    },
+    "reconcileStatus": {
+      "APPROVED": "Được duyệt",
+      "REJECTED": "Từ chối",
+      "ADJUSTED": "Đã điều chỉnh",
+      "DISPUTED": "Đang khiếu nại",
+      "ACCEPTED": "Chấp nhận"
+    },
+    "errors": {
+      "BHYT_EXPORT_NOT_FOUND": "Không tìm thấy kỳ export BHYT",
+      "BHYT_EXPORT_INVALID_PERIOD": "Kỳ export không hợp lệ",
+      "BHYT_EXPORT_NO_ENCOUNTERS": "Không có lượt khám BHYT trong kỳ này",
+      "BHYT_XML_GENERATION_FAILED": "Sinh XML thất bại",
+      "BHYT_XSD_VALIDATION_FAILED": "Validate XSD thất bại",
+      "BHYT_SIGN_FAILED": "Ký số thất bại",
+      "BHYT_SUBMIT_FAILED": "Gửi cổng BHYT thất bại",
+      "BHYT_PERIOD_LOCKED": "Kỳ đã bị khoá, không thể thay đổi",
+      "BHYT_RECONCILE_FILE_INVALID": "File kết quả giám định không hợp lệ",
+      "BHYT_RECONCILE_ITEM_NOT_FOUND": "Không tìm thấy dòng đối soát"
+    }
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.3.0" },
+    { "type": "datasource", "id": "loki", "name": "Loki", "version": "1.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "gauge", "name": "Gauge", "version": "" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Pro-Diab HIS Backend API Overview — latency p50/p95/p99, error rate, RPS",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Requests Per Second (RPS)",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate({service=\"prodiab_backend\"} |= \"StatusCode\" [1m]))",
+          "legendFormat": "RPS",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "reqps"
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 2,
+      "title": "HTTP Error Rate (4xx + 5xx %)",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate({service=\"prodiab_backend\"} |~ \"StatusCode\":[45][0-9]{2} [1m])) / sum(rate({service=\"prodiab_backend\"} |= \"StatusCode\" [1m])) * 100",
+          "legendFormat": "Error Rate %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "API Latency — p50 / p95 / p99 (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "description": "Dựa trên field durationMs trong Serilog JSON log",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "quantile_over_time(0.50, {service=\"prodiab_backend\"} | json | unwrap duration_ms [5m]) by (request_path)",
+          "legendFormat": "p50 {{request_path}}",
+          "refId": "A"
+        },
+        {
+          "expr": "quantile_over_time(0.95, {service=\"prodiab_backend\"} | json | unwrap duration_ms [5m]) by (request_path)",
+          "legendFormat": "p95 {{request_path}}",
+          "refId": "B"
+        },
+        {
+          "expr": "quantile_over_time(0.99, {service=\"prodiab_backend\"} | json | unwrap duration_ms [5m]) by (request_path)",
+          "legendFormat": "p99 {{request_path}}",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500 },
+              { "color": "red", "value": 1000 }
+            ]
+          },
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "5xx Errors (log stream)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
+      "targets": [
+        {
+          "expr": "{service=\"prodiab_backend\", level=\"Error\"}",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 5,
+      "title": "Total Requests (24h)",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 25 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=\"prodiab_backend\"} |= \"StatusCode\" [24h]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "thresholds" } }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Error Count (24h)",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 25 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=\"prodiab_backend\", level=\"Error\"} [24h]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Nginx RPS",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 },
+      "targets": [
+        {
+          "expr": "sum(rate({service=\"nginx\", log_type=\"access\"} [1m]))",
+          "legendFormat": "Nginx RPS",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Nginx 5xx Rate",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 },
+      "targets": [
+        {
+          "expr": "sum(rate({service=\"nginx\", status=~\"5..\", log_type=\"access\"} [1m]))",
+          "legendFormat": "5xx/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2 },
+          "color": { "fixedColor": "red", "mode": "fixed" }
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["prodiab", "backend", "api"],
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "type": "custom",
+        "label": "Environment",
+        "current": { "text": "production", "value": "production" },
+        "options": [
+          { "text": "production", "value": "production" },
+          { "text": "staging", "value": "staging" }
+        ]
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "Asia/Ho_Chi_Minh",
+  "title": "Pro-Diab Backend Overview",
+  "uid": "prodiab-backend-overview",
+  "version": 1
+}

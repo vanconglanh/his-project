@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phiếu khám bệnh</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9e6;font-family:"Times New Roman",Times,serif;color:#111;font-size:13px;line-height:1.42}
+.toolbar{position:sticky;top:0;z-index:9;background:#1a1a19;color:#fff;display:flex;gap:12px;align-items:center;padding:9px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
+.toolbar .sp{flex:1}
+.toolbar a,.toolbar button{font:inherit;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.35);border-radius:7px;padding:6px 12px;cursor:pointer;text-decoration:none}
+.toolbar button.pr{background:#1baf7a;border-color:transparent;font-weight:600}
+.sheet{background:#fff;margin:16px auto;box-shadow:0 3px 16px rgba(0,0,0,.18);position:relative}
+.lh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1.5px solid #111;padding-bottom:8px;margin-bottom:10px}
+.lh .org{font-size:12px;line-height:1.35}
+.lh .org b{font-size:13.5px;text-transform:uppercase;display:block}
+.lh .logo{width:52px;height:52px;flex:0 0 auto;border:1px solid #111;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-weight:700;color:#0b7285;font-size:10px;text-align:center;line-height:1.1}
+.doc-title{text-align:center;font-size:18px;font-weight:700;text-transform:uppercase;margin:8px 0 2px;letter-spacing:.02em}
+.doc-sub{text-align:center;font-size:12px;color:#333;margin-bottom:12px;font-style:italic}
+.code-line{text-align:right;font-size:11.5px;color:#333;margin-bottom:4px}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+table.grid th,table.grid td{border:1px solid #111;padding:4px 6px;vertical-align:top}
+table.grid th{background:#f0f0ee;font-weight:700;text-align:left}
+td.c,th.c{text-align:center}
+td.r,th.r{text-align:right}
+.sec-h{font-weight:700;text-transform:uppercase;margin:9px 0 3px;font-size:13px}
+.row{display:flex;gap:18px;flex-wrap:wrap}
+.field{margin:3px 0}.field .k{font-weight:700}
+.fill{border-bottom:1px dotted #444;min-width:60px;display:inline-block}
+.sign{display:flex;justify-content:space-around;margin-top:16px;text-align:center;gap:10px}
+.sign .box{min-width:40%}
+.sign .role{font-weight:700}.sign .hint{font-style:italic;font-size:11px;color:#444}
+.sign .date{font-style:italic;font-size:11.5px}.sign .name{margin-top:50px;font-weight:700}
+.muted{color:#555}.small{font-size:11px}
+.note{font-size:11px;color:#444;font-style:italic;margin-top:10px;border-top:1px dashed #999;padding-top:6px}
+@media print{body{background:#fff}.toolbar{display:none}.sheet{margin:0;box-shadow:none}}
+
+@page{size:A4 portrait;margin:12mm} .sheet{width:210mm;min-height:297mm;padding:12mm 14mm}
+
+.hc-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;font-size:12.5px;margin:4px 0 2px}
+.hc-grid .field.full{grid-column:1 / -1}
+.exam-item{margin:3px 0;font-size:12.5px}
+.exam-item .k{font-weight:700}
+.dx-line{margin:3px 0;font-size:12.5px}
+.dx-line b{font-weight:700}
+</style>
+</head>
+<body>
+<div class="toolbar"><b>Phiếu khám bệnh</b><span class="sp"></span>
+  <a href="index.html">← Thư viện biểu mẫu</a>
+  <button class="pr" onclick="window.print()">🖨️ In</button></div>
+
+<div class="sheet">
+  <div class="lh">
+    <div class="logo">PRO<br>DIAB</div>
+    <div class="org" style="text-align:center;flex:1">
+      <b>Phòng khám đa khoa Pro-Diab</b>
+      Mã CSKCB: 79123 — MST: 0312345678<br>
+      Địa chỉ: 123 Đường Sức Khỏe, P. Bến Nghé, Q.1, TP. Hồ Chí Minh<br>
+      Điện thoại: 028 3822 1234
+    </div>
+    <div style="width:52px"></div>
+  </div>
+
+  <div class="code-line">Mã lượt khám: <b>LK000456</b> · Phòng khám số 2 (Nội tiết) · STT <b>042</b> · 08:30 ngày 02/07/2026</div>
+
+  <div class="doc-title">Phiếu khám bệnh</div>
+  <div class="doc-sub">(Bệnh án ngoại trú)</div>
+
+  <div class="sec-h">I. Hành chính</div>
+  <div class="hc-grid">
+    <div class="field"><span class="k">Họ và tên:</span> NGUYỄN VĂN AN &nbsp;&nbsp; <span class="k">Giới:</span> Nam</div>
+    <div class="field"><span class="k">Năm sinh:</span> 12/03/1968 (58 tuổi) &nbsp;&nbsp; <span class="k">Mã BN:</span> BN000123</div>
+    <div class="field"><span class="k">Nghề nghiệp:</span> <span class="fill" style="min-width:160px">Lao động tự do</span></div>
+    <div class="field"><span class="k">Cân nặng:</span> 68 kg</div>
+    <div class="field full"><span class="k">Địa chỉ:</span> 45 Lê Lợi, P.6, Q. Gò Vấp, TP. Hồ Chí Minh &nbsp;&nbsp; <span class="k">ĐT:</span> 0909 123 456</div>
+    <div class="field full"><span class="k">Số thẻ BHYT:</span> HN4 79 123 45678 90 &nbsp;&nbsp; <span class="k">Giá trị đến:</span> 31/12/2026 &nbsp;&nbsp; <span class="k">Tuyến:</span> Đúng tuyến</div>
+  </div>
+
+  <div class="sec-h">II. Lý do khám</div>
+  <div class="field">Mệt mỏi, khát nước nhiều, tiểu nhiều 2 tuần nay.</div>
+
+  <div class="sec-h">III. Hỏi bệnh</div>
+  <div class="exam-item"><span class="k">Quá trình bệnh lý (bệnh sử):</span> Bệnh nhân xuất hiện mệt mỏi, khát nước nhiều, tiểu nhiều tăng dần khoảng 2 tuần nay, kèm sụt cân nhẹ không rõ số lượng, không sốt, không đau bụng. Chưa điều trị gì trước đó, nay đến khám kiểm tra.</div>
+  <div class="exam-item"><span class="k">Tiền sử bản thân:</span> Tăng huyết áp 5 năm, đang điều trị Amlodipin. Chưa ghi nhận đái tháo đường trước đây.</div>
+  <div class="exam-item"><span class="k">Tiền sử gia đình:</span> Bố có tiền sử đái tháo đường type 2.</div>
+  <div class="exam-item"><span class="k">Dị ứng:</span> Chưa ghi nhận dị ứng thuốc, thức ăn.</div>
+
+  <div class="sec-h">IV. Khám bệnh</div>
+  <table class="grid">
+    <thead>
+      <tr>
+        <th class="c">Mạch<br><span class="small">(l/ph)</span></th>
+        <th class="c">Nhiệt độ<br><span class="small">(°C)</span></th>
+        <th class="c">Huyết áp<br><span class="small">(mmHg)</span></th>
+        <th class="c">Nhịp thở<br><span class="small">(l/ph)</span></th>
+        <th class="c">SpO2<br><span class="small">(%)</span></th>
+        <th class="c">Cân nặng<br><span class="small">(kg)</span></th>
+        <th class="c">Chiều cao<br><span class="small">(cm)</span></th>
+        <th class="c">BMI</th>
+        <th class="c">Glucose mao mạch<br><span class="small">(mmol/L)</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="c">82</td>
+        <td class="c">36.8</td>
+        <td class="c">130/80</td>
+        <td class="c">18</td>
+        <td class="c">98</td>
+        <td class="c">68</td>
+        <td class="c">165</td>
+        <td class="c">25.0</td>
+        <td class="c">9.2</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="exam-item"><span class="k">Toàn thân:</span> Tỉnh táo, tiếp xúc tốt, thể trạng trung bình, da niêm mạc hồng, không phù, không xuất huyết dưới da.</div>
+  <div class="exam-item"><span class="k">Tuần hoàn:</span> Tim đều, T1 T2 rõ, chưa nghe tiếng thổi bệnh lý.</div>
+  <div class="exam-item"><span class="k">Hô hấp:</span> Lồng ngực cân đối, rì rào phế nang rõ hai phế trường, không rale.</div>
+  <div class="exam-item"><span class="k">Tiêu hóa:</span> Bụng mềm, không chướng, không điểm đau khu trú, gan lách không sờ chạm.</div>
+  <div class="exam-item"><span class="k">Thận – tiết niệu:</span> Hai hố thắt lưng không đầy, chạm thận (-), rung thận (-).</div>
+  <div class="exam-item"><span class="k">Thần kinh:</span> Không dấu thần kinh khu trú, cảm giác chi dưới trong giới hạn bình thường.</div>
+
+  <div class="sec-h">V. Chẩn đoán</div>
+  <div class="dx-line"><b>Bệnh chính:</b> E11 – Đái tháo đường type 2</div>
+  <div class="dx-line"><b>Bệnh kèm theo:</b> E78.5 – Rối loạn chuyển hóa lipid máu; I10 – Tăng huyết áp vô căn (nguyên phát)</div>
+  <div class="dx-line"><b>Chẩn đoán phân biệt:</b> <span class="fill" style="min-width:400px">Đái tháo đường thứ phát, cường giáp</span></div>
+
+  <div class="sec-h">VI. Xử trí</div>
+  <div class="exam-item"><span class="k">Chỉ định cận lâm sàng:</span> Định lượng Glucose máu lúc đói, HbA1c, Bộ mỡ máu (Cholesterol TP, Triglycerid, HDL-C, LDL-C), Tổng phân tích nước tiểu 10 thông số, Siêu âm ổ bụng tổng quát.</div>
+  <div class="exam-item"><span class="k">Hướng điều trị:</span> Kê đơn thuốc điều trị đái tháo đường type 2 và rối loạn lipid máu (Metformin 500mg, Gliclazide MR 30mg, Atorvastatin 20mg) — Mã đơn thuốc Quốc gia: DTQG-2026-0702-000123. Kết hợp chế độ ăn kiêng đường, tăng cường vận động thể lực.</div>
+  <div class="exam-item"><span class="k">Lời dặn:</span> Uống thuốc đều đặn theo đơn, tái khám ngay nếu có dấu hiệu hạ đường huyết (vã mồ hôi, run tay, chóng mặt). Theo dõi đường huyết mao mạch tại nhà, hạn chế tinh bột và đường đơn, không tự ý ngưng thuốc.</div>
+  <div class="exam-item"><span class="k">Hẹn tái khám:</span> Sau 4 tuần (dự kiến ngày 30/07/2026) hoặc khi có bất thường.</div>
+
+  <div class="sign">
+    <div class="box" style="margin-left:auto">
+      <div class="role">BÁC SĨ KHÁM BỆNH</div>
+      <div class="hint">(Ký, ghi rõ họ tên)</div>
+      <div class="date">TP. Hồ Chí Minh, ngày 02 tháng 07 năm 2026</div>
+      <div class="name">BS.CKI Trần Thị Bình</div>
+    </div>
+  </div>
+
+  <div class="note">Phiếu khám bệnh được lập theo hồ sơ bệnh án ngoại trú, lưu trữ tại phòng khám và trong hệ thống thông tin bệnh viện (HIS). Vui lòng mang theo phiếu khi tái khám.</div>
+</div>
+</body>
+</html>

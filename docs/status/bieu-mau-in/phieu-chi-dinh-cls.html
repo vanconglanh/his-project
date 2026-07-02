@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phiếu chỉ định cận lâm sàng</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e9e9e6;font-family:"Times New Roman",Times,serif;color:#111;font-size:13px;line-height:1.42}
+.toolbar{position:sticky;top:0;z-index:9;background:#1a1a19;color:#fff;display:flex;gap:12px;align-items:center;padding:9px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:13px}
+.toolbar .sp{flex:1}
+.toolbar a,.toolbar button{font:inherit;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.35);border-radius:7px;padding:6px 12px;cursor:pointer;text-decoration:none}
+.toolbar button.pr{background:#1baf7a;border-color:transparent;font-weight:600}
+.sheet{background:#fff;margin:16px auto;box-shadow:0 3px 16px rgba(0,0,0,.18);position:relative}
+.lh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1.5px solid #111;padding-bottom:8px;margin-bottom:10px}
+.lh .org{font-size:12px;line-height:1.35}
+.lh .org b{font-size:13.5px;text-transform:uppercase;display:block}
+.lh .logo{width:52px;height:52px;flex:0 0 auto;border:1px solid #111;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-weight:700;color:#0b7285;font-size:10px;text-align:center;line-height:1.1}
+.doc-title{text-align:center;font-size:18px;font-weight:700;text-transform:uppercase;margin:8px 0 2px;letter-spacing:.02em}
+.doc-sub{text-align:center;font-size:12px;color:#333;margin-bottom:12px;font-style:italic}
+.code-line{text-align:right;font-size:11.5px;color:#333;margin-bottom:4px}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+table.grid th,table.grid td{border:1px solid #111;padding:4px 6px;vertical-align:top}
+table.grid th{background:#f0f0ee;font-weight:700;text-align:left}
+td.c,th.c{text-align:center}
+td.r,th.r{text-align:right}
+.sec-h{font-weight:700;text-transform:uppercase;margin:9px 0 3px;font-size:13px}
+.row{display:flex;gap:18px;flex-wrap:wrap}
+.field{margin:3px 0}.field .k{font-weight:700}
+.fill{border-bottom:1px dotted #444;min-width:60px;display:inline-block}
+.sign{display:flex;justify-content:space-around;margin-top:16px;text-align:center;gap:10px}
+.sign .box{min-width:40%}
+.sign .role{font-weight:700}.sign .hint{font-style:italic;font-size:11px;color:#444}
+.sign .date{font-style:italic;font-size:11.5px}.sign .name{margin-top:50px;font-weight:700}
+.muted{color:#555}.small{font-size:11px}
+.note{font-size:11px;color:#444;font-style:italic;margin-top:10px;border-top:1px dashed #999;padding-top:6px}
+@media print{body{background:#fff}.toolbar{display:none}.sheet{margin:0;box-shadow:none}}
+
+@page{size:A5 portrait;margin:0} .sheet{width:148mm;min-height:210mm;padding:9mm 10mm}
+
+.pat-info{font-size:12.5px;margin:8px 0}
+.pat-info .row{margin:2px 0}
+.mode-line{margin:8px 0;font-size:13px}
+.mode-line .box{display:inline-block;margin-right:22px}
+.cls-box{border:1.3px solid #111;border-radius:6px;padding:8px 10px;margin-top:14px}
+.cls-box .cls-title{font-weight:700;text-transform:uppercase;font-size:12.5px;margin-bottom:6px}
+.cls-fields{font-size:12px;line-height:2}
+.sign-right{display:flex;justify-content:flex-end;margin-top:14px}
+.sign-right .box{text-align:center;min-width:55%}
+</style>
+</head>
+<body>
+<div class="toolbar"><b>Phiếu chỉ định cận lâm sàng</b><span class="sp"></span>
+  <a href="index.html">← Thư viện biểu mẫu</a>
+  <button class="pr" onclick="window.print()">🖨️ In</button></div>
+
+<div class="sheet">
+  <div class="lh">
+    <div class="logo">PRO<br>-DIAB</div>
+    <div class="org">
+      <b>Phòng khám đa khoa Pro-Diab</b>
+      Mã CSKCB: 79123 &nbsp;·&nbsp; MST: 0312345678<br>
+      Địa chỉ: 123 Đường Sức Khỏe, P. Bến Nghé, Q.1, TP. Hồ Chí Minh<br>
+      ĐT: 028 3822 1234
+    </div>
+  </div>
+
+  <div class="code-line">Mã phiếu: CLS-2026-0702-042 &nbsp;·&nbsp; 08:35 02/07/2026</div>
+
+  <div class="doc-title">Phiếu chỉ định cận lâm sàng</div>
+  <div class="doc-sub">(Xét nghiệm — Chẩn đoán hình ảnh)</div>
+
+  <div class="pat-info">
+    <div class="row"><span class="k" style="font-weight:700">Họ tên:</span> Nguyễn Văn An &nbsp;&nbsp; <span class="k" style="font-weight:700">Tuổi:</span> 57 &nbsp;&nbsp; <span class="k" style="font-weight:700">Giới:</span> Nam</div>
+    <div class="row"><span class="k" style="font-weight:700">Mã BN:</span> BN000123 &nbsp;&nbsp; <span class="k" style="font-weight:700">Số thẻ BHYT:</span> HN4 79 123 45678 90</div>
+    <div class="row"><span class="k" style="font-weight:700">Phòng khám:</span> Số 2 (Nội tiết) &nbsp;&nbsp; <span class="k" style="font-weight:700">STT:</span> 042 &nbsp;&nbsp; <span class="k" style="font-weight:700">Mã LK:</span> LK000456</div>
+  </div>
+
+  <div class="field"><span class="k">Chẩn đoán sơ bộ:</span> E11 – Đái tháo đường type 2</div>
+
+  <div class="mode-line">
+    <span class="box">☑ Thường</span>
+    <span class="box">☐ Cấp cứu</span>
+  </div>
+
+  <table class="grid">
+    <thead>
+      <tr>
+        <th class="c" style="width:7%">STT</th>
+        <th>Tên dịch vụ (XN/CĐHA)</th>
+        <th class="c" style="width:8%">SL</th>
+        <th style="width:24%">Khoa/Phòng thực hiện</th>
+        <th style="width:18%">Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="c">1</td>
+        <td>Định lượng Glucose máu lúc đói</td>
+        <td class="c">1</td>
+        <td>Khoa Sinh hóa</td>
+        <td>Nhịn ăn ≥ 8 giờ</td>
+      </tr>
+      <tr>
+        <td class="c">2</td>
+        <td>Định lượng HbA1c</td>
+        <td class="c">1</td>
+        <td>Khoa Sinh hóa</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="c">3</td>
+        <td>Bộ mỡ máu (Cholesterol TP, Triglycerid, HDL-C, LDL-C)</td>
+        <td class="c">1</td>
+        <td>Khoa Sinh hóa</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="c">4</td>
+        <td>Tổng phân tích nước tiểu 10 thông số</td>
+        <td class="c">1</td>
+        <td>Khoa Sinh hóa</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="c">5</td>
+        <td>Siêu âm ổ bụng tổng quát</td>
+        <td class="c">1</td>
+        <td>Khoa Chẩn đoán hình ảnh</td>
+        <td>Nhịn ăn sáng</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sign-right">
+    <div class="box">
+      <div class="role">BÁC SĨ CHỈ ĐỊNH</div>
+      <div class="hint">(Ký, ghi rõ họ tên)</div>
+      <div class="date">Ngày 02 tháng 07 năm 2026</div>
+      <div class="name">BS.CKI Trần Thị Bình</div>
+    </div>
+  </div>
+
+  <div class="cls-box">
+    <div class="cls-title">Phần dành cho phòng cận lâm sàng</div>
+    <div class="cls-fields">
+      Người lấy/nhận mẫu: <span class="fill" style="min-width:180px">&nbsp;</span><br>
+      Thời gian nhận mẫu: <span class="fill" style="min-width:100px">&nbsp;</span> ngày <span class="fill" style="min-width:70px">&nbsp;</span><br>
+      Thời gian trả kết quả dự kiến: <span class="fill" style="min-width:100px">&nbsp;</span> ngày <span class="fill" style="min-width:70px">&nbsp;</span>
+    </div>
+  </div>
+
+  <div class="note">Phiếu có giá trị trong ngày. Đề nghị bệnh nhân mang phiếu đến đúng khoa/phòng được chỉ định.</div>
+</div>
+</body>
+</html>

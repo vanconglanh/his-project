@@ -1,0 +1,287 @@
+openapi: 3.1.0
+info:
+  title: Pro-Diab HIS - Billing API
+  version: 1.0.0-sprint8
+  description: |
+    Tính tiền tự động từ Encounter (services + cls_orders + prescriptions + dispensing).
+    Invoice generation, BHYT co-pay (chuẩn bị EPIC 7).
+    FHIR mapping: Invoice, ChargeItem.
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Billings
+
+paths:
+  /billings:
+    get:
+      tags: [Billings]
+      summary: List billings
+      security: [{ bearerAuth: [billing.read] }]
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/BillingStatus' } }
+        - { name: patient_id, in: query, schema: { type: string, format: uuid } }
+        - { name: encounter_id, in: query, schema: { type: string, format: uuid } }
+        - { name: from_date, in: query, schema: { type: string, format: date } }
+        - { name: to_date, in: query, schema: { type: string, format: date } }
+        - { name: payer, in: query, schema: { type: string, enum: [SELF, BHYT, MIXED] } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/BillingResponse' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+
+    post:
+      tags: [Billings]
+      summary: Auto-create billing from encounter (gom services + cls + prescriptions + dispensing)
+      security: [{ bearerAuth: [billing.create] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [encounter_id]
+              properties:
+                encounter_id: { type: string, format: uuid }
+                include_dispensing: { type: boolean, default: true }
+                payer: { type: string, enum: [SELF, BHYT, MIXED], default: SELF }
+                note: { type: string }
+      responses:
+        '201': { $ref: '#/components/responses/BillingOk' }
+
+  /billings/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Billings]
+      security: [{ bearerAuth: [billing.read] }]
+      responses:
+        '200': { $ref: '#/components/responses/BillingOk' }
+        '404': { description: BILLING_NOT_FOUND }
+    put:
+      tags: [Billings]
+      summary: Update note / discount (DRAFT only)
+      security: [{ bearerAuth: [billing.update] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string }
+                discount_amount: { type: number, minimum: 0 }
+                payment_due_date: { type: string, format: date }
+      responses:
+        '200': { $ref: '#/components/responses/BillingOk' }
+        '409': { description: BILLING_ALREADY_FINALIZED }
+
+  /billings/{id}/items:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Billings]
+      summary: Add manual item
+      security: [{ bearerAuth: [billing.update] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BillingItemUpsert' }
+      responses:
+        '201': { $ref: '#/components/responses/BillingOk' }
+
+  /billings/items/{itemId}:
+    parameters:
+      - { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Billings]
+      security: [{ bearerAuth: [billing.update] }]
+      responses: { '204': { description: Deleted } }
+
+  /billings/{id}/finalize:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Billings]
+      summary: DRAFT -> FINALIZED (lock, không sửa được nữa)
+      security: [{ bearerAuth: [billing.finalize] }]
+      responses:
+        '200': { $ref: '#/components/responses/BillingOk' }
+        '409': { description: BILLING_ALREADY_FINALIZED or BILLING_VOID }
+
+  /billings/{id}/void:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Billings]
+      summary: Void billing (admin)
+      security: [{ bearerAuth: [billing.void] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties: { reason: { type: string, minLength: 5 } }
+      responses: { '200': { $ref: '#/components/responses/BillingOk' } }
+
+  /billings/{id}/preview:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Billings]
+      security: [{ bearerAuth: [billing.read] }]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { type: object, properties: { data: { $ref: '#/components/schemas/BillingResponse' } } }
+
+  /billings/{id}/pdf:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Billings]
+      security: [{ bearerAuth: [billing.read] }]
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /billings/{id}/apply-bhyt:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Billings]
+      summary: Tính co-pay BHYT (mark bhyt_amount + patient_payable)
+      security: [{ bearerAuth: [billing.apply_bhyt] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bhyt_card_no, copay_rate]
+              properties:
+                bhyt_card_no: { type: string, description: 'Mã hóa AES-256-GCM khi lưu' }
+                copay_rate: { type: integer, enum: [80, 95, 100], description: '% BHYT chi trả' }
+                right_route: { type: string, enum: [DUNG_TUYEN, TRAI_TUYEN, CAP_CUU], default: DUNG_TUYEN }
+      responses:
+        '200': { $ref: '#/components/responses/BillingOk' }
+        '400': { description: BILLING_INVALID_BHYT }
+
+  /billings/encounter/{encounterId}:
+    parameters:
+      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Billings]
+      security: [{ bearerAuth: [billing.read] }]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/BillingResponse' } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  schemas:
+    BillingStatus:
+      type: string
+      enum: [DRAFT, FINALIZED, PARTIAL_PAID, PAID, VOID]
+
+    BillingItemType:
+      type: string
+      enum: [SERVICE, DRUG, PROCEDURE, LAB, RAD, PACKAGE, OTHER]
+
+    BillingItem:
+      type: object
+      required: [type, name, quantity, unit_price, line_total]
+      properties:
+        id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/BillingItemType' }
+        ref_id: { type: string, format: uuid, nullable: true, description: 'service_id / drug_id / cls_order_id' }
+        code: { type: string }
+        name: { type: string }
+        quantity: { type: number, minimum: 0 }
+        unit_price: { type: number }
+        vat_rate: { type: integer, enum: [0, 5, 8, 10] }
+        discount_percent: { type: number, default: 0 }
+        line_total: { type: number }
+        bhyt_applicable: { type: boolean, default: false }
+        bhyt_amount: { type: number, default: 0 }
+
+    BillingItemUpsert:
+      type: object
+      required: [type, name, quantity, unit_price]
+      properties:
+        type: { $ref: '#/components/schemas/BillingItemType' }
+        ref_id: { type: string, format: uuid, nullable: true }
+        code: { type: string }
+        name: { type: string }
+        quantity: { type: number }
+        unit_price: { type: number }
+        vat_rate: { type: integer, default: 0 }
+        discount_percent: { type: number, default: 0 }
+        bhyt_applicable: { type: boolean, default: false }
+
+    BillingResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        encounter_id: { type: string, format: uuid, nullable: true }
+        patient_id: { type: string, format: uuid }
+        patient_summary:
+          type: object
+          properties:
+            full_name: { type: string }
+            dob: { type: string, format: date }
+            gender: { type: string }
+            phone: { type: string }
+            bhyt_card_no_masked: { type: string, nullable: true }
+        bill_no: { type: string, description: 'HD-YYYYMM-XXXXX' }
+        items: { type: array, items: { $ref: '#/components/schemas/BillingItem' } }
+        subtotal: { type: number }
+        vat_total: { type: number }
+        discount_amount: { type: number }
+        bhyt_amount: { type: number }
+        patient_payable: { type: number }
+        paid_amount: { type: number }
+        balance: { type: number }
+        status: { $ref: '#/components/schemas/BillingStatus' }
+        payment_due_date: { type: string, format: date, nullable: true }
+        payer: { type: string, enum: [SELF, BHYT, MIXED] }
+        note: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        created_by: { type: string, format: uuid }
+        finalized_at: { type: string, format: date-time, nullable: true }
+        void_reason: { type: string, nullable: true }
+
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+
+  responses:
+    BillingOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data: { $ref: '#/components/schemas/BillingResponse' }
