@@ -495,3 +495,240 @@ public class GetTopDiagnosesHandler : IRequestHandler<GetTopDiagnosesQuery, IRea
         }).ToList();
     }
 }
+
+// ================= F7: Report endpoint con stub — bo sung handler that ================= //
+
+// ---- Revenue by service ---- //
+public class GetRevenueByServiceHandler : IRequestHandler<GetRevenueByServiceQuery, IReadOnlyList<ServiceRevenueResponse>>
+{
+    private readonly IReportingService _svc;
+    private readonly ITenantProvider _tenant;
+
+    public GetRevenueByServiceHandler(IReportingService svc, ITenantProvider tenant)
+    {
+        _svc = svc;
+        _tenant = tenant;
+    }
+
+    public Task<IReadOnlyList<ServiceRevenueResponse>> Handle(GetRevenueByServiceQuery request, CancellationToken ct)
+        => _svc.GetRevenueByServiceAsync(_tenant.TenantId, request.From, request.To, request.Top, ct);
+}
+
+// ---- Revenue by payment method ---- //
+public class GetRevenueByPaymentMethodHandler : IRequestHandler<GetRevenueByPaymentMethodQuery, IReadOnlyList<PaymentMethodBreakdownResponse>>
+{
+    private readonly IReportingService _svc;
+    private readonly ITenantProvider _tenant;
+
+    public GetRevenueByPaymentMethodHandler(IReportingService svc, ITenantProvider tenant)
+    {
+        _svc = svc;
+        _tenant = tenant;
+    }
+
+    public Task<IReadOnlyList<PaymentMethodBreakdownResponse>> Handle(GetRevenueByPaymentMethodQuery request, CancellationToken ct)
+        => _svc.GetRevenueByPaymentMethodAsync(_tenant.TenantId, request.From, request.To, ct);
+}
+
+// ---- Cashier daily summary ---- //
+public class GetCashierDailySummaryHandler : IRequestHandler<GetCashierDailySummaryQuery, CashierDailySummaryResponse>
+{
+    private readonly IReportingService _svc;
+    private readonly ITenantProvider _tenant;
+
+    public GetCashierDailySummaryHandler(IReportingService svc, ITenantProvider tenant)
+    {
+        _svc = svc;
+        _tenant = tenant;
+    }
+
+    public Task<CashierDailySummaryResponse> Handle(GetCashierDailySummaryQuery request, CancellationToken ct)
+        => _svc.GetCashierDailySummaryAsync(_tenant.TenantId, request.Date, request.CashierId, ct);
+}
+
+// ---- Debts aging ---- //
+public class GetDebtsAgingHandler : IRequestHandler<GetDebtsAgingQuery, DebtsAgingResponse>
+{
+    private readonly IReportingService _svc;
+    private readonly ITenantProvider _tenant;
+
+    public GetDebtsAgingHandler(IReportingService svc, ITenantProvider tenant)
+    {
+        _svc = svc;
+        _tenant = tenant;
+    }
+
+    public Task<DebtsAgingResponse> Handle(GetDebtsAgingQuery request, CancellationToken ct)
+        => _svc.GetDebtsAgingAsync(_tenant.TenantId, request.AsOf, ct);
+}
+
+// ---- BHYT summary ---- //
+public class GetBhytSummaryHandler : IRequestHandler<GetBhytSummaryQuery, BhytSummaryResponse>
+{
+    private readonly IReportingService _svc;
+    private readonly ITenantProvider _tenant;
+
+    public GetBhytSummaryHandler(IReportingService svc, ITenantProvider tenant)
+    {
+        _svc = svc;
+        _tenant = tenant;
+    }
+
+    public Task<BhytSummaryResponse> Handle(GetBhytSummaryQuery request, CancellationToken ct)
+        => _svc.GetBhytSummaryAsync(_tenant.TenantId, request.From, request.To, ct);
+}
+
+// ---- Pharmacy inventory value ---- //
+public class GetInventoryValueHandler : IRequestHandler<GetInventoryValueQuery, InventoryValueResponse>
+{
+    private readonly IReportingService _svc;
+    private readonly ITenantProvider _tenant;
+
+    public GetInventoryValueHandler(IReportingService svc, ITenantProvider tenant)
+    {
+        _svc = svc;
+        _tenant = tenant;
+    }
+
+    public Task<InventoryValueResponse> Handle(GetInventoryValueQuery request, CancellationToken ct)
+        => _svc.GetInventoryValueAsync(_tenant.TenantId, ct);
+}
+
+// ---- Clinical visits (paged) ---- //
+public class GetClinicalVisitsHandler : IRequestHandler<GetClinicalVisitsQuery, PagedResult<ClinicalVisitItem>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+
+    public GetClinicalVisitsHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    {
+        _db = db;
+        _tenant = tenant;
+    }
+
+    public async Task<PagedResult<ClinicalVisitItem>> Handle(GetClinicalVisitsQuery q, CancellationToken ct)
+    {
+        using var conn = (IDbConnection)_db.CreateConnection();
+        var tenantId = _tenant.TenantId;
+        var fromDt = q.From.ToDateTime(TimeOnly.MinValue);
+        var toDt   = q.To.ToDateTime(TimeOnly.MaxValue);
+        var offset = (q.Page - 1) * q.PageSize;
+
+        var total = await conn.ExecuteScalarAsync<int>(
+            @"SELECT COUNT(*) FROM diab_his_enc_encounters e
+              WHERE e.tenant_id = @tenantId AND e.deleted_at IS NULL
+                AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to",
+            new { tenantId, from = fromDt, to = toDt });
+
+        var sql = @"
+            SELECT
+                e.id             AS encounter_id,
+                e.patient_id     AS patient_id,
+                e.doctor_id      AS doctor_id,
+                e.status         AS status,
+                e.primary_icd10  AS icd10_code,
+                i.name_vi        AS icd10_name,
+                e.started_at     AS started_at
+            FROM diab_his_enc_encounters e
+            LEFT JOIN diab_his_ref_icd10 i ON i.code = e.primary_icd10
+            WHERE e.tenant_id = @tenantId AND e.deleted_at IS NULL
+              AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
+            ORDER BY COALESCE(e.started_at, e.created_at) DESC
+            LIMIT @limit OFFSET @offset";
+
+        var rows = (await conn.QueryAsync<dynamic>(sql, new { tenantId, from = fromDt, to = toDt, limit = q.PageSize, offset })).ToList();
+
+        var patientIds = rows.Select(r => (string)r.patient_id).Distinct().ToList();
+        var doctorIds = rows.Where(r => r.doctor_id != null).Select(r => (string)r.doctor_id).Distinct().ToList();
+
+        var patientNames = new Dictionary<string, string>();
+        if (patientIds.Count > 0)
+        {
+            var names = await conn.QueryAsync<(string Id, string FullName)>(
+                "SELECT id, full_name FROM diab_his_pat_patients WHERE tenant_id = @tenantId AND id IN @ids AND deleted_at IS NULL",
+                new { tenantId, ids = patientIds });
+            foreach (var (id, fn) in names) patientNames[id] = fn;
+        }
+
+        var doctorNames = new Dictionary<string, string>();
+        if (doctorIds.Count > 0)
+        {
+            var names = await conn.QueryAsync<(string Id, string FullName)>(
+                "SELECT id, full_name FROM diab_his_sec_users WHERE tenant_id = @tenantId AND id IN @ids AND deleted_at IS NULL",
+                new { tenantId, ids = doctorIds });
+            foreach (var (id, fn) in names) doctorNames[id] = fn;
+        }
+
+        var items = rows.Select(r =>
+        {
+            string patientId = (string)r.patient_id;
+            string? doctorId = (string?)r.doctor_id;
+            return new ClinicalVisitItem(
+                Guid.Parse((string)r.encounter_id),
+                patientNames.TryGetValue(patientId, out var pn) ? pn : "—",
+                doctorId != null && doctorNames.TryGetValue(doctorId, out var dn) ? $"BS. {dn}" : null,
+                (string)r.status,
+                (string?)r.icd10_code,
+                (string?)r.icd10_name,
+                r.started_at == null ? null : (DateTime?)r.started_at);
+        }).ToList();
+
+        return new PagedResult<ClinicalVisitItem>(items, q.Page, q.PageSize, total);
+    }
+}
+
+// ---- Clinical ICD-10 breakdown (paged) ---- //
+public class GetClinicalIcd10Handler : IRequestHandler<GetClinicalIcd10Query, PagedResult<TopDiagnosisResponse>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+
+    public GetClinicalIcd10Handler(IDapperConnectionFactory db, ITenantProvider tenant)
+    {
+        _db = db;
+        _tenant = tenant;
+    }
+
+    public async Task<PagedResult<TopDiagnosisResponse>> Handle(GetClinicalIcd10Query q, CancellationToken ct)
+    {
+        using var conn = (IDbConnection)_db.CreateConnection();
+        var tenantId = _tenant.TenantId;
+        var fromDt = q.From.ToDateTime(TimeOnly.MinValue);
+        var toDt   = q.To.ToDateTime(TimeOnly.MaxValue);
+        var offset = (q.Page - 1) * q.PageSize;
+
+        var fromClause = @"
+            FROM diab_his_enc_encounters e
+            LEFT JOIN diab_his_ref_icd10 i ON i.code = e.primary_icd10
+            WHERE e.tenant_id = @tenantId
+              AND e.deleted_at IS NULL
+              AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
+              AND e.primary_icd10 IS NOT NULL AND e.primary_icd10 <> ''";
+
+        var totalGroups = await conn.ExecuteScalarAsync<int>(
+            $"SELECT COUNT(*) FROM (SELECT e.primary_icd10 {fromClause} GROUP BY e.primary_icd10) t",
+            new { tenantId, from = fromDt, to = toDt });
+
+        var totalDiagnosedEncounters = await conn.ExecuteScalarAsync<int>(
+            $"SELECT COUNT(*) {fromClause}",
+            new { tenantId, from = fromDt, to = toDt });
+
+        var dataSql = $@"
+            SELECT e.primary_icd10 AS icd10_code, i.name_vi AS icd10_name, COUNT(*) AS cnt
+            {fromClause}
+            GROUP BY e.primary_icd10, i.name_vi
+            ORDER BY cnt DESC
+            LIMIT @limit OFFSET @offset";
+
+        var rows = await conn.QueryAsync<dynamic>(dataSql, new { tenantId, from = fromDt, to = toDt, limit = q.PageSize, offset });
+
+        var items = rows.Select(r =>
+        {
+            var cnt = (int)r.cnt;
+            var pct = totalDiagnosedEncounters > 0 ? Math.Round((decimal)cnt / totalDiagnosedEncounters * 100, 1) : 0m;
+            return new TopDiagnosisResponse((string)r.icd10_code, (string?)r.icd10_name, cnt, pct);
+        }).ToList();
+
+        return new PagedResult<TopDiagnosisResponse>(items, q.Page, q.PageSize, totalGroups);
+    }
+}

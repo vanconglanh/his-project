@@ -37,4 +37,30 @@ public interface IReportingService
     Task<IReadOnlyList<AlertResponse>> GetAlertsAsync(
         int tenantId, string? severity, string? type,
         CancellationToken ct = default);
+
+    // --------------- F7: Report endpoint con stub — bo sung service that --------------- //
+
+    Task<IReadOnlyList<ServiceRevenueResponse>> GetRevenueByServiceAsync(
+        int tenantId, DateOnly from, DateOnly to, int top,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<PaymentMethodBreakdownResponse>> GetRevenueByPaymentMethodAsync(
+        int tenantId, DateOnly from, DateOnly to,
+        CancellationToken ct = default);
+
+    Task<CashierDailySummaryResponse> GetCashierDailySummaryAsync(
+        int tenantId, DateOnly date, Guid? cashierId,
+        CancellationToken ct = default);
+
+    Task<DebtsAgingResponse> GetDebtsAgingAsync(
+        int tenantId, DateOnly asOf,
+        CancellationToken ct = default);
+
+    Task<BhytSummaryResponse> GetBhytSummaryAsync(
+        int tenantId, DateOnly from, DateOnly to,
+        CancellationToken ct = default);
+
+    Task<InventoryValueResponse> GetInventoryValueAsync(
+        int tenantId,
+        CancellationToken ct = default);
 }

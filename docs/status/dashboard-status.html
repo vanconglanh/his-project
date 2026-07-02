@@ -276,6 +276,13 @@
       <div class="risk">
         <span class="dot" style="background:var(--good)"></span>
         <div>
+          <div class="b">Kiểm chứng P1 (Giai đoạn 3)<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">GĐ3 · Done</span></div>
+          <div class="d">Rà source: <b>7/7 hạng mục P1 đã có</b> — AdminRoles CREATE (RoleForm→POST /roles), AdminTenants suspend/activate, AdminUsers lock/unlock, BHYT ViewDetail, PharmacyDispense tabs, PharmacyStock Adjustment, CLS print. R7 chỉ còn AdminRoles CREATE là SKIP, nay cũng đã có → <b>GĐ3 hoàn thành</b>, không cần code thêm.</div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--good)"></span>
+        <div>
           <div class="b">HTTP client ĐTQG + token per-tenant<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Backend</span></div>
           <div class="d"><code>HttpDtqgClient</code> + <code>DtqgOptions</code> gọi donthuocquocgia.vn qua named HttpClient (bật bằng <code>Dtqg:Enabled</code>, mặc định false → Mock). <b>Token resolve per-tenant</b> qua <code>IDtqgCredentialProvider</code>: đọc <code>diab_his_int_dtqg_credentials</code> + giải mã AES-256-GCM → <code>Authorization: Bearer</code> (fallback config), tự điền cskcb/partner khi payload rỗng. Verify: <code>dotnet build</code> Infra + Api <b>0 error</b> + <b>12/12 unit test</b> pass. Go-live cần: spec API chính thức + ký USB token thật.</div>
         </div>

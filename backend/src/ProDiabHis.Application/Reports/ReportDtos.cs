@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ProDiabHis.Application.Reports;
 
 // --------------- Shared --------------- //
@@ -165,4 +167,76 @@ public record EncounterCountItem(string PeriodLabel, int Count);
 
 /// <summary>Top chan doan ICD-10.</summary>
 public record TopDiagnosisResponse(string Icd10Code, string? Icd10Name, int Count, decimal Percentage);
+
+// --------------- F7: Financial breakdown (by-service / by-payment-method) --------------- //
+
+/// <summary>Doanh thu theo dich vu (khong tinh thuoc — da co bao cao pharmacy/top-drugs rieng).</summary>
+public record ServiceRevenueResponse(
+    string? ServiceCode,
+    string ServiceName,
+    string ItemType,
+    int Count,
+    decimal TotalRevenue,
+    decimal Percentage);
+
+/// <summary>Breakdown theo phuong thuc thanh toan — shape khop FE BreakdownItem (label/value/count/percentage).</summary>
+public record PaymentMethodBreakdownResponse(string Label, decimal Value, int Count, decimal Percentage);
+
+// --------------- F7: Cashier daily summary --------------- //
+
+public record CashierDailySummaryResponse(
+    DateOnly Date,
+    decimal TotalRevenue,
+    int TotalInvoices,
+    decimal TotalRefunds,
+    IReadOnlyList<PaymentMethodBreakdownResponse> ByPaymentMethod,
+    decimal OpeningBalance,
+    decimal ClosingBalance);
+
+// --------------- F7: Debts aging --------------- //
+
+public record DebtDetailItem(
+    string BillNo,
+    string PatientName,
+    decimal Balance,
+    int DaysOverdue,
+    DateOnly? DueDate);
+
+public record DebtsAgingResponse(
+    [property: JsonPropertyName("bucket_0_30")] decimal Bucket0To30,
+    [property: JsonPropertyName("bucket_30_60")] decimal Bucket30To60,
+    [property: JsonPropertyName("bucket_60_90")] decimal Bucket60To90,
+    [property: JsonPropertyName("bucket_over_90")] decimal BucketOver90,
+    decimal Total,
+    IReadOnlyList<DebtDetailItem> Details);
+
+// --------------- F7: BHYT summary --------------- //
+
+public record BhytSummaryResponse(
+    int TotalCards,
+    decimal TotalAmountClaimed,
+    decimal TotalAmountPaid,
+    decimal TotalAmountRejected,
+    decimal RejectionRate,
+    int PendingCount);
+
+// --------------- F7: Clinical visits (paged) --------------- //
+
+public record ClinicalVisitItem(
+    Guid EncounterId,
+    string PatientName,
+    string? DoctorName,
+    string Status,
+    string? PrimaryIcd10Code,
+    string? PrimaryIcd10Name,
+    DateTime? StartedAt);
+
+// --------------- F7: Pharmacy inventory value --------------- //
+
+public record InventoryCategoryItem(string Category, decimal Value, int SkuCount);
+
+public record InventoryValueResponse(
+    decimal TotalValue,
+    int TotalSkus,
+    IReadOnlyList<InventoryCategoryItem> ByCategory);
 

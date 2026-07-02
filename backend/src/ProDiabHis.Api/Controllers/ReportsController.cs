@@ -57,88 +57,75 @@ public class ReportsController : ControllerBase
         return Ok(new { data = result });
     }
 
-    /// <summary>Top dich vu theo doanh thu (stub)</summary>
+    /// <summary>Top dich vu theo doanh thu</summary>
     [HttpGet("revenue/by-service")]
     [RequirePermission("report.read")]
-    public IActionResult GetRevenueByService(
+    public async Task<IActionResult> GetRevenueByService(
         [FromQuery] DateOnly from,
         [FromQuery] DateOnly to,
-        [FromQuery] int top = 20)
+        [FromQuery] int top = 20,
+        CancellationToken ct = default)
     {
-        // Stub — pattern giong by-doctor, extend sau
-        return Ok(new { data = Array.Empty<object>() });
+        var result = await _mediator.Send(new GetRevenueByServiceQuery(from, to, top), ct);
+        return Ok(new { data = result });
     }
 
-    /// <summary>Doanh thu theo phuong thuc thanh toan (stub)</summary>
+    /// <summary>Doanh thu theo phuong thuc thanh toan</summary>
     [HttpGet("revenue/by-payment-method")]
     [RequirePermission("report.read")]
-    public IActionResult GetRevenueByPaymentMethod(
+    public async Task<IActionResult> GetRevenueByPaymentMethod(
         [FromQuery] DateOnly from,
-        [FromQuery] DateOnly to)
+        [FromQuery] DateOnly to,
+        CancellationToken ct = default)
     {
-        return Ok(new { data = Array.Empty<object>() });
+        var result = await _mediator.Send(new GetRevenueByPaymentMethodQuery(from, to), ct);
+        return Ok(new { data = result });
     }
 
-    /// <summary>Tong ket thu ngan cuoi ngay (stub)</summary>
+    /// <summary>Tong ket thu ngan cuoi ngay</summary>
     [HttpGet("cashier/daily-summary")]
     [RequirePermission("report.read")]
-    public IActionResult GetCashierDailySummary(
+    public async Task<IActionResult> GetCashierDailySummary(
         [FromQuery] DateOnly date,
-        [FromQuery] Guid? cashier_id)
+        [FromQuery] Guid? cashier_id,
+        CancellationToken ct = default)
     {
+        var r = await _mediator.Send(new GetCashierDailySummaryQuery(date, cashier_id), ct);
         return Ok(new
         {
             data = new
             {
-                date = date.ToString("yyyy-MM-dd"),
-                total_revenue = 0m,
-                total_invoices = 0,
-                total_refunds = 0m,
-                by_payment_method = Array.Empty<object>(),
-                opening_balance = 0m,
-                closing_balance = 0m
+                date = r.Date.ToString("yyyy-MM-dd"),
+                total_revenue = r.TotalRevenue,
+                total_invoices = r.TotalInvoices,
+                total_refunds = r.TotalRefunds,
+                by_payment_method = r.ByPaymentMethod,
+                opening_balance = r.OpeningBalance,
+                closing_balance = r.ClosingBalance
             }
         });
     }
 
-    /// <summary>Cong no qua han (stub)</summary>
+    /// <summary>Cong no qua han</summary>
     [HttpGet("debts/aging")]
     [RequirePermission("report.read")]
-    public IActionResult GetDebtsAging([FromQuery] DateOnly? as_of)
+    public async Task<IActionResult> GetDebtsAging([FromQuery] DateOnly? as_of, CancellationToken ct = default)
     {
-        return Ok(new
-        {
-            data = new
-            {
-                bucket_0_30 = 0m,
-                bucket_30_60 = 0m,
-                bucket_60_90 = 0m,
-                bucket_over_90 = 0m,
-                total = 0m,
-                details = Array.Empty<object>()
-            }
-        });
+        var asOf = as_of ?? DateOnly.FromDateTime(DateTime.Today);
+        var result = await _mediator.Send(new GetDebtsAgingQuery(asOf), ct);
+        return Ok(new { data = result });
     }
 
-    /// <summary>Tom tat BHYT (stub)</summary>
+    /// <summary>Tom tat BHYT</summary>
     [HttpGet("bhyt/summary")]
     [RequirePermission("report.read")]
-    public IActionResult GetBhytSummary(
+    public async Task<IActionResult> GetBhytSummary(
         [FromQuery] DateOnly from,
-        [FromQuery] DateOnly to)
+        [FromQuery] DateOnly to,
+        CancellationToken ct = default)
     {
-        return Ok(new
-        {
-            data = new
-            {
-                total_cards = 0,
-                total_amount_claimed = 0m,
-                total_amount_paid = 0m,
-                total_amount_rejected = 0m,
-                rejection_rate = 0m,
-                pending_count = 0
-            }
-        });
+        var result = await _mediator.Send(new GetBhytSummaryQuery(from, to), ct);
+        return Ok(new { data = result });
     }
 
     // ======== CLINICAL ======== //
@@ -226,25 +213,36 @@ public class ReportsController : ControllerBase
         return Ok(new { data = result });
     }
 
-    /// <summary>Bao cao lam sang - luot kham (stub)</summary>
+    /// <summary>Bao cao lam sang - luot kham</summary>
     [HttpGet("clinical/visits")]
     [RequirePermission("report.read")]
-    public IActionResult GetClinicalVisits(
-        [FromQuery] DateOnly? from = null,
-        [FromQuery] DateOnly? to = null)
-    {
-        return Ok(new { data = Array.Empty<object>(), meta = new { page = 1, page_size = 20, total = 0, total_pages = 0 } });
-    }
-
-    /// <summary>Bao cao lam sang - phan bo ICD-10 (stub)</summary>
-    [HttpGet("clinical/icd10")]
-    [RequirePermission("report.read")]
-    public IActionResult GetClinicalIcd10(
+    public async Task<IActionResult> GetClinicalVisits(
         [FromQuery] DateOnly? from = null,
         [FromQuery] DateOnly? to = null,
-        [FromQuery] int top = 20)
+        [FromQuery] int page = 1,
+        [FromQuery] int page_size = 20,
+        CancellationToken ct = default)
     {
-        return Ok(new { data = Array.Empty<object>(), meta = new { page = 1, page_size = top, total = 0, total_pages = 0 } });
+        var fromDate = from ?? DateOnly.FromDateTime(DateTime.Today.AddDays(-29));
+        var toDate = to ?? DateOnly.FromDateTime(DateTime.Today);
+        var paged = await _mediator.Send(new GetClinicalVisitsQuery(fromDate, toDate, page, Math.Min(page_size, 100)), ct);
+        return Ok(new { data = paged.Items, meta = new { page = paged.Page, page_size = paged.PageSize, total = paged.Total, total_pages = paged.TotalPages } });
+    }
+
+    /// <summary>Bao cao lam sang - phan bo ICD-10</summary>
+    [HttpGet("clinical/icd10")]
+    [RequirePermission("report.read")]
+    public async Task<IActionResult> GetClinicalIcd10(
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
+        [FromQuery] int top = 20,
+        [FromQuery] int page = 1,
+        CancellationToken ct = default)
+    {
+        var fromDate = from ?? DateOnly.FromDateTime(DateTime.Today.AddDays(-29));
+        var toDate = to ?? DateOnly.FromDateTime(DateTime.Today);
+        var paged = await _mediator.Send(new GetClinicalIcd10Query(fromDate, toDate, page, Math.Min(top, 100)), ct);
+        return Ok(new { data = paged.Items, meta = new { page = paged.Page, page_size = paged.PageSize, total = paged.Total, total_pages = paged.TotalPages } });
     }
 
     // ======== PHARMACY ======== //
@@ -262,12 +260,13 @@ public class ReportsController : ControllerBase
         return Ok(new { data = result });
     }
 
-    /// <summary>Gia tri ton kho (stub)</summary>
+    /// <summary>Gia tri ton kho</summary>
     [HttpGet("pharmacy/inventory-value")]
     [RequirePermission("report.read")]
-    public IActionResult GetInventoryValue()
+    public async Task<IActionResult> GetInventoryValue(CancellationToken ct = default)
     {
-        return Ok(new { data = new { total_value = 0m, items = Array.Empty<object>() } });
+        var result = await _mediator.Send(new GetInventoryValueQuery(), ct);
+        return Ok(new { data = result });
     }
 
     // ======== EXPORT ======== //

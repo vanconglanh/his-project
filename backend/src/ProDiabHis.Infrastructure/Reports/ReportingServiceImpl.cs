@@ -1,6 +1,7 @@
 using Dapper;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Reports;
+using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Infrastructure.Reports;
 
@@ -371,5 +372,245 @@ public class ReportingServiceImpl : IReportingService
         // Return mock data to satisfy the endpoint shape.
         var alerts = new List<AlertResponse>();
         return await Task.FromResult<IReadOnlyList<AlertResponse>>(alerts);
+    }
+
+    // ================= F7: Report endpoint con stub — bo sung service that ================= //
+
+    public async Task<IReadOnlyList<ServiceRevenueResponse>> GetRevenueByServiceAsync(
+        int tenantId, DateOnly from, DateOnly to, int top,
+        CancellationToken ct = default)
+    {
+        using var conn = _db.CreateConnection();
+        var fromDt = from.ToDateTime(TimeOnly.MinValue);
+        var toDt   = to.ToDateTime(TimeOnly.MaxValue);
+
+        // Khong tinh item_type = DRUG vi da co bao cao rieng pharmacy/top-drugs
+        var sql = @"
+            SELECT
+                bi.code             AS ServiceCode,
+                bi.name             AS ServiceName,
+                bi.item_type        AS ItemType,
+                COUNT(*)            AS Cnt,
+                SUM(bi.line_total)  AS TotalRevenue
+            FROM diab_his_bil_billing_items bi
+            JOIN diab_his_bil_billing b ON b.id = bi.billing_id
+            WHERE b.tenant_id = @tenantId
+              AND b.deleted_at IS NULL
+              AND b.status = 'FINALIZED'
+              AND bi.item_type <> 'DRUG'
+              AND b.created_at BETWEEN @from AND @to
+            GROUP BY COALESCE(bi.code, bi.name), bi.code, bi.name, bi.item_type
+            ORDER BY TotalRevenue DESC
+            LIMIT @top";
+
+        var rows = (await conn.QueryAsync<dynamic>(sql, new { tenantId, from = fromDt, to = toDt, top })).ToList();
+
+        var grandTotal = await conn.ExecuteScalarAsync<decimal?>(
+            @"SELECT COALESCE(SUM(bi.line_total), 0)
+              FROM diab_his_bil_billing_items bi
+              JOIN diab_his_bil_billing b ON b.id = bi.billing_id
+              WHERE b.tenant_id = @tenantId
+                AND b.deleted_at IS NULL
+                AND b.status = 'FINALIZED'
+                AND bi.item_type <> 'DRUG'
+                AND b.created_at BETWEEN @from AND @to",
+            new { tenantId, from = fromDt, to = toDt }) ?? 0m;
+
+        return rows.Select(r =>
+        {
+            decimal revenue = (decimal)(r.TotalRevenue ?? 0m);
+            var pct = grandTotal > 0 ? Math.Round(revenue / grandTotal * 100, 1) : 0m;
+            return new ServiceRevenueResponse(
+                (string?)r.ServiceCode,
+                (string)r.ServiceName,
+                (string)r.ItemType,
+                (int)(long)r.Cnt,
+                revenue,
+                pct);
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<PaymentMethodBreakdownResponse>> GetRevenueByPaymentMethodAsync(
+        int tenantId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        using var conn = _db.CreateConnection();
+        var fromDt = from.ToDateTime(TimeOnly.MinValue);
+        var toDt   = to.ToDateTime(TimeOnly.MaxValue);
+
+        var rows = await conn.QueryAsync<(string Method, decimal Amount, string Status)>(
+            @"SELECT method, amount, status
+              FROM diab_his_bil_payments
+              WHERE tenant_id = @tenantId
+                AND COALESCE(paid_at, created_at) BETWEEN @from AND @to",
+            new { tenantId, from = fromDt, to = toDt });
+
+        return PaymentBreakdownCalculator.CalculateBreakdown(rows);
+    }
+
+    public async Task<CashierDailySummaryResponse> GetCashierDailySummaryAsync(
+        int tenantId, DateOnly date, Guid? cashierId, CancellationToken ct = default)
+    {
+        using var conn = _db.CreateConnection();
+        var dayStart = date.ToDateTime(TimeOnly.MinValue);
+        var dayEnd   = date.ToDateTime(TimeOnly.MaxValue);
+        var cashierIdStr = cashierId?.ToString();
+
+        var payments = (await conn.QueryAsync<(string Method, decimal Amount, string Status)>(
+            @"SELECT method, amount, status
+              FROM diab_his_bil_payments
+              WHERE tenant_id = @tenantId
+                AND COALESCE(paid_at, created_at) BETWEEN @dayStart AND @dayEnd
+                AND (@cashierId IS NULL OR paid_by = @cashierId)",
+            new { tenantId, dayStart, dayEnd, cashierId = cashierIdStr })).ToList();
+
+        var (totalRevenue, _, totalRefunds) = PaymentBreakdownCalculator.Summarize(payments);
+        var byMethod = PaymentBreakdownCalculator.CalculateBreakdown(payments);
+
+        var totalInvoices = await conn.ExecuteScalarAsync<int>(
+            @"SELECT COUNT(DISTINCT billing_id)
+              FROM diab_his_bil_payments
+              WHERE tenant_id = @tenantId
+                AND status = @completed
+                AND COALESCE(paid_at, created_at) BETWEEN @dayStart AND @dayEnd
+                AND (@cashierId IS NULL OR paid_by = @cashierId)",
+            new { tenantId, completed = PaymentStatus.Completed, dayStart, dayEnd, cashierId = cashierIdStr });
+
+        var shiftAgg = await conn.QueryFirstOrDefaultAsync<(decimal? Opening, decimal? Closing)>(
+            @"SELECT SUM(opening_balance) AS opening, SUM(closing_balance) AS closing
+              FROM diab_his_bil_cashier_shifts
+              WHERE tenant_id = @tenantId
+                AND shift_date = @date
+                AND (@cashierId IS NULL OR cashier_user_id = @cashierId)",
+            new { tenantId, date, cashierId = cashierIdStr });
+
+        return new CashierDailySummaryResponse(
+            date,
+            totalRevenue,
+            totalInvoices,
+            totalRefunds,
+            byMethod,
+            shiftAgg.Opening ?? 0m,
+            shiftAgg.Closing ?? 0m);
+    }
+
+    public async Task<DebtsAgingResponse> GetDebtsAgingAsync(
+        int tenantId, DateOnly asOf, CancellationToken ct = default)
+    {
+        using var conn = _db.CreateConnection();
+        var asOfEnd = asOf.ToDateTime(TimeOnly.MaxValue);
+        var asOfDate = asOf.ToDateTime(TimeOnly.MinValue);
+
+        // Cong no = hoa don da chot (FINALIZED/PARTIAL_PAID) con balance > 0.
+        // LIMIT 500 — cung mot quy uoc voi GetReportPdfHandler (bao cao chi tiet, khong phai so lieu ke toan chinh xac tuyet doi).
+        var rows = (await conn.QueryAsync<(string Id, string? BillNo, string PatientId, decimal Balance, DateTime CreatedAt, DateTime? PaymentDueDate)>(
+            @"SELECT b.id, b.bill_no, b.patient_id, b.balance, b.created_at, b.payment_due_date
+              FROM diab_his_bil_billing b
+              WHERE b.tenant_id = @tenantId
+                AND b.deleted_at IS NULL
+                AND b.status IN ('FINALIZED','PARTIAL_PAID')
+                AND b.balance > 0
+                AND b.created_at <= @asOfEnd
+              ORDER BY b.balance DESC
+              LIMIT 500",
+            new { tenantId, asOfEnd })).ToList();
+
+        if (rows.Count == 0)
+            return new DebtsAgingResponse(0, 0, 0, 0, 0, Array.Empty<DebtDetailItem>());
+
+        var patientIds = rows.Select(r => r.PatientId).Distinct().ToList();
+        var patientNames = new Dictionary<string, string>();
+        var names = await conn.QueryAsync<(string Id, string FullName)>(
+            "SELECT id, full_name FROM diab_his_pat_patients WHERE tenant_id = @tenantId AND id IN @ids AND deleted_at IS NULL",
+            new { tenantId, ids = patientIds });
+        foreach (var (id, fn) in names) patientNames[id] = fn;
+
+        var details = rows.Select(r =>
+        {
+            var days = (int)(asOfDate.Date - r.CreatedAt.Date).TotalDays;
+            if (days < 0) days = 0;
+            return new DebtDetailItem(
+                r.BillNo ?? $"HD-{r.Id[..8]}",
+                patientNames.TryGetValue(r.PatientId, out var pn) ? pn : "—",
+                r.Balance,
+                days,
+                r.PaymentDueDate.HasValue ? DateOnly.FromDateTime(r.PaymentDueDate.Value) : null);
+        }).ToList();
+
+        return DebtAgingCalculator.Calculate(details);
+    }
+
+    public async Task<BhytSummaryResponse> GetBhytSummaryAsync(
+        int tenantId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        using var conn = _db.CreateConnection();
+        var fromPeriod = from.ToString("yyyy-MM");
+        var toPeriod   = to.ToString("yyyy-MM");
+
+        // Nguon du lieu: diab_his_int_bhyt_exports (module BHYT dang dung bang nay — xem BhytExportCommands/Queries),
+        // KHONG dung diab_his_bhyt_exports (bang du thua tao boi 9006b, khong duoc app code nao tham chieu).
+        var sql = @"
+            SELECT
+                COALESCE(SUM(encounter_count), 0)        AS total_cards,
+                COALESCE(SUM(total_requested_amount), 0) AS claimed,
+                COALESCE(SUM(total_approved_amount), 0)  AS paid,
+                COALESCE(SUM(total_rejected_amount), 0)  AS rejected,
+                COALESCE(SUM(CASE WHEN status NOT IN ('APPROVED','REJECTED') THEN 1 ELSE 0 END), 0) AS pending
+            FROM diab_his_int_bhyt_exports
+            WHERE tenant_id = @tenantId
+              AND deleted_at IS NULL
+              AND period_month BETWEEN @fromPeriod AND @toPeriod";
+
+        var r = await conn.QueryFirstOrDefaultAsync<dynamic>(sql, new { tenantId, fromPeriod, toPeriod });
+
+        decimal claimed  = (decimal)(r?.claimed ?? 0m);
+        decimal paid     = (decimal)(r?.paid ?? 0m);
+        decimal rejected = (decimal)(r?.rejected ?? 0m);
+        int totalCards   = Convert.ToInt32(r?.total_cards ?? 0);
+        int pending      = Convert.ToInt32(r?.pending ?? 0);
+        var rejectionRate = claimed > 0 ? Math.Round(rejected / claimed * 100, 1) : 0m;
+
+        return new BhytSummaryResponse(totalCards, claimed, paid, rejected, rejectionRate, pending);
+    }
+
+    public async Task<InventoryValueResponse> GetInventoryValueAsync(
+        int tenantId, CancellationToken ct = default)
+    {
+        using var conn = _db.CreateConnection();
+
+        // Gia tri ton kho = so luong con lai * gia nhap tung lo (import_price tren diab_his_pha_stock),
+        // chi tinh thuoc con han (giong dieu kien dung trong GetReportPdfHandler.Pharmacy).
+        var sql = @"
+            SELECT
+                COALESCE(NULLIF(TRIM(d.drug_category), ''), 'Khác') AS category,
+                SUM(s.quantity * s.import_price)                    AS value,
+                COUNT(DISTINCT d.id)                                AS sku_count
+            FROM diab_his_pha_stock s
+            JOIN diab_his_pha_drugs d ON d.id = s.drug_id
+            WHERE d.tenant_id = @tenantId
+              AND s.tenant_id = @tenantId
+              AND d.deleted_at IS NULL
+              AND d.is_active = 1
+              AND s.quantity > 0
+              AND (s.exp_date IS NULL OR s.exp_date >= CURDATE())
+            GROUP BY category
+            ORDER BY value DESC";
+
+        var rows = (await conn.QueryAsync<(string Category, decimal Value, int SkuCount)>(sql, new { tenantId })).ToList();
+        var byCategory = rows.Select(r => new InventoryCategoryItem(r.Category, r.Value, r.SkuCount)).ToList();
+        var totalValue = byCategory.Sum(x => x.Value);
+
+        var totalSkus = await conn.ExecuteScalarAsync<int>(
+            @"SELECT COUNT(DISTINCT d.id)
+              FROM diab_his_pha_stock s
+              JOIN diab_his_pha_drugs d ON d.id = s.drug_id
+              WHERE d.tenant_id = @tenantId
+                AND s.tenant_id = @tenantId
+                AND d.deleted_at IS NULL
+                AND d.is_active = 1
+                AND s.quantity > 0
+                AND (s.exp_date IS NULL OR s.exp_date >= CURDATE())",
+            new { tenantId });
+
+        return new InventoryValueResponse(totalValue, totalSkus, byCategory);
     }
 }

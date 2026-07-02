@@ -1,4 +1,5 @@
 using MediatR;
+using ProDiabHis.Application.Common;
 
 namespace ProDiabHis.Application.Reports;
 
@@ -49,3 +50,38 @@ public record GetReportPdfQuery(
     DateOnly To,
     int? ClinicId,
     string? ReportCode = null) : IRequest<(byte[] Bytes, string FileName, string ReportCode)>;
+
+// --------------- F7: Report endpoint con stub — bo sung query that --------------- //
+
+public record GetRevenueByServiceQuery(
+    DateOnly From,
+    DateOnly To,
+    int Top = 20) : IRequest<IReadOnlyList<ServiceRevenueResponse>>;
+
+public record GetRevenueByPaymentMethodQuery(
+    DateOnly From,
+    DateOnly To) : IRequest<IReadOnlyList<PaymentMethodBreakdownResponse>>;
+
+public record GetCashierDailySummaryQuery(
+    DateOnly Date,
+    Guid? CashierId) : IRequest<CashierDailySummaryResponse>;
+
+public record GetDebtsAgingQuery(DateOnly AsOf) : IRequest<DebtsAgingResponse>;
+
+public record GetBhytSummaryQuery(
+    DateOnly From,
+    DateOnly To) : IRequest<BhytSummaryResponse>;
+
+public record GetClinicalVisitsQuery(
+    DateOnly From,
+    DateOnly To,
+    int Page,
+    int PageSize) : IRequest<PagedResult<ClinicalVisitItem>>;
+
+public record GetClinicalIcd10Query(
+    DateOnly From,
+    DateOnly To,
+    int Page,
+    int PageSize) : IRequest<PagedResult<TopDiagnosisResponse>>;
+
+public record GetInventoryValueQuery() : IRequest<InventoryValueResponse>;

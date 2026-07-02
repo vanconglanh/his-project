@@ -13,7 +13,7 @@ export interface ClinicLetterheadProps {
 
 /**
  * Tiêu đề phòng khám dùng cho báo cáo in A4.
- * Nền xanh teal (#0F766E), logo bên trái, tên + địa chỉ bên phải.
+ * Nền xanh teal (token `--print-header`), logo bên trái, tên + địa chỉ bên phải.
  */
 export function ClinicLetterhead({
   clinicName,
@@ -33,7 +33,7 @@ export function ClinicLetterhead({
         "flex items-center gap-4 bg-teal-700 text-white px-6 py-4 rounded-sm",
         className
       )}
-      style={{ backgroundColor: "#0F766E" }}
+      style={{ backgroundColor: "var(--print-header)", color: "var(--print-header-foreground)" }}
     >
       {/* Logo */}
       <div className="shrink-0">

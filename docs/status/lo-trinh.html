@@ -133,8 +133,8 @@
   <div class="phasebar">
     <div class="done" title="Giai đoạn 1 hoàn thành"></div>
     <div class="done" title="Giai đoạn 2 hoàn thành (P0)"></div>
-    <div class="active" title="Giai đoạn 3 đang tới"></div>
-    <div class="next" title="Giai đoạn 4"></div>
+    <div class="done" title="Giai đoạn 3 hoàn thành (P1)"></div>
+    <div class="active" title="Giai đoạn 4 đang tới"></div>
   </div>
   <div class="phaselabels">
     <span>GĐ1 · Nền tảng v1.0</span><span>GĐ2 · Đóng P0</span><span>GĐ3 · P1</span><span>GĐ4 · v1.1</span>
@@ -148,9 +148,7 @@
   </div>
 
   <div class="note">
-    ⚠️ <b>Lưu ý mốc thời gian:</b> Con số CRUD lấy từ snapshot <b>R7 (01/06/2026)</b>; cửa sổ sprint đóng P0 (14/06) và P1 (28/06) đã trôi qua theo lịch.
-    Bằng chứng mới nhất là <b>sim lâm sàng live 02/07/2026</b> (mục C bên dưới): 6/6 BN đi trọn luồng lâm sàng trên UI thật, phát hiện 6 bug thật / fix 5.
-    Bộ CRUD 56 case vẫn cần re-run để cập nhật con số 76.8%.
+    ⚠️ <b>Lưu ý mốc thời gian:</b> Con số CRUD 76.8% là snapshot test <b>R7 (01/06/2026)</b>. <b>Kiểm chứng source ngày 02/07/2026</b> (đọc code trực tiếp) xác nhận cả P0 (GĐ2) và P1 (GĐ3) đã implement &amp; nối end-to-end — triage 31/05 đã lỗi thời. Bộ CRUD 56 case vẫn cần <b>re-run E2E</b> để cập nhật lại con số.
   </div>
 
   <div class="tl">
@@ -242,27 +240,27 @@
     </div>
 
     <!-- GĐ3 -->
-    <div class="node next">
+    <div class="node done">
       <div class="card">
         <div class="head">
           <h2>Giai đoạn 3 — Khoảng trống P1</h2>
-          <span class="badge next">KẾ TIẾP</span>
-          <span class="when">Sprint 15/06 → 28/06/2026 · ~12 ngày FE</span>
+          <span class="badge done">HOÀN THÀNH</span>
+          <span class="when">Xác minh source 02/07/2026</span>
         </div>
-        <p class="desc">Đóng nhóm P1 (có workaround) + buffer regression từ P0. Song song BE fix BUG-CRUD-01 (Cashier shift timeout).</p>
-        <ul class="items todo">
-          <li>AdminRoles: tạo role mới (CREATE)</li>
-          <li>AdminRoles: sửa permission theo module</li>
-          <li>AdminTenants: tạm khoá / kích hoạt</li>
-          <li>AdminUsers: khoá / mở khoá tài khoản</li>
-          <li>BHYT: xem chi tiết export XML</li>
-          <li>PharmacyDispense: tab Hàng đợi / Lịch sử</li>
-          <li>PharmacyStock: tab &amp; tạo phiếu điều chỉnh</li>
-          <li><s>In phiếu chỉ định CLS</s> — <b>✅ đã làm</b> (trang <code>cls-print</code> client-side, đã build)</li>
+        <p class="desc">Kiểm chứng source hiện tại: <b>7/7 hạng mục P1 đã có &amp; nối end-to-end</b>. Theo bằng chứng R7 (01/06) hầu hết P1 đã PASS, chỉ còn AdminRoles CREATE là SKIP — nay cũng đã có trong source. (Triage 31/05 đã lỗi thời như nhóm P0.)</p>
+        <ul class="items">
+          <li>AdminRoles: tạo role mới — nút "Tạo vai trò mới" + <code>RoleForm</code> → POST /roles</li>
+          <li>AdminRoles: sửa permission theo module (EditPermissions)</li>
+          <li>AdminTenants: tạm khoá / kích hoạt → POST /tenants/{id}/suspend·activate</li>
+          <li>AdminUsers: khoá / mở khoá tài khoản (nút "Khoá"/"Mở khoá")</li>
+          <li>BHYT: xem chi tiết export XML (trang <code>bhyt/exports/[id]</code>)</li>
+          <li>PharmacyDispense: tab Hàng chờ / Lịch sử / Hoàn trả</li>
+          <li>PharmacyStock: <code>AdjustmentForm</code> → useCreateAdjustment</li>
+          <li>In phiếu chỉ định CLS — trang <code>cls-print</code> (client-side, đã build)</li>
         </ul>
         <div class="milestone">
-          <span class="m-ic" style="background:color-mix(in srgb,var(--blue) 16%,transparent)">✅</span>
-          <span><b>Mốc:</b> Ổn định vận hành đầy đủ cho phòng khám — sẵn sàng nhân rộng tenant.</span>
+          <span class="m-ic" style="background:color-mix(in srgb,var(--good) 18%,transparent)">✅</span>
+          <span><b>P1 hoàn tất</b> — vận hành đầy đủ, sẵn sàng nhân rộng tenant. Cần chạy lại E2E để cập nhật con số CRUD.</span>
         </div>
       </div>
     </div>

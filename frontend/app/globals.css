@@ -151,6 +151,33 @@
   --scale-hba1c-8: #b91c1c;
   --scale-hba1c-9: #991b1b;
   --scale-hba1c-10: #7f1d1d;
+
+  /* Palette avatar (nền fallback khi không có ảnh — chọn theo hash tên) */
+  --avatar-1: #22c55e;
+  --avatar-2: #0ea5e9;
+  --avatar-3: #ef4444;
+  --avatar-4: #8b5cf6;
+  --avatar-5: #f472b6;
+  --avatar-6: #f97316;
+  --avatar-7: #14b8a6;
+  --avatar-8: #eab308;
+  --avatar-9: #a855f7;
+  --avatar-10: #3b82f6;
+  /* Chữ trên nền avatar — trắng, riêng avatar-8 (vàng) dùng chữ tối để đủ tương phản */
+  --avatar-1-foreground: #ffffff;
+  --avatar-2-foreground: #ffffff;
+  --avatar-3-foreground: #ffffff;
+  --avatar-4-foreground: #ffffff;
+  --avatar-5-foreground: #ffffff;
+  --avatar-6-foreground: #ffffff;
+  --avatar-7-foreground: #ffffff;
+  --avatar-8-foreground: #1f2937;
+  --avatar-9-foreground: #ffffff;
+  --avatar-10-foreground: #ffffff;
+
+  /* Màu tiêu đề khi in (letterhead) — cố định, KHÔNG đổi theo dark mode vì trang in luôn nền trắng */
+  --print-header: #0f766e;
+  --print-header-foreground: #ffffff;
 }
 
 /* ============================
@@ -203,6 +230,28 @@
   --scale-hba1c-8: #b91c1c;
   --scale-hba1c-9: #991b1b;
   --scale-hba1c-10: #7f1d1d;
+
+  /* Palette avatar (giữ nguyên giá trị light — đủ tương phản trên nền tối) */
+  --avatar-1: #22c55e;
+  --avatar-2: #0ea5e9;
+  --avatar-3: #ef4444;
+  --avatar-4: #8b5cf6;
+  --avatar-5: #f472b6;
+  --avatar-6: #f97316;
+  --avatar-7: #14b8a6;
+  --avatar-8: #eab308;
+  --avatar-9: #a855f7;
+  --avatar-10: #3b82f6;
+  --avatar-1-foreground: #ffffff;
+  --avatar-2-foreground: #ffffff;
+  --avatar-3-foreground: #ffffff;
+  --avatar-4-foreground: #ffffff;
+  --avatar-5-foreground: #ffffff;
+  --avatar-6-foreground: #ffffff;
+  --avatar-7-foreground: #ffffff;
+  --avatar-8-foreground: #1f2937;
+  --avatar-9-foreground: #ffffff;
+  --avatar-10-foreground: #ffffff;
 }
 
 /* Medical context theme — teal primary, clean neutral */
