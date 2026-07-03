@@ -147,7 +147,7 @@ export function FullPageFormShell({
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="w-full px-6 lg:px-10 py-8">
           {children}
 
           {/* Sticky action bar — bám cuối vùng content, full-bleed trong container px-6 */}

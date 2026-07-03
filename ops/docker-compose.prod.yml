@@ -104,7 +104,7 @@ services:
   # MinIO — production object storage
   # -------------------------------------------------------------------
   minio:
-    image: minio/minio:RELEASE.2025-01-20T22-07-31Z
+    image: minio/minio:latest
     container_name: prodiab-minio
     restart: unless-stopped
     environment:
@@ -150,7 +150,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:5000"
-      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${DB_NAME};User=${DB_USER};Password=${DB_PASSWORD};CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=true;"
+      # GuidFormat=None: id nghiep vu la CHAR(36) nhung KHONG phai GUID hop le (vd rx000001-...),
+      # tranh MySqlConnector parse CHAR(36)->Guid gay FormatException 500.
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${DB_NAME};User=${DB_USER};Password=${DB_PASSWORD};CharSet=utf8mb4;GuidFormat=None;SslMode=None;AllowPublicKeyRetrieval=true;"
       Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},ssl=False,abortConnect=False"
       Minio__Endpoint: "minio:9000"
       Minio__AccessKey: ${MINIO_ROOT_USER}
@@ -159,6 +161,8 @@ services:
       Jwt__Secret: ${JWT_SECRET}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
+      # CORS whitelist (CorsHardeningMiddleware doc key CorsHardening:AllowedOrigins)
+      CorsHardening__AllowedOrigins__0: ${APP_BASE_URL}
       Jwt__AccessTokenExpiryMinutes: "60"
       Jwt__RefreshTokenExpiryDays: "7"
       Sentry__Dsn: ${SENTRY_DSN}

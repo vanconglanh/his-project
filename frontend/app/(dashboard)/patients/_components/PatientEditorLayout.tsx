@@ -284,7 +284,7 @@ export function PatientEditorLayout({
             onSubmit={handleSubmit(handleFormSubmit, onInvalid)}
             noValidate
           >
-            <div className="max-w-5xl mx-auto px-4 lg:px-8 py-8 pb-32 lg:pb-8">
+            <div className="w-full px-4 lg:px-8 py-8 pb-32 lg:pb-8">
               {/* Submit error */}
               {submitError && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
