@@ -30,7 +30,7 @@ public interface IFefoStrategy
     /// Auto-pick batches for a drug using FEFO (earliest expiry first).
     /// Returns list of (batch_no, expiry_date, qty_to_pick) or throws if insufficient.
     /// </summary>
-    Task<IReadOnlyList<BatchPick>> PickAsync(int warehouseId, int tenantId, int drugId, decimal quantityNeeded, CancellationToken ct = default);
+    Task<IReadOnlyList<BatchPick>> PickAsync(string warehouseId, int tenantId, string drugId, decimal quantityNeeded, CancellationToken ct = default);
 }
 
 public record BatchPick(string BatchNo, DateOnly ExpiryDate, decimal Quantity, decimal UnitCost);

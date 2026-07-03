@@ -22,22 +22,26 @@ public class FefoStrategyImpl : IFefoStrategy
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<BatchPick>> PickAsync(int warehouseId, int tenantId, int drugId, decimal quantityNeeded, CancellationToken ct = default)
+    public async Task<IReadOnlyList<BatchPick>> PickAsync(string warehouseId, int tenantId, string drugId, decimal quantityNeeded, CancellationToken ct = default)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
 
-        // Query available batches, FEFO order, skip expired
+        // Query available batches from diab_his_pha_stock (schema moi CHAR(36)),
+        // FEFO order theo exp_date ASC, bo qua lo het han / het ton.
+        // Ton kho khong scope theo kho (warehouse_id) o schema hien tai —
+        // warehouseId chi de log/tra ve, khong dua vao WHERE.
         var batches = (await conn.QueryAsync<dynamic>(
-            @"SELECT batch_no, expiry_date, quantity_available, unit_cost
-              FROM pha_stocks
+            @"SELECT lot_number     AS batch_no,
+                     exp_date       AS expiry_date,
+                     quantity       AS quantity_available,
+                     import_price   AS unit_cost
+              FROM diab_his_pha_stock
               WHERE tenant_id = @tenantId
-                AND WAREHOUSE_ID = @warehouseId
-                AND DRUG_ID = @drugId
-                AND quantity_available > 0
-                AND expiry_date > CURDATE()
-                AND DELETED_AT IS NULL
-              ORDER BY expiry_date ASC",
-            new { tenantId, warehouseId, drugId })).ToList();
+                AND drug_id   = @drugId
+                AND quantity  > 0
+                AND exp_date  > CURDATE()
+              ORDER BY exp_date ASC",
+            new { tenantId, drugId })).ToList();
 
         var picks = new List<BatchPick>();
         decimal remaining = quantityNeeded;

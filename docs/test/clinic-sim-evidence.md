@@ -107,7 +107,7 @@ Report JSON: `frontend/test-results/clinic-sim-report.json`; ảnh: `test-result
 | 3 | `/drugs/search` trỏ view cũ thiếu `name_vi`; seed `name_vi` rỗng | Không kê được thuốc 500 | ✅ Fixed — code + data |
 | 4 | `/reception/queue` cùng lỗi `queue_number` | Hàng đợi 500 | ✅ Fixed — code |
 | 5 | `drug_id` lệch kiểu (GUID vs INT) + cột `prescription_items` INT | Thêm dòng thuốc 400/500 | ✅ Fixed — mig `9024` + code |
-| 6 | Module **Dispensing** xây trên khóa INT trong khi DB dùng GUID | Cấp phát/thu tiền chưa chạy | ⛔ Cần rework riêng |
+| 6 | Module **Dispensing** xây trên khóa INT trong khi DB dùng GUID | Cấp phát/thu tiền chưa chạy | ✅ Fixed (03/07) — mig `9025` (6 cột INT→CHAR36/VARCHAR36 trên dispense_records/dispense_items/stock_movements) + code Dispensing/FEFO sang khóa GUID; build BE pass + 56 test pharmacy PASS. Chờ áp 9025 lên DB live + re-run E2E |
 | + | Mã permission seed (`reception.create`) lệch mã controller (`reception.checkin`) | RBAC role thật | ⚠️ Cần rà soát seed |
 
 > **Ghi chú:** Chạy admin-bypass (`SIM_USE_ADMIN=1`) để kiểm luồng nghiệp vụ trong khi mã permission seed đang được rà soát. File đổi khi dựng env: `Program.cs` (CORS dev), `appsettings.Development.json` (Redis off + CORS), + các migration `9022/9023/9024` và fix handler Reception/Drugs/Prescription. Full 50 BN + 10 ngoại lệ chạy sau khi fix bug #6.

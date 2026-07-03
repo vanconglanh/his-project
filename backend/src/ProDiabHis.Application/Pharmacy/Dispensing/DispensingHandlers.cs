@@ -7,12 +7,12 @@ using ProDiabHis.Application.Pharmacy.Warehouse;
 namespace ProDiabHis.Application.Pharmacy.Dispensing;
 
 // ─── Commands & Queries ───────────────────────────────────────────────────────
-public record GetDispenseQueueQuery(int? WarehouseId, string? Q, int Page, int PageSize)
+public record GetDispenseQueueQuery(string? WarehouseId, string? Q, int Page, int PageSize)
     : IRequest<Result<PagedResult<DispenseQueueItem>>>;
-public record DispenseCommand(int PrescriptionId, DispenseRequest Request) : IRequest<Result<DispenseRecordResponse>>;
+public record DispenseCommand(string PrescriptionId, DispenseRequest Request) : IRequest<Result<DispenseRecordResponse>>;
 public record RejectDispenseCommand(string DispenseRecordId, string Reason) : IRequest<Result<DispenseRecordResponse>>;
 public record ReturnDispenseCommand(string DispenseRecordId, ReturnDispenseRequest Request) : IRequest<Result<DispenseRecordResponse>>;
-public record GetDispenseHistoryQuery(int? PatientId, DateOnly? FromDate, DateOnly? ToDate, string? Status, int Page, int PageSize)
+public record GetDispenseHistoryQuery(string? PatientId, DateOnly? FromDate, DateOnly? ToDate, string? Status, int Page, int PageSize)
     : IRequest<Result<PagedResult<DispenseRecordResponse>>>;
 public record GetDispenseReceiptPdfQuery(string DispenseRecordId) : IRequest<Result<byte[]>>;
 
@@ -53,7 +53,7 @@ public class GetDispenseQueueHandler : IRequestHandler<GetDispenseQueueQuery, Re
                WHERE {wc} ORDER BY p.signed_at ASC LIMIT @limit OFFSET @offset", prm);
 
         var items = rows.Select(r => new DispenseQueueItem(
-            0, (string?)r.pres_id, null, (string?)r.patient_name, null,
+            (string)r.pres_id, null, null, (string?)r.patient_name, null,
             (DateTime?)r.signed_at, (int)(r.items_count ?? 0L), (decimal)(r.total_amount ?? 0m), false)).ToList();
 
         return Result<PagedResult<DispenseQueueItem>>.Success(new PagedResult<DispenseQueueItem>(items, q.Page, q.PageSize, total));
@@ -113,7 +113,7 @@ public class DispenseHandler : IRequestHandler<DispenseCommand, Result<DispenseR
 
             if (presItem == null) continue;
 
-            int drugId = (int)presItem.drug_id;
+            string drugId = (string)presItem.drug_id;
             decimal neededQty = (decimal)presItem.quantity;
 
             // Use provided batch_picks or auto FEFO
@@ -201,7 +201,7 @@ public class RejectDispenseHandler : IRequestHandler<RejectDispenseCommand, Resu
         var tenantId = _currentUser.TenantId!.Value;
 
         var rejId = Guid.NewGuid().ToString();
-        var presId = await conn.ExecuteScalarAsync<int?>(
+        var presId = await conn.ExecuteScalarAsync<string?>(
             "SELECT prescription_id FROM diab_his_pha_dispense_records WHERE id = @id AND tenant_id = @tenantId",
             new { id = cmd.DispenseRecordId, tenantId });
 
@@ -213,7 +213,7 @@ public class RejectDispenseHandler : IRequestHandler<RejectDispenseCommand, Resu
             new { newId = rejId, reason = cmd.Reason, id = cmd.DispenseRecordId, tenantId });
 
         return Result<DispenseRecordResponse>.Success(new DispenseRecordResponse(
-            rejId, tenantId, presId ?? 0, 0, DateTime.UtcNow, null, null, "REJECTED", cmd.Reason, [], 0));
+            rejId, tenantId, presId ?? "", "", DateTime.UtcNow, null, null, "REJECTED", cmd.Reason, [], 0));
     }
 }
 
@@ -255,7 +255,7 @@ public class ReturnDispenseHandler : IRequestHandler<ReturnDispenseCommand, Resu
                 @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
                   SELECT @tenantId, id, @wh, 'RETURN', @qty, 'PRESCRIPTION', @presId, NOW(), 0, NOW(), NOW()
                   FROM diab_his_pha_stock WHERE tenant_id = @tenantId AND drug_id = @drug AND lot_number = @batch LIMIT 1",
-                new { tenantId, qty = retItem.Quantity, presId = (string)record.prescription_id, wh = (int)record.warehouse_id, drug = (string)di.drug_id, batch = (string)di.batch_no });
+                new { tenantId, qty = retItem.Quantity, presId = (string)record.prescription_id, wh = (string)record.warehouse_id, drug = (string)di.drug_id, batch = (string)di.batch_no });
 
             await conn.ExecuteAsync(
                 "UPDATE diab_his_pha_dispense_items SET is_returned = 1, returned_quantity = @qty, updated_at = NOW() WHERE id = @id",
@@ -267,7 +267,7 @@ public class ReturnDispenseHandler : IRequestHandler<ReturnDispenseCommand, Resu
             new { id = cmd.DispenseRecordId, tenantId });
 
         return Result<DispenseRecordResponse>.Success(new DispenseRecordResponse(
-            cmd.DispenseRecordId, tenantId, (int)record.prescription_id, (int)record.warehouse_id,
+            cmd.DispenseRecordId, tenantId, (string)record.prescription_id, (string)record.warehouse_id,
             DateTime.UtcNow, null, null, "RETURNED", cmd.Request.Reason, [], 0));
     }
 }
@@ -303,7 +303,7 @@ public class GetDispenseHistoryHandler : IRequestHandler<GetDispenseHistoryQuery
                WHERE {wc} ORDER BY dr.dispensed_at DESC LIMIT @limit OFFSET @offset", prm);
 
         var items = rows.Select(r => new DispenseRecordResponse(
-            (string)r.id, (int)r.tenant_id, (int)r.prescription_id, (int)r.warehouse_id,
+            (string)r.id, (int)r.tenant_id, (string)r.prescription_id, (string)r.warehouse_id,
             (DateTime)r.dispensed_at, (int?)r.dispensed_by, null, (string)r.status, (string?)r.note, [], (decimal)r.total_amount)).ToList();
 
         return Result<PagedResult<DispenseRecordResponse>>.Success(new PagedResult<DispenseRecordResponse>(items, q.Page, q.PageSize, total));

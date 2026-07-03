@@ -437,10 +437,10 @@
         <p class="desc"><b>6/6 bệnh nhân đi trọn</b>: tiếp đón → khám → sinh hiệu → chẩn đoán → bệnh án → <b>ký số → đóng lượt khám → kê đơn → ký &amp; gửi ĐTQG → mở ca thu ngân</b> đều PASS.</p>
       </div>
     </div>
-    <div class="node next">
+    <div class="node active">
       <div class="card">
-        <div class="head"><h2>7 · Cấp phát/thu tiền · full 50 · ngoại lệ</h2><span class="badge next">CHỜ FIX</span></div>
-        <p class="desc">Cấp phát/thu tiền còn SKIP: module <b>Dispensing xây trên khóa INT lệch GUID</b> — cần ticket rework riêng. Sau đó: full 50 BN + 10 ngoại lệ + RBAC vai trò thật (rà mã permission seed).</p>
+        <div class="head"><h2>7 · Cấp phát/thu tiền · full 50 · ngoại lệ</h2><span class="badge active">ĐÃ FIX CODE · CHỜ E2E</span></div>
+        <p class="desc"><b>Bug #6 đã rework (03/07):</b> migration <code>9025</code> đổi 6 cột INT→CHAR(36)/VARCHAR(36) trên <code>dispense_records</code> / <code>dispense_items</code> / <code>stock_movements</code>; toàn bộ Dispensing (DTO, handler, controller route <code>{prescriptionId}</code>, FEFO) chuyển sang khóa GUID chuỗi; FEFO query lại đúng bảng <code>diab_his_pha_stock</code>. <b>Build BE pass + 56 test pharmacy PASS.</b> <b>Đã áp <code>9025</code> lên DB live (03/07)</b> — 6 cột đổi kiểu OK, idempotent; <b>mô phỏng toàn bộ write-path cấp phát bằng GUID/chuỗi PASS</b> (dispense_records + dispense_items + stock_movements + trừ tồn + đổi trạng thái đơn, transaction rollback, không lỗi "Incorrect integer value"). Còn lại: <b>re-run E2E HTTP qua UI</b> bước cấp phát/thu tiền → full 50 BN + 10 ngoại lệ + RBAC vai trò thật (rà mã permission seed).</p>
       </div>
     </div>
   </div>
@@ -450,8 +450,8 @@
     <tbody>
       <tr><td>Artifact (kế hoạch · seed · harness)</td><td class="n">3</td><td class="n">3</td><td class="n">0</td><td class="n">0</td><td><span class="pill ok">Hoàn thành</span></td></tr>
       <tr><td>Luồng lâm sàng (6 BN, admin-bypass)</td><td class="n">103</td><td class="n">87</td><td class="n">1</td><td class="n">15</td><td><span class="pill ok">Đã chạy · xanh tới ĐTQG</span></td></tr>
-      <tr><td>Cấp phát thuốc + thu tiền</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td><span class="pill wait">Chờ fix Dispensing (INT↔GUID)</span></td></tr>
-      <tr><td>Full 50 BN + 10 ngoại lệ + RBAC role</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td><span class="pill wait">Sau khi fix</span></td></tr>
+      <tr><td>Cấp phát thuốc + thu tiền</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td><span class="pill wait">Fix xong (mig 9025 + code) · chờ re-run E2E</span></td></tr>
+      <tr><td>Full 50 BN + 10 ngoại lệ + RBAC role</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td><span class="pill wait">Sau khi áp 9025 + re-run</span></td></tr>
     </tbody>
   </table>
 
@@ -465,7 +465,7 @@
         <tr><td class="n">3</td><td><code>/drugs/search</code> trỏ view cũ thiếu cột <code>name_vi</code>; seed <code>name_vi</code> rỗng</td><td>Không kê được thuốc (500)</td><td><span class="pill ok">Fixed</span></td></tr>
         <tr><td class="n">4</td><td><code>/reception/queue</code> cùng gốc lỗi <code>queue_number</code></td><td>Hàng đợi lỗi 500</td><td><span class="pill ok">Fixed</span></td></tr>
         <tr><td class="n">5</td><td><code>drug_id</code> lệch kiểu (search trả GUID, DTO nhận INT); cột <code>prescription_items</code> còn INT</td><td>Thêm dòng thuốc 400/500</td><td><span class="pill ok">Fixed · mig 9024</span></td></tr>
-        <tr><td class="n">6</td><td>Module <b>Dispensing</b> xây trên khóa INT trong khi DB dùng GUID (<code>PrescriptionId</code>, <code>drug_id</code>…)</td><td>Cấp phát/thu tiền chưa chạy</td><td><span class="pill err">Cần rework riêng</span></td></tr>
+        <tr><td class="n">6</td><td>Module <b>Dispensing</b> xây trên khóa INT trong khi DB dùng GUID (<code>PrescriptionId</code>, <code>drug_id</code>…)</td><td>Cấp phát/thu tiền chưa chạy</td><td><span class="pill ok">Fixed · mig 9025 + code</span></td></tr>
       </tbody>
     </table>
     <p class="desc" style="margin-top:8px">Phụ: mã permission seed (<code>reception.create</code>) lệch mã controller (<code>reception.checkin</code>) → cần rà soát RBAC (tạm chạy admin-bypass để kiểm luồng nghiệp vụ).</p>
@@ -473,8 +473,8 @@
 
   <div class="note info">
     ✅ <b>Trạng thái thật (cập nhật <span id="test-updated">02/07/2026</span>):</b> Môi trường đã dựng thành công (MySQL portable + backend + frontend + Chromium) dù máy không có Docker.
-    Bộ mô phỏng đã chạy thật, đưa <b>6/6 bệnh nhân đi trọn luồng lâm sàng</b> (tiếp đón → khám → ký bệnh án → đóng lượt → kê đơn → ký &amp; gửi ĐTQG → mở ca) và <b>phát hiện 6 bug thật, đã sửa 5</b>.
-    Bước <b>cấp phát/thu tiền</b> chờ rework module Dispensing (khóa INT ↔ GUID). Chi tiết: <code>docs/test/clinic-sim-evidence.md</code> · gallery 14 ảnh <a href="../test/evidence.html"><code>docs/test/evidence.html</code></a> · harness <code>frontend/e2e/sim/</code>.
+    Bộ mô phỏng đã chạy thật, đưa <b>6/6 bệnh nhân đi trọn luồng lâm sàng</b> (tiếp đón → khám → ký bệnh án → đóng lượt → kê đơn → ký &amp; gửi ĐTQG → mở ca) và <b>phát hiện 6 bug thật — nay đã sửa cả 6</b>.
+    Bug #6 (module Dispensing khóa INT ↔ GUID) <b>đã rework 03/07</b>: migration <code>9025</code> + đồng bộ code Dispensing/FEFO sang khóa GUID (build BE pass + 56 test pharmacy PASS); chỉ còn áp <code>9025</code> lên DB live &amp; re-run E2E bước cấp phát/thu tiền. Chi tiết: <code>docs/test/clinic-sim-evidence.md</code> · gallery 14 ảnh <a href="../test/evidence.html"><code>docs/test/evidence.html</code></a> · harness <code>frontend/e2e/sim/</code>.
   </div>
 
   <footer>

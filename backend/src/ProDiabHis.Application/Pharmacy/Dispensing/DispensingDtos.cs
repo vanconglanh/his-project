@@ -1,9 +1,9 @@
 namespace ProDiabHis.Application.Pharmacy.Dispensing;
 
 public record DispenseQueueItem(
-    int PrescriptionId,
+    string PrescriptionId,
     string? PrescriptionCode,
-    int? PatientId,
+    string? PatientId,
     string? PatientName,
     string? DoctorName,
     DateTime? SignedAt,
@@ -12,7 +12,7 @@ public record DispenseQueueItem(
     bool IsBhyt);
 
 public record DispenseRequest(
-    int WarehouseId,
+    string WarehouseId,
     string? Note,
     IReadOnlyList<DispenseItemRequest> Items);
 
@@ -25,8 +25,8 @@ public record BatchPickRequest(string BatchNo, decimal Quantity);
 public record DispenseRecordResponse(
     string Id,
     int TenantId,
-    int PrescriptionId,
-    int WarehouseId,
+    string PrescriptionId,
+    string WarehouseId,
     DateTime DispensedAt,
     int? DispensedBy,
     string? DispensedByName,
@@ -38,7 +38,7 @@ public record DispenseRecordResponse(
 public record DispenseItemResponse(
     string Id,
     string PrescriptionItemId,
-    int DrugId,
+    string DrugId,
     string? DrugName,
     string BatchNo,
     DateOnly ExpiryDate,

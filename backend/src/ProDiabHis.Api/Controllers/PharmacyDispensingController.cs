@@ -18,7 +18,7 @@ public class PharmacyDispensingController : ControllerBase
     [HttpGet("queue")]
     [RequirePermission("dispense.queue")]
     public async Task<IActionResult> GetQueue(
-        [FromQuery] int? warehouse_id,
+        [FromQuery] string? warehouse_id,
         [FromQuery] string? q,
         [FromQuery] int page = 1,
         [FromQuery] int page_size = 20,
@@ -33,7 +33,7 @@ public class PharmacyDispensingController : ControllerBase
     [HttpGet("history")]
     [RequirePermission("dispense.queue")]
     public async Task<IActionResult> History(
-        [FromQuery] int? patient_id,
+        [FromQuery] string? patient_id,
         [FromQuery] DateOnly? from_date,
         [FromQuery] DateOnly? to_date,
         [FromQuery] string? status,
@@ -47,9 +47,9 @@ public class PharmacyDispensingController : ControllerBase
     }
 
     // POST /api/v1/pharmacy/dispense/{prescriptionId}
-    [HttpPost("{prescriptionId:int}")]
+    [HttpPost("{prescriptionId}")]
     [RequirePermission("dispense.perform")]
-    public async Task<IActionResult> Dispense(int prescriptionId, [FromBody] DispenseRequest request, CancellationToken ct)
+    public async Task<IActionResult> Dispense(string prescriptionId, [FromBody] DispenseRequest request, CancellationToken ct)
     {
         var result = await _mediator.Send(new DispenseCommand(prescriptionId, request), ct);
         if (!result.IsSuccess)
