@@ -1,19 +1,15 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePurchaseOrders } from "@/lib/hooks/use-pharmacy-warehouse";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PurchaseOrderForm } from "@/components/domain/PurchaseOrderForm";
-import { GrnForm } from "@/components/domain/GrnForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Plus } from "lucide-react";
-import type { PurchaseOrderResponse } from "@/lib/api/pharmacy-warehouse";
 
 const PO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   DRAFT: { label: "Nháp", cls: "bg-gray-100 text-gray-700 border-gray-300" },
@@ -24,9 +20,7 @@ const PO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
 };
 
 export function WarehouseTab() {
-  const [createPoOpen, setCreatePoOpen] = useState(false);
-  const [selectedPoForGrn, setSelectedPoForGrn] = useState<PurchaseOrderResponse | null>(null);
-
+  const router = useRouter();
   const { data: poData, isLoading } = usePurchaseOrders({ page: 1, page_size: 20 });
 
   return (
@@ -37,7 +31,7 @@ export function WarehouseTab() {
             <TabsTrigger value="po">Đơn đặt hàng (PO)</TabsTrigger>
             <TabsTrigger value="grn">Phiếu nhập (GRN)</TabsTrigger>
           </TabsList>
-          <Button size="sm" onClick={() => setCreatePoOpen(true)}>
+          <Button size="sm" onClick={() => router.push("/pharmacy/purchase-orders/new")}>
             <Plus className="h-4 w-4 mr-2" />
             Tạo đơn đặt hàng
           </Button>
@@ -85,7 +79,15 @@ export function WarehouseTab() {
                         </TableCell>
                         <TableCell>
                           {(po.status === "SENT" || po.status === "PARTIAL") && (
-                            <Button variant="outline" size="sm" onClick={() => setSelectedPoForGrn(po)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                router.push(
+                                  `/pharmacy/grn/new?poId=${encodeURIComponent(po.id)}&poNo=${encodeURIComponent(po.order_no)}`
+                                )
+                              }
+                            >
                               Nhập kho
                             </Button>
                           )}
@@ -112,28 +114,6 @@ export function WarehouseTab() {
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Create PO Dialog */}
-      <Dialog open={createPoOpen} onOpenChange={setCreatePoOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Tạo đơn đặt hàng</DialogTitle>
-          </DialogHeader>
-          <PurchaseOrderForm onSuccess={() => setCreatePoOpen(false)} />
-        </DialogContent>
-      </Dialog>
-
-      {/* GRN Dialog */}
-      <Dialog open={!!selectedPoForGrn} onOpenChange={(o) => !o && setSelectedPoForGrn(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Nhập kho từ đơn {selectedPoForGrn?.order_no}</DialogTitle>
-          </DialogHeader>
-          {selectedPoForGrn && (
-            <GrnForm poId={selectedPoForGrn.id} onSuccess={() => setSelectedPoForGrn(null)} />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

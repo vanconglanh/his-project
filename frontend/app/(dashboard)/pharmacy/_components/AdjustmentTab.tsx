@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AdjustmentForm } from "@/components/domain/AdjustmentForm";
 import { useMovements } from "@/lib/hooks/use-pharmacy-warehouse";
 
 const REASON_LABELS: Record<string, string> = {
@@ -36,17 +34,8 @@ function formatDate(s: string) {
   });
 }
 
-interface AdjustmentTabProps {
-  externalOpen?: boolean;
-  onExternalOpenChange?: (open: boolean) => void;
-}
-
-export function AdjustmentTab({ externalOpen, onExternalOpenChange }: AdjustmentTabProps = {}) {
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  // If parent controls the dialog, use parent state; otherwise use local state
-  const createOpen = externalOpen !== undefined ? externalOpen : internalOpen;
-  const setCreateOpen = onExternalOpenChange !== undefined ? onExternalOpenChange : setInternalOpen;
+export function AdjustmentTab() {
+  const router = useRouter();
 
   const { data, isLoading } = useMovements({ movement_type: "ADJUSTMENT", page_size: 50 });
   const rows = data?.data ?? [];
@@ -60,7 +49,7 @@ export function AdjustmentTab({ externalOpen, onExternalOpenChange }: Adjustment
             Lịch sử điều chỉnh tồn kho (kiểm kê, hư hỏng, hết hạn...)
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="min-h-[44px]">
+        <Button onClick={() => router.push("/pharmacy/adjustments/new")} className="min-h-[44px]">
           <Plus className="h-4 w-4 mr-2" />
           Tạo điều chỉnh
         </Button>
@@ -87,7 +76,7 @@ export function AdjustmentTab({ externalOpen, onExternalOpenChange }: Adjustment
               <p className="text-xs text-muted-foreground">
                 Tạo điều chỉnh để ghi nhận kiểm kê hoặc hao hụt tồn kho
               </p>
-              <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Button size="sm" onClick={() => router.push("/pharmacy/adjustments/new")}>
                 Tạo điều chỉnh đầu tiên
               </Button>
             </div>
@@ -140,16 +129,6 @@ export function AdjustmentTab({ externalOpen, onExternalOpenChange }: Adjustment
           )}
         </CardContent>
       </Card>
-
-      {/* Create dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Tạo điều chỉnh tồn kho</DialogTitle>
-          </DialogHeader>
-          <AdjustmentForm onSuccess={() => setCreateOpen(false)} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

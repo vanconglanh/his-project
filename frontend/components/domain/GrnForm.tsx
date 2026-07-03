@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,9 +30,13 @@ type FormData = z.infer<typeof schema>;
 interface Props {
   poId: string;
   onSuccess?: () => void;
+  /** id gắn lên thẻ <form> — trang cha (Fullpage shell) dùng để trigger submit từ ngoài */
+  formId?: string;
+  /** Báo trạng thái đang submit (mutation pending) lên trang cha để hiện ở StickyActionBar */
+  onSubmittingChange?: (submitting: boolean) => void;
 }
 
-export function GrnForm({ poId, onSuccess }: Props) {
+export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChange }: Props) {
   const createGrn = useCreateGrn(poId);
 
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormData>({
@@ -44,13 +49,17 @@ export function GrnForm({ poId, onSuccess }: Props) {
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
+  useEffect(() => {
+    onSubmittingChange?.(createGrn.isPending);
+  }, [createGrn.isPending, onSubmittingChange]);
+
   async function onSubmit(data: FormData) {
     await createGrn.mutateAsync({ ...data, received_at: new Date(data.received_at).toISOString() });
     onSuccess?.();
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>Thời gian nhận hàng</Label>
@@ -107,12 +116,6 @@ export function GrnForm({ poId, onSuccess }: Props) {
             )}
           </div>
         ))}
-      </div>
-
-      <div className="flex justify-end">
-        <Button type="submit" disabled={createGrn.isPending}>
-          {createGrn.isPending ? "Đang nhập..." : "Nhập kho"}
-        </Button>
       </div>
     </form>
   );

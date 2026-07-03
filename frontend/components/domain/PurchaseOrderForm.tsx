@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,9 +32,13 @@ type FormData = z.infer<typeof schema>;
 
 interface Props {
   onSuccess?: () => void;
+  /** id gắn lên thẻ <form> — trang cha (Fullpage shell) dùng để trigger submit từ ngoài */
+  formId?: string;
+  /** Báo trạng thái đang submit (mutation pending) lên trang cha để hiện ở StickyActionBar */
+  onSubmittingChange?: (submitting: boolean) => void;
 }
 
-export function PurchaseOrderForm({ onSuccess }: Props) {
+export function PurchaseOrderForm({ onSuccess, formId = "purchase-order-form", onSubmittingChange }: Props) {
   const { data: warehouses } = useWarehouses();
   const { data: suppliersData } = useSuppliers();
   const createPo = useCreatePurchaseOrder();
@@ -45,13 +50,17 @@ export function PurchaseOrderForm({ onSuccess }: Props) {
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
+  useEffect(() => {
+    onSubmittingChange?.(createPo.isPending);
+  }, [createPo.isPending, onSubmittingChange]);
+
   async function onSubmit(data: FormData) {
     await createPo.mutateAsync(data);
     onSuccess?.();
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>Nhà cung cấp</Label>
@@ -113,12 +122,6 @@ export function PurchaseOrderForm({ onSuccess }: Props) {
             </Button>
           </div>
         ))}
-      </div>
-
-      <div className="flex justify-end">
-        <Button type="submit" disabled={createPo.isPending}>
-          {createPo.isPending ? "Đang tạo..." : "Tạo đơn đặt hàng"}
-        </Button>
       </div>
     </form>
   );

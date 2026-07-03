@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { UserPlus, Users, Activity, CheckCircle, XCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,6 +11,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ReceptionCheckInForm } from "@/components/domain/ReceptionCheckInForm";
 import { ReceptionQueueBoard } from "@/components/domain/ReceptionQueueBoard";
 import { useReceptionStats } from "@/lib/hooks/use-reception";
+
+/** Đọc `?selectPatient=` (quay về từ /patients/new) rồi strip khỏi URL sau khi truyền xuống form. */
+function ReceptionCheckInPanel() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectPatientId = searchParams.get("selectPatient") ?? undefined;
+
+  useEffect(() => {
+    if (preselectPatientId) {
+      router.replace("/reception", { scroll: false });
+    }
+  }, [preselectPatientId, router]);
+
+  return <ReceptionCheckInForm preselectPatientId={preselectPatientId} />;
+}
 
 export default function ReceptionPage() {
   const router = useRouter();
@@ -95,7 +110,9 @@ export default function ReceptionPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
         {/* Left: Check-in form */}
         <div className="border rounded-lg p-4 bg-card">
-          <ReceptionCheckInForm />
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+            <ReceptionCheckInPanel />
+          </Suspense>
         </div>
 
         {/* Right: Queue board */}

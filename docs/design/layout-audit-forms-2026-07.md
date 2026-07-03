@@ -9,15 +9,15 @@
 
 | Finding | Trạng thái | Ghi chú |
 |---------|-----------|---------|
-| F-01 Dialog tạo BN ở Tiếp đón | ⏳ Refactor đợt sau | Gộp luồng về `/patients/new`, cần Đăng/Lành xác nhận |
+| F-01 Dialog tạo BN ở Tiếp đón | ✅ Đã sửa (2026-07-03) | Xóa `PatientForm.tsx`, gộp về `/patients/new?returnTo=/reception` + auto-select khi quay lại + lưu draft check-in (sessionStorage, khôi phục âm thầm) |
 | F-02 DrugForm create dùng Dialog | ✅ Đã sửa | → Sheet `sm:max-w-2xl px-6 pb-6` (giống khối Sửa) |
-| F-03 PO/GRN/Adjustment trong Dialog | ⏳ Refactor đợt sau | Tạm nâng Dialog → `max-w-4xl` (L-05); Fullpage route để đợt sau |
+| F-03 PO/GRN/Adjustment trong Dialog | ✅ Đã sửa (2026-07-03) | 3 route Fullpage mới (`purchase-orders/new`, `adjustments/new`, `grn/new?poId=`) qua `FullPageFormShell` dùng chung; dọn nợ dual-dialog Adjustment |
 | F-04 TenantForm dùng Dialog | ✅ Đã sửa | Create + Edit → Sheet `sm:max-w-2xl px-6 pb-6` |
 | F-05 Sheet detail admin | ✅ Đã sửa | 4 màn → `sm:max-w-xl px-6 pb-6` |
 | F-06 Form sinh hiệu `gap-3` | ✅ Đã sửa | → `gap-4` |
 | F-07 DiabetesAssessmentForm thiếu sticky bar | ✅ Đã sửa | Đã bọc `StickyActionBar` (lần dùng đầu tiên của component này) |
 | F-08 Ctrl+S quảng cáo suông | ✅ Đã sửa | Listener thật cho `encounters/new` + `prescriptions/new` |
-| F-09 StickyActionBar/FieldGroup 0% dùng | ⏳ Nợ kỹ thuật | Bắt buộc dùng cho form mới; mâu thuẫn Sheet mục 3 vs 7 đã hóa giải trong standards mục 3 |
+| F-09 StickyActionBar/FieldGroup 0% dùng | 🟡 Một phần | `FullPageFormShell` (tái dùng `StickyActionBar`) đã ra đời cùng F-03 và dùng ở 3 route kho dược; còn lại: retrofit 3 form Fullpage cũ (patients/encounters/prescriptions) + phổ cập `FieldGroup` |
 
 **Lưu ý đối chiếu chuẩn:** `design-system-standards.md` mục 3 (bảng Spacing·Layout·Panel) ghi Sheet chuẩn là `sm:max-w-2xl`, trong khi mục 7 (Màn hình nhập liệu) ghi Sheet chuẩn `sm:max-w-xl` — hai mục trong CÙNG một tài liệu đang lệch nhau. Audit này dùng mục 7 (chuẩn form) làm gốc cho form nhập liệu, và ghi nhận `sm:max-w-2xl` là chấp nhận được khi form cần 2 cột (variant `sheet-wide` trong `input-form-layout-spec.md` mục 7/10). Đề nghị Đăng/Lành thống nhất lại 2 mục này ở lần cập nhật doc tiếp theo (không thuộc phạm vi sửa code đợt này).
 

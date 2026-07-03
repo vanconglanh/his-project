@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -37,9 +38,13 @@ type FormData = z.infer<typeof schema>;
 
 interface Props {
   onSuccess?: () => void;
+  /** id gắn lên thẻ <form> — trang cha (Fullpage shell) dùng để trigger submit từ ngoài */
+  formId?: string;
+  /** Báo trạng thái đang submit (mutation pending) lên trang cha để hiện ở StickyActionBar */
+  onSubmittingChange?: (submitting: boolean) => void;
 }
 
-export function AdjustmentForm({ onSuccess }: Props) {
+export function AdjustmentForm({ onSuccess, formId = "adjustment-form", onSubmittingChange }: Props) {
   const { data: warehouses } = useWarehouses();
   const createAdjustment = useCreateAdjustment();
 
@@ -60,13 +65,17 @@ export function AdjustmentForm({ onSuccess }: Props) {
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
+  useEffect(() => {
+    onSubmittingChange?.(createAdjustment.isPending);
+  }, [createAdjustment.isPending, onSubmittingChange]);
+
   async function onSubmit(data: FormData) {
     await createAdjustment.mutateAsync(data as any);
     onSuccess?.();
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>Kho</Label>
@@ -153,12 +162,6 @@ export function AdjustmentForm({ onSuccess }: Props) {
             </Button>
           </div>
         ))}
-      </div>
-
-      <div className="flex justify-end">
-        <Button type="submit" disabled={createAdjustment.isPending}>
-          {createAdjustment.isPending ? "Đang lưu..." : "Điều chỉnh tồn kho"}
-        </Button>
       </div>
     </form>
   );
