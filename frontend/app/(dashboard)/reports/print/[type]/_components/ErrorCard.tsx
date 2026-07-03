@@ -5,9 +5,11 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 interface ErrorCardProps {
   title: string;
   description: string;
+  /** Hành động khi bấm "Thử lại". Mặc định reload cả trang. */
+  onRetry?: () => void;
 }
 
-export function ErrorCard({ title, description }: ErrorCardProps) {
+export function ErrorCard({ title, description, onRetry }: ErrorCardProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 print:hidden">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
@@ -18,7 +20,7 @@ export function ErrorCard({ title, description }: ErrorCardProps) {
         <p className="text-sm text-gray-600 mb-6">{description}</p>
         <button
           type="button"
-          onClick={() => location.reload()}
+          onClick={onRetry ?? (() => location.reload())}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-teal-700 text-white text-sm font-medium hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
         >
           <RefreshCw className="w-4 h-4" />

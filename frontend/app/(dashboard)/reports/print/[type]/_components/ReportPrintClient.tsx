@@ -1,26 +1,28 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
-import { PrintableReportA4 } from "@/components/print/PrintableReportA4";
-import { getClinicLetterhead, type ClinicLetterheadData } from "@/lib/api/tenant-letterhead";
-import {
-  getTopDoctorsReport,
-  getTopDiagnoses,
-  getTopPharmacyDrugs,
-  reserveReportCode,
-} from "@/lib/api/reports";
-import { FinancialPrintTable } from "./FinancialPrintTable";
-import { ClinicalPrintTable } from "./ClinicalPrintTable";
-import { PharmacyPrintTable } from "./PharmacyPrintTable";
+import { useEffect, useRef, useState, use } from "react";
+import apiClient from "@/lib/api/client";
+import { reserveReportCode, type ExportReportType } from "@/lib/api/reports";
+import { ExportReportDialog } from "@/components/domain/ExportReportDialog";
 import { PrintToolbar } from "./PrintToolbar";
 import { ErrorCard } from "./ErrorCard";
 
 type ReportType = "financial" | "clinical" | "pharmacy";
 
-const REPORT_META: Record<ReportType, { title: string }> = {
-  financial: { title: "BÁO CÁO DOANH THU" },
-  clinical: { title: "BÁO CÁO LƯỢT KHÁM" },
-  pharmacy: { title: "BÁO CÁO TỒN KHO DƯỢC" },
+const VALID_TYPES: readonly string[] = ["financial", "clinical", "pharmacy"];
+
+/**
+ * ExportReportType mặc định dùng cho nút "Tải Excel" của từng loại báo cáo in.
+ * Theo đúng quy ước reportType mặc định đã dùng ở FinancialTab/ClinicalTab/PharmacyTab
+ * (xem ExportReportDialog reportType="REVENUE" | "ENCOUNTERS_COUNT" | "TOP_DRUGS").
+ * Việc map ngược 1-1 từ PrintReportType sang ExportReportType là không thể vì
+ * PRINT_TYPE_MAP (ExportReportDialog.tsx) là quan hệ nhiều-1 (nhiều ExportReportType
+ * cùng thuộc 1 trang preview) — nên chọn đại diện thay vì tự gọi API xuất Excel.
+ */
+const EXCEL_REPORT_TYPE: Record<ReportType, ExportReportType> = {
+  financial: "REVENUE",
+  clinical: "ENCOUNTERS_COUNT",
+  pharmacy: "TOP_DRUGS",
 };
 
 interface Props {
@@ -28,67 +30,74 @@ interface Props {
   searchParamsPromise: Promise<{ from?: string; to?: string; clinicId?: string }>;
 }
 
+/**
+ * Preview + in + tải báo cáo — TOÀN BỘ đều dùng bản PDF render server-side (QuestPDF),
+ * đúng ADR-0001 (docs/adr/0001-pdf-rendering-strategy.md). Không còn render HTML song song.
+ *
+ * Luồng: reserveReportCode(type) → GET /reports/{type}/pdf?...&reportCode=... (qua apiClient,
+ * JWT tự gắn qua interceptor) → blob → objectUrl → hiển thị trong <iframe>. In/tải đều thao tác
+ * trên chính objectUrl này (không fetch lại), đảm bảo mã báo cáo trên preview = mã trên file tải.
+ */
 export default function ReportPrintClient({ paramsPromise, searchParamsPromise }: Props) {
   const { type } = use(paramsPromise);
   const { from, to, clinicId } = use(searchParamsPromise);
 
+  const isValidType = VALID_TYPES.includes(type);
   const reportType = type as ReportType;
   const fromDate = from ?? new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
   const toDate = to ?? new Date().toISOString().slice(0, 10);
 
   const [loading, setLoading] = useState(true);
-  const [letterheadErr, setLetterheadErr] = useState(false);
-  const [dataErr, setDataErr] = useState(false);
-  const [letterhead, setLetterhead] = useState<ClinicLetterheadData | null>(null);
+  const [error, setError] = useState(false);
   const [reportCode, setReportCode] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [rows, setRows] = useState<any[]>([]);
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    if (!["financial", "clinical", "pharmacy"].includes(type)) return;
+    if (!isValidType) return;
+
     let cancelled = false;
+    let createdUrl: string | null = null;
+
+    setLoading(true);
+    setError(false);
+
     (async () => {
       try {
-        const lh = await getClinicLetterhead();
+        const code = await reserveReportCode(reportType).catch(() => "");
         if (cancelled) return;
-        setLetterhead(lh);
+
+        const params = new URLSearchParams({ from: fromDate, to: toDate });
+        if (code) params.set("reportCode", code);
+        if (clinicId) params.set("clinicId", clinicId);
+
+        const res = await apiClient.get(`/reports/${reportType}/pdf?${params.toString()}`, {
+          responseType: "blob",
+        });
+        if (cancelled) return;
+
+        const blob =
+          res.data instanceof Blob ? res.data : new Blob([res.data], { type: "application/pdf" });
+        createdUrl = URL.createObjectURL(blob);
+        setReportCode(code);
+        setObjectUrl(createdUrl);
       } catch {
-        if (cancelled) return;
-        setLetterheadErr(true);
-        setLoading(false);
-        return;
-      }
-      try {
-        const [code, data] = await Promise.all([
-          reserveReportCode(reportType).catch(() => ""),
-          reportType === "financial"
-            ? getTopDoctorsReport(fromDate, toDate)
-            : reportType === "clinical"
-            ? getTopDiagnoses(fromDate, toDate)
-            : getTopPharmacyDrugs(fromDate, toDate),
-        ]);
-        if (cancelled) return;
-        setReportCode(
-          code ||
-            `RPT-${reportType.slice(0, 3).toUpperCase()}-${new Date()
-              .toISOString()
-              .slice(0, 10)
-              .replace(/-/g, "")}-0001`
-        );
-        setRows(data ?? []);
-      } catch {
-        if (cancelled) return;
-        setDataErr(true);
+        if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
-  }, [type, reportType, fromDate, toDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isValidType, reportType, fromDate, toDate, clinicId, retryTick]);
 
-  if (!["financial", "clinical", "pharmacy"].includes(type)) {
+  if (!isValidType) {
     return (
       <ErrorCard
         title="Loại báo cáo không hợp lệ"
@@ -97,68 +106,62 @@ export default function ReportPrintClient({ paramsPromise, searchParamsPromise }
     );
   }
 
-  if (loading) {
-    return (
-      <div className="p-12 text-center text-sm text-muted-foreground">
-        Đang tải báo cáo...
-      </div>
-    );
-  }
-
-  if (letterheadErr || !letterhead) {
+  if (error) {
     return (
       <ErrorCard
-        title="Không tải được thông tin phòng khám"
-        description="Vui lòng liên hệ quản trị viên hệ thống."
+        title="Không tạo được PDF báo cáo"
+        description="Vui lòng thử lại. Nếu lỗi tiếp diễn, liên hệ quản trị viên hệ thống."
+        onRetry={() => setRetryTick((t) => t + 1)}
       />
     );
   }
 
-  const meta = REPORT_META[reportType];
-  const reportMeta = {
-    fromDate,
-    toDate,
-    exportedBy: "Người dùng hiện tại",
-    exportedAt: new Date().toISOString().slice(0, 10),
-    clinicName: letterhead.clinic_name,
-  };
+  function handlePrint() {
+    const win = iframeRef.current?.contentWindow;
+    if (win) {
+      try {
+        win.focus();
+        win.print();
+        return;
+      } catch {
+        // rơi xuống fallback bên dưới nếu trình duyệt chặn in trong iframe
+      }
+    }
+    if (objectUrl) window.open(objectUrl, "_blank");
+  }
 
   return (
-    <>
+    <div className="flex flex-col h-screen bg-gray-100 print:h-auto print:bg-white">
       <PrintToolbar
-        pdfPath={`/reports/${reportType}/pdf?from=${fromDate}&to=${toDate}${
-          reportCode ? `&reportCode=${reportCode}` : ""
-        }${clinicId ? `&clinicId=${clinicId}` : ""}`}
+        objectUrl={objectUrl}
         fileName={`${reportCode || `bao-cao-${reportType}`}.pdf`}
+        loading={loading}
+        onPrint={handlePrint}
+        onExportExcel={() => setExportOpen(true)}
       />
-      <div className="bg-gray-100 min-h-screen py-8 print:bg-white print:py-0">
-        <PrintableReportA4
-          title={meta.title}
-          reportCode={reportCode}
-          letterhead={{
-            clinicName: letterhead.clinic_name,
-            companyName: letterhead.company_name,
-            cskcbCode: letterhead.cskcb_code,
-            address: letterhead.address,
-            phone: letterhead.phone,
-            email: letterhead.email,
-            logoUrl: letterhead.logo_url,
-          }}
-          meta={reportMeta}
-        >
-          {dataErr ? (
-            <div className="py-12 text-center text-sm text-gray-600">
-              Không tải được dữ liệu báo cáo. Vui lòng thử lại.
-            </div>
-          ) : (
-            <>
-              {reportType === "financial" && <FinancialPrintTable rows={rows} />}
-              {reportType === "clinical" && <ClinicalPrintTable rows={rows} />}
-              {reportType === "pharmacy" && <PharmacyPrintTable rows={rows} />}
-            </>
-          )}
-        </PrintableReportA4>
+
+      <div className="flex-1 min-h-0">
+        {loading || !objectUrl ? (
+          <div className="p-12 text-center text-sm text-muted-foreground">
+            Đang tạo PDF báo cáo...
+          </div>
+        ) : (
+          <iframe
+            ref={iframeRef}
+            src={objectUrl}
+            title="Xem trước báo cáo PDF"
+            className="w-full h-full border-0 bg-white"
+          />
+        )}
       </div>
-    </>
+
+      <ExportReportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        reportType={EXCEL_REPORT_TYPE[reportType]}
+        filters={{ from: fromDate, to: toDate, ...(clinicId ? { clinicId } : {}) }}
+        filterSummary={`${fromDate} → ${toDate}`}
+      />
+    </div>
   );
 }
