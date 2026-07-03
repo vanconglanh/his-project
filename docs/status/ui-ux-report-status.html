@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pro-Diab HIS — Trạng thái chuẩn hóa UI/UX & Báo cáo</title>
+<style>
+  :root {
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f3f3f0;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --border:rgba(11,11,11,0.10);
+    --aqua:#1baf7a; --blue:#2a78d6; --violet:#4a3aa7;
+    --good:#0ca30c; --good-bg:#e7f6e7; --good-text:#006300;
+    --warning:#c98500; --warning-bg:#fdf4e0;
+    --pending:#6b7280; --pending-bg:#f0f1f2;
+    --track:#d9f0e6;
+    --shadow:0 1px 2px rgba(11,11,11,.04),0 4px 16px rgba(11,11,11,.04);
+    --mono:ui-monospace,"Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  [data-theme="dark"] {
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232322;
+    --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --border:rgba(255,255,255,0.10);
+    --good:#0ca30c; --good-bg:#12280f; --good-text:#4fbf4f;
+    --warning:#fab219; --warning-bg:#2a2410;
+    --pending:#9aa0a6; --pending-bg:#20211f;
+    --track:#17352a;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--page); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:28px 20px 72px; }
+
+  header.top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:4px; }
+  .eyebrow { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--aqua); margin:0 0 6px; }
+  h1 { font-size:26px; font-weight:800; margin:0; letter-spacing:-.01em; }
+  .sub { color:var(--ink-2); font-size:14px; margin:6px 0 0; }
+  .updated { font-size:12px; color:var(--muted); white-space:nowrap; padding-top:4px; }
+
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:24px 0 8px; }
+  .kpi { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
+  .kpi .n { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  .kpi .l { font-size:12px; color:var(--ink-2); margin-top:2px; }
+  .kpi.good .n { color:var(--good); }
+
+  section { margin-top:30px; }
+  h2 { font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--grid); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); overflow:hidden; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:11px 16px; border-bottom:1px solid var(--grid); vertical-align:top; }
+  th { font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); font-weight:600; background:var(--surface-2); }
+  tr:last-child td { border-bottom:0; }
+  td.id { font-family:var(--mono); font-size:12px; font-weight:700; white-space:nowrap; color:var(--ink); }
+  td .desc { color:var(--ink-2); }
+
+  .pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+  .pill::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .pill.done { color:var(--good-text); background:var(--good-bg); }
+  .pill.part { color:var(--warning); background:var(--warning-bg); }
+  .pill.todo { color:var(--pending); background:var(--pending-bg); }
+
+  .flow { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .flow .step { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
+  .flow .step .h { font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .flow .step .h .num { width:22px; height:22px; border-radius:50%; background:var(--track); color:var(--aqua); font-size:12px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .flow .step p { margin:0; font-size:13px; color:var(--ink-2); }
+
+  .commits { font-family:var(--mono); font-size:12.5px; }
+  .commits td { padding:8px 16px; }
+  .commits .sha { color:var(--aqua); font-weight:700; }
+
+  ul.rem { list-style:none; margin:0; padding:0; }
+  ul.rem li { padding:12px 16px; border-bottom:1px solid var(--grid); display:flex; gap:12px; align-items:flex-start; font-size:14px; }
+  ul.rem li:last-child { border-bottom:0; }
+  ul.rem .desc { color:var(--ink-2); }
+  ul.rem b { color:var(--ink); }
+
+  .note { font-size:13px; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-top:12px; }
+  .note b { color:var(--ink); }
+  code { font-family:var(--mono); font-size:12px; background:var(--surface-2); padding:1px 5px; border-radius:4px; }
+  a { color:var(--blue); }
+  footer { margin-top:36px; font-size:12px; color:var(--muted); text-align:center; }
+  @media (max-width:760px){ .kpis,.flow{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Pro-Diab HIS · Đợt chuẩn hóa</p>
+      <h1>Trạng thái UI/UX &amp; Báo cáo</h1>
+      <p class="sub">Chuẩn hóa design system, layout, và luồng in/xuất báo cáo. Do agent <b>designer (Linh)</b> chủ trì audit; <b>frontend (Nam)</b> + <b>backend (Thảo)</b> triển khai; <b>architect (Lành)</b> thẩm định.</p>
+    </div>
+    <div class="updated">Cập nhật: 03/07/2026</div>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi good"><div class="n">28/31</div><div class="l">Finding đã xử lý (F1–F9 · L-01…L-14 · F-01…F-09)</div></div>
+    <div class="kpi good"><div class="n">8/8</div><div class="l">Report endpoint có dữ liệu thật</div></div>
+    <div class="kpi good"><div class="n">PASS</div><div class="l">Build FE + BE · 505 unit test</div></div>
+    <div class="kpi"><div class="n">9</div><div class="l">Commit đã đẩy GitHub</div></div>
+  </div>
+
+  <!-- ============ ĐỢT 1: TOKEN & MÀU ============ -->
+  <section>
+    <h2>Đợt 1 — Token &amp; màu sắc</h2>
+    <div class="card"><table>
+      <thead><tr><th style="width:80px">Finding</th><th>Nội dung</th><th style="width:110px">Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="id">F1</td><td class="desc">Token light-mode "chết" (gắn nhầm <code>data-theme</code>) → light mode mất màu. Đưa về <code>:root</code>/<code>.dark</code>.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F2</td><td class="desc">Trùng/xung đột token chart (HIS hex vs shadcn OKLCH). Gộp về một bộ palette duy nhất.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F3</td><td class="desc">Letterhead thiếu <b>Mã CSKCB</b> — bổ sung đủ 3 tầng (SQL → DTO → in HTML/PDF).</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F4</td><td class="desc">Sai tên bảng khi in biên lai (<code>ten_tenants</code>→<code>sys_tenants</code>), rủi ro lỗi runtime.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F5</td><td class="desc">6 file chart hardcode hex → dùng <code>var(--chart-n)</code>; thêm thang <code>--scale-hba1c-*</code>.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F6</td><td class="desc">Trùng component StatusBadge (hoa/thường) → gộp, tô màu bằng token.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F8</td><td class="desc">Hex avatar + header in → token <code>--avatar-*</code>, <code>--print-header</code>.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F9-doc</td><td class="desc">WORKFLOW.md bổ sung role designer.</td><td><span class="pill done">Đã sửa</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ ĐỢT 2: LAYOUT ============ -->
+  <section>
+    <h2>Đợt 2 — Layout (khung · panel · form)</h2>
+    <div class="card"><table>
+      <thead><tr><th style="width:120px">Nhóm</th><th>Nội dung</th><th style="width:110px">Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="id">L-01…L-14</td><td class="desc">Khung/panel/typography: topbar 56px, sidebar 64px, 100% Sheet có <code>px-6 pb-6</code>, Dialog về thang md/xl/4xl, 36 page title về <code>text-xl</code>, Card về <code>rounded-lg</code>, KPI dùng token, bảng dài density <code>py-2</code>. (13/14 sửa; L-06 = F-01)</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F-02·04·05·06·07·08</td><td class="desc">Form: DrugForm/TenantForm Dialog→Sheet; Sheet detail admin; gap-4 sinh hiệu; StickyActionBar; <b>Ctrl+S/Esc hoạt động thật</b>.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F-01</td><td class="desc">Gộp luồng tạo bệnh nhân ở Tiếp đón về <code>/patients/new</code> + auto-select + lưu draft check-in (sessionStorage).</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F-03</td><td class="desc">3 form kho dược (Đặt hàng/Nhập kho/Kiểm kê) → trang Fullpage riêng; khai sinh <code>FullPageFormShell</code>; GRN mang <code>?poId=</code>.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">F-09</td><td class="desc">Component <code>PageHeader</code> chống lệch title (12 trang); retrofit 2/3 form Fullpage. PatientEditorLayout giữ nguyên (layout 2 cột, có chủ đích).</td><td><span class="pill part">Phần lớn</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ ĐỢT 3: BÁO CÁO ============ -->
+  <section>
+    <h2>Đợt 3 — Báo cáo &amp; luồng in</h2>
+    <div class="card"><table>
+      <thead><tr><th style="width:130px">Hạng mục</th><th>Nội dung</th><th style="width:110px">Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="id">F7</td><td class="desc">8 report endpoint stub → query thật (Dapper + tenant filter): by-service, by-payment-method, cashier/daily-summary, debts/aging, bhyt/summary, clinical/visits, clinical/icd10, pharmacy/inventory-value. +9 unit test.</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">Print flow</td><td class="desc">Gộp preview + in + xuất về <b>một QuestPDF</b> (ADR-0001) — hết drift HTML-vs-PDF; tự khắc phục lỗi cột rỗng C1/P1/P2/P3 (chỉ có ở bảng HTML đã bỏ).</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">Data-semantics</td><td class="desc">Doanh thu lọc <code>FINALIZED</code>; hóa đơn nhiều DV hiện "(+N DV)"; thêm <code>tenant_id</code> vào query tra tên (multi-tenant).</td><td><span class="pill done">Đã sửa</span></td></tr>
+        <tr><td class="id">C1/P1/P2/P3</td><td class="desc">Cột Bác sĩ/Ngày khám/Lô/HSD/Đơn vị rỗng hoặc sai ở bảng HTML → xác nhận QuestPDF bơm dữ liệu thật đầy đủ.</td><td><span class="pill done">Đã sửa</span></td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 style="margin-top:22px">Luồng in/xuất báo cáo (chuẩn ngành)</h2>
+    <div class="flow">
+      <div class="step"><div class="h"><span class="num">1</span>Preview</div><p>Nhúng PDF server (QuestPDF) vào iframe — thấy đúng thứ sẽ in.</p></div>
+      <div class="step"><div class="h"><span class="num">2</span>In luôn</div><p><code>iframe.print()</code> in chính PDF đang xem → hộp thoại chọn máy in OS.</p></div>
+      <div class="step"><div class="h"><span class="num">3</span>Xuất file</div><p>Tải PDF (dùng lại blob) + Tải Excel (ExportReportDialog). Cùng một nguồn.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ CÒN LẠI ============ -->
+  <section>
+    <h2>Còn lại</h2>
+    <div class="card"><ul class="rem">
+      <li><span class="pill todo">Cần input</span><span class="desc"><b>Drug Picker</b> — PRD đã viết (<code>docs/prd/drug-picker-prd.md</code>), nâng cấp <code>DrugAutocomplete</code> có sẵn. Chờ backend xác nhận 2 điểm API (search theo hoạt chất; xử lý thuốc ngừng KD) rồi code.</span></li>
+      <li><span class="pill todo">Staging</span><span class="desc"><b>Kiểm chứng runtime</b> — chạy checklist <code>docs/test-reports/2026-07-03_staging-smoke-test.md</code> trên stack thật (8 report endpoint, in biên lai, light mode, tính đúng số liệu). Máy dev không có Docker/DB sạch.</span></li>
+      <li><span class="pill part">Tùy chọn</span><span class="desc"><b>F-09 dư</b> — retrofit <code>PatientEditorLayout</code> (cần shell hỗ trợ layout 2 cột); phổ cập <code>FieldGroup</code> cho form cũ.</span></li>
+    </ul></div>
+    <div class="note"><b>Đã nghiệm thu tĩnh:</b> build FE (Next.js 16) + BE (.NET 8) PASS, 505 unit test PASS, SQL report mới đối chiếu đúng schema (ONLY_FULL_GROUP_BY + tên cột). <b>Chưa nghiệm thu runtime</b> số liệu thật — thuộc bước staging ở trên.</div>
+  </section>
+
+  <!-- ============ COMMIT ============ -->
+  <section>
+    <h2>Commit đã đẩy (nhánh main)</h2>
+    <div class="card"><table class="commits">
+      <tbody>
+        <tr><td class="sha">84a901d</td><td>fix(reports): chuẩn hóa ngữ nghĩa dữ liệu báo cáo PDF</td></tr>
+        <tr><td class="sha">8463be7</td><td>refactor(reports): gộp luồng in/xem báo cáo về PDF server (ADR-0001)</td></tr>
+        <tr><td class="sha">e4df0b5</td><td>refactor(forms): F-09 — PageHeader + retrofit FullPageFormShell</td></tr>
+        <tr><td class="sha">530b271</td><td>refactor(forms): F-01 + F-03 — gộp luồng tạo BN + Fullpage kho dược</td></tr>
+        <tr><td class="sha">c586d4c</td><td>feat(reports): 8 report endpoint + token avatar/print-header</td></tr>
+        <tr><td class="sha">c460a3b</td><td>style(layout): chuẩn hóa layout toàn hệ thống</td></tr>
+        <tr><td class="sha">23612ad</td><td>docs(design): trạng thái F1–F6 + build nghiệm thu</td></tr>
+        <tr><td class="sha">13af01e</td><td>chore: khôi phục repo sau sự cố mất .git (baseline)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Tài liệu liên quan: <code>docs/design/design-system-standards.md</code> (bộ tiêu chuẩn) · <code>design-audit-2026-07.md</code> · <code>layout-audit-shell/forms-2026-07.md</code> · <code>docs/review/architect-decision-f01-f03.md</code>.</div>
+  </section>
+
+  <footer>Pro-Diab HIS — Trạng thái đợt chuẩn hóa UI/UX &amp; Báo cáo · sinh tự động từ tiến độ thực tế</footer>
+</div>
+</body>
+</html>
