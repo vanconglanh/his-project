@@ -440,7 +440,7 @@
     <div class="node active">
       <div class="card">
         <div class="head"><h2>7 · Cấp phát/thu tiền · full 50 · ngoại lệ</h2><span class="badge active">ĐÃ FIX CODE · CHỜ E2E</span></div>
-        <p class="desc"><b>Bug #6 đã rework (03/07):</b> migration <code>9025</code> đổi 6 cột INT→CHAR(36)/VARCHAR(36) trên <code>dispense_records</code> / <code>dispense_items</code> / <code>stock_movements</code>; toàn bộ Dispensing (DTO, handler, controller route <code>{prescriptionId}</code>, FEFO) chuyển sang khóa GUID chuỗi; FEFO query lại đúng bảng <code>diab_his_pha_stock</code>. <b>Build BE pass + 56 test pharmacy PASS.</b> <b>Đã áp <code>9025</code> lên DB live (03/07)</b> — 6 cột đổi kiểu OK, idempotent; <b>mô phỏng toàn bộ write-path cấp phát bằng GUID/chuỗi PASS</b> (dispense_records + dispense_items + stock_movements + trừ tồn + đổi trạng thái đơn, transaction rollback, không lỗi "Incorrect integer value"). Còn lại: <b>re-run E2E HTTP qua UI</b> bước cấp phát/thu tiền → full 50 BN + 10 ngoại lệ + RBAC vai trò thật (rà mã permission seed).</p>
+        <p class="desc"><b>Bug #6 đã rework (03/07):</b> migration <code>9025</code> đổi 6 cột INT→CHAR(36)/VARCHAR(36) trên <code>dispense_records</code> / <code>dispense_items</code> / <code>stock_movements</code>; toàn bộ Dispensing (DTO, handler, controller route <code>{prescriptionId}</code>, FEFO) chuyển sang khóa GUID chuỗi; FEFO query lại đúng bảng <code>diab_his_pha_stock</code>. <b>Build BE pass + 56 test pharmacy PASS.</b> <b>Đã áp <code>9025</code> lên DB live (03/07)</b> — 6 cột đổi kiểu OK, idempotent. <b>Đã verify luồng cấp phát qua HTTP E2E thật</b> (backend :5000 + DB live): GET queue trả GUID, POST <code>/pharmacy/dispense/{id}</code> → <b>HTTP 201 · status DISPENSED</b>, FEFO tự chọn lô từ <code>diab_his_pha_stock</code>, trừ tồn 1000→990, ghi dispense_records/items/movements, re-dispense bị chặn đúng. Bộ <b>E2E chung 27 PASS</b> (Patient/Encounter/Reception/Reports…). Còn lại: bộ <b>clinic-sim đa bệnh nhân qua UI vẫn flaky</b> ở bước tiếp đón (Next.js dev hydration + selector 15s timeout — bệnh nhân chưa tới bước cấp phát); cần warm/production build + hardening selector; + full 50 BN + 10 ngoại lệ + RBAC vai trò thật.</p>
       </div>
     </div>
   </div>
@@ -450,7 +450,7 @@
     <tbody>
       <tr><td>Artifact (kế hoạch · seed · harness)</td><td class="n">3</td><td class="n">3</td><td class="n">0</td><td class="n">0</td><td><span class="pill ok">Hoàn thành</span></td></tr>
       <tr><td>Luồng lâm sàng (6 BN, admin-bypass)</td><td class="n">103</td><td class="n">87</td><td class="n">1</td><td class="n">15</td><td><span class="pill ok">Đã chạy · xanh tới ĐTQG</span></td></tr>
-      <tr><td>Cấp phát thuốc + thu tiền</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td><span class="pill wait">Fix xong (mig 9025 + code) · chờ re-run E2E</span></td></tr>
+      <tr><td>Cấp phát thuốc (HTTP E2E thật)</td><td class="n">1</td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td><span class="pill ok">201 DISPENSED · trừ tồn OK (mig 9025)</span></td></tr>
       <tr><td>Full 50 BN + 10 ngoại lệ + RBAC role</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td><span class="pill wait">Sau khi áp 9025 + re-run</span></td></tr>
     </tbody>
   </table>
