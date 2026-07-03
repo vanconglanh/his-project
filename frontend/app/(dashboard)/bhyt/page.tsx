@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/ui/page-header";
 import { Plus, ExternalLink, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { BhytExportStatusBadge } from "@/components/domain/bhyt/BhytExportStatusBadge";
@@ -265,12 +266,10 @@ function TabCauHinh() {
 export default function BhytPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">BHYT</h2>
-        <p className="text-sm text-muted-foreground">
-          Export XML giám định theo QĐ 4750/QĐ-BYT, đối soát kết quả
-        </p>
-      </div>
+      <PageHeader
+        title="BHYT"
+        description="Export XML giám định theo QĐ 4750/QĐ-BYT, đối soát kết quả"
+      />
 
       <Tabs defaultValue="ky-xuat">
         <TabsList>

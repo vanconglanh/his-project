@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   TrendingUp,
   Receipt,
@@ -45,39 +46,38 @@ export function CashierPageClient() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Thu ngân</h2>
-          <p className="text-sm text-muted-foreground">Quản lý thu phí, hoá đơn, công nợ bệnh nhân</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {shiftLoading ? (
-            <Skeleton className="h-9 w-32" />
-          ) : isOpen ? (
-            <Button variant="destructive" size="sm" onClick={() => setCloseShiftDialog(true)}>
-              <StopCircle className="mr-2 h-4 w-4" />
-              Đóng ca
-            </Button>
-          ) : (
-            <Button size="sm" onClick={() => setOpenShiftDialog(true)}>
-              <Play className="mr-2 h-4 w-4" />
-              Mở ca
-            </Button>
-          )}
-          <Badge
-            variant="outline"
-            className={cn(
-              "px-3 py-1 text-sm font-semibold",
-              isOpen
-                ? "border-green-300 bg-green-50 text-green-700"
-                : "border-gray-200 bg-gray-50 text-gray-600"
+      <PageHeader
+        title="Thu ngân"
+        description="Quản lý thu phí, hoá đơn, công nợ bệnh nhân"
+        actions={
+          <>
+            {shiftLoading ? (
+              <Skeleton className="h-9 w-32" />
+            ) : isOpen ? (
+              <Button variant="destructive" size="sm" onClick={() => setCloseShiftDialog(true)}>
+                <StopCircle className="mr-2 h-4 w-4" />
+                Đóng ca
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => setOpenShiftDialog(true)}>
+                <Play className="mr-2 h-4 w-4" />
+                Mở ca
+              </Button>
             )}
-          >
-            {isOpen ? "Ca đang mở" : "Ca đóng"}
-          </Badge>
-        </div>
-      </div>
+            <Badge
+              variant="outline"
+              className={cn(
+                "px-3 py-1 text-sm font-semibold",
+                isOpen
+                  ? "border-green-300 bg-green-50 text-green-700"
+                  : "border-gray-200 bg-gray-50 text-gray-600"
+              )}
+            >
+              {isOpen ? "Ca đang mở" : "Ca đóng"}
+            </Badge>
+          </>
+        }
+      />
 
       {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-4">

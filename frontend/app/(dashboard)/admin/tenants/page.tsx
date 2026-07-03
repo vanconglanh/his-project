@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DataTable, type Column } from "@/components/ui/DataTable";
+import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/entity-status-badge";
 import { TenantForm } from "@/components/domain/TenantForm";
 import { TenantDetail } from "@/components/domain/TenantDetail";
@@ -174,19 +175,16 @@ export default function TenantsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Quản lý phòng khám</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Danh sách toàn bộ phòng khám trong hệ thống
-          </p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)} className="min-h-[44px]">
-          <Plus className="h-4 w-4 mr-2" />
-          Tạo phòng khám mới
-        </Button>
-      </div>
+      <PageHeader
+        title="Quản lý phòng khám"
+        description="Danh sách toàn bộ phòng khám trong hệ thống"
+        actions={
+          <Button onClick={() => setCreateOpen(true)} className="min-h-[44px]">
+            <Plus className="h-4 w-4 mr-2" />
+            Tạo phòng khám mới
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">

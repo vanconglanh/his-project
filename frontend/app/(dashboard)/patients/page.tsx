@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/DataTable";
+import { PageHeader } from "@/components/ui/page-header";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import {
   usePatients,
@@ -205,18 +206,17 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Bệnh nhân</h2>
-          <p className="text-sm text-muted-foreground">Quản lý hồ sơ bệnh nhân</p>
-        </div>
-        <Link href="/patients/new" className={cn(buttonVariants({ variant: "default" }), "gap-2 self-start")}>
-          <Plus className="h-4 w-4" />
-          Tạo bệnh nhân mới
-          <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
-        </Link>
-      </div>
+      <PageHeader
+        title="Bệnh nhân"
+        description="Quản lý hồ sơ bệnh nhân"
+        actions={
+          <Link href="/patients/new" className={cn(buttonVariants({ variant: "default" }), "gap-2 self-start")}>
+            <Plus className="h-4 w-4" />
+            Tạo bệnh nhân mới
+            <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
+          </Link>
+        }
+      />
 
       {/* Search + Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

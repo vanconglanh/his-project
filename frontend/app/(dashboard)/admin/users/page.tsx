@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, MoreHorizontal, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -171,18 +172,16 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Quản lý người dùng</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Danh sách người dùng trong phòng khám
-          </p>
-        </div>
-        <Button onClick={() => setInviteOpen(true)} className="min-h-[44px]">
-          <Plus className="h-4 w-4 mr-2" />
-          Mời người dùng
-        </Button>
-      </div>
+      <PageHeader
+        title="Quản lý người dùng"
+        description="Danh sách người dùng trong phòng khám"
+        actions={
+          <Button onClick={() => setInviteOpen(true)} className="min-h-[44px]">
+            <Plus className="h-4 w-4 mr-2" />
+            Mời người dùng
+          </Button>
+        }
+      />
 
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">

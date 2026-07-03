@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui/page-header";
 import { AlertTriangle, Stethoscope, Clock, RefreshCw, Plus, MoreHorizontal, Activity, ClipboardList, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import {
@@ -69,25 +70,24 @@ export function EncountersPageClient() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Khám bệnh</h2>
-          <p className="text-sm text-muted-foreground">Quản lý lượt khám bệnh</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/encounters/new">
-            <Button size="sm" className="gap-2 min-h-[44px]">
-              <Plus className="h-4 w-4" />
-              Tạo lượt khám
+      <PageHeader
+        title="Khám bệnh"
+        description="Quản lý lượt khám bệnh"
+        actions={
+          <>
+            <Link href="/encounters/new">
+              <Button size="sm" className="gap-2 min-h-[44px]">
+                <Plus className="h-4 w-4" />
+                Tạo lượt khám
+              </Button>
+            </Link>
+            <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Làm mới
             </Button>
-          </Link>
-          <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Làm mới
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Quick filters */}
       <div className="flex gap-2 flex-wrap">

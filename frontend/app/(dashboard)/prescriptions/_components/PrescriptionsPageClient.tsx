@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui/page-header";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import Link from "next/link";
@@ -161,19 +162,18 @@ export function PrescriptionsPageClient() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Kê đơn thuốc</h2>
-          <p className="text-sm text-muted-foreground">Quản lý đơn thuốc bệnh nhân</p>
-        </div>
-        <Link href="/prescriptions/new">
-          <Button size="sm" className="gap-2 min-h-[44px]">
-            <Plus className="h-4 w-4" />
-            Tạo đơn mới
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Kê đơn thuốc"
+        description="Quản lý đơn thuốc bệnh nhân"
+        actions={
+          <Link href="/prescriptions/new">
+            <Button size="sm" className="gap-2 min-h-[44px]">
+              <Plus className="h-4 w-4" />
+              Tạo đơn mới
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DataTable, type Column } from "@/components/ui/DataTable";
+import { PageHeader } from "@/components/ui/page-header";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { RoleForm } from "@/components/domain/RoleForm";
 import { PermissionMatrix } from "@/components/domain/PermissionMatrix";
@@ -114,18 +115,18 @@ export default function RolesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Vai trò & Quyền hạn</h1>
-          <p className="text-muted-foreground text-sm mt-1">Quản lý vai trò và ma trận quyền hạn</p>
-        </div>
-        <Can permission="role.write">
-          <Button onClick={() => setCreateOpen(true)} className="min-h-[44px]">
-            <Plus className="h-4 w-4 mr-2" />
-            Tạo vai trò mới
-          </Button>
-        </Can>
-      </div>
+      <PageHeader
+        title="Vai trò & Quyền hạn"
+        description="Quản lý vai trò và ma trận quyền hạn"
+        actions={
+          <Can permission="role.write">
+            <Button onClick={() => setCreateOpen(true)} className="min-h-[44px]">
+              <Plus className="h-4 w-4 mr-2" />
+              Tạo vai trò mới
+            </Button>
+          </Can>
+        }
+      />
 
       <DataTable
         columns={columns}

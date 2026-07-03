@@ -1,6 +1,7 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/ui/page-header";
 import { BarChart3, Stethoscope, Pill } from "lucide-react";
 import { FinancialTab } from "./FinancialTab";
 import { ClinicalTab } from "./ClinicalTab";
@@ -9,12 +10,7 @@ import { PharmacyTab } from "./PharmacyTab";
 export function ReportsPageClient() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Báo cáo &amp; Thống kê</h2>
-        <p className="text-sm text-muted-foreground">
-          Phân tích doanh thu, lâm sàng và dược
-        </p>
-      </div>
+      <PageHeader title="Báo cáo & Thống kê" description="Phân tích doanh thu, lâm sàng và dược" />
 
       <Tabs defaultValue="financial">
         <TabsList className="mb-4">

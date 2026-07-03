@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui/page-header";
 import { ReceptionCheckInForm } from "@/components/domain/ReceptionCheckInForm";
 import { ReceptionQueueBoard } from "@/components/domain/ReceptionQueueBoard";
 import { useReceptionStats } from "@/lib/hooks/use-reception";
@@ -72,20 +73,17 @@ export default function ReceptionPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Tiếp đón bệnh nhân</h2>
-          <p className="text-sm text-muted-foreground">
-            Quản lý danh sách bệnh nhân chờ khám
-          </p>
-        </div>
-        <Link href="/patients/new?returnTo=/reception" className={cn(buttonVariants({ variant: "default" }), "gap-2")}>
-          <UserPlus className="h-4 w-4" />
-          Thêm bệnh nhân
-          <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
-        </Link>
-      </div>
+      <PageHeader
+        title="Tiếp đón bệnh nhân"
+        description="Quản lý danh sách bệnh nhân chờ khám"
+        actions={
+          <Link href="/patients/new?returnTo=/reception" className={cn(buttonVariants({ variant: "default" }), "gap-2")}>
+            <UserPlus className="h-4 w-4" />
+            Thêm bệnh nhân
+            <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
+          </Link>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
