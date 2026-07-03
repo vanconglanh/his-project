@@ -242,13 +242,19 @@ public class GetReportPdfHandler : IRequestHandler<GetReportPdfQuery, (byte[] By
             {
                 typeCode = "FIN";
                 // Query hóa đơn đã thanh toán trong khoảng thời gian, kèm dòng đầu tiên của items
-                var rawRows = await conn.QueryAsync<(string BillNo, string PatientId, string ItemName, decimal Amount)>(
-                    @"SELECT b.bill_no, b.patient_id, COALESCE(i.name, 'Dịch vụ khám') AS item_name, b.patient_payable
+                // Chi tinh hoa don da chot (FINALIZED) — dong nhat dinh nghia doanh thu voi
+                // revenue-trend + revenue/by-service. Kem so dong dich vu de gan nhan da-dich-vu.
+                var rawRows = await conn.QueryAsync<(string BillNo, string PatientId, string ItemName, int ItemCount, decimal Amount)>(
+                    @"SELECT b.bill_no, b.patient_id,
+                             COALESCE(i.name, 'Dịch vụ khám') AS item_name,
+                             (SELECT COUNT(*) FROM diab_his_bil_billing_items ic WHERE ic.billing_id = b.id) AS item_count,
+                             b.patient_payable
                       FROM diab_his_bil_billing b
                       LEFT JOIN diab_his_bil_billing_items i ON i.billing_id = b.id
                           AND i.id = (SELECT MIN(ii.id) FROM diab_his_bil_billing_items ii WHERE ii.billing_id = b.id)
                       WHERE b.tenant_id = @tenantId
                         AND b.deleted_at IS NULL
+                        AND b.status = 'FINALIZED'
                         AND b.created_at >= @from AND b.created_at <= @to
                       ORDER BY b.created_at
                       LIMIT 500",
@@ -260,8 +266,8 @@ public class GetReportPdfHandler : IRequestHandler<GetReportPdfQuery, (byte[] By
                 if (patientIds.Any())
                 {
                     var names = await conn.QueryAsync<(string Id, string FullName)>(
-                        "SELECT id, full_name FROM diab_his_pat_patients WHERE id IN @ids AND deleted_at IS NULL",
-                        new { ids = patientIds });
+                        "SELECT id, full_name FROM diab_his_pat_patients WHERE id IN @ids AND tenant_id = @tenantId AND deleted_at IS NULL",
+                        new { ids = patientIds, tenantId });
                     foreach (var (id, fn) in names) patientNames[id] = fn;
                 }
 
@@ -269,7 +275,8 @@ public class GetReportPdfHandler : IRequestHandler<GetReportPdfQuery, (byte[] By
                     idx + 1,
                     r.BillNo ?? $"HD-{idx + 1:D4}",
                     patientNames.TryGetValue(r.PatientId.ToString(), out var pn) ? pn : "—",
-                    r.ItemName,
+                    // Hoa don nhieu dich vu: hien ten dong dau + so dich vu con lai de tranh hieu nham
+                    r.ItemCount > 1 ? $"{r.ItemName} (+{r.ItemCount - 1} DV)" : r.ItemName,
                     r.Amount)).ToList();
 
                 bytes = await _exporter.ExportFinancialAsync(pdfReq, lh, rows, ct);
@@ -303,8 +310,8 @@ public class GetReportPdfHandler : IRequestHandler<GetReportPdfQuery, (byte[] By
                 if (pIds.Any())
                 {
                     var names = await conn.QueryAsync<(string Id, string FullName)>(
-                        "SELECT id, full_name FROM diab_his_pat_patients WHERE id IN @ids AND deleted_at IS NULL",
-                        new { ids = pIds });
+                        "SELECT id, full_name FROM diab_his_pat_patients WHERE id IN @ids AND tenant_id = @tenantId AND deleted_at IS NULL",
+                        new { ids = pIds, tenantId });
                     foreach (var (id, fn) in names) patientNames2[id] = fn;
                 }
 
@@ -312,8 +319,8 @@ public class GetReportPdfHandler : IRequestHandler<GetReportPdfQuery, (byte[] By
                 if (allUserIds.Any())
                 {
                     var names = await conn.QueryAsync<(string Id, string FullName)>(
-                        "SELECT id, full_name FROM diab_his_sec_users WHERE id IN @ids AND deleted_at IS NULL",
-                        new { ids = allUserIds });
+                        "SELECT id, full_name FROM diab_his_sec_users WHERE id IN @ids AND tenant_id = @tenantId AND deleted_at IS NULL",
+                        new { ids = allUserIds, tenantId });
                     foreach (var (id, fn) in names) doctorNames[id] = fn;
                 }
 
