@@ -55,12 +55,16 @@ async function login(page: Page) {
   }
 }
 
+// Chờ locator thực sự hiển thị (data async / render chậm) rồi mới quyết "found" — thay cho count() tức thì gây flaky.
+async function visibleWithin(loc: any, timeout = 6000): Promise<boolean> {
+  try { await loc.first().waitFor({ state: "visible", timeout }); return true; } catch { return false; }
+}
+
 async function tryClickFirst(page: Page, locators: Array<() => any>): Promise<boolean> {
   for (const fn of locators) {
     try {
       const loc = fn();
-      const count = await loc.count();
-      if (count > 0) {
+      if (await visibleWithin(loc, 5000)) {
         await loc.first().click({ timeout: 4000 });
         return true;
       }
@@ -84,13 +88,15 @@ async function fillByLabelOrPlaceholder(page: Page, regex: RegExp, value: string
 
 async function clickRowDropdownItem(page: Page, rowIndex: number, itemRegex: RegExp): Promise<boolean> {
   const row = page.locator('tbody tr').nth(rowIndex);
-  if (!(await row.count())) return false;
-  const trigger = row.locator('button[aria-label*="Thao tác" i], button[aria-haspopup], button:has(svg.lucide-more-horizontal), button:has(svg.lucide-more-vertical)').first();
-  if (!(await trigger.count())) return false;
+  const trigger = row.locator('button[aria-label*="Thao tác" i], button[aria-haspopup], button:has(svg.lucide-ellipsis), button:has(svg.lucide-more-horizontal), button:has(svg.lucide-more-vertical)').first();
+  // Cho data row (TanStack Query) + nut action render xong — tranh check count() ngay khi table con skeleton/empty.
+  try { await trigger.waitFor({ state: 'visible', timeout: 8000 }); } catch { return false; }
   try { await trigger.click({ timeout: 3000 }); } catch { return false; }
-  await page.waitForTimeout(500);
+  // Menu (base-ui) render qua portal + animation — chờ item hiện thay vi fixed timeout + count() khong auto-wait.
   const item = page.getByRole('menuitem', { name: itemRegex }).first();
-  if (!(await item.count())) {
+  try {
+    await item.waitFor({ state: 'visible', timeout: 4000 });
+  } catch {
     await page.keyboard.press('Escape').catch(() => {});
     return false;
   }
@@ -165,14 +171,9 @@ async function genericModuleTest(page: Page, opts: {
   if (opts.tabs) {
     for (const tab of opts.tabs) {
       try {
-        const loc = page.getByRole("tab", { name: tab.regex }).first();
-        if (!(await loc.count())) {
-          const btn = page.getByRole("button", { name: tab.regex }).first();
-          if (!(await btn.count())) { pushResult({ module: opts.module, action: `TAB:${tab.name}`, status: "SKIP", screenshots: [], error: "tab not found" }); continue; }
-          await btn.click({ timeout: 4000 });
-        } else {
-          await loc.click({ timeout: 4000 });
-        }
+        const loc = page.getByRole("tab", { name: tab.regex }).or(page.getByRole("button", { name: tab.regex })).first();
+        if (!(await visibleWithin(loc, 5000))) { pushResult({ module: opts.module, action: `TAB:${tab.name}`, status: "SKIP", screenshots: [], error: "tab not found" }); continue; }
+        await loc.click({ timeout: 4000 });
         await page.waitForTimeout(1000);
         const s = await safeShot(page, `${slug}-tab-${tab.name.toLowerCase().replace(/\s+/g, "-")}-${t}`);
         pushResult({ module: opts.module, action: `TAB:${tab.name}`, status: "PASS", screenshots: [s] });
@@ -198,7 +199,7 @@ async function genericModuleTest(page: Page, opts: {
       }
       const s2 = await safeShot(page, `${slug}-03-filled-${t}`);
       const submit = page.getByRole("button", { name: opts.submitRegex ?? /^Lưu$|^Tạo$|^Submit$|Lưu lại/i }).last();
-      if (await submit.count()) {
+      if (await visibleWithin(submit, 4000)) {
         await submit.click({ timeout: 4000 }).catch(() => {});
         await page.waitForTimeout(1800);
       }
@@ -219,12 +220,10 @@ async function genericModuleTest(page: Page, opts: {
           const ok = await clickRowDropdownItem(page, a.rowIndex ?? 0, a.regex);
           if (!ok) throw new Error("SKIP: row dropdown khong co action");
         } else {
-          const btn = page.getByRole("button", { name: a.regex }).first();
-          const link = page.getByRole("link", { name: a.regex }).first();
-          const menuitem = page.getByRole("menuitem", { name: a.regex }).first();
-          if (await btn.count()) await btn.click({ timeout: 4000 });
-          else if (await link.count()) await link.click({ timeout: 4000 });
-          else if (await menuitem.count()) await menuitem.click({ timeout: 4000 });
+          const action = page.getByRole("button", { name: a.regex })
+            .or(page.getByRole("link", { name: a.regex }))
+            .or(page.getByRole("menuitem", { name: a.regex })).first();
+          if (await visibleWithin(action, 6000)) await action.click({ timeout: 4000 });
           else throw new Error("SKIP: action not found");
         }
         await page.waitForTimeout(1200);

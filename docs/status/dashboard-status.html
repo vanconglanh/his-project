@@ -193,7 +193,7 @@
       </div>
     </div>
     <div class="top-actions">
-      <span class="asof">Sim lâm sàng: <b>02/07/2026</b> · CRUD: <b>R7 · 01/06</b> · Cập nhật file: <b>02/07/2026</b></span>
+      <span class="asof">Live E2E stack thật: <b>03/07/2026</b> · 33/56 · <b>0 FAIL</b></span>
       <a class="btn" href="lo-trinh.html">🗺️ Xem lộ trình</a>
       <button class="btn" id="themeBtn" type="button">🌙 Tối</button>
     </div>
@@ -208,19 +208,19 @@
           <circle cx="60" cy="60" r="52" fill="none" stroke="var(--track)" stroke-width="12"/>
           <circle cx="60" cy="60" r="52" fill="none" stroke="var(--aqua)" stroke-width="12"
                   stroke-linecap="round" stroke-dasharray="326.7"
-                  stroke-dashoffset="75.8" transform="rotate(-90 60 60)"/>
+                  stroke-dashoffset="134.3" transform="rotate(-90 60 60)"/>
         </svg>
-        <div class="num"><b>76.8%</b><span>Độ phủ CRUD E2E</span></div>
+        <div class="num"><b>58.9%</b><span>CRUD E2E · live 03/07</span></div>
       </div>
       <div class="hero-meta">
         <div class="k">Phiên bản phát hành</div>
         <div class="v">v1.0.0 — 23/05/2026 · hoàn thành 13/13 sprint</div>
-        <div class="verdict" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--ink)">✅ Sim live 02/07: 6/6 BN đi trọn luồng lâm sàng trên UI thật (87/103 bước PASS) · 7/7 P0 đã implement · 76.8% là snapshot CRUD R7 (01/06)</div>
+        <div class="verdict" style="background:color-mix(in srgb,var(--warning) 18%,transparent);color:var(--ink)">✅ Live E2E stack thật 03/07: 15/15 module load, <b>0 FAIL</b>, login OK · CRUD 33/56 — phần lớn SKIP do <b>selector spec E2E lệch UI</b> (row-action dropdown), không phải thiếu tính năng · <a href="../test/live-e2e-2026-07-03.md" style="color:var(--blue)">chi tiết</a></div>
         <div class="hero-row">
-          <div><div class="k">CRUD PASS</div><div class="v">43 / 56</div></div>
+          <div><div class="k">CRUD PASS</div><div class="v">33 / 56</div></div>
           <div><div class="k">FAIL</div><div class="v">0</div></div>
-          <div><div class="k">SKIP (UI gap)</div><div class="v">13</div></div>
-          <div><div class="k">Action đã đóng từ 31/05</div><div class="v">13 / 26</div></div>
+          <div><div class="k">SKIP</div><div class="v">23</div></div>
+          <div><div class="k">Module load</div><div class="v">15 / 15</div></div>
         </div>
       </div>
     </div>
@@ -270,7 +270,14 @@
         <span class="dot" style="background:var(--good)"></span>
         <div>
           <div class="b">Điều tra P0 critical path + fix biên lai<span class="tag" style="background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-text)">Tiếp tục</span></div>
-          <div class="d">Chạy workflow 7 agent kiểm chứng source: <b>7/7 P0 đã implement</b> (sinh hiệu/chẩn đoán/đóng lượt/thêm thuốc/ĐTQG/thu tiền Billing+Cashier) — triage 31/05 đã lỗi thời. Fix gap nhỏ: PaymentDialog + Cashier "In phiếu thu" nay in đúng <b>biên lai theo paymentId</b>. Verify: <code>tsc</code> 0 lỗi + <code>next build</code> OK.</div>
+          <div class="d">Chạy workflow 7 agent kiểm chứng source: <b>7/7 P0 đã implement</b> (sinh hiệu/chẩn đoán/đóng lượt/thêm thuốc/ĐTQG/thu tiền Billing+Cashier) — triage 31/05 đã lỗi thời. Fix gap nhỏ: PaymentDialog + Cashier "In phiếu thu" nay in đúng <b>biên lai theo paymentId</b>. Verify: <code>tsc</code> 0 lỗi + <code>next build</code> OK. <b>⚠️ Xem mục Live E2E bên dưới — runtime cho thấy nhiều P0 action SKIP (selector spec lệch), cần đo lại.</b></div>
+        </div>
+      </div>
+      <div class="risk">
+        <span class="dot" style="background:var(--warning)"></span>
+        <div>
+          <div class="b">🔴 Live E2E trên stack thật (MySQL8.4+Redis+BE+FE)<span class="tag" style="background:color-mix(in srgb,var(--warning) 22%,transparent);color:var(--ink)">03/07/2026</span></div>
+          <div class="d">Tự dựng stack thật bằng <b>WSL</b> (không docker/admin): apply 115 bảng + seed, backend :5000 (login <code>admin123</code> → JWT), prod frontend :3100 → chạy <code>crud-actions.spec</code>. Kết quả thật: <b>15/15 module load, 33/56 PASS, 23 SKIP, 0 FAIL</b> (R7 cũ 43/56). <b>Fix bug runtime thật:</b> <code>/encounters</code> 500 do 1 dòng seed id không phải GUID hex → EF crash → soft-delete → 200. <b>Phát hiện:</b> phần lớn SKIP là action row-level (dropdown) — selector spec E2E lệch UI (vd AdminRoles CREATE SKIP dù nút "Tạo vai trò" có thật) → độ phủ chức năng thực cao hơn 33/56, cần cập nhật selector spec. Chi tiết: <code>docs/test/live-e2e-2026-07-03.md</code>.</div>
         </div>
       </div>
       <div class="risk">
@@ -592,7 +599,7 @@
   <footer>
     <div><b>Nguồn dữ liệu:</b> CHANGELOG.md · RELEASE-NOTES-v1.0.md · docs/test/crud-evidence-r7.md · docs/test/clinic-sim-evidence.md · docs/test/evidence.html · docs/test/reports-evidence.md · docs/test-reports/2026-07-02_vital-signs-trend.md · docs/test-reports/2026-05-31_reports-cohort-fix.md · docs/prd/crud-gap-triage-2026-05-31.md · docs/adr/0007 · đếm trực tiếp backend/frontend/db.</div>
     <div style="margin-top:4px"><b>Phạm vi số liệu CRUD 76.8%:</b> chỉ tính bộ <code>crud-actions.spec.ts</code> (56 case). Module Report &amp; Dashboard kiểm thử bằng spec riêng (<code>reports.spec.ts</code> 9/11 · <code>reports-cohort-fix.spec.ts</code> 30/30) — xem mục BI ở trên.</div>
-    <div style="margin-top:6px">Con số CRUD 76.8% là snapshot test <b>R7 (01/06)</b>. Bằng chứng mới nhất là <b>sim lâm sàng live 02/07</b>: 6/6 BN đi trọn luồng trên UI thật (87/103 bước PASS), phát hiện 6 bug thật / fix 5 — bộ CRUD 56 case chưa re-run nên giữ nguyên 76.8%. · <a href="lo-trinh.html">Xem lộ trình →</a></div>
+    <div style="margin-top:6px"><b>Cập nhật 03/07 — đã re-run E2E trên stack thật</b> (WSL MySQL 8.4 + Redis + backend :5000 + prod frontend): con số thật <b>33/56 PASS · 23 SKIP · 0 FAIL</b> (thay R7 43/56). Đa số SKIP do <b>selector spec E2E lệch UI</b> (row-action dropdown), không phải thiếu tính năng; đã fix 1 bug runtime thật (encounters 500 — seed id không phải GUID hex). Chi tiết: <a href="../test/live-e2e-2026-07-03.md">docs/test/live-e2e-2026-07-03.md</a>. · <a href="lo-trinh.html">Xem lộ trình →</a></div>
   </footer>
 </div>
 
