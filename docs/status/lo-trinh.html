@@ -265,6 +265,28 @@
       </div>
     </div>
 
+    <!-- Chuẩn hóa UI/UX & Báo cáo -->
+    <div class="node done">
+      <div class="card">
+        <div class="head">
+          <h2>Chuẩn hóa UI/UX &amp; Báo cáo</h2>
+          <span class="badge done">HOÀN THÀNH</span>
+          <span class="when">02–03/07/2026 · hardening song song</span>
+        </div>
+        <p class="desc">Audit toàn hệ thống theo design system (agent designer — Linh), sửa 28/31 finding, gộp luồng in báo cáo về PDF server. Chi tiết: <code>docs/status/ui-ux-report-status.html</code>.</p>
+        <ul class="items">
+          <li>Token &amp; màu: sửa light-mode token, gộp palette chart, Mã CSKCB letterhead, hết hardcode hex (F1–F8)</li>
+          <li>Layout: topbar/sidebar chuẩn, Sheet <code>px-6 pb-6</code>, Dialog đúng thang, 36 page title <code>text-xl</code>, <code>PageHeader</code> + <code>FullPageFormShell</code> (L-01…L-14)</li>
+          <li>Form: gộp luồng tạo BN ở Tiếp đón; 3 form kho dược → Fullpage; Ctrl+S/Esc hoạt động thật (F-01…F-09)</li>
+          <li>Báo cáo: 8 endpoint có dữ liệu thật + preview/in/xuất cùng một QuestPDF (ADR-0001) + chuẩn ngữ nghĩa (FINALIZED, multi-tenant)</li>
+        </ul>
+        <div class="milestone">
+          <span class="m-ic" style="background:color-mix(in srgb,var(--good) 18%,transparent)">✅</span>
+          <span><b>Nghiệm thu tĩnh xong</b> — build FE+BE + 505 test PASS. Còn: Drug Picker (PRD sẵn), kiểm chứng runtime staging (<code>docs/test-reports/2026-07-03_staging-smoke-test.md</code>).</span>
+        </div>
+      </div>
+    </div>
+
     <!-- GĐ4 -->
     <div class="node future">
       <div class="card">
