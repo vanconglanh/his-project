@@ -438,7 +438,14 @@ public class ReportsController : ControllerBase
                 }),
                 rows = result.Rows,
                 totals = result.Totals,
-                kpis = result.Kpis.Select(k => new { label = k.Label, tint = k.Tint, value = k.Value, is_money = k.IsMoney })
+                kpis = result.Kpis.Select(k => new
+                {
+                    label = k.Label,
+                    tint = k.Tint,
+                    tint_token = ReportTintTokens.FromHex(k.Tint),
+                    value = k.Value,
+                    is_money = k.IsMoney
+                })
             },
             meta = new { page, page_size, total = result.TotalRows }
         });

@@ -58,6 +58,34 @@ public record ReportKpiSpec(
     Func<IReadOnlyList<IDictionary<string, object?>>, decimal> Compute,
     bool IsMoney = true);
 
+/// <summary>
+/// Anh xa hex mau tint (dung trong <see cref="ReportKpiSpec"/> / <see cref="ReportKpiResult"/>) sang
+/// enum token semantic ("tint_token") de FE map sang design token thay vi hardcode hex.
+/// Chi 5 hex nay dang duoc dung trong toan bo ReportRegistry — hex la nao/null => "neutral".
+/// </summary>
+public static class ReportTintTokens
+{
+    public const string Brand = "brand";
+    public const string Done = "done";
+    public const string Warning = "warning";
+    public const string Critical = "critical";
+    public const string Insurance = "insurance";
+    public const string Neutral = "neutral";
+
+    private static readonly IReadOnlyDictionary<string, string> HexToToken = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["#F0FDFA"] = Brand,
+        ["#ECFDF5"] = Done,
+        ["#FFFBEB"] = Warning,
+        ["#FEF2F2"] = Critical,
+        ["#EFF6FF"] = Insurance
+    };
+
+    /// <summary>Tra ve tint_token tuong ung voi hex. Hex khong nam trong danh sach chuan hoac null => "neutral".</summary>
+    public static string FromHex(string? hex)
+        => hex is not null && HexToToken.TryGetValue(hex, out var token) ? token : Neutral;
+}
+
 /// <summary>Mo ta 1 filter tren man hinh xuat bao cao.</summary>
 public record ReportFilter(
     string Key,
