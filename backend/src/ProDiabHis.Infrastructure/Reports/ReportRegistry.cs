@@ -69,6 +69,9 @@ public class ReportRegistry : IReportRegistry
             ClsIndicationStats(),
             Debts(),
 
+            // Dot 9 — Compliance tai chinh (P0-1): So quy tien mat (UNION Thu bil_payments + Chi bil_cash_out)
+            SoQuyTienMat(),
+
             // Nhom F — Kho duoc (Pharmacy) — descriptor thuan tren schema co san (khong bang/migration moi)
             TonKho(),
             TheKhoLo(),
@@ -1771,6 +1774,93 @@ public class ReportRegistry : IReportRegistry
                   AND b.created_at BETWEEN @from AND @to
                   AND (@patientId IS NULL OR b.patient_id = @patientId)
                 ORDER BY b.balance DESC
+                LIMIT 3000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= Dot 9 (P0-1): SO QUY TIEN MAT ================= //
+    // Nguon: Thu = diab_his_bil_payments (method='CASH'), Chi = diab_his_bil_cash_out (bang moi,
+    // migration 9043). UNION ALL 2 chieu, tinh Ton quy luy ke qua window function SUM() OVER
+    // (ORDER BY ts, id lam khoa phu de dam bao thu tu on dinh khi trung ts).
+    // Luu y: Ton quy la so du LUY KE TRONG KY (bat dau tu 0), CHUA co khai niem so du dau ky
+    // persistent (can bo sung sau neu nghiep vu yeu cau chot so theo thang/nam).
+    private static ReportDescriptor SoQuyTienMat() => new()
+    {
+        Code = "so-quy-tien-mat",
+        Title = "SỔ QUỸ TIỀN MẶT",
+        Group = ReportGroupCategory.Financial,
+        GroupOrder = 9,
+        Icon = "wallet",
+        PdfTypeCode = "SQT",
+        Columns = new List<ReportColumn>
+        {
+            new("date",        "Ngày giờ",   ReportColumnType.DateTime, ReportAlign.Left,  1.1f),
+            new("type",        "Loại",       ReportColumnType.Text,     ReportAlign.Left,  0.7f),
+            new("receiptNo",   "Số phiếu",   ReportColumnType.Text,     ReportAlign.Left,  1f),
+            new("description", "Diễn giải",  ReportColumnType.Text,     ReportAlign.Left,  1.8f),
+            new("thu",         "Thu",        ReportColumnType.Money,    ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("chi",         "Chi",        ReportColumnType.Money,    ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("tonQuy",      "Tồn quỹ",    ReportColumnType.Money,    ReportAlign.Right, 1.1f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG THU", "#ECFDF5", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "thu"))), IsMoney: true),
+            new("TỔNG CHI", "#FEF2F2", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "chi"))), IsMoney: true),
+            new("TỒN QUỸ CUỐI KỲ", "#EFF6FF",
+                rows => rows.Count == 0 ? 0m : ReportValueConverter.ToDecimal(ReportValueConverter.Get(rows[^1], "tonQuy")), IsMoney: true)
+        },
+        Filters = Array.Empty<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            const string sql = @"
+                SELECT
+                    ts                                                     AS date,
+                    loai                                                   AS type,
+                    soPhieu                                                AS receiptNo,
+                    dienGiai                                                AS description,
+                    thu                                                    AS thu,
+                    chi                                                    AS chi,
+                    SUM(thu - chi) OVER (ORDER BY ts, idSort)             AS tonQuy
+                FROM (
+                    SELECT
+                        pay.paid_at                                                                  AS ts,
+                        N'Thu'                                                                       AS loai,
+                        b.bill_no                                                                    AS soPhieu,
+                        COALESCE(CONCAT(b.bill_no, N' - ', pt.full_name COLLATE utf8mb4_unicode_ci), N'Thu tiền mặt') COLLATE utf8mb4_unicode_ci AS dienGiai,
+                        pay.amount                                                                   AS thu,
+                        0                                                                             AS chi,
+                        pay.id                                                                        AS idSort
+                    FROM diab_his_bil_payments pay
+                    LEFT JOIN diab_his_bil_billing b ON b.id = pay.billing_id AND b.tenant_id = pay.tenant_id
+                    LEFT JOIN diab_his_pat_patients pt ON pt.id = b.patient_id COLLATE utf8mb4_unicode_ci AND pt.tenant_id = b.tenant_id
+                    WHERE pay.tenant_id = @tenantId
+                      AND pay.method = 'CASH'
+                      AND (pay.status IS NULL OR pay.status <> 'VOID')
+                      AND pay.paid_at BETWEEN @from AND @to
+
+                    UNION ALL
+
+                    SELECT
+                        c.paid_at                                                                    AS ts,
+                        N'Chi'                                                                       AS loai,
+                        c.code                                                                       AS soPhieu,
+                        COALESCE(c.reason, c.category, N'Chi tiền mặt')                                AS dienGiai,
+                        0                                                                             AS thu,
+                        c.amount                                                                     AS chi,
+                        c.id                                                                          AS idSort
+                    FROM diab_his_bil_cash_out c
+                    WHERE c.tenant_id = @tenantId
+                      AND c.deleted_at IS NULL
+                      AND c.paid_at BETWEEN @from AND @to
+                ) t
+                ORDER BY ts, idSort
                 LIMIT 3000";
 
             return (sql, p);
