@@ -198,7 +198,8 @@ public class GetReportPdfHandler : IRequestHandler<GetReportPdfQuery, (byte[] By
         // Lay letterhead tu diab_his_sys_tenants WHERE id=@tenantId
         var lh = await conn.QueryFirstOrDefaultAsync<LetterheadDto>(
             @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
-                     phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl
+                     phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                     slogan AS Slogan, website AS Website
               FROM diab_his_sys_tenants
               WHERE id = @tenantId",
             new { tenantId });

@@ -82,6 +82,7 @@
   "Nav": {
     "overview": "Overview",
     "reception": "Reception",
+    "appointments": "Appointments",
     "patients": "Patients",
     "encounters": "Encounters",
     "prescriptions": "Prescriptions",

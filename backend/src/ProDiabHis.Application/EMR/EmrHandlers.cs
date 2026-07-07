@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Dapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
@@ -274,9 +275,10 @@ public class ExportEmrPdfCommandHandler : IRequestHandler<ExportEmrPdfCommand, R
 {
     private readonly IApplicationDbContext _db;
     private readonly IEmrPdfExporter _exporter;
+    private readonly IDapperConnectionFactory _dapper;
 
-    public ExportEmrPdfCommandHandler(IApplicationDbContext db, IEmrPdfExporter exporter)
-    { _db = db; _exporter = exporter; }
+    public ExportEmrPdfCommandHandler(IApplicationDbContext db, IEmrPdfExporter exporter, IDapperConnectionFactory dapper)
+    { _db = db; _exporter = exporter; _dapper = dapper; }
 
     public async Task<Result<byte[]>> Handle(ExportEmrPdfCommand cmd, CancellationToken ct)
     {
@@ -291,10 +293,11 @@ public class ExportEmrPdfCommandHandler : IRequestHandler<ExportEmrPdfCommand, R
         string? patientName = null;
         string? doctorName  = null;
         string? signerName  = null;
+        Domain.Entities.Patient? patient = null;
 
         if (encounter is not null)
         {
-            var patient = await _db.Patients.IgnoreQueryFilters()
+            patient = await _db.Patients.IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => p.Id.ToString() == encounter.PatientId, ct);
             patientName = patient?.FullName;
 
@@ -313,6 +316,47 @@ public class ExportEmrPdfCommandHandler : IRequestHandler<ExportEmrPdfCommand, R
             signerName = signer?.FullName;
         }
 
+        // Nang cap phieu kham: letterhead + chan doan ICD-10 + sinh hieu (Sprint bieu mau in)
+        Reports.LetterheadDto? letterhead = null;
+        EmrDiagnosisLine? primaryDx = null;
+        List<EmrDiagnosisLine> secondaryDx = new();
+        EmrVitalsDto? vitals = null;
+
+        if (encounter is not null)
+        {
+            using var conn = (System.Data.IDbConnection)_dapper.CreateConnection();
+            letterhead = await conn.QueryFirstOrDefaultAsync<Reports.LetterheadDto>(
+                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                         slogan AS Slogan, website AS Website
+                  FROM diab_his_sys_tenants
+                  WHERE id = @tenantId",
+                new { tenantId = encounter.TenantId });
+            letterhead ??= new Reports.LetterheadDto("Pro-Diab HIS", null, null, null, null, null, null, null);
+
+            var diagnoses = await _db.EncounterDiagnoses.IgnoreQueryFilters()
+                .Where(d => d.EncounterId == encIdStr && d.DeletedAt == null)
+                .OrderBy(d => d.CreatedAt)
+                .ToListAsync(ct);
+            var primary = diagnoses.FirstOrDefault(d => d.Type == DiagnosisType.Primary);
+            if (primary is not null)
+                primaryDx = new EmrDiagnosisLine(primary.Icd10Code, primary.Name);
+            secondaryDx = diagnoses.Where(d => d.Type != DiagnosisType.Primary)
+                .Select(d => new EmrDiagnosisLine(d.Icd10Code, d.Name)).ToList();
+
+            var lastVitals = await _db.VitalSigns.IgnoreQueryFilters()
+                .Where(v => v.EncounterId == encIdStr && v.DeletedAt == null)
+                .OrderByDescending(v => v.RecordedAt).ThenByDescending(v => v.RecordSequence)
+                .FirstOrDefaultAsync(ct);
+            if (lastVitals is not null)
+            {
+                vitals = new EmrVitalsDto(
+                    lastVitals.TemperatureC, lastVitals.HeartRateBpm, lastVitals.RespiratoryRate,
+                    lastVitals.BpSystolic, lastVitals.BpDiastolic, lastVitals.Spo2Percent,
+                    lastVitals.WeightKg, lastVitals.HeightCm, lastVitals.GlucoseMgDl);
+            }
+        }
+
         var ctx = new EmrPdfContext(
             cmd.EncounterId,
             patientName ?? "",
@@ -322,7 +366,17 @@ public class ExportEmrPdfCommandHandler : IRequestHandler<ExportEmrPdfCommand, R
             emr.SignedAt is not null,
             emr.SignedAt,
             signerName,
-            sig?.CertificateSerial);
+            sig?.CertificateSerial,
+            Letterhead: letterhead,
+            PatientCode: patient?.Code,
+            PatientGender: patient?.Gender,
+            PatientDob: patient?.DateOfBirth,
+            PatientAddress: patient?.Street,
+            ChiefComplaint: encounter?.ChiefComplaint,
+            ReasonForVisit: encounter?.ReasonForVisit,
+            PrimaryDiagnosis: primaryDx,
+            SecondaryDiagnoses: secondaryDx,
+            Vitals: vitals);
 
         var pdfBytes = await _exporter.ExportAsync(ctx, ct);
         return Result<byte[]>.Success(pdfBytes);

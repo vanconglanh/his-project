@@ -26,7 +26,7 @@ public class GetLetterheadQueryHandler : IRequestHandler<GetLetterheadQuery, Res
         using var conn = _db.CreateConnection();
 
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT name, cskcb_code, company_name, logo_url, address, phone, email, email_support
+            @"SELECT name, cskcb_code, company_name, logo_url, address, phone, email, email_support, slogan, website
               FROM diab_his_sys_tenants
               WHERE id = @tenantId AND deleted_at IS NULL
               LIMIT 1",
@@ -43,7 +43,9 @@ public class GetLetterheadQueryHandler : IRequestHandler<GetLetterheadQuery, Res
             Phone: (string?)row.phone,
             Email: (string?)row.email,
             EmailSupport: (string?)row.email_support,
-            LogoUrl: (string?)row.logo_url);
+            LogoUrl: (string?)row.logo_url,
+            Slogan: (string?)row.slogan,
+            Website: (string?)row.website);
 
         return Result<LetterheadDto>.Success(dto);
     }

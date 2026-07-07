@@ -10,9 +10,50 @@ import {
   getInventoryValue,
   getNearExpirySummary,
   exportReport,
+  getReportCatalog,
+  getReportData,
+  getReportOptions,
   type ReportPeriod,
   type ExportReportRequest,
+  type ReportDataQueryParams,
 } from "@/lib/api/reports";
+
+// ---- Report Engine (config-driven) ----
+
+/** Danh mục toàn bộ báo cáo — cache dài (5 phút), hiếm khi đổi trong phiên làm việc. */
+export function useReportCatalog() {
+  return useQuery({
+    queryKey: ["reports", "engine", "catalog"],
+    queryFn: getReportCatalog,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+/** Danh sách lựa chọn cho 1 filter dropdown (collectors, counters, doctors, clinics, patients...). */
+export function useReportOptions(source?: string | null) {
+  return useQuery({
+    queryKey: ["reports", "engine", "options", source],
+    queryFn: () => getReportOptions(source as string),
+    enabled: !!source,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+/**
+ * Dữ liệu lưới của 1 báo cáo theo code + tham số ĐÃ ÁP DỤNG (applied filters).
+ * QUAN TRỌNG: `params` phải là state riêng chỉ cập nhật khi user bấm "Lấy dữ liệu"
+ * — không auto-fetch mỗi lần đổi filter nháp (draft).
+ */
+export function useReportData(code: string | null, params: ReportDataQueryParams | null) {
+  return useQuery({
+    queryKey: ["reports", "engine", "data", code, params],
+    queryFn: () => getReportData(code as string, params as ReportDataQueryParams),
+    enabled: !!code && !!params && !!params.from && !!params.to,
+    retry: 1,
+  });
+}
 
 export function useRevenueReport(period: ReportPeriod, from: string, to: string) {
   return useQuery({

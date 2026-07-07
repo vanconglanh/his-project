@@ -710,7 +710,9 @@ public class GetPrescriptionPdfHandler : IRequestHandler<GetPrescriptionPdfQuery
 
         // Letterhead phong kham (giong ExportReportHandler)
         var lh = await conn.QueryFirstOrDefaultAsync<PrescriptionPdfLetterheadRow>(
-            @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, address AS Address, phone AS Phone
+            @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName,
+                     address AS Address, phone AS Phone, email AS Email, email_support AS EmailSupport,
+                     slogan AS Slogan, website AS Website
               FROM diab_his_sys_tenants
               WHERE id = @tenantId",
             new { tenantId });
@@ -736,7 +738,11 @@ public class GetPrescriptionPdfHandler : IRequestHandler<GetPrescriptionPdfQuery
             DiagnosisCode: pres.DiagnosisCode,
             DiagnosisName: diagnosisName,
             DoctorFullName: pres.DoctorFullName,
-            Items: items);
+            Items: items,
+            ClinicCompanyName: lh?.CompanyName,
+            ClinicSlogan: lh?.Slogan,
+            ClinicWebsite: lh?.Website,
+            ClinicEmail: lh?.EmailSupport ?? lh?.Email);
 
         var pdf = _pdfBuilder.Build(pdfData);
 
@@ -780,8 +786,13 @@ internal class PrescriptionPdfLetterheadRow
 {
     public string? ClinicName { get; set; }
     public string? CskcbCode { get; set; }
+    public string? CompanyName { get; set; }
     public string? Address { get; set; }
     public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? EmailSupport { get; set; }
+    public string? Slogan { get; set; }
+    public string? Website { get; set; }
 }
 
 public class GetPrintHistoryHandler : IRequestHandler<GetPrintHistoryQuery, Result<IReadOnlyList<PrintHistoryItem>>>

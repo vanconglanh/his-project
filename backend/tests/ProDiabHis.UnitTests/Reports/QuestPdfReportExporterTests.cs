@@ -173,9 +173,13 @@ public class QuestPdfReportExporterTests
 
     private static bool InvokeIsPrivateOrLoopback(System.Net.IPAddress address)
     {
-        var method = typeof(QuestPdfReportExporter)
-            .GetMethod("IsPrivateOrLoopbackAddress",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+        // Report Engine: logic da chuyen sang ReportPdfCommon (dung chung voi GenericReportPdfExporter);
+        // QuestPdfReportExporter gio chi goi lai qua ReportPdfCommon.
+        var type = System.Reflection.Assembly.GetAssembly(typeof(QuestPdfReportExporter))!
+            .GetType("ProDiabHis.Infrastructure.Reports.ReportPdfCommon")
+            ?? throw new InvalidOperationException("Type ReportPdfCommon khong tim thay");
+        var method = type.GetMethod("IsPrivateOrLoopbackAddress",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
             ?? throw new InvalidOperationException("Method IsPrivateOrLoopbackAddress khong tim thay");
         return (bool)method.Invoke(null, new object[] { address })!;
     }

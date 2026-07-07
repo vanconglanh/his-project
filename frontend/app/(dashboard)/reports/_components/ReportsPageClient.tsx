@@ -7,10 +7,17 @@ import { FinancialTab } from "./FinancialTab";
 import { ClinicalTab } from "./ClinicalTab";
 import { PharmacyTab } from "./PharmacyTab";
 
-export function ReportsPageClient() {
+interface ReportsPageClientProps {
+  /** Ẩn PageHeader khi được nhúng trong màn hình khác đã tự render header (vd ReportEngineClient). */
+  hideHeader?: boolean;
+}
+
+export function ReportsPageClient({ hideHeader = false }: ReportsPageClientProps) {
   return (
     <div className="space-y-6">
-      <PageHeader title="Báo cáo & Thống kê" description="Phân tích doanh thu, lâm sàng và dược" />
+      {!hideHeader && (
+        <PageHeader title="Báo cáo & Thống kê" description="Phân tích doanh thu, lâm sàng và dược" />
+      )}
 
       <Tabs defaultValue="financial">
         <TabsList className="mb-4">

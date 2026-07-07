@@ -1,4 +1,5 @@
 using ProDiabHis.Application.Pharmacy.Prescriptions;
+using ProDiabHis.Application.Reports;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -7,7 +8,8 @@ namespace ProDiabHis.Infrastructure.Reports;
 
 /// <summary>
 /// Sinh PDF don thuoc that bang QuestPDF (thay stub cu). Bo cuc A5 doc,
-/// tai dung tong mau nhan dien diaB (HeaderBg #01645A) giong QuestPdfReportExporter.
+/// tai dung header trang thanh lich dung chung voi 30 bao cao + 6 giay to
+/// (xem ReportPdfCommon.RenderLetterhead) de dong bo thiet ke toan he thong.
 /// </summary>
 public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
 {
@@ -16,17 +18,6 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
     private static readonly string Muted = "#64748B";
     private static readonly string LineColor = "#E2E8F0";
     private static readonly string ZebraBg = "#F3F8F7";
-
-    private static readonly byte[]? DefaultLogo = LoadDefaultLogo();
-    private static byte[]? LoadDefaultLogo()
-    {
-        try
-        {
-            var path = Path.Combine(AppContext.BaseDirectory, "wwwroot", "brand", "diab-logo.png");
-            return File.Exists(path) ? File.ReadAllBytes(path) : null;
-        }
-        catch { return null; }
-    }
 
     static PrescriptionPdfBuilder()
     {
@@ -79,52 +70,25 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
         }).GeneratePdf();
     }
 
+    /// <summary>
+    /// Dung chung header trang voi 30 bao cao + 6 giay to (ReportPdfCommon.RenderLetterhead).
+    /// Map PrescriptionPdfData sang LetterheadDto de tai su dung dung 1 diem thiet ke duy nhat.
+    /// </summary>
     private static void RenderLetterhead(IContainer container, PrescriptionPdfData data)
     {
-        container
-            .Background(Brand)
-            .Padding(8)
-            .Row(row =>
-            {
-                var logo = (data.ClinicLogo != null && data.ClinicLogo.Length > 0) ? data.ClinicLogo : DefaultLogo;
-                if (logo != null && logo.Length > 0)
-                {
-                    row.ConstantItem(48)
-                        .AlignMiddle()
-                        .Background("#FFFFFF")
-                        .Padding(3)
-                        .Image(logo)
-                        .FitArea();
-                }
-                else
-                {
-                    row.ConstantItem(44)
-                        .AlignMiddle()
-                        .AlignCenter()
-                        .Text("diaB")
-                        .FontColor("#FFFFFF")
-                        .Bold()
-                        .FontSize(12);
-                }
+        var lh = new LetterheadDto(
+            ClinicName: data.ClinicName,
+            CskcbCode: data.CskcbCode,
+            CompanyName: data.ClinicCompanyName,
+            Address: data.ClinicAddress,
+            Phone: data.ClinicPhone,
+            Email: data.ClinicEmail,
+            EmailSupport: null,
+            LogoUrl: null,
+            Slogan: data.ClinicSlogan,
+            Website: data.ClinicWebsite);
 
-                row.RelativeItem()
-                    .PaddingLeft(8)
-                    .AlignMiddle()
-                    .Column(col =>
-                    {
-                        col.Item().Text(data.ClinicName).FontColor("#FFFFFF").Bold().FontSize(12);
-                        if (!string.IsNullOrWhiteSpace(data.ClinicAddress))
-                            col.Item().Text(data.ClinicAddress).FontColor("#D7EBE7").FontSize(8);
-
-                        var contactParts = new List<string>();
-                        if (!string.IsNullOrWhiteSpace(data.ClinicPhone))
-                            contactParts.Add($"ĐT: {data.ClinicPhone}");
-                        if (!string.IsNullOrWhiteSpace(data.CskcbCode))
-                            contactParts.Add($"Mã CSKCB: {data.CskcbCode}");
-                        if (contactParts.Count > 0)
-                            col.Item().Text(string.Join("   •   ", contactParts)).FontColor("#D7EBE7").FontSize(8);
-                    });
-            });
+        ReportPdfCommon.RenderLetterhead(container, lh, data.ClinicLogo);
     }
 
     private static void RenderPatientInfo(IContainer container, PrescriptionPdfData data)

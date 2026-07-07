@@ -28,13 +28,16 @@ public class ReportCodeGenerator : IReportCodeGenerator
         _                    => throw new ArgumentOutOfRangeException(nameof(type))
     };
 
-    public async Task<string> NextAsync(int tenantId, ReportType type, DateOnly date, CancellationToken ct = default)
+    public Task<string> NextAsync(int tenantId, ReportType type, DateOnly date, CancellationToken ct = default)
+        => NextAsync(tenantId, TypeCode(type), date, ct);
+
+    public async Task<string> NextAsync(int tenantId, string typeCode, DateOnly date, CancellationToken ct = default)
     {
         if (!_redis.IsConnected)
             throw new InvalidOperationException(
                 "Redis bat buoc de sinh ma bao cao. Ket noi Redis hien khong kha dung.");
 
-        var prefix = TypeCode(type);
+        var prefix = typeCode;
         var dateStr = date.ToString("yyyyMMdd");
         var key = $"report:seq:{tenantId}:{dateStr}:{prefix}";
 

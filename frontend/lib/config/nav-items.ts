@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   UserPlus,
+  CalendarClock,
   Users,
   Stethoscope,
   ClipboardList,
@@ -49,6 +50,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "reception",
         icon: UserPlus,
         permissions: ["reception.read"],
+      },
+      {
+        href: "/appointments",
+        labelKey: "appointments",
+        icon: CalendarClock,
+        permissions: ["appointment.read"],
       },
       {
         href: "/patients",

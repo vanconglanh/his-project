@@ -293,7 +293,14 @@ public static class DependencyInjection
         services.AddScoped<IPdfReportExporter, QuestPdfReportExporter>();
         services.AddScoped<IExcelExporter, ReportExcelExporter>();
         services.AddScoped<ReportCacheRefreshJob>();
+
+        // Report Engine config-driven (23 bao cao — docs/prd/reports-catalog-prd.md)
+        services.AddSingleton<Application.Reports.Engine.IReportRegistry, Reports.ReportRegistry>();
+        services.AddScoped<Application.Reports.Engine.IGenericReportDataService, Reports.GenericReportDataService>();
+        services.AddScoped<Application.Reports.Engine.IGenericReportPdfExporter, Reports.GenericReportPdfExporter>();
         services.AddScoped<Application.Pharmacy.Prescriptions.IPrescriptionPdfBuilder, Reports.PrescriptionPdfBuilder>();
+        services.AddScoped<Application.CLS.IClsOrderSlipPdfBuilder, Reports.ClsOrderSlipPdfBuilder>();
+        services.AddScoped<Application.Appointments.IAppointmentSlipPdfBuilder, Reports.AppointmentSlipPdfBuilder>();
 
         // Sprint 14: Report PDF A4 — ma bao cao (Redis INCR, bat buoc — khong fallback)
         services.AddScoped<IReportCodeGenerator>(sp =>

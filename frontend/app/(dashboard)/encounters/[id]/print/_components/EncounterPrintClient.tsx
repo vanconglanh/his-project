@@ -1,12 +1,14 @@
 "use client";
 
 import { useEncounter } from "@/lib/hooks/use-encounters";
+import apiClient from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Printer, Download, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const ENCOUNTER_TYPE_LABELS: Record<string, string> = {
   FIRST_VISIT: "Khám mới",
@@ -77,9 +79,14 @@ export default function EncounterPrintClient({ encounterId }: Props) {
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={() => {
-            const url = `/api/v1/encounters/${encounterId}/emr/pdf`;
-            window.open(url, "_blank");
+          onClick={async () => {
+            const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
+            const url = `${apiClient.defaults.baseURL}/encounters/${encounterId}/emr/pdf`;
+            try {
+              await printPdfBlob(url);
+            } catch {
+              toast.error("Tải phiếu khám PDF thất bại");
+            }
           }}
         >
           <Download className="h-4 w-4" />

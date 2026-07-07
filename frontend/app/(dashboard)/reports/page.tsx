@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { ReportsPageClient } from "./_components/ReportsPageClient";
+import { ReportEngineClient } from "./_components/engine/ReportEngineClient";
 
 export const metadata: Metadata = { title: "Báo cáo & Thống kê" };
 
-export default function ReportsPage() {
-  return <ReportsPageClient />;
+interface ReportsPageProps {
+  searchParams: Promise<{ report?: string }>;
+}
+
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
+  const { report } = await searchParams;
+  return <ReportEngineClient initialReportCode={report} />;
 }

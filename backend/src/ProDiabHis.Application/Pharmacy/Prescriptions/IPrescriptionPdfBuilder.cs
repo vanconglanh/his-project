@@ -32,7 +32,13 @@ public record PrescriptionPdfData(
     // Bac si ke don
     string? DoctorFullName,
 
-    IReadOnlyList<PrescriptionPdfItem> Items);
+    IReadOnlyList<PrescriptionPdfItem> Items,
+
+    // Bo sung cho header trang (dong bo ReportPdfCommon.RenderLetterhead)
+    string? ClinicCompanyName = null,
+    string? ClinicSlogan = null,
+    string? ClinicWebsite = null,
+    string? ClinicEmail = null);
 
 public record PrescriptionPdfItem(
     int Stt,

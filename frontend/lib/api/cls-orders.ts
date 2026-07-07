@@ -60,3 +60,23 @@ export async function searchClsCatalog(params: { q?: string; kind?: "LAB" | "RAD
   const res = await apiClient.get<ApiResponse<ClsCatalogItem[]>>("/cls-catalog/tests", { params });
   return res.data.data;
 }
+
+// ─── PDF chỉ định (letterhead branded, QuestPDF server-side) ─────────────────
+
+export function getLabOrdersPdfUrl(encounterId: string): string {
+  return `${apiClient.defaults.baseURL}/encounters/${encounterId}/lab-orders/pdf`;
+}
+
+export function getRadOrdersPdfUrl(encounterId: string): string {
+  return `${apiClient.defaults.baseURL}/encounters/${encounterId}/rad-orders/pdf`;
+}
+
+export async function printLabOrdersPdf(encounterId: string): Promise<void> {
+  const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
+  await printPdfBlob(getLabOrdersPdfUrl(encounterId));
+}
+
+export async function printRadOrdersPdf(encounterId: string): Promise<void> {
+  const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
+  await printPdfBlob(getRadOrdersPdfUrl(encounterId));
+}
