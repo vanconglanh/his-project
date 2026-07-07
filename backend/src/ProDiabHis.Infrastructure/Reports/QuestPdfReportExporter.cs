@@ -15,10 +15,16 @@ namespace ProDiabHis.Infrastructure.Reports;
 
 public class QuestPdfReportExporter : IPdfReportExporter
 {
-    // Mau nhan dien diaB chinh thuc
-    private static readonly string HeaderBg = "#01645A";
-    private static readonly string TableHeaderBg = "#F0FDFA"; // teal-50
-    private static readonly string BorderColor = "#D1D5DB";   // gray-300
+    // Mau nhan dien diaB chinh thuc (dong bo voi preview thiet ke da duyet)
+    private static readonly string Brand = "#01645A";
+    private static readonly string BrandDark = "#014A42";
+    private static readonly string Ink = "#0F172A";
+    private static readonly string Muted = "#64748B";
+    private static readonly string LineColor = "#E2E8F0";
+    private static readonly string ZebraBg = "#F3F8F7";
+    private static readonly string TintTeal = "#F0FDFA";
+    private static readonly string TintAmber = "#FFFBEB";
+    private static readonly string TintRed = "#FEF2F2";
 
     // Logo diaB bundled (wwwroot/brand/diab-logo.png) — fallback khi tenant chua cau hinh LogoUrl
     private static readonly byte[]? DefaultLogo = LoadDefaultLogo();
@@ -219,7 +225,8 @@ public class QuestPdfReportExporter : IPdfReportExporter
                     col.Item().Element(c => RenderTitle(c, "BÁO CÁO DOANH THU"));
                     col.Item().Element(c => RenderBarcode(c, req.ReportCode));
                     col.Item().Element(c => RenderMeta(c, req));
-                    col.Item().PaddingTop(8).Element(c => RenderFinancialBody(c, rowList));
+                    col.Item().PaddingTop(10).Element(c => RenderFinancialKpis(c, rowList));
+                    col.Item().PaddingTop(12).Element(c => RenderFinancialBody(c, rowList));
                 });
 
                 page.Footer().Element(c => RenderFooter(c, req.ExportedByFullName));
@@ -251,7 +258,8 @@ public class QuestPdfReportExporter : IPdfReportExporter
                     col.Item().Element(c => RenderTitle(c, "BÁO CÁO LƯỢT KHÁM"));
                     col.Item().Element(c => RenderBarcode(c, req.ReportCode));
                     col.Item().Element(c => RenderMeta(c, req));
-                    col.Item().PaddingTop(8).Element(c => RenderClinicalBody(c, rowList));
+                    col.Item().PaddingTop(10).Element(c => RenderClinicalKpis(c, rowList));
+                    col.Item().PaddingTop(12).Element(c => RenderClinicalBody(c, rowList));
                 });
 
                 page.Footer().Element(c => RenderFooter(c, req.ExportedByFullName));
@@ -283,7 +291,9 @@ public class QuestPdfReportExporter : IPdfReportExporter
                     col.Item().Element(c => RenderTitle(c, "BÁO CÁO TỒN KHO DƯỢC"));
                     col.Item().Element(c => RenderBarcode(c, req.ReportCode));
                     col.Item().Element(c => RenderMeta(c, req));
-                    col.Item().PaddingTop(8).Element(c => RenderPharmacyBody(c, rowList));
+                    col.Item().PaddingTop(10).Element(c => RenderPharmacyKpis(c, rowList));
+                    col.Item().PaddingTop(12).Element(c => RenderPharmacyBody(c, rowList));
+                    col.Item().PaddingTop(8).Element(RenderPharmacyLegend);
                 });
 
                 page.Footer().Element(c => RenderFooter(c, req.ExportedByFullName));
@@ -301,37 +311,52 @@ public class QuestPdfReportExporter : IPdfReportExporter
         page.MarginTop(15, Unit.Millimetre);
         page.MarginBottom(15, Unit.Millimetre);
         page.MarginHorizontal(15, Unit.Millimetre);
-        page.DefaultTextStyle(x => x.FontSize(11));
+        page.DefaultTextStyle(x => x.FontSize(10).FontColor(Ink));
     }
+
+    // ===== helper bang: header xanh chu trang + zebra rows (dong bo preview da duyet) ===== //
+    private static IContainer HeadCell(IContainer c) => c.Background(Brand).PaddingVertical(7).PaddingHorizontal(6);
+    private static void HText(IContainer c, string s) => HeadCell(c).Text(s).FontColor("#FFFFFF").Bold().FontSize(9.5f);
+    private static IContainer BodyCell(IContainer c, int i) => c.Background(i % 2 == 1 ? ZebraBg : "#FFFFFF")
+        .PaddingVertical(6).PaddingHorizontal(6).BorderBottom(0.5f).BorderColor(LineColor);
+
+    private static void RenderKpi(IContainer c, string label, string value, string tint) => c
+        .Background(tint).Border(1).BorderColor(LineColor)
+        .PaddingVertical(9).PaddingHorizontal(11)
+        .Column(col =>
+        {
+            col.Item().Text(label).FontColor(Muted).FontSize(8.5f);
+            col.Item().PaddingTop(2).Text(value).FontColor(Brand).Bold().FontSize(14);
+        });
 
     private static void RenderLetterhead(IContainer container, LetterheadDto lh, byte[]? logoBytes)
     {
         container
-            .Background(HeaderBg)
-            .Padding(10)
+            .Background(Brand)
+            .Padding(12)
             .Row(row =>
             {
                 // Logo ben trai: uu tien LogoUrl cua tenant, sau do logo diaB bundled
                 var logo = (logoBytes != null && logoBytes.Length > 0) ? logoBytes : DefaultLogo;
                 if (logo != null && logo.Length > 0)
                 {
-                    // Chip trang de logo mau noi tren nen header xanh
-                    row.ConstantItem(64)
+                    // Chip trang de logo mau noi tren nen header xanh (dong bo preview: 74px)
+                    row.ConstantItem(74)
                         .AlignMiddle()
                         .Background("#FFFFFF")
-                        .Padding(4)
+                        .Padding(5)
                         .Image(logo)
                         .FitArea();
                 }
                 else
                 {
-                    row.ConstantItem(60)
+                    row.ConstantItem(74)
                         .AlignMiddle()
                         .AlignCenter()
                         .Text("diaB")
                         .FontColor("#FFFFFF")
                         .Bold()
-                        .FontSize(14);
+                        .FontSize(16);
                 }
 
                 // Thong tin phong kham
@@ -342,19 +367,20 @@ public class QuestPdfReportExporter : IPdfReportExporter
                     {
                         col.Item().Text(lh.ClinicName).FontColor("#FFFFFF").Bold().FontSize(16);
                         if (!string.IsNullOrWhiteSpace(lh.CompanyName))
-                            col.Item().Text(lh.CompanyName).FontColor("#FFFFFF").FontSize(10);
+                            col.Item().Text(lh.CompanyName).FontColor("#D7EBE7").FontSize(9.5f);
                         if (!string.IsNullOrWhiteSpace(lh.Address))
-                            col.Item().Text(lh.Address).FontColor("#FFFFFF").FontSize(9);
-                        if (!string.IsNullOrWhiteSpace(lh.CskcbCode))
-                            col.Item().Text($"Mã CSKCB: {lh.CskcbCode}").FontColor("#FFFFFF").FontSize(9);
+                            col.Item().PaddingTop(2).Text(lh.Address).FontColor("#D7EBE7").FontSize(9);
 
-                        var contactParts = new List<string>();
+                        var line2 = new List<string>();
+                        if (!string.IsNullOrWhiteSpace(lh.CskcbCode))
+                            line2.Add($"Mã CSKCB: {lh.CskcbCode}");
                         if (!string.IsNullOrWhiteSpace(lh.Phone))
-                            contactParts.Add($"ĐT: {lh.Phone}");
-                        if (!string.IsNullOrWhiteSpace(lh.EmailSupport ?? lh.Email))
-                            contactParts.Add($"Email: {lh.EmailSupport ?? lh.Email}");
-                        if (contactParts.Count > 0)
-                            col.Item().Text(string.Join("  |  ", contactParts)).FontColor("#FFFFFF").FontSize(9);
+                            line2.Add($"ĐT: {lh.Phone}");
+                        var email = lh.EmailSupport ?? lh.Email;
+                        if (!string.IsNullOrWhiteSpace(email))
+                            line2.Add(email!);
+                        if (line2.Count > 0)
+                            col.Item().Text(string.Join("   •   ", line2)).FontColor("#D7EBE7").FontSize(9);
                     });
             });
     }
@@ -362,11 +388,13 @@ public class QuestPdfReportExporter : IPdfReportExporter
     private static void RenderTitle(IContainer container, string title)
     {
         container
-            .PaddingTop(10)
+            .PaddingTop(14)
             .AlignCenter()
             .Text(title)
-            .FontSize(14)
-            .Bold();
+            .FontSize(17)
+            .Bold()
+            .FontColor(Brand)
+            .LetterSpacing(0.02f);
     }
 
     private static void RenderBarcode(IContainer container, string code)
@@ -388,26 +416,31 @@ public class QuestPdfReportExporter : IPdfReportExporter
                         .FitArea();
 
                     col.Item()
-                        .PaddingTop(2)
+                        .PaddingTop(3)
                         .AlignCenter()
-                        .Text(code)
-                        .FontSize(9)
-                        .FontFamily("Courier New");
+                        .Border(1).BorderColor(Brand).Background(TintTeal)
+                        .PaddingVertical(2).PaddingHorizontal(10)
+                        .Text(t =>
+                        {
+                            t.Span("Mã: ").FontColor(Muted).FontSize(9);
+                            t.Span(code).FontColor(Brand).Bold().FontSize(10).FontFamily("Courier New");
+                        });
                 });
         }
         else
         {
-            // Fallback: monospace box khi ZXing khong sinh duoc barcode
+            // Fallback: chip mau khi ZXing khong sinh duoc barcode
             System.Diagnostics.Debug.WriteLine($"[QuestPdfReportExporter] ZXing khong the sinh barcode CODE128 cho ma {code}, dung fallback text");
             container
                 .PaddingTop(6)
                 .AlignCenter()
-                .Border(0.5f)
-                .BorderColor(BorderColor)
-                .Padding(6)
-                .Text(code)
-                .FontSize(11)
-                .FontFamily("Courier New");
+                .Border(1).BorderColor(Brand).Background(TintTeal)
+                .PaddingVertical(2).PaddingHorizontal(10)
+                .Text(t =>
+                {
+                    t.Span("Mã: ").FontColor(Muted).FontSize(9);
+                    t.Span(code).FontColor(Brand).Bold().FontSize(10).FontFamily("Courier New");
+                });
         }
     }
 
@@ -452,17 +485,33 @@ public class QuestPdfReportExporter : IPdfReportExporter
             ? req.ExportedByFullName
             : "—";
 
-        container.PaddingTop(8).Column(col =>
+        container.PaddingTop(10).Column(col =>
         {
             col.Item().Row(row =>
             {
-                row.RelativeItem().Text($"Kỳ báo cáo: {req.FromDate:dd/MM/yyyy} - {req.ToDate:dd/MM/yyyy}").FontSize(10);
-                row.RelativeItem().Text($"Người xuất: {exportedByLabel}").FontSize(10);
+                row.RelativeItem().Text(t =>
+                {
+                    t.Span("Kỳ báo cáo: ").FontColor(Muted).FontSize(9.5f);
+                    t.Span($"{req.FromDate:dd/MM/yyyy} - {req.ToDate:dd/MM/yyyy}").FontColor(Ink).SemiBold().FontSize(9.5f);
+                });
+                row.RelativeItem().AlignRight().Text(t =>
+                {
+                    t.Span("Người xuất: ").FontColor(Muted).FontSize(9.5f);
+                    t.Span(exportedByLabel).FontColor(Ink).SemiBold().FontSize(9.5f);
+                });
             });
-            col.Item().Row(row =>
+            col.Item().PaddingTop(2).Row(row =>
             {
-                row.RelativeItem().Text($"Ngày xuất: {DateTime.Now:dd/MM/yyyy}").FontSize(10);
-                row.RelativeItem().Text($"Mã báo cáo: {req.ReportCode}").FontSize(10);
+                row.RelativeItem().Text(t =>
+                {
+                    t.Span("Ngày xuất: ").FontColor(Muted).FontSize(9.5f);
+                    t.Span($"{DateTime.Now:dd/MM/yyyy}").FontColor(Ink).SemiBold().FontSize(9.5f);
+                });
+                row.RelativeItem().AlignRight().Text(t =>
+                {
+                    t.Span("Mã báo cáo: ").FontColor(Muted).FontSize(9.5f);
+                    t.Span(req.ReportCode).FontColor(Ink).SemiBold().FontSize(9.5f);
+                });
             });
         });
     }
@@ -471,17 +520,16 @@ public class QuestPdfReportExporter : IPdfReportExporter
     {
         container.Column(col =>
         {
-            col.Item().LineHorizontal(0.5f).LineColor(BorderColor);
-            col.Item().PaddingTop(4).Row(row =>
+            col.Item().PaddingTop(6).LineHorizontal(0.75f).LineColor(LineColor);
+            col.Item().PaddingTop(6).Row(row =>
             {
                 row.RelativeItem()
-                    .AlignCenter()
                     .Column(c =>
                     {
                         c.Item().Text($"Ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}")
-                            .FontSize(10).Italic();
-                        c.Item().Text("NGƯỜI LẬP BÁO CÁO").FontSize(10).Bold();
-                        c.Item().Text("(Ký, ghi rõ họ tên)").FontSize(9).Italic();
+                            .Italic().FontSize(9).FontColor(Muted);
+                        c.Item().PaddingTop(1).Text("NGƯỜI LẬP BÁO CÁO").Bold().FontSize(9.5f).FontColor(Ink);
+                        c.Item().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8.5f).FontColor(Muted);
                     });
 
                 row.RelativeItem()
@@ -489,59 +537,140 @@ public class QuestPdfReportExporter : IPdfReportExporter
                     .AlignBottom()
                     .Text(txt =>
                     {
-                        txt.Span("Trang ").FontSize(9);
-                        txt.CurrentPageNumber().FontSize(9);
-                        txt.Span("/").FontSize(9);
-                        txt.TotalPages().FontSize(9);
+                        txt.Span("Trang ").FontSize(8.5f).FontColor(Muted);
+                        txt.CurrentPageNumber().FontSize(8.5f).FontColor(Muted);
+                        txt.Span(" / ").FontSize(8.5f).FontColor(Muted);
+                        txt.TotalPages().FontSize(8.5f).FontColor(Muted);
                     });
             });
         });
     }
 
+    // ===== KPI cards (tinh tu du lieu that trong request/rows) ===== //
+
+    private static void RenderFinancialKpis(IContainer container, List<FinancialRowDto> rows)
+    {
+        var total = rows.Sum(r => r.Amount);
+        var count = rows.Count;
+        var avg = count > 0 ? total / count : 0m;
+
+        container.Row(r =>
+        {
+            r.RelativeItem().Element(x => RenderKpi(x, "TỔNG DOANH THU", $"{total:#,##0} đ", TintTeal));
+            r.ConstantItem(10);
+            r.RelativeItem().Element(x => RenderKpi(x, "SỐ HÓA ĐƠN", count.ToString(), TintAmber));
+            r.ConstantItem(10);
+            r.RelativeItem().Element(x => RenderKpi(x, "TRUNG BÌNH / HĐ", $"{avg:#,##0} đ", TintTeal));
+        });
+    }
+
+    private static void RenderClinicalKpis(IContainer container, List<ClinicalRowDto> rows)
+    {
+        var totalVisits = rows.Count;
+        var doctorCount = rows.Select(r => r.DoctorName).Distinct().Count();
+        // Chan doan dai thao duong: ICD-10 nhom E10-E14 (theo pham vi nghiep vu Pro-Diab)
+        var diabetesCount = rows.Count(r => !string.IsNullOrWhiteSpace(r.Icd10Code)
+            && r.Icd10Code.Length >= 3
+            && r.Icd10Code.StartsWith("E1", StringComparison.OrdinalIgnoreCase)
+            && r.Icd10Code[2] is >= '0' and <= '4');
+
+        container.Row(r =>
+        {
+            r.RelativeItem().Element(x => RenderKpi(x, "TỔNG LƯỢT KHÁM", totalVisits.ToString(), TintTeal));
+            r.ConstantItem(10);
+            r.RelativeItem().Element(x => RenderKpi(x, "SỐ BÁC SĨ", doctorCount.ToString(), TintAmber));
+            r.ConstantItem(10);
+            r.RelativeItem().Element(x => RenderKpi(x, "CHẨN ĐOÁN ĐTĐ", diabetesCount.ToString(), TintTeal));
+        });
+    }
+
+    private static void RenderPharmacyKpis(IContainer container, List<PharmacyRowDto> rows)
+    {
+        var itemCount = rows.Count;
+        var outOfStock = rows.Count(r => r.StockQuantity <= 0);
+        var nearExpiry = rows.Count(r => r.ExpiryDate.HasValue
+            && r.ExpiryDate.Value > DateOnly.FromDateTime(DateTime.Now)
+            && r.ExpiryDate.Value <= DateOnly.FromDateTime(DateTime.Now.AddDays(90)));
+
+        container.Row(r =>
+        {
+            r.RelativeItem().Element(x => RenderKpi(x, "MẶT HÀNG", itemCount.ToString(), TintTeal));
+            r.ConstantItem(10);
+            r.RelativeItem().Element(x => RenderKpi(x, "HẾT HÀNG", outOfStock.ToString(), TintRed));
+            r.ConstantItem(10);
+            r.RelativeItem().Element(x => RenderKpi(x, "CẬN HẠN SỬ DỤNG (≤90 ngày)", nearExpiry.ToString(), TintAmber));
+        });
+    }
+
+    private static void RenderPharmacyLegend(IContainer container)
+    {
+        container.Text(t =>
+        {
+            t.Span("Chú thích:  ").FontColor(Muted).FontSize(8.5f);
+            t.Span("● ").FontColor("#059669").FontSize(9);
+            t.Span("Bình thường   ").FontSize(8.5f);
+            t.Span("● ").FontColor("#D97706").FontSize(9);
+            t.Span("Cận HSD   ").FontSize(8.5f);
+            t.Span("● ").FontColor("#DC2626").FontSize(9);
+            t.Span("Hết hàng / Hết hạn").FontSize(8.5f);
+        });
+    }
+
+    /// <summary>Trang thai ton kho suy ra tu du lieu that (StockQuantity + ExpiryDate), khong bia du lieu.</summary>
+    private static (string Label, string Color) GetStockStatus(PharmacyRowDto r)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        if (r.ExpiryDate.HasValue && r.ExpiryDate.Value <= today)
+            return ("Hết hạn", "#DC2626");
+        if (r.StockQuantity <= 0)
+            return ("Hết hàng", "#DC2626");
+        if (r.ExpiryDate.HasValue && r.ExpiryDate.Value <= today.AddDays(90))
+            return ("Cận HSD", "#D97706");
+        return ("Bình thường", "#059669");
+    }
+
     private static void RenderFinancialBody(IContainer container, List<FinancialRowDto> rows)
     {
         // Financial: STT / So HD / Benh nhan / Dich vu / Thanh tien
+        var total = rows.Sum(r => r.Amount);
         container.Table(tbl =>
         {
             tbl.ColumnsDefinition(cols =>
             {
-                cols.RelativeColumn(5);
-                cols.RelativeColumn(15);
-                cols.RelativeColumn(25);
-                cols.RelativeColumn(35);
-                cols.RelativeColumn(20);
+                cols.ConstantColumn(28);
+                cols.RelativeColumn(2.1f);
+                cols.RelativeColumn(2.4f);
+                cols.RelativeColumn(3.2f);
+                cols.RelativeColumn(2f);
             });
 
             tbl.Header(h =>
             {
-                foreach (var label in new[] { "STT", "Số HĐ", "Bệnh nhân", "Dịch vụ", "Thành tiền" })
-                {
-                    h.Cell()
-                        .Background(TableHeaderBg)
-                        .Border(0.5f).BorderColor(BorderColor)
-                        .Padding(4)
-                        .Text(label).Bold().FontSize(11);
-                }
+                HText(h.Cell(), "STT");
+                HText(h.Cell(), "Số HĐ");
+                HText(h.Cell(), "Bệnh nhân");
+                HText(h.Cell(), "Dịch vụ");
+                HeadCell(h.Cell()).AlignRight().Text("Thành tiền").FontColor("#FFFFFF").Bold().FontSize(9.5f);
             });
 
+            var i = 0;
             foreach (var r in rows)
             {
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.Stt.ToString());
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.InvoiceNo);
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.PatientName);
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.ServiceName);
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).AlignRight().Text($"{r.Amount:#,##0}");
+                BodyCell(tbl.Cell(), i).Text(r.Stt.ToString()).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.InvoiceNo).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.PatientName).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.ServiceName).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).AlignRight().Text($"{r.Amount:#,##0}").FontSize(9.5f).SemiBold();
+                i++;
             }
 
-            // Summary row
+            // Dai tong cong
             tbl.Cell().ColumnSpan(4)
-                .Border(0.5f).BorderColor(BorderColor)
-                .Padding(3).AlignRight()
-                .Text("Tổng cộng:").Bold();
+                .Background(BrandDark).PaddingVertical(7).PaddingHorizontal(6)
+                .AlignRight().Text("TỔNG CỘNG").FontColor("#FFFFFF").Bold();
             tbl.Cell()
-                .Border(0.5f).BorderColor(BorderColor)
-                .Padding(3).AlignRight()
-                .Text($"{rows.Sum(r => r.Amount):#,##0}").Bold();
+                .Background(BrandDark).PaddingVertical(7).PaddingHorizontal(6)
+                .AlignRight().Text($"{total:#,##0} đ").FontColor("#FFFFFF").Bold();
         });
     }
 
@@ -552,77 +681,78 @@ public class QuestPdfReportExporter : IPdfReportExporter
         {
             tbl.ColumnsDefinition(cols =>
             {
-                cols.RelativeColumn(5);
-                cols.RelativeColumn(25);
-                cols.RelativeColumn(20);
-                cols.RelativeColumn(20);
-                cols.RelativeColumn(15);
+                cols.ConstantColumn(28);
+                cols.RelativeColumn(2.6f);
+                cols.RelativeColumn(2.6f);
+                cols.RelativeColumn(3.4f);
+                cols.RelativeColumn(1.8f);
             });
 
             tbl.Header(h =>
             {
-                foreach (var label in new[] { "STT", "Bệnh nhân", "Bác sĩ", "ICD-10", "Ngày khám" })
-                {
-                    h.Cell()
-                        .Background(TableHeaderBg)
-                        .Border(0.5f).BorderColor(BorderColor)
-                        .Padding(4)
-                        .Text(label).Bold().FontSize(11);
-                }
+                HText(h.Cell(), "STT");
+                HText(h.Cell(), "Bệnh nhân");
+                HText(h.Cell(), "Bác sĩ");
+                HText(h.Cell(), "Chẩn đoán (ICD-10)");
+                HText(h.Cell(), "Ngày khám");
             });
 
+            var i = 0;
             foreach (var r in rows)
             {
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.Stt.ToString());
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.PatientName);
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.DoctorName);
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.Icd10Code);
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.EncounterDate.ToString("dd/MM/yyyy"));
+                BodyCell(tbl.Cell(), i).Text(r.Stt.ToString()).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.PatientName).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.DoctorName).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.Icd10Code).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.EncounterDate.ToString("dd/MM/yyyy")).FontSize(9.5f);
+                i++;
             }
-
-            // Summary row
-            tbl.Cell().ColumnSpan(5)
-                .Border(0.5f).BorderColor(BorderColor)
-                .Padding(3).AlignRight()
-                .Text($"Tổng lượt: {rows.Count}").Bold();
         });
     }
 
     private static void RenderPharmacyBody(IContainer container, List<PharmacyRowDto> rows)
     {
-        // Pharmacy: Ma thuoc / Ten thuoc / Lo / HSD / Ton / Don vi
+        // Pharmacy: Ma thuoc / Ten thuoc / Lo / HSD / Ton / Don vi / Trang thai (suy tu du lieu that)
         container.Table(tbl =>
         {
             tbl.ColumnsDefinition(cols =>
             {
-                cols.RelativeColumn(12);
-                cols.RelativeColumn(30);
-                cols.RelativeColumn(12);
-                cols.RelativeColumn(14);
-                cols.RelativeColumn(10);
-                cols.RelativeColumn(12);
+                cols.RelativeColumn(1.4f);
+                cols.RelativeColumn(3f);
+                cols.RelativeColumn(2f);
+                cols.RelativeColumn(1.6f);
+                cols.RelativeColumn(1.1f);
+                cols.RelativeColumn(1.1f);
+                cols.RelativeColumn(1.8f);
             });
 
             tbl.Header(h =>
             {
-                foreach (var label in new[] { "Mã thuốc", "Tên thuốc", "Lô", "HSD", "Tồn", "Đơn vị" })
-                {
-                    h.Cell()
-                        .Background(TableHeaderBg)
-                        .Border(0.5f).BorderColor(BorderColor)
-                        .Padding(4)
-                        .Text(label).Bold().FontSize(11);
-                }
+                HText(h.Cell(), "Mã");
+                HText(h.Cell(), "Tên thuốc");
+                HText(h.Cell(), "Lô");
+                HText(h.Cell(), "HSD");
+                HeadCell(h.Cell()).AlignRight().Text("Tồn").FontColor("#FFFFFF").Bold().FontSize(9.5f);
+                HText(h.Cell(), "ĐVT");
+                HText(h.Cell(), "Trạng thái");
             });
 
+            var i = 0;
             foreach (var r in rows)
             {
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.DrugCode);
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.DrugName);
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.LotNumber ?? "-");
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.ExpiryDate?.ToString("dd/MM/yyyy") ?? "-");
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).AlignRight().Text($"{r.StockQuantity:#,##0}");
-                tbl.Cell().Border(0.5f).BorderColor(BorderColor).Padding(3).Text(r.Unit);
+                var (label, color) = GetStockStatus(r);
+                BodyCell(tbl.Cell(), i).Text(r.DrugCode).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.DrugName).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.LotNumber ?? "-").FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(r.ExpiryDate?.ToString("dd/MM/yyyy") ?? "-").FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).AlignRight().Text($"{r.StockQuantity:#,##0}").FontSize(9.5f).SemiBold();
+                BodyCell(tbl.Cell(), i).Text(r.Unit).FontSize(9.5f);
+                BodyCell(tbl.Cell(), i).Text(t =>
+                {
+                    t.Span("● ").FontColor(color).FontSize(9);
+                    t.Span(label).FontSize(9);
+                });
+                i++;
             }
         });
     }
