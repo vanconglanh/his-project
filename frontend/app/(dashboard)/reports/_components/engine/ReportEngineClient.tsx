@@ -71,7 +71,7 @@ export function ReportEngineClient({ initialReportCode }: ReportEngineClientProp
         />
         <div className="flex-1 min-w-0">
           {isDashboard ? (
-            <ReportsPageClient hideHeader />
+            <ReportsPageClient />
           ) : selectedDescriptor ? (
             <ReportRunner key={selectedDescriptor.code} descriptor={selectedDescriptor} />
           ) : (

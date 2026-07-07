@@ -60,7 +60,7 @@ export function ReportGrid({ columns, groups, rows, totals, meta, page, onPageCh
                 <TableHead
                   key={col.key}
                   className={cn(
-                    "sticky top-0 z-20 bg-[#01645A] text-white whitespace-nowrap",
+                    "sticky top-0 z-20 bg-accent-primary text-primary-foreground whitespace-nowrap",
                     alignClass(col.align),
                     idx === 0 && freezeFirst && "left-0 z-30"
                   )}
@@ -122,14 +122,14 @@ export function ReportGrid({ columns, groups, rows, totals, meta, page, onPageCh
                 ))}
 
             {/* Dòng TỔNG CỘNG cuối bảng — luôn tính trên toàn bộ tập kết quả (data.totals), không chỉ trang hiện tại */}
-            <TableRow className="bg-[#014A42] hover:bg-[#014A42]">
+            <TableRow className="bg-[color:var(--accent-primary-hover)] hover:bg-[color:var(--accent-primary-hover)]">
               {columns.map((col, idx) => (
                 <TableCell
                   key={col.key}
                   className={cn(
                     "font-bold text-white",
                     alignClass(col.align),
-                    idx === 0 && freezeFirst && "sticky left-0 z-10 bg-[#014A42]"
+                    idx === 0 && freezeFirst && "sticky left-0 z-10 bg-[color:var(--accent-primary-hover)]"
                   )}
                 >
                   {idx === 0
@@ -187,14 +187,14 @@ interface ReportDataRowProps {
 function ReportDataRow({ row, columns, zebra, zebraIndex, freezeFirst }: ReportDataRowProps) {
   const isZebraRow = zebra && zebraIndex % 2 === 1;
   return (
-    <TableRow className={cn(isZebraRow && "bg-[#F3F8F7] hover:bg-[#F3F8F7]")}>
+    <TableRow className={cn(isZebraRow && "bg-muted/40 hover:bg-muted/40")}>
       {columns.map((col, idx) => (
         <TableCell
           key={col.key}
           className={cn(
             alignClass(col.align),
             idx === 0 && freezeFirst && "sticky left-0 z-10",
-            idx === 0 && freezeFirst && (isZebraRow ? "bg-[#F3F8F7]" : "bg-background")
+            idx === 0 && freezeFirst && (isZebraRow ? "bg-muted/40" : "bg-background")
           )}
         >
           {formatReportCell(row[col.key], col.type)}

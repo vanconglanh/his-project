@@ -225,7 +225,7 @@ function ReportSidebarItem({ report, active, pinned, onSelect, onToggleFavorite 
             pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           )}
         >
-          <Star className={cn("h-3.5 w-3.5", pinned && "fill-current text-amber-400")} />
+          <Star className={cn("h-3.5 w-3.5", pinned && "fill-current text-[color:var(--status-warning)]")} />
         </Button>
       </div>
     </li>

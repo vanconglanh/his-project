@@ -48,9 +48,12 @@ export interface ReportGroupData {
   subtotals: Record<string, number>;
 }
 
+export type ReportKpiTintToken = "brand" | "done" | "warning" | "critical" | "insurance" | "neutral";
+
 export interface ReportKpi {
   label: string;
   tint?: string | null;
+  tint_token?: ReportKpiTintToken | null;
   value: number;
   is_money: boolean;
 }

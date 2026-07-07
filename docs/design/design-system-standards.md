@@ -2,7 +2,7 @@
 
 > **Nguồn chân lý DUY NHẤT** cho giao diện Pro-Diab HIS. Mọi màn hình, component, report mới hoặc sửa đều phải bám tài liệu này. Khi các spec khác (`research-his-ui-patterns.md`, `input-form-layout-spec.md`, `report-print-a4.md`) mâu thuẫn → tài liệu này thắng.
 >
-> Tác giả: Linh (designer) · Cập nhật: 2026-07-02 · Phiên bản: 1.0
+> Tác giả: Linh (designer) · Cập nhật: 2026-07-07 · Phiên bản: 1.1 (R12: làm rõ Section title/Card title + bảng tint KPI báo cáo → token)
 > Đối tượng thực thi: Nam (frontend), Thảo (backend/report) · Gác cổng: Chi (qc)
 
 ---
@@ -77,6 +77,11 @@
 - Số liệu (bảng, tiền, KPI) bật `font-variant-numeric: tabular-nums slashed-zero` (đã set sẵn cho `table td`, `.tabular`, `.num`).
 - Tiếng Việt có dấu: line-height tối thiểu 1.45 để không cụt dấu (thang đã đảm bảo).
 - Không dùng `font-weight` > 700; heading tối đa `font-bold`.
+
+**Làm rõ "Section title" vs "Card title" (hết mâu thuẫn khi audit):**
+- **Section title của trang** (tiêu đề khu vực lớn, không nằm trong `Card`, ví dụ tiêu đề nhóm trên dashboard) → `text-lg font-semibold`.
+- **Card title bên trong component `Card`/`CardHeader`** (shadcn `CardTitle`) → `text-sm font-semibold`. Đây là quy ước hợp lệ vì `Card` là đơn vị mật độ cao, lặp lại nhiều lần/màn (dashboard, report, danh sách); dùng `text-lg` cho từng `CardTitle` sẽ vỡ mật độ và không nhất quán với toàn app hiện đang dùng `text-sm` cho `CardTitle`.
+- Quy tắc phân biệt nhanh: **có bao nhiêu Card trên màn quyết định cỡ chữ** — 1 tiêu đề cho cả trang/khu vực → `text-lg`; tiêu đề lặp lại trong từng Card → `text-sm`. Khi audit, KHÔNG flag `CardTitle: text-sm` là lỗi lệch thang chữ.
 
 ---
 
@@ -154,6 +159,26 @@
 - Bảng phân nhóm rõ (header teal-50), zebra nhẹ, không quá 7 cột/bảng A4 dọc — cột nhiều thì xoay A4 ngang hoặc tách bảng.
 - Tổng cộng/tiêu điểm in đậm; tránh nhồi chữ sát mép; `break-inside: avoid` cho mỗi dòng.
 
+### 6.4. Bảng màu tint KPI báo cáo → token (chuẩn hoá 2026-07-07)
+
+Backend Report Engine trả tint nền cho từng ô KPI dưới dạng hex cố định (5 màu). FE **không được** dùng hex thẳng qua inline `style` — phải map sang token theo bảng dưới. Nếu BE đổi sang trả `tint_token` (enum) thay vì hex, ánh xạ vẫn giữ nguyên ý nghĩa semantic này.
+
+| Ý nghĩa semantic | Hex BE hiện trả | Token CSS | className FE gợi ý |
+|---|---|---|---|
+| **Brand** — KPI trung tính, mang tính thương hiệu (vd "Tổng số", "Tổng lượt") — KHÔNG phải tín hiệu hoàn tất/thành công | `#F0FDFA` (teal-50) | `--accent-primary` | `bg-[color:var(--accent-primary)]/10 text-[color:var(--accent-primary)]` |
+| **Done** — đã hoàn tất / đã thanh toán / đạt | `#ECFDF5` | `--status-done` | `bg-[color:var(--status-done)]/10 text-[color:var(--status-done)]` |
+| **Warning** — cảnh báo nhẹ, sắp hết hạn/HSD | `#FFFBEB` | `--status-warning` | `bg-[color:var(--status-warning)]/10 text-[color:var(--status-warning)]` |
+| **Critical** — nguy cấp, quá hạn, âm/lỗi | `#FEF2F2` | `--status-critical` | `bg-[color:var(--status-critical)]/10 text-[color:var(--status-critical)]` |
+| **Insurance** — số liệu liên quan BHYT | `#EFF6FF` | `--status-insurance` | `bg-[color:var(--status-insurance)]/10 text-[color:var(--status-insurance)]` |
+| **Neutral** — KPI không có tín hiệu nghiệp vụ nào (fallback khi BE không trả tint) | — (không có hex cố định) | `--text-muted` | `bg-muted/40 text-[color:var(--text-muted)]` |
+
+**Quyết định về `#F0FDFA` (teal-50):** map **`brand`** (`--accent-primary`), **KHÔNG** map `--status-done`. Lý do:
+1. Về mặt màu sắc, `#F0FDFA` thuộc họ **teal** — cùng hue với `--accent-primary` (`#0F9488`/`#14B8A6`), không cùng họ **green** với `--status-done` (`#059669`/`#10B981`). Map đúng hue giữ được liên hệ thị giác nhất quán với brand color toàn hệ thống.
+2. Về mặt nghiệp vụ, các KPI dùng tint này thường là **số đếm trung tính** (tổng số bệnh nhân, tổng lượt khám, tổng đơn...) — không mang nghĩa "đã hoàn tất/thành công". Nếu gộp chung với `--status-done` (đã dùng riêng cho `#ECFDF5`), 2 hex khác nhau từ BE sẽ trỏ về cùng 1 token → mất khả năng phân biệt "tổng trung tính" và "đã hoàn tất" khi BE cần đổi màu độc lập cho 2 ý nghĩa này.
+3. Giữ 1-hex-1-token (không gộp) đúng nguyên tắc "Token-first" và giúp audit sau này dễ verify: mỗi hex Report Engine trả về có đúng 1 ý nghĩa semantic, không suy luận lại.
+
+Checklist "báo cáo mới đủ chuẩn" (đầy đủ hơn) xem tại `docs/design/report-ds-remediation-p1.md` mục cuối file.
+
 ---
 
 ## 7. Màn hình nhập liệu (dễ thao tác)
@@ -194,5 +219,7 @@
 - [ ] Trạng thái dùng `HisStatusBadge` (icon + aria-label).
 - [ ] Empty/Loading/Error đủ 3 trạng thái.
 - [ ] (Report) letterhead đủ 6 trường bắt buộc gồm **mã CSKCB**.
+- [ ] (Report) tint KPI dùng đúng bảng mục 6.4 (brand/done/warning/critical/insurance/neutral) — không hex thẳng qua `style`.
+- [ ] (Card) `CardTitle` dùng `text-sm font-semibold`; tiêu đề khu vực ngoài Card dùng `text-lg font-semibold` (mục 2).
 - [ ] (Form) đúng phân loại Fullpage/Dialog/Sheet + phím tắt + tab order.
 - [ ] Contrast ≥ 4.5:1, focus ring, touch target ≥ 44px — kiểm cả light + dark.
