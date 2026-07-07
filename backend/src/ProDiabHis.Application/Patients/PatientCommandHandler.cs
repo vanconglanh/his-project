@@ -24,8 +24,11 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
     {
         var req = command.Request;
         var prefix = $"BNT{_tenant.TenantId:D2}";
-        var existingCodes = await _db.Patients.AsNoTracking()
-            .Where(p => p.Code.StartsWith(prefix))
+        // IgnoreQueryFilters: phai tinh seq tren CA benh nhan da soft-delete —
+        // unique key uq_patients_code_tenant van tinh dong deleted_at != null nen
+        // KHONG duoc tai su dung ma cua benh nhan da xoa (gay Duplicate entry 500).
+        var existingCodes = await _db.Patients.AsNoTracking().IgnoreQueryFilters()
+            .Where(p => p.TenantId == _tenant.TenantId && p.Code.StartsWith(prefix))
             .Select(p => p.Code)
             .ToListAsync(cancellationToken);
 
@@ -36,7 +39,8 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
             : 1;
         var code = $"{prefix}{seq:D6}";
 
-        var codeExists = await _db.Patients.AnyAsync(p => p.Code == code, cancellationToken);
+        var codeExists = await _db.Patients.IgnoreQueryFilters()
+            .AnyAsync(p => p.TenantId == _tenant.TenantId && p.Code == code, cancellationToken);
         if (codeExists)
             return Result<PatientResponse>.Failure("PATIENT_CODE_EXISTS", "Mã bệnh nhân đã tồn tại");
 

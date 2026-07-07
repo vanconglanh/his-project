@@ -59,7 +59,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:5000"
       ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${DB_NAME};User=${DB_USER};Password=${DB_PASSWORD};CharSet=utf8mb4;GuidFormat=None;SslMode=None;AllowPublicKeyRetrieval=true;"
-      Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},ssl=False,abortConnect=False"
+      # Code doc qua GetConnectionString("Redis") => key phai la ConnectionStrings__Redis
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD},ssl=False,abortConnect=False"
       Minio__Endpoint: "minio:9000"
       Minio__AccessKey: ${MINIO_ROOT_USER}
       Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
@@ -69,6 +70,8 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__AccessTokenExpiryMinutes: "60"
       Jwt__RefreshTokenExpiryDays: "7"
+      # AES-256-GCM master key (base64 cua 32 bytes) — ma hoa CMND/BHYT/ghi chu benh an
+      Encryption__MasterKey: ${ENCRYPTION_MASTER_KEY}
       CorsHardening__AllowedOrigins__0: ${APP_PUBLIC_URL}
     depends_on:
       mysql:

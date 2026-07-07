@@ -130,7 +130,7 @@ public class ListServicesHandler : IRequestHandler<ListServicesQuery, Result<Pag
         (int)r.vat_rate,
         (string?)r.bhyt_code,
         (decimal?)r.bhyt_max_amount,
-        r.is_active == 1,
+        Convert.ToBoolean(r.is_active),
         (DateTime)r.created_at,
         (DateTime)r.updated_at);
 }
@@ -348,7 +348,7 @@ public class ListServicePackagesHandler : IRequestHandler<ListServicePackagesQue
                 finalPrice,
                 pkg.valid_from == null ? (DateOnly?)null : DateOnly.FromDateTime((DateTime)pkg.valid_from),
                 pkg.valid_to == null ? (DateOnly?)null : DateOnly.FromDateTime((DateTime)pkg.valid_to),
-                pkg.is_active == 1));
+                Convert.ToBoolean(pkg.is_active)));
         }
 
         return Result<PagedResult<ServicePackageResponse>>.Success(
@@ -402,7 +402,7 @@ public class GetServicePackageHandler : IRequestHandler<GetServicePackageQuery, 
             totalPrice, discount, finalPrice,
             pkg.valid_from == null ? (DateOnly?)null : DateOnly.FromDateTime((DateTime)pkg.valid_from),
             pkg.valid_to == null ? (DateOnly?)null : DateOnly.FromDateTime((DateTime)pkg.valid_to),
-            pkg.is_active == 1));
+            Convert.ToBoolean(pkg.is_active)));
     }
 }
 

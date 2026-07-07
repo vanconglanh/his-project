@@ -277,7 +277,7 @@ export default function ApiPartnersPage() {
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent fullScreen>
           <DialogHeader>
             <DialogTitle>Tạo đối tác mới</DialogTitle>
           </DialogHeader>
@@ -291,7 +291,7 @@ export default function ApiPartnersPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editPartner} onOpenChange={(open) => !open && setEditPartner(null)}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent fullScreen>
           <DialogHeader>
             <DialogTitle>Sửa đối tác: {editPartner?.name}</DialogTitle>
           </DialogHeader>
@@ -308,7 +308,7 @@ export default function ApiPartnersPage() {
 
       {/* New API key dialog (shown after create or regenerate) */}
       <Dialog open={!!newApiKey} onOpenChange={(open) => !open && setNewApiKey(null)}>
-        <DialogContent className="max-w-xl">
+        <DialogContent fullScreen>
           <DialogHeader>
             <DialogTitle>API Key mới</DialogTitle>
           </DialogHeader>

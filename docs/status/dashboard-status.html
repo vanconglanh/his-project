@@ -215,7 +215,7 @@
       <div class="hero-meta">
         <div class="k">Phiên bản phát hành</div>
         <div class="v">v1.0.0 — 23/05/2026 · hoàn thành 13/13 sprint</div>
-        <div class="verdict" style="background:color-mix(in srgb,var(--warning) 18%,transparent);color:var(--ink)">✅ Live E2E stack thật 03/07: 15/15 module load, <b>0 FAIL</b>, login OK · CRUD 33/56 — phần lớn SKIP do <b>selector spec E2E lệch UI</b> (row-action dropdown), không phải thiếu tính năng · <a href="../test/live-e2e-2026-07-03.md" style="color:var(--blue)">chi tiết</a></div>
+        <div class="verdict" style="background:color-mix(in srgb,var(--warning) 18%,transparent);color:var(--ink)">✅ Live E2E stack thật 03/07: 15/15 module load, <b>0 FAIL</b>, login OK · CRUD <b>dao động 28–43</b> = nhiễu môi trường/timing (WSL MySQL + Hangfire + spec flaky), KHÔNG phải độ phủ tính năng · đã hardening spec + fix bug encounters · Patient đạt 5/5 khi nhẹ tải · <a href="../test/live-e2e-2026-07-03.md" style="color:var(--blue)">chi tiết</a></div>
         <div class="hero-row">
           <div><div class="k">CRUD PASS</div><div class="v">33 / 56</div></div>
           <div><div class="k">FAIL</div><div class="v">0</div></div>
@@ -277,7 +277,7 @@
         <span class="dot" style="background:var(--warning)"></span>
         <div>
           <div class="b">🔴 Live E2E trên stack thật (MySQL8.4+Redis+BE+FE)<span class="tag" style="background:color-mix(in srgb,var(--warning) 22%,transparent);color:var(--ink)">03/07/2026</span></div>
-          <div class="d">Tự dựng stack thật bằng <b>WSL</b> (không docker/admin): apply 115 bảng + seed, backend :5000 (login <code>admin123</code> → JWT), prod frontend :3100 → chạy <code>crud-actions.spec</code>. Kết quả thật: <b>15/15 module load, 33/56 PASS, 23 SKIP, 0 FAIL</b> (R7 cũ 43/56). <b>Fix bug runtime thật:</b> <code>/encounters</code> 500 do 1 dòng seed id không phải GUID hex → EF crash → soft-delete → 200. <b>Phát hiện:</b> phần lớn SKIP là action row-level (dropdown) — selector spec E2E lệch UI (vd AdminRoles CREATE SKIP dù nút "Tạo vai trò" có thật) → độ phủ chức năng thực cao hơn 33/56, cần cập nhật selector spec. Chi tiết: <code>docs/test/live-e2e-2026-07-03.md</code>.</div>
+          <div class="d">Tự dựng stack thật bằng <b>WSL</b> (không docker/admin): apply 115 bảng + seed, backend :5000 (login <code>admin123</code> → JWT), prod frontend :3100 → chạy <code>crud-actions.spec</code>. Kết quả thật: <b>15/15 module load, 0 FAIL</b>; CRUD <b>dao động 28–43 qua các lần chạy</b> = nhiễu môi trường (WSL MySQL I/O + Hangfire retry-storm + chromium orphan tích tụ) + spec timing-flaky — <b>không phải độ phủ tính năng</b> (inspect DOM xác nhận row-action hoạt động; Patient đạt 5/5 khi nhẹ tải). <b>Đã hardening spec</b> (waitFor + retry thay .count()/timeout cứng). <b>Fix bug runtime thật:</b> <code>/encounters</code> 500 do 1 dòng seed id không phải GUID hex → EF crash → soft-delete → 200. <b>Phát hiện:</b> phần lớn SKIP là action row-level (dropdown) — selector spec E2E lệch UI (vd AdminRoles CREATE SKIP dù nút "Tạo vai trò" có thật) → độ phủ chức năng thực cao hơn 33/56, cần cập nhật selector spec. Chi tiết: <code>docs/test/live-e2e-2026-07-03.md</code>.</div>
         </div>
       </div>
       <div class="risk">

@@ -40,11 +40,13 @@ public class ListWarehousesHandler : IRequestHandler<ListWarehousesQuery, Result
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
 
-        // pha_warehouses chua duoc tao — tra stub 1 kho mac dinh de FE hien thi
-        var defaultWarehouse = new WarehouseResponse(
-            "default", tenantId, "WH-01", "Kho tổng", "MAIN", null, null, DateTime.UtcNow);
-        return Result<IReadOnlyList<WarehouseResponse>>.Success(
-            new List<WarehouseResponse> { defaultWarehouse });
+        var rows = await conn.QueryAsync<dynamic>(
+            "SELECT id, tenant_id, code, name, type, address, manager_user_id, created_at FROM pha_warehouses WHERE tenant_id = @tenantId AND deleted_at IS NULL ORDER BY code",
+            new { tenantId });
+        var items = rows.Select(r => new WarehouseResponse(
+            r.id.ToString(), (int)r.tenant_id, (string)r.code, (string)r.name,
+            (string?)r.type, (string?)r.address, (int?)r.manager_user_id, (DateTime)r.created_at)).ToList();
+        return Result<IReadOnlyList<WarehouseResponse>>.Success(items);
     }
 }
 
@@ -60,11 +62,14 @@ public class GetWarehouseHandler : IRequestHandler<GetWarehouseQuery, Result<War
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
 
-        // pha_warehouses chua duoc tao — tra stub mac dinh
-        if (q.Id != "default")
+        var r = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT id, tenant_id, code, name, type, address, manager_user_id, created_at FROM pha_warehouses WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+            new { id = q.Id, tenantId });
+        if (r == null)
             return Result<WarehouseResponse>.Failure("PHARMACY_WAREHOUSE_NOT_FOUND", "Không tìm thấy kho.");
-        return Result<WarehouseResponse>.Success(
-            new WarehouseResponse("default", tenantId, "WH-01", "Kho tổng", "MAIN", null, null, DateTime.UtcNow));
+        return Result<WarehouseResponse>.Success(new WarehouseResponse(
+            r.id.ToString(), (int)r.tenant_id, (string)r.code, (string)r.name,
+            (string?)r.type, (string?)r.address, (int?)r.manager_user_id, (DateTime)r.created_at));
     }
 }
 

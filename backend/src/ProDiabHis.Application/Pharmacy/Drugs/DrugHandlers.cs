@@ -71,7 +71,7 @@ public class ListDrugsHandler : IRequestHandler<ListDrugsQuery, Result<PagedResu
     private static DrugMasterResponse MapDrug(DrugRow r) =>
         new(r.Id?.ToString() ?? "", r.TenantId, r.Code ?? "", r.NameVi ?? "", r.NameEn, r.GenericName,
             r.AtcCode, r.Strength, r.Unit ?? "", r.Form, r.Manufacturer, r.Country,
-            r.Price, r.CategoryId, r.RequiresPrescription == 1, r.IsPsychotropic == 1, r.IsNarcotic == 1,
+            r.Price, r.CategoryId, Convert.ToBoolean(r.RequiresPrescription), Convert.ToBoolean(r.IsPsychotropic), Convert.ToBoolean(r.IsNarcotic),
             r.DtqgDrugCode, r.Status ?? "ACTIVE", r.InteractionsCount, r.CreatedAt, r.UpdatedAt);
 }
 
@@ -108,7 +108,7 @@ public class GetDrugHandler : IRequestHandler<GetDrugQuery, Result<DrugMasterRes
         return Result<DrugMasterResponse>.Success(new DrugMasterResponse(
             row.Id?.ToString() ?? "", row.TenantId, row.Code ?? "", row.NameVi ?? "", row.NameEn, row.GenericName,
             row.AtcCode, row.Strength, row.Unit ?? "", row.Form, row.Manufacturer, row.Country,
-            row.Price, row.CategoryId, row.RequiresPrescription == 1, row.IsPsychotropic == 1, row.IsNarcotic == 1,
+            row.Price, row.CategoryId, Convert.ToBoolean(row.RequiresPrescription), Convert.ToBoolean(row.IsPsychotropic), Convert.ToBoolean(row.IsNarcotic),
             row.DtqgDrugCode, row.Status ?? "ACTIVE", row.InteractionsCount, row.CreatedAt, row.UpdatedAt));
     }
 }
@@ -255,7 +255,7 @@ public class SearchDrugsHandler : IRequestHandler<SearchDrugsQuery, Result<IRead
 
         var items = rows.Select(r => new DrugMasterResponse(r.Id?.ToString() ?? "", r.TenantId, r.Code ?? "", r.NameVi ?? "", r.NameEn, r.GenericName,
             r.AtcCode, r.Strength, r.Unit ?? "", r.Form, r.Manufacturer, r.Country, r.Price, r.CategoryId,
-            r.RequiresPrescription == 1, r.IsPsychotropic == 1, r.IsNarcotic == 1, r.DtqgDrugCode,
+            Convert.ToBoolean(r.RequiresPrescription), Convert.ToBoolean(r.IsPsychotropic), Convert.ToBoolean(r.IsNarcotic), r.DtqgDrugCode,
             r.Status ?? "ACTIVE", 0, r.CreatedAt, r.UpdatedAt)).ToList();
 
         return Result<IReadOnlyList<DrugMasterResponse>>.Success(items);
@@ -298,7 +298,7 @@ public class GetEquivalentDrugsHandler : IRequestHandler<GetEquivalentDrugsQuery
 
         var items = rows.Select(r => new DrugMasterResponse(r.Id?.ToString() ?? "", r.TenantId, r.Code ?? "", r.NameVi ?? "", r.NameEn, r.GenericName,
             r.AtcCode, r.Strength, r.Unit ?? "", r.Form, r.Manufacturer, r.Country, r.Price, r.CategoryId,
-            r.RequiresPrescription == 1, r.IsPsychotropic == 1, r.IsNarcotic == 1, r.DtqgDrugCode,
+            Convert.ToBoolean(r.RequiresPrescription), Convert.ToBoolean(r.IsPsychotropic), Convert.ToBoolean(r.IsNarcotic), r.DtqgDrugCode,
             r.Status ?? "ACTIVE", 0, r.CreatedAt, r.UpdatedAt)).ToList();
 
         return Result<IReadOnlyList<DrugMasterResponse>>.Success(items);

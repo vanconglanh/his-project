@@ -119,7 +119,7 @@ export default function RolesPage() {
         title="Vai trò & Quyền hạn"
         description="Quản lý vai trò và ma trận quyền hạn"
         actions={
-          <Can permission="role.write">
+          <Can permission="admin.role_manage">
             <Button onClick={() => setCreateOpen(true)} className="min-h-[44px]">
               <Plus className="h-4 w-4 mr-2" />
               Tạo vai trò mới
@@ -147,7 +147,7 @@ export default function RolesPage() {
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent fullScreen>
           <DialogHeader>
             <DialogTitle>Tạo vai trò mới</DialogTitle>
           </DialogHeader>
@@ -166,7 +166,7 @@ export default function RolesPage() {
 
       {/* Edit dialog */}
       <Dialog open={!!editRole} onOpenChange={(o) => !o && setEditRole(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent fullScreen>
           <DialogHeader>
             <DialogTitle>Sửa vai trò — {editRole?.name}</DialogTitle>
           </DialogHeader>

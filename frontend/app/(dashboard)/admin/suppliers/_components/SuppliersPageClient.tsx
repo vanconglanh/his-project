@@ -121,14 +121,14 @@ export function SuppliersPageClient() {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent fullScreen>
           <DialogHeader><DialogTitle>Tạo nhà cung cấp</DialogTitle></DialogHeader>
           <SupplierForm onSuccess={() => setCreateOpen(false)} onCancel={() => setCreateOpen(false)} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!editSupplier} onOpenChange={(o) => !o && setEditSupplier(null)}>
-        <DialogContent className="max-w-xl">
+        <DialogContent fullScreen>
           <DialogHeader><DialogTitle>Sửa nhà cung cấp</DialogTitle></DialogHeader>
           {editSupplier && (
             <SupplierForm supplier={editSupplier} onSuccess={() => setEditSupplier(null)} onCancel={() => setEditSupplier(null)} />

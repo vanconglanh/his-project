@@ -121,7 +121,7 @@ export function ServiceForm({ open, onOpenChange, editTarget }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent fullScreen>
         <DialogHeader>
           <DialogTitle>{editTarget ? "Sửa dịch vụ" : "Tạo dịch vụ mới"}</DialogTitle>
         </DialogHeader>

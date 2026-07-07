@@ -91,17 +91,20 @@ async function clickRowDropdownItem(page: Page, rowIndex: number, itemRegex: Reg
   const trigger = row.locator('button[aria-label*="Thao tác" i], button[aria-haspopup], button:has(svg.lucide-ellipsis), button:has(svg.lucide-more-horizontal), button:has(svg.lucide-more-vertical)').first();
   // Cho data row (TanStack Query) + nut action render xong — tranh check count() ngay khi table con skeleton/empty.
   try { await trigger.waitFor({ state: 'visible', timeout: 8000 }); } catch { return false; }
-  try { await trigger.click({ timeout: 3000 }); } catch { return false; }
-  // Menu (base-ui) render qua portal + animation — chờ item hiện thay vi fixed timeout + count() khong auto-wait.
+  // Menu base-ui co race mo/dong (portal + animation) tren may cham -> retry mo menu.
   const item = page.getByRole('menuitem', { name: itemRegex }).first();
-  try {
-    await item.waitFor({ state: 'visible', timeout: 4000 });
-  } catch {
-    await page.keyboard.press('Escape').catch(() => {});
-    return false;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try { await trigger.click({ timeout: 3000 }); } catch { continue; }
+    try {
+      await item.waitFor({ state: 'visible', timeout: 3000 });
+    } catch {
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(300);
+      continue;
+    }
+    try { await item.click({ timeout: 3000 }); return true; } catch { continue; }
   }
-  try { await item.click({ timeout: 3000 }); } catch { return false; }
-  return true;
+  return false;
 }
 
 test.describe.configure({ mode: "default", timeout: 180_000 });

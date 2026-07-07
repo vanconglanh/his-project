@@ -233,7 +233,7 @@ export default function UsersPage() {
 
       {/* Invite dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent fullScreen>
           <DialogHeader>
             <DialogTitle>Mời người dùng mới</DialogTitle>
           </DialogHeader>
@@ -260,7 +260,7 @@ export default function UsersPage() {
 
       {/* Assign roles dialog */}
       <Dialog open={!!assignRolesTarget} onOpenChange={(o) => !o && setAssignRolesTarget(null)}>
-        <DialogContent className="max-w-xl">
+        <DialogContent fullScreen>
           <DialogHeader>
             <DialogTitle>Gán vai trò — {assignRolesTarget?.full_name}</DialogTitle>
           </DialogHeader>

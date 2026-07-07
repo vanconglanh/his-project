@@ -11,12 +11,22 @@ public class BillingServiceConfiguration : IEntityTypeConfiguration<BillingServi
     {
         builder.ToTable("diab_his_bil_services");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasMaxLength(36);
-        builder.Property(x => x.Code).HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Name).HasMaxLength(255).IsRequired();
-        builder.Property(x => x.Category).HasMaxLength(20).IsRequired();
-        builder.Property(x => x.Price).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.BhytMaxAmount).HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
+        builder.Property(x => x.Category).HasColumnName("category").HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Price).HasColumnName("price").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.VatRate).HasColumnName("vat_rate");
+        builder.Property(x => x.BhytCode).HasColumnName("bhyt_code").HasMaxLength(50);
+        builder.Property(x => x.BhytMaxAmount).HasColumnName("bhyt_max_amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.IsActive).HasColumnName("is_active");
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(36);
+        builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+        builder.Ignore(x => x.DeletedBy);
         builder.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
     }
 }

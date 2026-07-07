@@ -128,8 +128,8 @@
   --text-muted: #64748B;
 
   /* Accent */
-  --accent-primary: #1B998B;
-  --accent-primary-hover: #157F73;
+  --accent-primary: #0B6E5D;
+  --accent-primary-hover: #095645;
   --focus-ring: #CA8A04;
 
   /* Chart palette */
@@ -207,8 +207,8 @@
   --text-muted: #9CA3AF;
 
   /* Accent */
-  --accent-primary: #24B39B;
-  --accent-primary-hover: #1B998B;
+  --accent-primary: #159E86;
+  --accent-primary-hover: #0B6E5D;
   --focus-ring: #FDE047;
 
   /* Chart palette (HIS spec — color-blind safe) */
@@ -263,7 +263,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.01 240);
   /* Medical teal primary */
-  --primary: #1B998B;
+  --primary: #0B6E5D;
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.96 0.005 200);
   --secondary-foreground: oklch(0.25 0.01 220);
@@ -274,17 +274,17 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.91 0.005 200);
   --input: oklch(0.91 0.005 200);
-  --ring: #1B998B;
+  --ring: #0B6E5D;
   /* Chart colors — nguồn chân lý duy nhất: khối "HIS Design Tokens — Light" (--chart-1..6 hex) ở trên */
   --radius: 0.625rem;
   --sidebar: oklch(0.975 0.005 200);
   --sidebar-foreground: oklch(0.2 0.01 220);
-  --sidebar-primary: #1B998B;
+  --sidebar-primary: #0B6E5D;
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.93 0.01 196);
   --sidebar-accent-foreground: oklch(0.3 0.05 196);
   --sidebar-border: oklch(0.91 0.005 200);
-  --sidebar-ring: #1B998B;
+  --sidebar-ring: #0B6E5D;
 }
 
 .dark {
@@ -294,7 +294,7 @@
   --card-foreground: oklch(0.97 0.005 200);
   --popover: oklch(0.19 0.01 230);
   --popover-foreground: oklch(0.97 0.005 200);
-  --primary: #24B39B;
+  --primary: #159E86;
   --primary-foreground: oklch(0.12 0.01 220);
   --secondary: oklch(0.26 0.01 230);
   --secondary-foreground: oklch(0.97 0.005 200);
@@ -305,16 +305,16 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: #24B39B;
+  --ring: #159E86;
   /* Chart colors — nguồn chân lý duy nhất: khối "HIS Design Tokens — Dark" (--chart-1..6 hex) ở trên */
   --sidebar: oklch(0.19 0.01 230);
   --sidebar-foreground: oklch(0.97 0.005 200);
-  --sidebar-primary: #24B39B;
+  --sidebar-primary: #159E86;
   --sidebar-primary-foreground: oklch(0.12 0.01 220);
   --sidebar-accent: oklch(0.28 0.02 196);
   --sidebar-accent-foreground: oklch(0.88 0.05 196);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #24B39B;
+  --sidebar-ring: #159E86;
 }
 
 @layer base {

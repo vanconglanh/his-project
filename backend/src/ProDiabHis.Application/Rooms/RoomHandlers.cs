@@ -45,11 +45,11 @@ public class ListRoomsAdminHandler : IRequestHandler<ListRoomsAdminQuery, PagedR
             where += " AND is_active = @isActive";
 
         var total = await conn.ExecuteScalarAsync<int>(
-            $"SELECT COUNT(*) FROM his_rooms {where}",
+            $"SELECT COUNT(*) FROM diab_his_sys_rooms {where}",
             new { tenantId, isActive = q.IsActive.HasValue ? (q.IsActive.Value ? 1 : 0) : (int?)null });
 
         var rows = await conn.QueryAsync<dynamic>(
-            $"SELECT id, tenant_id, room_code, name, max_per_day, is_active, created_at, updated_at FROM his_rooms {where} ORDER BY room_code LIMIT @limit OFFSET @offset",
+            $"SELECT id, tenant_id, code AS room_code, name, capacity AS max_per_day, is_active, created_at, updated_at FROM diab_his_sys_rooms {where} ORDER BY code LIMIT @limit OFFSET @offset",
             new { tenantId, isActive = q.IsActive.HasValue ? (q.IsActive.Value ? 1 : 0) : (int?)null, limit = q.PageSize, offset });
 
         var items = rows.Select(r => new RoomAdminResponse(
@@ -96,7 +96,7 @@ public class GetRoomHandler : IRequestHandler<GetRoomQuery, Result<RoomAdminResp
         var tenantId = _currentUser.TenantId!.Value;
 
         var r = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, tenant_id, room_code, name, max_per_day, is_active, created_at, updated_at FROM his_rooms WHERE id = @id AND (tenant_id = @tenantId OR tenant_id IS NULL) AND deleted_at IS NULL",
+            "SELECT id, tenant_id, code AS room_code, name, capacity AS max_per_day, is_active, created_at, updated_at FROM diab_his_sys_rooms WHERE id = @id AND (tenant_id = @tenantId OR tenant_id IS NULL) AND deleted_at IS NULL",
             new { id = q.Id, tenantId });
 
         if (r == null)
@@ -138,15 +138,15 @@ public class CreateRoomHandler : IRequestHandler<CreateRoomCommand, Result<RoomA
 
         // Kiem tra trung room_code trong tenant
         var exists = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM his_rooms WHERE tenant_id = @tenantId AND room_code = @code AND deleted_at IS NULL",
+            "SELECT COUNT(*) FROM diab_his_sys_rooms WHERE tenant_id = @tenantId AND code = @code AND deleted_at IS NULL",
             new { tenantId, code = req.RoomCode });
         if (exists > 0)
             return Result<RoomAdminResponse>.Failure("ROOM_CODE_DUPLICATE", "Mã phòng đã tồn tại");
 
         var newId = Guid.NewGuid().ToString();
         await conn.ExecuteAsync(
-            @"INSERT INTO his_rooms (id, tenant_id, room_code, name, max_per_day, is_active, created_at, updated_at)
-              VALUES (@id, @tenantId, @code, @name, @maxPerDay, @isActive, NOW(), NOW())",
+            @"INSERT INTO diab_his_sys_rooms (id, tenant_id, code, name, room_type, capacity, is_active, created_at, updated_at)
+              VALUES (@id, @tenantId, @code, @name, 'EXAM', @maxPerDay, @isActive, NOW(), NOW())",
             new { id = newId, tenantId, code = req.RoomCode, name = req.Name, maxPerDay = req.MaxPerDay, isActive = req.IsActive ? 1 : 0 });
 
         return Result<RoomAdminResponse>.Success(new RoomAdminResponse(
@@ -172,7 +172,7 @@ public class UpdateRoomHandler : IRequestHandler<UpdateRoomCommand, Result<RoomA
         var tenantId = _currentUser.TenantId!.Value;
 
         var existing = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, tenant_id, room_code, name, max_per_day, is_active, created_at FROM his_rooms WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+            "SELECT id, tenant_id, code AS room_code, name, capacity AS max_per_day, is_active, created_at FROM diab_his_sys_rooms WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
             new { id = cmd.Id, tenantId });
 
         if (existing == null)
@@ -187,14 +187,14 @@ public class UpdateRoomHandler : IRequestHandler<UpdateRoomCommand, Result<RoomA
         if (cmd.Request.RoomCode != null && cmd.Request.RoomCode != (string)existing.room_code)
         {
             var dup = await conn.ExecuteScalarAsync<int>(
-                "SELECT COUNT(*) FROM his_rooms WHERE tenant_id = @tenantId AND room_code = @code AND id != @id AND deleted_at IS NULL",
+                "SELECT COUNT(*) FROM diab_his_sys_rooms WHERE tenant_id = @tenantId AND code = @code AND id != @id AND deleted_at IS NULL",
                 new { tenantId, code = newCode, id = cmd.Id });
             if (dup > 0)
                 return Result<RoomAdminResponse>.Failure("ROOM_CODE_DUPLICATE", "Mã phòng đã tồn tại");
         }
 
         await conn.ExecuteAsync(
-            "UPDATE his_rooms SET room_code = @code, name = @name, max_per_day = @maxPerDay, is_active = @isActive, updated_at = NOW() WHERE id = @id",
+            "UPDATE diab_his_sys_rooms SET code = @code, name = @name, capacity = @maxPerDay, is_active = @isActive, updated_at = NOW() WHERE id = @id",
             new { code = newCode, name = newName, maxPerDay = newMax, isActive = newActive, id = cmd.Id });
 
         return Result<RoomAdminResponse>.Success(new RoomAdminResponse(
@@ -220,7 +220,7 @@ public class DeleteRoomHandler : IRequestHandler<DeleteRoomCommand, Result<bool>
         var tenantId = _currentUser.TenantId!.Value;
 
         var affected = await conn.ExecuteAsync(
-            "UPDATE his_rooms SET deleted_at = NOW(), is_active = 0 WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+            "UPDATE diab_his_sys_rooms SET deleted_at = NOW(), is_active = 0 WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
             new { id = cmd.Id, tenantId });
 
         if (affected == 0)

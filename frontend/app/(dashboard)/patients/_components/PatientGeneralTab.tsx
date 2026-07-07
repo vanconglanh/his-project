@@ -107,6 +107,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="gender">Giới tính</Label>
             <Select
+              items={{ MALE: "Nam", FEMALE: "Nữ", OTHER: "Khác" }}
               value={watch("gender") ?? ""}
               onValueChange={(v) =>
                 setValue("gender", v as "MALE" | "FEMALE" | "OTHER", { shouldDirty: true })
@@ -178,6 +179,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="blood_type">Nhóm máu</Label>
             <Select
+              items={{ A_POS: "A+", A_NEG: "A-", B_POS: "B+", B_NEG: "B-", AB_POS: "AB+", AB_NEG: "AB-", O_POS: "O+", O_NEG: "O-", UNKNOWN: "Chưa xác định" }}
               value={watch("blood_type") ?? ""}
               onValueChange={(v) =>
                 setValue("blood_type", v as PatientFormValues["blood_type"], { shouldDirty: true })
@@ -281,6 +283,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="nationality">Quốc tịch</Label>
             <Select
+              items={NATIONALITY_OPTIONS}
               value={watch("nationality") ?? "VN"}
               onValueChange={(v) => setValue("nationality", v ?? "VN", { shouldDirty: true })}
             >
@@ -301,6 +304,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="marital_status">Tình trạng hôn nhân</Label>
             <Select
+              items={MARITAL_STATUS_LABELS}
               value={watch("marital_status") ?? ""}
               onValueChange={(v) =>
                 setValue(
@@ -327,6 +331,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="patient_type">Đối tượng</Label>
             <Select
+              items={PATIENT_TYPE_LABELS}
               value={watch("patient_type") ?? "SERVICE"}
               onValueChange={(v) =>
                 setValue(
@@ -353,6 +358,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="visit_type">Loại khám</Label>
             <Select
+              items={VISIT_TYPE_LABELS}
               value={watch("visit_type") ?? "FIRST_VISIT"}
               onValueChange={(v) =>
                 setValue(

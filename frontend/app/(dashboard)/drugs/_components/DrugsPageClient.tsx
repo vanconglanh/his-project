@@ -235,7 +235,7 @@ export function DrugsPageClient() {
 
       {/* Import dialog */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent fullScreen>
           <DialogHeader><DialogTitle>Import thuốc từ Excel</DialogTitle></DialogHeader>
           <DrugImportDropzone onSuccess={() => setImportOpen(false)} />
         </DialogContent>

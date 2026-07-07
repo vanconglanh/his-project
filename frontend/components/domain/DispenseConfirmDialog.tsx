@@ -55,7 +55,7 @@ export function DispenseConfirmDialog({ open, onClose, item }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl">
+      <DialogContent fullScreen>
         <DialogHeader>
           <DialogTitle>Phát thuốc — {item.patient_name}</DialogTitle>
         </DialogHeader>
