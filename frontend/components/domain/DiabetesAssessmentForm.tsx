@@ -161,7 +161,11 @@ export function DiabetesAssessmentForm({ defaultValues, onSubmit, isLoading }: P
               name="diabetes_type"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={(v) => field.onChange(v ?? "")} value={field.value ?? ""}>
+                <Select
+                  items={Object.fromEntries(DIABETES_TYPES.map((t) => [t.value, t.label]))}
+                  onValueChange={(v) => field.onChange(v ?? "")}
+                  value={field.value ?? ""}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn loại ĐTĐ" />
                   </SelectTrigger>

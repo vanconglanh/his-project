@@ -235,7 +235,11 @@ export default function PatientsPage() {
           </kbd>
         </div>
         <div className="flex gap-2">
-          <Select value={gender} onValueChange={(v) => setGender(v ?? "all")}>
+          <Select
+            items={{ all: "Tất cả", MALE: "Nam", FEMALE: "Nữ", OTHER: "Khác" }}
+            value={gender}
+            onValueChange={(v) => setGender(v ?? "all")}
+          >
             <SelectTrigger className="w-32">
               <Filter className="h-3.5 w-3.5 mr-1" />
               <SelectValue placeholder="Giới tính" />
@@ -247,7 +251,11 @@ export default function PatientsPage() {
               <SelectItem value="OTHER">Khác</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={status} onValueChange={(v) => setStatus(v ?? "all")}>
+          <Select
+            items={{ all: "Tất cả", ACTIVE: "Hoạt động", INACTIVE: "Không hoạt động", DECEASED: "Đã mất" }}
+            value={status}
+            onValueChange={(v) => setStatus(v ?? "all")}
+          >
             <SelectTrigger className="w-36">
               <SelectValue placeholder="Trạng thái" />
             </SelectTrigger>

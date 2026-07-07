@@ -99,7 +99,11 @@ export function DispenseConfirmDialog({ open, onClose, item }: Props) {
             {/* Warehouse select */}
             <div className="space-y-1">
               <Label htmlFor="warehouse">Kho phát thuốc</Label>
-              <Select value={warehouseId} onValueChange={(v) => setWarehouseId(v ?? "")}>
+              <Select
+                items={Object.fromEntries((warehouses ?? []).map((w) => [w.id, w.name]))}
+                value={warehouseId}
+                onValueChange={(v) => setWarehouseId(v ?? "")}
+              >
                 <SelectTrigger id="warehouse">
                   <SelectValue placeholder="-- Chọn kho --" />
                 </SelectTrigger>

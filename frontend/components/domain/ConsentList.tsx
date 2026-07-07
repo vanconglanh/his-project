@@ -75,6 +75,7 @@ export function ConsentList({ patientId }: ConsentListProps) {
             <div className="space-y-1">
               <Label>Loại đồng ý *</Label>
               <Select
+                items={CONSENT_LABELS}
                 value={watch("consent_type")}
                 onValueChange={(v) => setValue("consent_type", v as ConsentType)}
               >

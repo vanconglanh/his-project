@@ -50,6 +50,7 @@ export default function NotificationsPage() {
       {/* Filters */}
       <div className="flex items-center gap-3">
         <Select
+          items={{ all: "Tất cả", unread: "Chưa đọc" }}
           value={unreadOnly ? "unread" : "all"}
           onValueChange={(v) => {
             setUnreadOnly(v === "unread");

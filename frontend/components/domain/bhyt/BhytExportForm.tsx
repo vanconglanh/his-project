@@ -97,6 +97,7 @@ export function BhytExportForm({ open, onOpenChange }: Props) {
           <div className="space-y-1.5">
             <Label htmlFor="encounter_type">Loại khám (tuỳ chọn)</Label>
             <Select
+              items={{ OUTPATIENT: "Ngoại trú", INPATIENT: "Nội trú", EMERGENCY: "Cấp cứu" }}
               value={form.watch("encounter_type")}
               onValueChange={(v) => form.setValue("encounter_type", v ?? undefined)}
             >

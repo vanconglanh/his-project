@@ -145,7 +145,11 @@ export function DrugsPageClient() {
               className="pl-9"
             />
           </div>
-          <Select value={status} onValueChange={(v) => { setStatus(v as "ACTIVE" | "INACTIVE" | ""); setPage(1); }}>
+          <Select
+            items={{ "": "Tất cả", ACTIVE: "Hoạt động", INACTIVE: "Ẩn" }}
+            value={status}
+            onValueChange={(v) => { setStatus(v as "ACTIVE" | "INACTIVE" | ""); setPage(1); }}
+          >
             <SelectTrigger className="w-36">
               <SelectValue placeholder="Tất cả TT" />
             </SelectTrigger>
@@ -156,6 +160,7 @@ export function DrugsPageClient() {
             </SelectContent>
           </Select>
           <Select
+            items={{ "": "Tất cả", true: "Kê đơn bắt buộc", false: "OTC" }}
             value={requiresPrescription === undefined ? "" : String(requiresPrescription)}
             onValueChange={(v) => setRequiresPrescription(v === "" ? undefined : v === "true")}
           >

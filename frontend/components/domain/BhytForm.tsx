@@ -121,7 +121,7 @@ export function BhytForm({ patientId }: BhytFormProps) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Loại *</Label>
-              <Select value={watch("type")} onValueChange={(v) => setValue("type", v as InsuranceType)}>
+              <Select items={TYPE_LABELS} value={watch("type")} onValueChange={(v) => setValue("type", v as InsuranceType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(TYPE_LABELS).map(([k, label]) => (

@@ -72,7 +72,7 @@ export function EInvoiceAdminClient() {
         <CardContent className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
             <Label>Nhà cung cấp</Label>
-            <Select defaultValue="MISA">
+            <Select items={{ MISA: "MISA", VNPT: "VNPT", EFY: "EFY" }} defaultValue="MISA">
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
@@ -101,7 +101,11 @@ export function EInvoiceAdminClient() {
 
       {/* Filters */}
       <div className="flex items-center gap-3">
-        <Select value={provider ?? "all"} onValueChange={(v) => setProvider(v === "all" ? undefined : v as EInvoiceProvider)}>
+        <Select
+          items={{ all: "Tất cả", MISA: "MISA", VNPT: "VNPT", EFY: "EFY" }}
+          value={provider ?? "all"}
+          onValueChange={(v) => setProvider(v === "all" ? undefined : v as EInvoiceProvider)}
+        >
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Nhà cung cấp" />
           </SelectTrigger>
@@ -112,7 +116,11 @@ export function EInvoiceAdminClient() {
             <SelectItem value="EFY">EFY</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={status ?? "all"} onValueChange={(v) => setStatus(v === "all" ? undefined : v as EInvoiceStatus)}>
+        <Select
+          items={{ all: "Tất cả", ISSUED: "Đã phát hành", CANCELLED: "Đã huỷ", DRAFT: "Nháp" }}
+          value={status ?? "all"}
+          onValueChange={(v) => setStatus(v === "all" ? undefined : v as EInvoiceStatus)}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>

@@ -74,7 +74,11 @@ export function EInvoiceIssueDialog({ open, onOpenChange, billingId, onSuccess }
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label>Nhà cung cấp HĐĐT</Label>
-            <Select value={provider} onValueChange={(v) => setValue("provider", v as EInvoiceProvider)}>
+            <Select
+              items={{ MISA: "MISA", VNPT: "VNPT", EFY: "EFY" }}
+              value={provider}
+              onValueChange={(v) => setValue("provider", v as EInvoiceProvider)}
+            >
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>

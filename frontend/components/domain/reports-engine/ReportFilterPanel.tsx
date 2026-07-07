@@ -64,7 +64,7 @@ export function ReportFilterPanel({
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
           <Label className="text-xs">Khoảng thời gian</Label>
-          <Select value={preset} onValueChange={handlePresetChange}>
+          <Select items={REPORT_DATE_PRESET_LABELS} value={preset} onValueChange={handlePresetChange}>
             <SelectTrigger className="w-36 h-9">
               <SelectValue />
             </SelectTrigger>
@@ -159,7 +159,11 @@ function ReportDynamicFilterField({ filter, value, onChange }: ReportDynamicFilt
   return (
     <div className="flex flex-col gap-1">
       <Label className="text-xs">{filter.label}</Label>
-      <Select value={value ?? "ALL"} onValueChange={(v) => onChange(!v || v === "ALL" ? undefined : v)}>
+      <Select
+        items={{ ALL: "Tất cả", ...Object.fromEntries(list.map((o) => [o.value, o.label])) }}
+        value={value ?? "ALL"}
+        onValueChange={(v) => onChange(!v || v === "ALL" ? undefined : v)}
+      >
         <SelectTrigger className="w-40 h-9">
           <SelectValue placeholder={isLoading ? "Đang tải..." : "Tất cả"} />
         </SelectTrigger>

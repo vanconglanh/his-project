@@ -134,7 +134,11 @@ export function ServiceForm({ open, onOpenChange, editTarget }: Props) {
             </div>
             <div>
               <Label>Nhóm *</Label>
-              <Select value={category} onValueChange={(v) => setValue("category", v as ServiceCategory)}>
+              <Select
+                items={Object.fromEntries(CATEGORIES.map((c) => [c.value, c.label]))}
+                value={category}
+                onValueChange={(v) => setValue("category", v as ServiceCategory)}
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
@@ -168,7 +172,11 @@ export function ServiceForm({ open, onOpenChange, editTarget }: Props) {
             </div>
             <div>
               <Label>VAT</Label>
-              <Select value={String(vatRate)} onValueChange={(v) => setValue("vat_rate", Number(v) as 0 | 5 | 8 | 10)}>
+              <Select
+                items={{ "0": "0%", "5": "5%", "8": "8%", "10": "10%" }}
+                value={String(vatRate)}
+                onValueChange={(v) => setValue("vat_rate", Number(v) as 0 | 5 | 8 | 10)}
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>

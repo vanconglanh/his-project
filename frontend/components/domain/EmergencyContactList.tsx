@@ -114,7 +114,11 @@ export function EmergencyContactList({ patientId }: EmergencyContactListProps) {
             </div>
             <div className="space-y-1">
               <Label>Mối quan hệ *</Label>
-              <Select value={watch("relationship")} onValueChange={(v) => setValue("relationship", v as Relationship)}>
+              <Select
+                items={RELATIONSHIP_LABELS}
+                value={watch("relationship")}
+                onValueChange={(v) => setValue("relationship", v as Relationship)}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(RELATIONSHIP_LABELS).map(([k, label]) => (

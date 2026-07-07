@@ -129,6 +129,7 @@ export function PrescriptionItemForm({ drug, onSubmit, onCancel, loading }: Prop
           <div className="space-y-1">
             <Label htmlFor="route">Đường dùng</Label>
             <Select
+              items={Object.fromEntries(ROUTES.map((r) => [r.value, r.label]))}
               defaultValue="ORAL"
               onValueChange={(v) => setValue("route", v as FormData["route"])}
             >

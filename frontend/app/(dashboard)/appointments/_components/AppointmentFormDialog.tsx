@@ -302,7 +302,11 @@ export function AppointmentFormDialog({ open, onOpenChange, editTarget }: Props)
                 control={control}
                 name="doctor_ref"
                 render={({ field }) => (
-                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                  <Select
+                    items={Object.fromEntries(doctorOptions.map((d) => [d.value, d.label]))}
+                    value={field.value || undefined}
+                    onValueChange={field.onChange}
+                  >
                     <SelectTrigger id="doctor-select">
                       <SelectValue placeholder="Không chỉ định" />
                     </SelectTrigger>
@@ -349,7 +353,11 @@ export function AppointmentFormDialog({ open, onOpenChange, editTarget }: Props)
             </FieldGroup>
 
             <FieldGroup label="Nguồn" htmlFor="source-select">
-              <Select value={source} onValueChange={(v) => setValue("source", v as AppointmentSource)}>
+              <Select
+                items={Object.fromEntries(SOURCES.map((s) => [s, APPOINTMENT_SOURCE_LABEL[s]]))}
+                value={source}
+                onValueChange={(v) => setValue("source", v as AppointmentSource)}
+              >
                 <SelectTrigger id="source-select">
                   <SelectValue />
                 </SelectTrigger>

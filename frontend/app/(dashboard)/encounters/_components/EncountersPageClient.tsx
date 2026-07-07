@@ -120,6 +120,7 @@ export function EncountersPageClient() {
       {/* Filters */}
       <div className="flex gap-3 flex-wrap items-center">
         <Select
+          items={{ all: "Tất cả", WAITING: "Chờ khám", IN_PROGRESS: "Đang khám", DONE: "Hoàn thành", CANCELLED: "Đã hủy" }}
           value={statusFilter}
           onValueChange={(v) => { setStatusFilter(v ?? "all"); setPage(1); setQuickFilter(""); }}
         >

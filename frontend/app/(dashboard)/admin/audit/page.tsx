@@ -125,7 +125,11 @@ export default function AuditPage() {
             className="pl-9"
           />
         </div>
-        <Select value={actionFilter} onValueChange={(v) => { if (v) { setActionFilter(v); setPage(1); } }}>
+        <Select
+          items={{ ALL: "Tất cả hành động", ...ACTION_LABELS }}
+          value={actionFilter}
+          onValueChange={(v) => { if (v) { setActionFilter(v); setPage(1); } }}
+        >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="Hành động" />
           </SelectTrigger>

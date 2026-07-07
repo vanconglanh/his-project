@@ -188,7 +188,11 @@ export default function NewEncounterPage() {
                 control={control}
                 name="doctor_id"
                 render={({ field }) => (
-                  <Select value={field.value ?? ""} onValueChange={(v) => field.onChange(v)}>
+                  <Select
+                    items={{ "": "Chưa phân công", ...Object.fromEntries(doctors.map((d) => [d.id, d.full_name])) }}
+                    value={field.value ?? ""}
+                    onValueChange={(v) => field.onChange(v)}
+                  >
                     <SelectTrigger id="enc-doctor-select">
                       <SelectValue placeholder="Chọn bác sĩ (tuỳ chọn)..." />
                     </SelectTrigger>
@@ -227,7 +231,7 @@ export default function NewEncounterPage() {
                 control={control}
                 name="encounter_type"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={(v) => field.onChange(v as EncounterType)}>
+                  <Select items={TYPE_LABELS} value={field.value} onValueChange={(v) => field.onChange(v as EncounterType)}>
                     <SelectTrigger id="enc-type">
                       <SelectValue />
                     </SelectTrigger>

@@ -23,6 +23,7 @@ export function AlertsTab() {
           <div className="flex items-center gap-2">
             <Label className="text-sm">Trong vòng</Label>
             <Select
+              items={{ "30": "30 ngày", "60": "60 ngày", "90": "90 ngày" }}
               value={String(days)}
               onValueChange={(v) => setDays(Number(v) as 30 | 60 | 90)}
             >

@@ -125,7 +125,11 @@ export function LabOrderForm({ encounterId }: Props) {
             name="priority"
             control={control}
             render={({ field }) => (
-              <Select onValueChange={(v) => field.onChange(v ?? "NORMAL")} value={field.value ?? "NORMAL"}>
+              <Select
+                items={{ NORMAL: "Thường", URGENT: "Khẩn", STAT: "Cấp cứu" }}
+                onValueChange={(v) => field.onChange(v ?? "NORMAL")}
+                value={field.value ?? "NORMAL"}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

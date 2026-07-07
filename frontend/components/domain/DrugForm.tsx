@@ -123,7 +123,11 @@ export function DrugForm({ drug, onSuccess, onCancel }: Props) {
         </div>
         <div className="space-y-1">
           <Label>Dạng bào chế <span className="text-destructive">*</span></Label>
-          <Select defaultValue={drug?.form ?? "TABLET"} onValueChange={(v) => setValue("form", (v ?? "TABLET") as FormData["form"])}>
+          <Select
+            items={Object.fromEntries(DRUG_FORMS.map((f) => [f.value, f.label]))}
+            defaultValue={drug?.form ?? "TABLET"}
+            onValueChange={(v) => setValue("form", (v ?? "TABLET") as FormData["form"])}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {DRUG_FORMS.map((f) => (

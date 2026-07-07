@@ -79,7 +79,10 @@ export function AdjustmentForm({ onSuccess, formId = "adjustment-form", onSubmit
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>Kho</Label>
-          <Select onValueChange={(v) => setValue("warehouse_id", String(v ?? ""))}>
+          <Select
+            items={Object.fromEntries((warehouses ?? []).map((w) => [w.id, w.name]))}
+            onValueChange={(v) => setValue("warehouse_id", String(v ?? ""))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="-- Chọn kho --" />
             </SelectTrigger>
@@ -94,7 +97,11 @@ export function AdjustmentForm({ onSuccess, formId = "adjustment-form", onSubmit
 
         <div className="space-y-1">
           <Label>Lý do điều chỉnh</Label>
-          <Select defaultValue="STOCKTAKE" onValueChange={(v) => setValue("reason", (v ?? "STOCKTAKE") as FormData["reason"])}>
+          <Select
+            items={Object.fromEntries(REASONS.map((r) => [r.value, r.label]))}
+            defaultValue="STOCKTAKE"
+            onValueChange={(v) => setValue("reason", (v ?? "STOCKTAKE") as FormData["reason"])}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

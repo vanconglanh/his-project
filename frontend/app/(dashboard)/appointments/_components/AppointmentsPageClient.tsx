@@ -277,7 +277,7 @@ export function AppointmentsPageClient() {
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3">
         <div className="flex flex-col gap-1">
           <Label className="text-xs">Khoảng thời gian</Label>
-          <Select value={preset} onValueChange={handlePresetChange}>
+          <Select items={DATE_PRESET_LABEL} value={preset} onValueChange={handlePresetChange}>
             <SelectTrigger className="w-36 h-9">
               <SelectValue />
             </SelectTrigger>
@@ -323,6 +323,7 @@ export function AppointmentsPageClient() {
         <div className="flex flex-col gap-1">
           <Label className="text-xs">Bác sĩ</Label>
           <Select
+            items={{ all: "Tất cả bác sĩ", ...Object.fromEntries(doctorOptions.map((d) => [d.value, d.label])) }}
             value={doctorRef}
             onValueChange={(v) => {
               setDoctorRef(v ?? "all");
@@ -346,6 +347,7 @@ export function AppointmentsPageClient() {
         <div className="flex flex-col gap-1">
           <Label className="text-xs">Trạng thái</Label>
           <Select
+            items={{ all: "Tất cả trạng thái", ...APPOINTMENT_STATUS_LABEL }}
             value={status}
             onValueChange={(v) => {
               setStatus(v ?? "all");
