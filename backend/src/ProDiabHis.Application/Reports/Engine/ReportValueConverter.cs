@@ -20,6 +20,11 @@ public static class ReportValueConverter
         long l => l,
         short s => s,
         byte b => b,
+        // ROW_NUMBER()/COUNT unsigned cua MySQL tra ve unsigned -> phai xu ly, neu khong roi vao _ => 0m
+        ulong ul => ul,
+        uint ui => ui,
+        ushort us => us,
+        sbyte sb => sb,
         string str when decimal.TryParse(str, NumberStyles.Any, CultureInfo.InvariantCulture, out var ds) => ds,
         _ => 0m
     };
