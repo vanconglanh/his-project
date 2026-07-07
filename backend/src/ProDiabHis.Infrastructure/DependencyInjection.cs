@@ -293,6 +293,7 @@ public static class DependencyInjection
         services.AddScoped<IPdfReportExporter, QuestPdfReportExporter>();
         services.AddScoped<IExcelExporter, ReportExcelExporter>();
         services.AddScoped<ReportCacheRefreshJob>();
+        services.AddScoped<Application.Pharmacy.Prescriptions.IPrescriptionPdfBuilder, Reports.PrescriptionPdfBuilder>();
 
         // Sprint 14: Report PDF A4 — ma bao cao (Redis INCR, bat buoc — khong fallback)
         services.AddScoped<IReportCodeGenerator>(sp =>

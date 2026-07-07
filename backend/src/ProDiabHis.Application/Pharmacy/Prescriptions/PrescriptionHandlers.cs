@@ -654,41 +654,134 @@ public class GetPrescriptionPdfHandler : IRequestHandler<GetPrescriptionPdfQuery
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IPrescriptionPdfBuilder _pdfBuilder;
 
-    public GetPrescriptionPdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser)
+    public GetPrescriptionPdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IPrescriptionPdfBuilder pdfBuilder)
     {
         _db = db;
         _currentUser = currentUser;
+        _pdfBuilder = pdfBuilder;
     }
 
     public async Task<Result<byte[]>> Handle(GetPrescriptionPdfQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
+        var presId = q.Id.ToString();
 
-        var exists = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(1) FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { id = q.Id.ToString(), tenantId });
+        // Header don thuoc + benh nhan + bac si + chan doan tu encounter
+        var pres = await conn.QueryFirstOrDefaultAsync<PrescriptionPdfHeaderRow>(
+            @"SELECT p.id as PrescriptionId, p.prescription_no as Code, p.created_at as PrescribedAt, p.note as Note,
+                     p.diagnosis_icd10 as DiagnosisCode,
+                     pat.full_name as PatientFullName, pat.gender as PatientGender,
+                     pat.date_of_birth as PatientDateOfBirth, pat.street as PatientAddress,
+                     doc.full_name as DoctorFullName
+              FROM diab_his_pha_prescriptions p
+              LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id AND pat.tenant_id = p.tenant_id
+              LEFT JOIN diab_his_sec_users doc ON doc.id = p.doctor_id
+              WHERE p.id = @presId AND p.tenant_id = @tenantId AND p.deleted_at IS NULL",
+            new { presId, tenantId });
 
-        if (exists == 0)
+        if (pres == null)
             return Result<byte[]>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
+
+        // Ten chan doan (neu co) tu bang diagnoses khop ma ICD-10 chinh cua don thuoc (qua encounter)
+        string? diagnosisName = null;
+        if (!string.IsNullOrWhiteSpace(pres.DiagnosisCode))
+        {
+            diagnosisName = await conn.ExecuteScalarAsync<string>(
+                @"SELECT d.name FROM diab_his_enc_diagnoses d
+                  JOIN diab_his_pha_prescriptions p ON p.encounter_id = d.encounter_id AND p.tenant_id = d.tenant_id
+                  WHERE p.id = @presId AND p.tenant_id = @tenantId AND d.icd10_code = @code AND d.deleted_at IS NULL
+                  LIMIT 1",
+                new { presId, tenantId, code = pres.DiagnosisCode });
+        }
+
+        // Danh sach thuoc trong don
+        var itemRows = await conn.QueryAsync<PrescriptionPdfItemRow>(
+            @"SELECT d.name as DrugName, d.strength as Strength, d.unit as Unit,
+                     i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
+                     i.duration_days as DurationDays, i.quantity as Quantity, i.instructions as Instructions
+              FROM diab_his_pha_prescription_items i
+              JOIN diab_his_pha_drugs d ON d.id = i.drug_id
+              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL
+              ORDER BY i.created_at",
+            new { presId, tenantId });
+
+        // Letterhead phong kham (giong ExportReportHandler)
+        var lh = await conn.QueryFirstOrDefaultAsync<PrescriptionPdfLetterheadRow>(
+            @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, address AS Address, phone AS Phone
+              FROM diab_his_sys_tenants
+              WHERE id = @tenantId",
+            new { tenantId });
+
+        byte[]? logoBytes = null; // Logo tenant tuy chinh khong duoc fetch qua HTTP o day; PrescriptionPdfBuilder fallback sang logo bundled
+
+        var items = itemRows.Select((r, idx) => new PrescriptionPdfItem(
+            idx + 1, r.DrugName, r.Strength, r.Unit, r.Quantity, r.Dosage, r.Frequency, r.Route, r.DurationDays, r.Instructions)).ToList();
+
+        var pdfData = new PrescriptionPdfData(
+            PrescriptionCode: pres.Code ?? presId,
+            PrescribedAt: pres.PrescribedAt,
+            Note: pres.Note,
+            ClinicName: lh?.ClinicName ?? "Pro-Diab HIS",
+            ClinicAddress: lh?.Address,
+            ClinicPhone: lh?.Phone,
+            CskcbCode: lh?.CskcbCode,
+            ClinicLogo: logoBytes,
+            PatientFullName: pres.PatientFullName ?? "",
+            PatientGender: pres.PatientGender,
+            PatientDateOfBirth: pres.PatientDateOfBirth.HasValue ? DateOnly.FromDateTime(pres.PatientDateOfBirth.Value) : null,
+            PatientAddress: pres.PatientAddress,
+            DiagnosisCode: pres.DiagnosisCode,
+            DiagnosisName: diagnosisName,
+            DoctorFullName: pres.DoctorFullName,
+            Items: items);
+
+        var pdf = _pdfBuilder.Build(pdfData);
 
         // Record print event
         await conn.ExecuteAsync(
             "INSERT INTO diab_his_pha_prescription_print_history (id, tenant_id, prescription_id, printed_at) VALUES (UUID(), @tenantId, @presId, NOW())",
-            new { tenantId, presId = q.Id.ToString() });
+            new { tenantId, presId });
 
-        // Generate simple PDF placeholder (QuestPDF integration)
-        var pdf = GeneratePrescriptionPdf(q.Id);
         return Result<byte[]>.Success(pdf);
     }
+}
 
-    private static byte[] GeneratePrescriptionPdf(Guid prescriptionId)
-    {
-        // Minimal valid PDF stub - PDF generation via IPdfService in Infrastructure
-        var content = $"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 420 595]/Parent 2 0 R/Resources<<>>/Contents 4 0 R>>endobj\n4 0 obj<</Length 44>>stream\nBT /F1 12 Tf 50 500 Td (DON THUOC {prescriptionId}) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000266 00000 n\ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n360\n%%EOF";
-        return System.Text.Encoding.ASCII.GetBytes(content);
-    }
+internal class PrescriptionPdfHeaderRow
+{
+    public string? PrescriptionId { get; set; }
+    public string? Code { get; set; }
+    public DateTime PrescribedAt { get; set; }
+    public string? Note { get; set; }
+    public string? PatientFullName { get; set; }
+    public string? PatientGender { get; set; }
+    public DateTime? PatientDateOfBirth { get; set; }
+    public string? PatientAddress { get; set; }
+    public string? DoctorFullName { get; set; }
+    public string? DiagnosisCode { get; set; }
+}
+
+internal class PrescriptionPdfItemRow
+{
+    public string DrugName { get; set; } = "";
+    public string? Strength { get; set; }
+    public string? Unit { get; set; }
+    public string Dosage { get; set; } = "";
+    public string Frequency { get; set; } = "";
+    public string Route { get; set; } = "ORAL";
+    public int DurationDays { get; set; }
+    public decimal Quantity { get; set; }
+    public string? Instructions { get; set; }
+}
+
+internal class PrescriptionPdfLetterheadRow
+{
+    public string? ClinicName { get; set; }
+    public string? CskcbCode { get; set; }
+    public string? Address { get; set; }
+    public string? Phone { get; set; }
 }
 
 public class GetPrintHistoryHandler : IRequestHandler<GetPrintHistoryQuery, Result<IReadOnlyList<PrintHistoryItem>>>
