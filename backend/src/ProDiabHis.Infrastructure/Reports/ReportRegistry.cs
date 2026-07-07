@@ -79,7 +79,17 @@ public class ReportRegistry : IReportRegistry
             XuatNhapTon(),
             DanhMucThuoc(),
             ThuocKiemSoat(),
-            ThuocDuoiDinhMuc()
+            ThuocDuoiDinhMuc(),
+
+            // Dot 11 — BI (Statistics) + Kiem ke kho (Pharmacy). Ghi chu: bao cao "ty-le-tai-kham"
+            // (thong ke ty le tai kham theo patient_source) BO QUA vi trung lap ro rang voi
+            // "patient-source-summary" da co san (cung group-by patient_source, cung % — xem GroupOrder 6
+            // o tren): chi khac ten/nhan manh, khong them gia tri thong tin moi.
+            LuotKhamTheoGio(),
+            TyLeNoShow(),
+            SuDungKhangSinh(),
+            TatCls(),
+            KiemKeKho()
         };
 
         // Tu suy Orientation theo so cot (>=11 cot => Landscape) cho toan bo descriptor.
@@ -2274,6 +2284,288 @@ public class ReportRegistry : IReportRegistry
                 HAVING stockQty < d.reorder_level
                 ORDER BY needMore DESC
                 LIMIT 2000";
+
+            return (sql, p);
+        }
+    };
+
+    // ============================================================================
+    // DOT 11 — BI (Statistics) + Kiem ke kho (Pharmacy)
+    // ============================================================================
+
+    // ================= BI-1: Luot Kham Theo Gio (peak hour) ================= //
+    private static ReportDescriptor LuotKhamTheoGio() => new()
+    {
+        Code = "luot-kham-theo-gio",
+        Title = "BÁO CÁO LƯỢT KHÁM THEO GIỜ",
+        Group = ReportGroupCategory.Statistics,
+        GroupOrder = 9,
+        Icon = "clock",
+        PdfTypeCode = "LKG",
+        Columns = new List<ReportColumn>
+        {
+            new("hourLabel", "Khung giờ",  ReportColumnType.Text,   ReportAlign.Left,  1f),
+            new("visitCount","Số lượt",    ReportColumnType.Number, ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("percent",   "Tỷ lệ %",    ReportColumnType.Number, ReportAlign.Right, 0.9f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG LƯỢT KHÁM", "#F0FDFA", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "visitCount"))), IsMoney: false),
+            new("SỐ KHUNG GIỜ CÓ KHÁCH", "#FFFBEB", rows => rows.Count, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            const string sql = @"
+                SELECT
+                    t.hr                                                              AS hourOrder,
+                    CONCAT(LPAD(t.hr, 2, '0'), N':00')                                AS hourLabel,
+                    t.visitCount                                                       AS visitCount,
+                    ROUND(t.visitCount / NULLIF(SUM(t.visitCount) OVER (), 0) * 100, 1) AS percent
+                FROM (
+                    SELECT HOUR(COALESCE(e.started_at, e.created_at)) AS hr, COUNT(*) AS visitCount
+                    FROM diab_his_enc_encounters e
+                    WHERE e.tenant_id = @tenantId
+                      AND e.deleted_at IS NULL
+                      AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
+                    GROUP BY hr
+                ) t
+                ORDER BY hourOrder
+                LIMIT 24";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= BI-2: Ty Le No-Show Lich Hen ================= //
+    private static ReportDescriptor TyLeNoShow() => new()
+    {
+        Code = "ty-le-no-show",
+        Title = "BÁO CÁO TỶ LỆ NO-SHOW LỊCH HẸN",
+        Group = ReportGroupCategory.Statistics,
+        GroupOrder = 10,
+        Icon = "calendar-x",
+        PdfTypeCode = "NSW",
+        Columns = new List<ReportColumn>
+        {
+            new("statusLabel", "Trạng thái", ReportColumnType.Text,   ReportAlign.Left,  1.4f),
+            new("count",       "Số lượng",   ReportColumnType.Number, ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("percent",     "Tỷ lệ %",    ReportColumnType.Number, ReportAlign.Right, 0.9f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG LỊCH HẸN", "#F0FDFA", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "count"))), IsMoney: false),
+            new("TỶ LỆ NO-SHOW %", "#FEF2F2", rows =>
+            {
+                var total = rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "count")));
+                var noShow = rows.Where(r => (string?)ReportValueConverter.Get(r, "statusCode") == "NO_SHOW")
+                                  .Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "count")));
+                return total > 0 ? Math.Round(noShow / total * 100, 1) : 0m;
+            }, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            const string sql = @"
+                SELECT
+                    t.status                                                       AS statusCode,
+                    t.statusLabel                                                   AS statusLabel,
+                    t.cnt                                                           AS count,
+                    ROUND(t.cnt / NULLIF(SUM(t.cnt) OVER (), 0) * 100, 1)          AS percent
+                FROM (
+                    SELECT
+                        a.status AS status,
+                        CASE a.status
+                            WHEN 'PENDING'     THEN N'Chờ xác nhận'
+                            WHEN 'CONFIRMED'   THEN N'Đã xác nhận'
+                            WHEN 'CHECKED_IN'  THEN N'Đã đến'
+                            WHEN 'CANCELLED'   THEN N'Đã hủy'
+                            WHEN 'NO_SHOW'     THEN N'Không đến'
+                            ELSE N'Khác'
+                        END AS statusLabel,
+                        COUNT(*) AS cnt
+                    FROM diab_his_sch_appointments a
+                    WHERE a.tenant_id = @tenantId
+                      AND a.deleted_at IS NULL
+                      AND a.appointment_at BETWEEN @from AND @to
+                    GROUP BY a.status
+                ) t
+                ORDER BY t.cnt DESC
+                LIMIT 20";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= BI-3: Thong Ke Su Dung Khang Sinh ================= //
+    // Ghi chu du lieu: pha_drugs.is_antibiotic hien co rat it thuoc duoc gan co (dev seed) —
+    // bao cao co the tra ve rong an toan cho den khi danh muc thuoc kiem soat khang sinh day du hon.
+    private static ReportDescriptor SuDungKhangSinh() => new()
+    {
+        Code = "su-dung-khang-sinh",
+        Title = "BÁO CÁO THỐNG KÊ SỬ DỤNG KHÁNG SINH",
+        Group = ReportGroupCategory.Statistics,
+        GroupOrder = 11,
+        Icon = "pill",
+        PdfTypeCode = "KSI",
+        Columns = new List<ReportColumn>
+        {
+            new("code",           "Mã thuốc",     ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("drugName",       "Tên kháng sinh", ReportColumnType.Text, ReportAlign.Left,  1.8f),
+            new("prescribedTimes","Số lần kê",    ReportColumnType.Number, ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("totalQuantity",  "Tổng SL",      ReportColumnType.Number, ReportAlign.Right, 1f, IsGroupSubtotal: true)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("SỐ LOẠI KHÁNG SINH ĐƯỢC KÊ", "#F0FDFA", rows => rows.Count, IsMoney: false),
+            new("TỔNG LƯỢT KÊ", "#FFFBEB", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "prescribedTimes"))), IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            const string sql = @"
+                SELECT
+                    d.code                                          AS code,
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
+                    COUNT(*)                                        AS prescribedTimes,
+                    SUM(pi.quantity)                                AS totalQuantity
+                FROM diab_his_pha_prescription_items pi
+                INNER JOIN diab_his_pha_drugs d ON d.id = pi.drug_id AND d.tenant_id = pi.tenant_id
+                INNER JOIN diab_his_pha_prescriptions pr ON pr.id = pi.prescription_id AND pr.tenant_id = pi.tenant_id
+                WHERE pi.tenant_id = @tenantId
+                  AND pi.deleted_at IS NULL
+                  AND d.is_antibiotic = 1
+                  AND pr.created_at BETWEEN @from AND @to
+                GROUP BY d.id, d.code, d.name_vi, d.name
+                ORDER BY prescribedTimes DESC
+                LIMIT 500";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= BI-4: Thoi Gian Tra Ket Qua CLS (TAT) ================= //
+    // Ghi chu du lieu: dung lab_results.performed_at lam moc "co ket qua" (verified_at hau nhu chua duoc
+    // dien trong du lieu hien tai — chi 1/30 dong) — fallback verified_at neu performed_at rong.
+    private static ReportDescriptor TatCls() => new()
+    {
+        Code = "tat-cls",
+        Title = "BÁO CÁO THỜI GIAN TRẢ KẾT QUẢ CLS (TAT)",
+        Group = ReportGroupCategory.Statistics,
+        GroupOrder = 12,
+        Icon = "timer",
+        PdfTypeCode = "TAT",
+        Columns = new List<ReportColumn>
+        {
+            new("testName",  "Tên XN",             ReportColumnType.Text,   ReportAlign.Left,  2f),
+            new("sampleCount","Số mẫu",            ReportColumnType.Number, ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("avgTatHours","TAT trung bình (giờ)", ReportColumnType.Number, ReportAlign.Right, 1.2f),
+            new("maxTatHours","TAT lâu nhất (giờ)",ReportColumnType.Number, ReportAlign.Right, 1.2f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG SỐ MẪU CÓ KẾT QUẢ", "#F0FDFA", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "sampleCount"))), IsMoney: false),
+            new("SỐ LOẠI XN", "#FFFBEB", rows => rows.Count, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            const string sql = @"
+                SELECT
+                    lo.test_name                                                              AS testName,
+                    COUNT(*)                                                                  AS sampleCount,
+                    ROUND(AVG(TIMESTAMPDIFF(MINUTE, lo.ordered_at, COALESCE(lr.performed_at, lr.verified_at))) / 60, 1) AS avgTatHours,
+                    ROUND(MAX(TIMESTAMPDIFF(MINUTE, lo.ordered_at, COALESCE(lr.performed_at, lr.verified_at))) / 60, 1) AS maxTatHours
+                FROM diab_his_lab_results lr
+                INNER JOIN diab_his_lab_orders lo ON lo.id = lr.order_id AND lo.tenant_id = lr.tenant_id
+                WHERE lr.tenant_id = @tenantId
+                  AND lr.deleted_at IS NULL
+                  AND lo.deleted_at IS NULL
+                  AND COALESCE(lr.performed_at, lr.verified_at) IS NOT NULL
+                  AND lo.ordered_at BETWEEN @from AND @to
+                GROUP BY lo.test_name
+                ORDER BY avgTatHours DESC
+                LIMIT 500";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= Kiem Ke Kho — dot 11 (migration 9044) ================= //
+    private static ReportDescriptor KiemKeKho() => new()
+    {
+        Code = "kiem-ke-kho",
+        Title = "BÁO CÁO KIỂM KÊ KHO",
+        Group = ReportGroupCategory.Pharmacy,
+        GroupOrder = 8,
+        Icon = "clipboard-check",
+        PdfTypeCode = "KKO",
+        Columns = new List<ReportColumn>
+        {
+            new("stocktakeDate", "Ngày KK",      ReportColumnType.Date,   ReportAlign.Left,  0.9f),
+            new("stocktakeCode", "Mã phiếu",     ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("drugCode",      "Mã thuốc",     ReportColumnType.Text,   ReportAlign.Left,  0.8f),
+            new("drugName",      "Tên thuốc",    ReportColumnType.Text,   ReportAlign.Left,  1.6f),
+            new("lotNumber",     "Lô",           ReportColumnType.Text,   ReportAlign.Left,  0.8f),
+            new("systemQty",     "Tồn hệ thống", ReportColumnType.Number, ReportAlign.Right, 0.9f, IsGroupSubtotal: true),
+            new("countedQty",    "Tồn thực tế",  ReportColumnType.Number, ReportAlign.Right, 0.9f, IsGroupSubtotal: true),
+            new("difference",    "Chênh lệch",   ReportColumnType.Number, ReportAlign.Right, 0.8f, IsGroupSubtotal: true),
+            new("note",          "Ghi chú",      ReportColumnType.Text,   ReportAlign.Left,  1.4f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("SỐ DÒNG KIỂM KÊ", "#F0FDFA", rows => rows.Count, IsMoney: false),
+            new("SỐ DÒNG CHÊNH LỆCH", "#FEF2F2", rows => rows.Count(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "difference")) != 0), IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            const string sql = @"
+                SELECT
+                    st.stocktake_date                                       AS stocktakeDate,
+                    st.code                                                 AS stocktakeCode,
+                    d.code                                                  AS drugCode,
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)                 AS drugName,
+                    it.lot_number                                           AS lotNumber,
+                    it.system_qty                                           AS systemQty,
+                    it.counted_qty                                          AS countedQty,
+                    it.difference                                           AS difference,
+                    it.note                                                 AS note
+                FROM diab_his_pha_stocktake_items it
+                INNER JOIN diab_his_pha_stocktakes st
+                    ON st.id = it.stocktake_id AND st.tenant_id = it.tenant_id AND st.deleted_at IS NULL
+                INNER JOIN diab_his_pha_drugs d
+                    ON d.id = it.drug_id COLLATE utf8mb4_0900_ai_ci AND d.tenant_id = it.tenant_id
+                WHERE it.tenant_id = @tenantId
+                  AND it.deleted_at IS NULL
+                  AND st.stocktake_date BETWEEN @from AND @to
+                ORDER BY st.stocktake_date DESC, drugName, lotNumber
+                LIMIT 3000";
 
             return (sql, p);
         }
