@@ -1,4 +1,5 @@
 using Dapper;
+using FluentValidation;
 using MediatR;
 using ProDiabHis.Application.Common;
 
@@ -15,6 +16,43 @@ public record SupplierRequest(
     string? ContactPerson,
     string? Status = "ACTIVE"
 );
+
+// ─── Validators ────────────────────────────────────────────────────────────────
+public class CreateSupplierCommandValidator : AbstractValidator<CreateSupplierCommand>
+{
+    public CreateSupplierCommandValidator()
+    {
+        RuleFor(x => x.Request).SetValidator(new SupplierRequestValidator());
+    }
+}
+
+public class UpdateSupplierCommandValidator : AbstractValidator<UpdateSupplierCommand>
+{
+    public UpdateSupplierCommandValidator()
+    {
+        RuleFor(x => x.Request).SetValidator(new SupplierRequestValidator());
+    }
+}
+
+public class SupplierRequestValidator : AbstractValidator<SupplierRequest>
+{
+    public SupplierRequestValidator()
+    {
+        RuleFor(x => x.Code).NotEmpty().WithMessage("Mã nhà cung cấp không được để trống")
+            .MaximumLength(30).WithMessage("Mã nhà cung cấp tối đa 30 ký tự");
+        RuleFor(x => x.Name).NotEmpty().WithMessage("Tên nhà cung cấp không được để trống")
+            .MaximumLength(255).WithMessage("Tên nhà cung cấp tối đa 255 ký tự");
+        RuleFor(x => x.TaxCode).MaximumLength(20).WithMessage("Mã số thuế tối đa 20 ký tự")
+            .When(x => !string.IsNullOrEmpty(x.TaxCode));
+        RuleFor(x => x.Phone).MaximumLength(30).WithMessage("Số điện thoại tối đa 30 ký tự")
+            .When(x => !string.IsNullOrEmpty(x.Phone));
+        RuleFor(x => x.Email).EmailAddress().WithMessage("Email không hợp lệ")
+            .MaximumLength(100).WithMessage("Email tối đa 100 ký tự")
+            .When(x => !string.IsNullOrEmpty(x.Email));
+        RuleFor(x => x.ContactPerson).MaximumLength(100).WithMessage("Tên người liên hệ tối đa 100 ký tự")
+            .When(x => !string.IsNullOrEmpty(x.ContactPerson));
+    }
+}
 
 public record SupplierResponse(
     string Id,
@@ -148,6 +186,13 @@ public class CreateSupplierHandler : IRequestHandler<CreateSupplierCommand, Supp
     public async Task<SupplierResponse> Handle(CreateSupplierCommand cmd, CancellationToken ct)
     {
         using var conn = _db.CreateConnection();
+
+        var exists = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM diab_his_pha_suppliers WHERE tenant_id = @TenantId AND code = @Code AND deleted_at IS NULL",
+            new { cmd.TenantId, cmd.Request.Code });
+        if (exists > 0)
+            throw new ProDiabHis.Application.Common.ConflictException("SUPPLIER_CODE_DUPLICATE", "Mã nhà cung cấp đã tồn tại");
+
         var id = Guid.NewGuid().ToString();
         var isActive = !string.Equals(cmd.Request.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase);
 

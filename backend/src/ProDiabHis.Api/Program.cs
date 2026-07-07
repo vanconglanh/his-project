@@ -1,4 +1,3 @@
-using FluentValidation;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -87,9 +86,8 @@ try
             };
         });
 
-    // FluentValidation
-    builder.Services.AddValidatorsFromAssemblyContaining<ProDiabHis.Application.Auth.LoginCommand>(
-        ServiceLifetime.Scoped);
+    // FluentValidation: da dang ky qua AddApplication() (DependencyInjection.cs) —
+    // KHONG dang ky lai o day de tranh validator chay 2 lan / loi trung lap.
 
     // CORS
     builder.Services.AddCors(opt =>

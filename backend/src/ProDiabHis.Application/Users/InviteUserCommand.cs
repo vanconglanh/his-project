@@ -24,7 +24,9 @@ public class InviteUserCommandValidator : AbstractValidator<InviteUserCommand>
         RuleFor(x => x.Email).NotEmpty().EmailAddress()
             .WithMessage("Email không hợp lệ");
         RuleFor(x => x.FullName).NotEmpty()
-            .WithMessage("Họ tên không được để trống");
+            .WithMessage("Họ tên không được để trống")
+            .MinimumLength(2)
+            .WithMessage("Họ tên tối thiểu 2 ký tự");
         RuleFor(x => x.RoleCodes).NotEmpty()
             .WithMessage("Phải chọn ít nhất một vai trò");
     }
