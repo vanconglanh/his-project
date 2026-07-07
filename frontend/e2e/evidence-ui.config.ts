@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // BASE_URL=https://his.diab.com.vn npx playwright test --config=e2e/evidence-ui.config.ts
 export default defineConfig({
   testDir: "./",
-  testMatch: ["evidence-ui.spec.ts"],
+  testMatch: ["evidence-ui.spec.ts", "ute-evidence.spec.ts"],
   fullyParallel: false,
   workers: 1,
   retries: 0,
