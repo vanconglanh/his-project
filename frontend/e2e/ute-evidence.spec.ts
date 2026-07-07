@@ -42,7 +42,7 @@ async function shot(page: Page, code: string, view: string, expect: string, focu
     document.querySelectorAll(".__ev").forEach((e) => e.remove());
     const cap = document.createElement("div"); cap.className = "__ev";
     cap.innerHTML = `<span style="background:#F2C94C;color:#0b3b34;font-weight:800;padding:2px 8px;border-radius:5px;margin-right:8px">${code}</span><b>${view}</b>&nbsp;·&nbsp;期待: ${expect}`;
-    Object.assign(cap.style, { position: "absolute", top: "0", left: "0", right: "0", zIndex: "2147483647", background: "#0B6E5D", color: "#fff", font: "600 14px system-ui,Segoe UI,sans-serif", padding: "9px 14px" });
+    Object.assign(cap.style, { position: "absolute", top: "0", left: "0", right: "0", zIndex: "2147483647", background: "#01645A", color: "#fff", font: "600 14px system-ui,Segoe UI,sans-serif", padding: "9px 14px" });
     document.body.appendChild(cap);
     let el: HTMLElement | null = null;
     if (focusSel) { try { el = document.querySelector(focusSel as string) as HTMLElement | null; } catch { el = null; } }

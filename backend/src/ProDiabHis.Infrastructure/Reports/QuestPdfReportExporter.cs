@@ -15,10 +15,22 @@ namespace ProDiabHis.Infrastructure.Reports;
 
 public class QuestPdfReportExporter : IPdfReportExporter
 {
-    // Mau nhan dien dIaB (teal-700)
-    private static readonly string HeaderBg = "#0F766E";
+    // Mau nhan dien diaB chinh thuc
+    private static readonly string HeaderBg = "#01645A";
     private static readonly string TableHeaderBg = "#F0FDFA"; // teal-50
     private static readonly string BorderColor = "#D1D5DB";   // gray-300
+
+    // Logo diaB bundled (wwwroot/brand/diab-logo.png) — fallback khi tenant chua cau hinh LogoUrl
+    private static readonly byte[]? DefaultLogo = LoadDefaultLogo();
+    private static byte[]? LoadDefaultLogo()
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(AppContext.BaseDirectory, "wwwroot", "brand", "diab-logo.png");
+            return System.IO.File.Exists(path) ? System.IO.File.ReadAllBytes(path) : null;
+        }
+        catch { return null; }
+    }
 
     private readonly IHttpClientFactory? _httpClientFactory;
     private readonly ILogger<QuestPdfReportExporter>? _logger;
@@ -299,21 +311,24 @@ public class QuestPdfReportExporter : IPdfReportExporter
             .Padding(10)
             .Row(row =>
             {
-                // Logo ben trai
-                if (logoBytes != null && logoBytes.Length > 0)
+                // Logo ben trai: uu tien LogoUrl cua tenant, sau do logo diaB bundled
+                var logo = (logoBytes != null && logoBytes.Length > 0) ? logoBytes : DefaultLogo;
+                if (logo != null && logo.Length > 0)
                 {
-                    row.ConstantItem(60)
+                    // Chip trang de logo mau noi tren nen header xanh
+                    row.ConstantItem(64)
                         .AlignMiddle()
-                        .Image(logoBytes)
+                        .Background("#FFFFFF")
+                        .Padding(4)
+                        .Image(logo)
                         .FitArea();
                 }
                 else
                 {
-                    // Placeholder khi khong co logo
                     row.ConstantItem(60)
                         .AlignMiddle()
                         .AlignCenter()
-                        .Text("dIaB")
+                        .Text("diaB")
                         .FontColor("#FFFFFF")
                         .Bold()
                         .FontSize(14);

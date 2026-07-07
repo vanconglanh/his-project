@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { APP_NAME } from "@/lib/utils/constants";
 
 /** Auto-collapse sidebar on tablet widths (<1024px) */
 function useTabletCollapse() {
@@ -59,12 +58,12 @@ export function AppSidebar() {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b px-3 shrink-0">
-        <Building2 className="h-6 w-6 text-primary shrink-0" />
-        {!sidebarCollapsed && (
-          <span className="ml-2 font-bold text-sm leading-tight truncate">
-            {APP_NAME}
-          </span>
+      <div className="flex h-16 items-center justify-center border-b px-3 shrink-0">
+        {sidebarCollapsed ? (
+          <Building2 className="h-6 w-6 text-primary shrink-0" />
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src="/brand/diab-logo.svg" alt="diaB" className="h-9 w-auto" />
         )}
       </div>
 
