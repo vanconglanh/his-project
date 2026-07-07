@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateService, useUpdateService } from "@/lib/hooks/use-services";
+import { useCodeItems } from "@/lib/hooks/use-codes";
+import { SERVICE_CATEGORY } from "@/lib/constants/code-labels";
 import type { ServiceResponse, ServiceCategory } from "@/lib/api/services";
 
 const schema = z.object({
@@ -45,18 +47,11 @@ interface Props {
   editTarget?: ServiceResponse | null;
 }
 
-const CATEGORIES: { value: ServiceCategory; label: string }[] = [
-  { value: "CONSULTATION", label: "Khám bệnh" },
-  { value: "PROCEDURE", label: "Thủ thuật" },
-  { value: "LAB", label: "Xét nghiệm" },
-  { value: "RAD", label: "CĐHA" },
-  { value: "PHARMACY", label: "Dược" },
-  { value: "OTHER", label: "Khác" },
-];
-
 export function ServiceForm({ open, onOpenChange, editTarget }: Props) {
   const createService = useCreateService();
   const updateService = useUpdateService();
+  // Danh muc DB-driven, fallback ve hang so SERVICE_CATEGORY neu chua tai duoc.
+  const categoryItems = useCodeItems("SERVICE_CATEGORY", SERVICE_CATEGORY);
 
   const {
     register,
@@ -135,7 +130,7 @@ export function ServiceForm({ open, onOpenChange, editTarget }: Props) {
             <div>
               <Label>Nhóm *</Label>
               <Select
-                items={Object.fromEntries(CATEGORIES.map((c) => [c.value, c.label]))}
+                items={categoryItems}
                 value={category}
                 onValueChange={(v) => setValue("category", v as ServiceCategory)}
               >
@@ -143,8 +138,8 @@ export function ServiceForm({ open, onOpenChange, editTarget }: Props) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  {Object.entries(categoryItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

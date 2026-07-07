@@ -9,21 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateDrug, useUpdateDrug } from "@/lib/hooks/use-drugs";
-import type { DrugMasterResponse, DrugForm as DrugFormType } from "@/lib/api/drugs";
-
-const DRUG_FORMS: { value: DrugFormType; label: string }[] = [
-  { value: "TABLET", label: "Viên nén" },
-  { value: "CAPSULE", label: "Viên nang" },
-  { value: "SYRUP", label: "Syrup" },
-  { value: "INJ", label: "Tiêm" },
-  { value: "CREAM", label: "Kem" },
-  { value: "OINTMENT", label: "Mỡ" },
-  { value: "DROP", label: "Nhỏ giọt" },
-  { value: "INHALER", label: "Hít" },
-  { value: "POWDER", label: "Bột" },
-  { value: "SUPPOSITORY", label: "Đặt" },
-  { value: "OTHER", label: "Khác" },
-];
+import { useCodeItems } from "@/lib/hooks/use-codes";
+import { DRUG_FORM } from "@/lib/constants/code-labels";
+import type { DrugMasterResponse } from "@/lib/api/drugs";
 
 const schema = z.object({
   code: z.string().min(1, "Bắt buộc"),
@@ -55,6 +43,8 @@ interface Props {
 export function DrugForm({ drug, onSuccess, onCancel }: Props) {
   const createDrug = useCreateDrug();
   const updateDrug = useUpdateDrug(drug?.id ?? "");
+  // Danh muc DB-driven, fallback ve hang so DRUG_FORM neu chua tai duoc.
+  const drugFormItems = useCodeItems("DRUG_FORM", DRUG_FORM);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema) as any,
@@ -124,14 +114,14 @@ export function DrugForm({ drug, onSuccess, onCancel }: Props) {
         <div className="space-y-1">
           <Label>Dạng bào chế <span className="text-destructive">*</span></Label>
           <Select
-            items={Object.fromEntries(DRUG_FORMS.map((f) => [f.value, f.label]))}
+            items={drugFormItems}
             defaultValue={drug?.form ?? "TABLET"}
             onValueChange={(v) => setValue("form", (v ?? "TABLET") as FormData["form"])}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {DRUG_FORMS.map((f) => (
-                <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+              {Object.entries(drugFormItems).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
