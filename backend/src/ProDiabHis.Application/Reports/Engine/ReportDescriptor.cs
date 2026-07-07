@@ -6,7 +6,8 @@ public enum ReportGroupCategory
     Financial,
     Clinical,
     Statistics,
-    Bhyt
+    Bhyt,
+    Pharmacy
 }
 
 /// <summary>Huong trang PDF — tu suy ra theo so cot (>=11 cot => Landscape) khi khoi tao descriptor.</summary>

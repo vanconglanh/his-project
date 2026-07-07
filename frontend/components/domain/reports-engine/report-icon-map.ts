@@ -28,6 +28,7 @@ export const REPORT_GROUP_LABELS: Record<string, string> = {
   Financial: "Tài chính",
   Clinical: "Khám bệnh/Sổ",
   Statistics: "Thống kê",
+  Pharmacy: "Kho dược",
   Bhyt: "BHYT",
 };
 

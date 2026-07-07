@@ -67,7 +67,16 @@ public class ReportRegistry : IReportRegistry
             RevenueMonthly(),
             PatientSourceSummary(),
             ClsIndicationStats(),
-            Debts()
+            Debts(),
+
+            // Nhom F — Kho duoc (Pharmacy) — descriptor thuan tren schema co san (khong bang/migration moi)
+            TonKho(),
+            TheKhoLo(),
+            ThuocCanDate(),
+            XuatNhapTon(),
+            DanhMucThuoc(),
+            ThuocKiemSoat(),
+            ThuocDuoiDinhMuc()
         };
 
         // Tu suy Orientation theo so cot (>=11 cot => Landscape) cho toan bo descriptor.
@@ -1763,6 +1772,418 @@ public class ReportRegistry : IReportRegistry
                   AND (@patientId IS NULL OR b.patient_id = @patientId)
                 ORDER BY b.balance DESC
                 LIMIT 3000";
+
+            return (sql, p);
+        }
+    };
+
+    // ============================================================================
+    // NHOM F — KHO DUOC (PHARMACY) — group=Pharmacy.
+    // Dung schema co san: diab_his_pha_stock (49 dong, CO DATA), diab_his_pha_drugs (38 dong),
+    // diab_his_pha_stock_movements (0 dong — rong an toan, KHONG loi).
+    // Luu y: diab_his_pha_stock KHONG co cot deleted_at (chi co deleted_by) — filter ton kho
+    // dung "quantity > 0" thay vi "deleted_at IS NULL". Tat ca cac bang lien quan cung
+    // collation utf8mb4_0900_ai_ci nen KHONG can COLLATE tren join.
+    // Ten hien thi thuoc: uu tien name_vi (hien dang rong o data that) roi name.
+    // ============================================================================
+
+    // ================= F1: Ton Kho Hien Tai (gop theo thuoc) ================= //
+    private static ReportDescriptor TonKho() => new()
+    {
+        Code = "ton-kho",
+        Title = "BÁO CÁO TỒN KHO HIỆN TẠI",
+        Group = ReportGroupCategory.Pharmacy,
+        GroupOrder = 1,
+        Icon = "package",
+        PdfTypeCode = "TKH",
+        Columns = new List<ReportColumn>
+        {
+            new("code",           "Mã thuốc",       ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("drugName",       "Tên thuốc",      ReportColumnType.Text,   ReportAlign.Left,  1.8f),
+            new("unit",           "ĐVT",            ReportColumnType.Text,   ReportAlign.Left,  0.6f),
+            new("stockQty",       "SL tồn",         ReportColumnType.Number, ReportAlign.Right, 0.8f, IsGroupSubtotal: true),
+            new("avgImportPrice", "Đơn giá nhập TB",ReportColumnType.Money,  ReportAlign.Right, 1f),
+            new("stockValue",     "Giá trị tồn",    ReportColumnType.Money,  ReportAlign.Right, 1.1f, IsGroupSubtotal: true)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG GIÁ TRỊ TỒN", "#F0FDFA", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "stockValue"))), IsMoney: true),
+            new("SỐ THUỐC CÓ TỒN",  "#FFFBEB", rows => rows.Count, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            // Snapshot ton kho hien tai — khong loc theo khoang ngay (from/to nhan de tuong thich engine chung).
+            const string sql = @"
+                SELECT
+                    d.code                                                    AS code,
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)                   AS drugName,
+                    d.unit                                                    AS unit,
+                    SUM(s.quantity)                                           AS stockQty,
+                    ROUND(SUM(s.quantity * s.import_price) / NULLIF(SUM(s.quantity), 0), 2) AS avgImportPrice,
+                    SUM(s.quantity * s.import_price)                          AS stockValue
+                FROM diab_his_pha_stock s
+                INNER JOIN diab_his_pha_drugs d ON d.id = s.drug_id AND d.tenant_id = s.tenant_id
+                WHERE s.tenant_id = @tenantId
+                  AND s.quantity > 0
+                GROUP BY d.id, d.code, d.name_vi, d.name, d.unit
+                ORDER BY drugName
+                LIMIT 2000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= F2: The Kho Chi Tiet Theo Lo/HSD ================= //
+    private static ReportDescriptor TheKhoLo() => new()
+    {
+        Code = "the-kho-lo",
+        Title = "BÁO CÁO THẺ KHO CHI TIẾT THEO LÔ",
+        Group = ReportGroupCategory.Pharmacy,
+        GroupOrder = 2,
+        Icon = "layers",
+        PdfTypeCode = "TKL",
+        Columns = new List<ReportColumn>
+        {
+            new("code",        "Mã thuốc",       ReportColumnType.Text,   ReportAlign.Left,  0.8f),
+            new("drugName",    "Tên thuốc",      ReportColumnType.Text,   ReportAlign.Left,  1.6f),
+            new("lotNumber",   "Lô",             ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("mfgDate",     "NSX",            ReportColumnType.Date,   ReportAlign.Left,  0.8f),
+            new("expDate",     "HSD",            ReportColumnType.Date,   ReportAlign.Left,  0.8f),
+            new("stockQty",    "SL tồn",         ReportColumnType.Number, ReportAlign.Right, 0.7f, IsGroupSubtotal: true),
+            new("importPrice", "Đơn giá nhập",   ReportColumnType.Money,  ReportAlign.Right, 0.9f),
+            new("stockValue",  "Giá trị",        ReportColumnType.Money,  ReportAlign.Right, 1f,   IsGroupSubtotal: true),
+            new("expStatus",   "Trạng thái HSD", ReportColumnType.Text,   ReportAlign.Left,  0.9f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG GIÁ TRỊ TỒN", "#F0FDFA", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "stockValue"))), IsMoney: true),
+            new("SỐ LÔ",            "#FFFBEB", rows => rows.Count, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            // Snapshot theo lo — khong loc theo khoang ngay.
+            const string sql = @"
+                SELECT
+                    d.code                                          AS code,
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
+                    s.lot_number                                    AS lotNumber,
+                    s.mfg_date                                      AS mfgDate,
+                    s.exp_date                                      AS expDate,
+                    s.quantity                                      AS stockQty,
+                    s.import_price                                  AS importPrice,
+                    s.quantity * s.import_price                     AS stockValue,
+                    CASE
+                        WHEN s.exp_date < CURDATE() THEN N'Hết hạn'
+                        WHEN s.exp_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN N'Cận date'
+                        ELSE N'Còn hạn'
+                    END                                              AS expStatus
+                FROM diab_his_pha_stock s
+                INNER JOIN diab_his_pha_drugs d ON d.id = s.drug_id AND d.tenant_id = s.tenant_id
+                WHERE s.tenant_id = @tenantId
+                  AND s.quantity > 0
+                ORDER BY drugName, s.exp_date
+                LIMIT 3000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= F3: Thuoc Can Date / Het Han ================= //
+    private static ReportDescriptor ThuocCanDate() => new()
+    {
+        Code = "thuoc-can-date",
+        Title = "BÁO CÁO THUỐC CẬN DATE / HẾT HẠN",
+        Group = ReportGroupCategory.Pharmacy,
+        GroupOrder = 3,
+        Icon = "alarm-clock",
+        PdfTypeCode = "CDT",
+        Columns = new List<ReportColumn>
+        {
+            new("drugName",   "Tên thuốc",         ReportColumnType.Text,   ReportAlign.Left,  1.8f),
+            new("lotNumber",  "Lô",                ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("expDate",    "HSD",               ReportColumnType.Date,   ReportAlign.Left,  0.9f),
+            new("daysLeft",   "Số ngày còn lại",   ReportColumnType.Number, ReportAlign.Right, 1f),
+            new("stockQty",   "SL tồn",            ReportColumnType.Number, ReportAlign.Right, 0.8f, IsGroupSubtotal: true),
+            new("expStatus",  "Trạng thái",        ReportColumnType.Text,   ReportAlign.Left,  0.9f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("SỐ LÔ CẬN DATE/HẾT HẠN", "#FEF2F2", rows => rows.Count, IsMoney: false),
+            new("TỔNG SL TỒN",            "#FFFBEB", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "stockQty"))), IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            // Snapshot — loc exp_date <= hom nay + 90 ngay (bao gom ca da het han).
+            const string sql = @"
+                SELECT
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
+                    s.lot_number                                    AS lotNumber,
+                    s.exp_date                                      AS expDate,
+                    DATEDIFF(s.exp_date, CURDATE())                 AS daysLeft,
+                    s.quantity                                      AS stockQty,
+                    CASE WHEN s.exp_date < CURDATE() THEN N'Hết hạn' ELSE N'Cận date' END AS expStatus
+                FROM diab_his_pha_stock s
+                INNER JOIN diab_his_pha_drugs d ON d.id = s.drug_id AND d.tenant_id = s.tenant_id
+                WHERE s.tenant_id = @tenantId
+                  AND s.quantity > 0
+                  AND s.exp_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)
+                ORDER BY s.exp_date ASC
+                LIMIT 2000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= F4: Xuat - Nhap - Ton Theo Ky ================= //
+    // TODO schema: diab_his_pha_stock_movements hien 0 dong (chua co nghiep vu ghi nhan bien dong kho
+    // thuc te qua bang nay) — bao cao nay se rong (0 dong) cho den khi co du lieu, KHONG phai loi SQL.
+    private static ReportDescriptor XuatNhapTon() => new()
+    {
+        Code = "xuat-nhap-ton",
+        Title = "BÁO CÁO XUẤT - NHẬP - TỒN",
+        Group = ReportGroupCategory.Pharmacy,
+        GroupOrder = 4,
+        Icon = "repeat",
+        PdfTypeCode = "XNT",
+        Columns = new List<ReportColumn>
+        {
+            new("code",         "Mã thuốc",     ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("drugName",     "Tên thuốc",    ReportColumnType.Text,   ReportAlign.Left,  1.8f),
+            new("unit",         "ĐVT",          ReportColumnType.Text,   ReportAlign.Left,  0.6f),
+            new("qtyIn",        "SL Nhập",      ReportColumnType.Number, ReportAlign.Right, 0.8f, IsGroupSubtotal: true),
+            new("qtyOut",       "SL Xuất",      ReportColumnType.Number, ReportAlign.Right, 0.8f, IsGroupSubtotal: true),
+            new("currentStock", "SL tồn hiện tại", ReportColumnType.Number, ReportAlign.Right, 0.9f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG SL NHẬP", "#F0FDFA", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "qtyIn"))), IsMoney: false),
+            new("TỔNG SL XUẤT", "#FFFBEB", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "qtyOut"))), IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            const string sql = @"
+                SELECT
+                    d.code                                          AS code,
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
+                    d.unit                                          AS unit,
+                    COALESCE(SUM(CASE WHEN mv.movement_type IN ('IMPORT', 'RETURN') THEN ABS(mv.quantity) ELSE 0 END), 0) AS qtyIn,
+                    COALESCE(SUM(CASE WHEN mv.movement_type = 'EXPORT' THEN ABS(mv.quantity) ELSE 0 END), 0)              AS qtyOut,
+                    COALESCE(cur.stockQty, 0)                       AS currentStock
+                FROM diab_his_pha_drugs d
+                LEFT JOIN diab_his_pha_stock st
+                    ON st.drug_id = d.id AND st.tenant_id = d.tenant_id
+                LEFT JOIN diab_his_pha_stock_movements mv
+                    ON mv.stock_id = st.id AND mv.tenant_id = d.tenant_id
+                   AND mv.deleted_at IS NULL
+                   AND mv.movement_at BETWEEN @from AND @to
+                LEFT JOIN (
+                    SELECT drug_id, SUM(quantity) AS stockQty
+                    FROM diab_his_pha_stock
+                    WHERE tenant_id = @tenantId AND quantity > 0
+                    GROUP BY drug_id
+                ) cur ON cur.drug_id = d.id
+                WHERE d.tenant_id = @tenantId
+                GROUP BY d.id, d.code, d.name_vi, d.name, d.unit, cur.stockQty
+                HAVING qtyIn > 0 OR qtyOut > 0
+                ORDER BY drugName
+                LIMIT 2000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= F5: Danh Muc Thuoc ================= //
+    private static ReportDescriptor DanhMucThuoc() => new()
+    {
+        Code = "danh-muc-thuoc",
+        Title = "BÁO CÁO DANH MỤC THUỐC",
+        Group = ReportGroupCategory.Pharmacy,
+        GroupOrder = 5,
+        Icon = "list",
+        PdfTypeCode = "DMT",
+        Columns = new List<ReportColumn>
+        {
+            new("stt",           "STT",         ReportColumnType.Number, ReportAlign.Right, 0.5f),
+            new("code",          "Mã",          ReportColumnType.Text,   ReportAlign.Left,  0.8f),
+            new("drugName",      "Tên thuốc",   ReportColumnType.Text,   ReportAlign.Left,  1.8f),
+            new("activeIngredient", "Hoạt chất",ReportColumnType.Text,   ReportAlign.Left,  1.5f),
+            new("unit",          "ĐVT",         ReportColumnType.Text,   ReportAlign.Left,  0.6f),
+            new("atcCode",       "Mã ATC",      ReportColumnType.Text,   ReportAlign.Left,  0.8f),
+            new("sellPrice",     "Giá bán",     ReportColumnType.Money,  ReportAlign.Right, 0.9f),
+            new("requiresRx",    "Kê đơn",      ReportColumnType.Text,   ReportAlign.Left,  0.6f),
+            new("controlLabel",  "Kiểm soát",   ReportColumnType.Text,   ReportAlign.Left,  0.9f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG SỐ THUỐC", "#F0FDFA", rows => rows.Count, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            // Snapshot danh muc — khong loc theo khoang ngay.
+            const string sql = @"
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY COALESCE(NULLIF(d.name_vi, ''), d.name)) AS stt,
+                    d.code                                              AS code,
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)             AS drugName,
+                    COALESCE(d.generic_name, N'Chưa ghi nhận')          AS activeIngredient,
+                    d.unit                                              AS unit,
+                    COALESCE(d.atc_code, N'')                           AS atcCode,
+                    COALESCE(NULLIF(d.sell_price, 0), d.price, 0)       AS sellPrice,
+                    CASE WHEN d.requires_prescription = 1 OR d.requires_rx = 1 THEN N'Có' ELSE N'Không' END AS requiresRx,
+                    CASE
+                        WHEN d.is_narcotic = 1     THEN N'Gây nghiện'
+                        WHEN d.is_psychotropic = 1 THEN N'Hướng thần'
+                        WHEN d.is_controlled = 1   THEN N'Kiểm soát'
+                        ELSE N'Thường'
+                    END                                                  AS controlLabel
+                FROM diab_his_pha_drugs d
+                WHERE d.tenant_id = @tenantId
+                  AND d.deleted_at IS NULL
+                  AND d.is_active = 1
+                ORDER BY drugName
+                LIMIT 3000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= F6: Thuoc Kiem Soat Dac Biet (TT 20/2017) ================= //
+    private static ReportDescriptor ThuocKiemSoat() => new()
+    {
+        Code = "thuoc-kiem-soat",
+        Title = "BÁO CÁO THUỐC KIỂM SOÁT ĐẶC BIỆT",
+        Group = ReportGroupCategory.Pharmacy,
+        GroupOrder = 6,
+        Icon = "shield-alert",
+        PdfTypeCode = "TKS",
+        Columns = new List<ReportColumn>
+        {
+            new("drugName",    "Tên thuốc",   ReportColumnType.Text,   ReportAlign.Left,  1.8f),
+            new("controlType", "Phân loại",   ReportColumnType.Text,   ReportAlign.Left,  1.1f),
+            new("lotNumber",   "Lô",          ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("expDate",     "HSD",         ReportColumnType.Date,   ReportAlign.Left,  0.9f),
+            new("stockQty",    "SL tồn",      ReportColumnType.Number, ReportAlign.Right, 0.8f, IsGroupSubtotal: true),
+            new("importPrice", "Đơn giá",     ReportColumnType.Money,  ReportAlign.Right, 0.9f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("SỐ LÔ THUỐC KIỂM SOÁT", "#FEF2F2", rows => rows.Count, IsMoney: false),
+            new("TỔNG SL TỒN",           "#FFFBEB", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "stockQty"))), IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            // Snapshot — chi lay thuoc gan co it nhat 1 trong 3 co: gay nghien/huong than/kiem soat.
+            // Neu chua co thuoc nao gan co (data hien tai) thi tra ve rong an toan (khong loi).
+            const string sql = @"
+                SELECT
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)             AS drugName,
+                    CASE
+                        WHEN d.is_narcotic = 1     THEN N'Gây nghiện'
+                        WHEN d.is_psychotropic = 1 THEN N'Hướng thần'
+                        ELSE N'Kiểm soát'
+                    END                                                  AS controlType,
+                    s.lot_number                                        AS lotNumber,
+                    s.exp_date                                          AS expDate,
+                    s.quantity                                          AS stockQty,
+                    s.import_price                                      AS importPrice
+                FROM diab_his_pha_drugs d
+                INNER JOIN diab_his_pha_stock s ON s.drug_id = d.id AND s.tenant_id = d.tenant_id
+                WHERE d.tenant_id = @tenantId
+                  AND (d.is_narcotic = 1 OR d.is_psychotropic = 1 OR d.is_controlled = 1)
+                  AND s.quantity > 0
+                ORDER BY drugName, s.exp_date
+                LIMIT 2000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= F7: Thuoc Duoi Dinh Muc Ton ================= //
+    private static ReportDescriptor ThuocDuoiDinhMuc() => new()
+    {
+        Code = "thuoc-duoi-dinh-muc",
+        Title = "BÁO CÁO THUỐC DƯỚI ĐỊNH MỨC TỒN",
+        Group = ReportGroupCategory.Pharmacy,
+        GroupOrder = 7,
+        Icon = "trending-down",
+        PdfTypeCode = "DDM",
+        Columns = new List<ReportColumn>
+        {
+            new("code",          "Mã",              ReportColumnType.Text,   ReportAlign.Left,  0.8f),
+            new("drugName",      "Tên thuốc",       ReportColumnType.Text,   ReportAlign.Left,  1.8f),
+            new("unit",          "ĐVT",             ReportColumnType.Text,   ReportAlign.Left,  0.6f),
+            new("stockQty",      "SL tồn",          ReportColumnType.Number, ReportAlign.Right, 0.8f),
+            new("reorderLevel",  "Định mức",        ReportColumnType.Number, ReportAlign.Right, 0.8f),
+            new("needMore",      "Cần đặt thêm",    ReportColumnType.Number, ReportAlign.Right, 0.9f, IsGroupSubtotal: true)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("SỐ THUỐC CẦN ĐẶT",  "#FEF2F2", rows => rows.Count, IsMoney: false),
+            new("TỔNG SL CẦN ĐẶT",   "#FFFBEB", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "needMore"))), IsMoney: false)
+        },
+        Filters = new List<ReportFilter>(),
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+
+            // Snapshot — gop ton kho theo thuoc, loc SUM(quantity) < reorder_level (reorder_level > 0).
+            const string sql = @"
+                SELECT
+                    d.code                                          AS code,
+                    COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
+                    d.unit                                          AS unit,
+                    COALESCE(SUM(s.quantity), 0)                    AS stockQty,
+                    d.reorder_level                                 AS reorderLevel,
+                    GREATEST(d.reorder_level - COALESCE(SUM(s.quantity), 0), 0) AS needMore
+                FROM diab_his_pha_drugs d
+                LEFT JOIN diab_his_pha_stock s
+                    ON s.drug_id = d.id AND s.tenant_id = d.tenant_id AND s.quantity > 0
+                WHERE d.tenant_id = @tenantId
+                  AND d.reorder_level > 0
+                  AND d.deleted_at IS NULL
+                GROUP BY d.id, d.code, d.name_vi, d.name, d.unit, d.reorder_level
+                HAVING stockQty < d.reorder_level
+                ORDER BY needMore DESC
+                LIMIT 2000";
 
             return (sql, p);
         }
