@@ -246,6 +246,14 @@ public static class DependencyInjection
         services.AddScoped<IWebPushSender, WebPushSenderImpl>();
         services.AddScoped<NotificationDispatcherJob>();
 
+        // Patient Portal — thong bao benh nhan (fan-out push -> email) + jobs
+        services.AddScoped<INotificationChannel, WebPushPatientChannel>();
+        services.AddScoped<INotificationChannel, EmailPatientChannel>();
+        services.AddScoped<IPatientNotifyService, PatientNotifyService>();
+        services.AddScoped<RecallNotifyJob>();
+        services.AddScoped<MedReminderJob>();
+        services.AddScoped<QueueTurnNotifyJob>();
+
         // SMS Gateway — dung Mock cho dev, override bang DI extension khi can
         var smsProvider = configuration["Sms:Provider"] ?? "mock";
         services.AddScoped<ISmsGateway>(sp => smsProvider switch

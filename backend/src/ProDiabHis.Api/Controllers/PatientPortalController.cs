@@ -180,15 +180,20 @@ public class PatientPortalController : ControllerBase
     [Authorize(AuthenticationSchemes = "PortalBearer")]
     public async Task<IActionResult> GetEncounterDetail(Guid id, CancellationToken cancellationToken)
     {
-        // Delegate to GetPortalEncountersQuery filtered — stub for now
-        return Ok(new { data = new { id } });
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalEncounterDetailQuery(id, PatientId, TenantId), cancellationToken);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
     }
 
     // -------- Prescriptions --------
     [HttpGet("me/prescriptions")]
     [Authorize(AuthenticationSchemes = "PortalBearer")]
-    public IActionResult GetPrescriptions()
-        => Ok(new { data = Array.Empty<object>() });
+    public async Task<IActionResult> GetPrescriptions(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalPrescriptionsQuery(PatientId, TenantId), cancellationToken);
+        return Ok(new { data = result });
+    }
 
     [HttpGet("me/prescriptions/{id:guid}/pdf")]
     [Authorize(AuthenticationSchemes = "PortalBearer")]
@@ -208,8 +213,11 @@ public class PatientPortalController : ControllerBase
     // -------- Lab Results --------
     [HttpGet("me/lab-results")]
     [Authorize(AuthenticationSchemes = "PortalBearer")]
-    public IActionResult GetLabResults()
-        => Ok(new { data = Array.Empty<object>() });
+    public async Task<IActionResult> GetLabResults(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalLabResultsQuery(PatientId, TenantId), cancellationToken);
+        return Ok(new { data = result });
+    }
 
     [HttpGet("me/lab-results/{id:guid}/pdf")]
     [Authorize(AuthenticationSchemes = "PortalBearer")]
@@ -266,5 +274,100 @@ public class PatientPortalController : ControllerBase
         {
             return NotFound(new { error = new { code = "APPOINTMENT_NOT_FOUND", message = "Khong tim thay lich hen" } });
         }
+    }
+
+    // -------- Queue (hang doi tiep don hom nay) --------
+    [HttpGet("me/queue")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> GetQueueStatus(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalQueueStatusQuery(PatientId, TenantId), cancellationToken);
+        return Ok(new { data = result });
+    }
+
+    // -------- Booking: doctors + slots --------
+    [HttpGet("booking/doctors")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> GetBookingDoctors(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalBookingDoctorsQuery(TenantId), cancellationToken);
+        return Ok(new { data = result });
+    }
+
+    [HttpGet("booking/slots")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> GetBookingSlots(
+        [FromQuery] Guid doctor_ref, [FromQuery] DateOnly date, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalBookingSlotsQuery(TenantId, doctor_ref, date), cancellationToken);
+        return Ok(new { data = result });
+    }
+
+    // -------- Med reminders (nhac uong thuoc) --------
+    [HttpGet("me/med-reminders")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> GetMedReminders(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalMedRemindersQuery(PatientId, TenantId), cancellationToken);
+        return Ok(new { data = result });
+    }
+
+    [HttpPost("me/med-reminders/from-prescription/{prescriptionId:guid}")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> CreateMedRemindersFromPrescription(Guid prescriptionId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new Application.PublicApi.CreateMedRemindersFromPrescriptionCommand(prescriptionId, PatientId, TenantId), cancellationToken);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return StatusCode(201, new { data = result.Value });
+    }
+
+    [HttpPut("me/med-reminders/{id:guid}")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> UpdateMedReminder(Guid id, [FromBody] Application.PublicApi.UpdateMedReminderRequest body, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new Application.PublicApi.UpdateMedReminderEnabledCommand(id, PatientId, TenantId, body.Enabled), cancellationToken);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return NoContent();
+    }
+
+    // -------- Notification preferences + web push subscriptions --------
+    [HttpGet("me/notification-preferences")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> GetNotificationPreferences(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalNotifyPreferencesQuery(PatientId, TenantId), cancellationToken);
+        return Ok(new { data = result });
+    }
+
+    [HttpPut("me/notification-preferences")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> UpdateNotificationPreferences(
+        [FromBody] Application.PublicApi.UpdatePortalNotifyPreferencesRequest body, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new Application.PublicApi.UpdatePortalNotifyPreferencesCommand(PatientId, TenantId, body), cancellationToken);
+        return Ok(new { data = result });
+    }
+
+    [HttpPost("me/push-subscriptions")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> SubscribePush(
+        [FromBody] Application.PublicApi.PortalPushSubscribeRequest body, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new Application.PublicApi.PortalPushSubscribeCommand(PatientId, TenantId, body), cancellationToken);
+        return StatusCode(201, new { data = new { message = "Đã đăng ký nhận thông báo đẩy" } });
+    }
+
+    [HttpDelete("me/push-subscriptions")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> UnsubscribePush(
+        [FromBody] Application.PublicApi.PortalPushUnsubscribeRequest body, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new Application.PublicApi.PortalPushUnsubscribeCommand(PatientId, TenantId, body.Endpoint), cancellationToken);
+        return NoContent();
     }
 }

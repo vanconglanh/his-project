@@ -17,4 +17,7 @@ public interface IBackgroundJobEnqueuer
 
     /// <summary>Enqueue BhytReconcileParse job</summary>
     string EnqueueBhytReconcileParse(string uploadId, int exportId, int tenantId, string filePath);
+
+    /// <summary>Enqueue thong bao "sap den luot" cho benh nhan cung phong khi 1 phieu chuyen sang CALLED</summary>
+    string EnqueueQueueTurnNotify(string roomId, int tenantId, string calledTicketId);
 }

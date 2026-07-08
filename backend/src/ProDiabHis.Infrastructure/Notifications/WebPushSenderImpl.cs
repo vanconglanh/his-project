@@ -62,12 +62,32 @@ public class WebPushSenderImpl : IWebPushSender
         var subs = await conn.QueryAsync<(string endpoint, string p256dh, string auth)>(
             @"SELECT endpoint, p256dh_key AS p256dh, auth_key AS auth
               FROM diab_his_nti_web_push_subs
-              WHERE user_id = UUID_TO_BIN(@UserId) AND tenant_id = @TenantId",
+              WHERE user_id = @UserId AND tenant_id = @TenantId",
             new { UserId = userId.ToString(), TenantId = tenantId });
 
         foreach (var sub in subs)
         {
             await SendAsync(sub.endpoint, sub.p256dh, sub.auth, tenantId, payload, cancellationToken);
         }
+    }
+
+    public async Task<bool> SendToPatientAsync(Guid patientId, int tenantId, WebPushPayload payload,
+        CancellationToken cancellationToken = default)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var subs = (await conn.QueryAsync<(string endpoint, string p256dh, string auth)>(
+            @"SELECT endpoint, p256dh_key AS p256dh, auth_key AS auth
+              FROM diab_his_nti_web_push_subs
+              WHERE patient_id = @PatientId AND tenant_id = @TenantId",
+            new { PatientId = patientId.ToString(), TenantId = tenantId })).ToList();
+
+        if (subs.Count == 0) return false;
+
+        foreach (var sub in subs)
+        {
+            await SendAsync(sub.endpoint, sub.p256dh, sub.auth, tenantId, payload, cancellationToken);
+        }
+
+        return true;
     }
 }

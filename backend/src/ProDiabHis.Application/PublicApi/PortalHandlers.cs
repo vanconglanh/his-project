@@ -311,6 +311,44 @@ public class CreatePortalAppointmentHandler : IRequestHandler<CreatePortalAppoin
     {
         using var conn = _db.CreateConnection();
 
+        if (cmd.Request.DoctorId.HasValue)
+        {
+            var doctorRef = cmd.Request.DoctorId.Value.ToString();
+            var apptDate = cmd.Request.AppointmentAt.ToString("yyyy-MM-dd");
+            int isoDayOfWeek = cmd.Request.AppointmentAt.DayOfWeek == DayOfWeek.Sunday
+                ? 7 : (int)cmd.Request.AppointmentAt.DayOfWeek;
+            var apptTime = cmd.Request.AppointmentAt.TimeOfDay;
+
+            // Neu bac si co cau hinh lich lam viec -> slot phai nam trong lich va khong bi block
+            var hasSchedule = await conn.ExecuteScalarAsync<int>(
+                @"SELECT COUNT(*) FROM diab_his_sch_doctor_schedules
+                  WHERE tenant_id = @TenantId AND doctor_ref = @DoctorRef AND enabled = 1 AND deleted_at IS NULL",
+                new { cmd.TenantId, DoctorRef = doctorRef });
+
+            if (hasSchedule > 0)
+            {
+                var withinSchedule = await conn.ExecuteScalarAsync<int>(
+                    @"SELECT COUNT(*) FROM diab_his_sch_doctor_schedules
+                      WHERE tenant_id = @TenantId AND doctor_ref = @DoctorRef AND day_of_week = @Dow
+                        AND enabled = 1 AND deleted_at IS NULL
+                        AND start_time <= @ApptTime AND end_time > @ApptTime
+                        AND (effective_from IS NULL OR effective_from <= @ApptDate)
+                        AND (effective_to IS NULL OR effective_to >= @ApptDate)",
+                    new { cmd.TenantId, DoctorRef = doctorRef, Dow = isoDayOfWeek, ApptTime = apptTime, ApptDate = apptDate });
+
+                if (withinSchedule == 0) throw new SlotTakenException();
+
+                var blocked = await conn.ExecuteScalarAsync<int>(
+                    @"SELECT COUNT(*) FROM diab_his_sch_schedule_blocks
+                      WHERE tenant_id = @TenantId AND doctor_ref = @DoctorRef AND block_date = @ApptDate
+                        AND deleted_at IS NULL
+                        AND (start_time IS NULL OR (start_time <= @ApptTime AND end_time > @ApptTime))",
+                    new { cmd.TenantId, DoctorRef = doctorRef, ApptDate = apptDate, ApptTime = apptTime });
+
+                if (blocked > 0) throw new SlotTakenException();
+            }
+        }
+
         // Kiem tra trung slot bac si (+-30 phut), bo qua lich da huy
         if (cmd.Request.DoctorId.HasValue)
         {
