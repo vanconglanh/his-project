@@ -6,6 +6,7 @@ using ProDiabHis.Api.Filters;
 using ProDiabHis.Api.Services;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Encounters;
+using ProDiabHis.Application.PublicApi;
 using ProDiabHis.Application.Reception;
 using ProDiabHis.Application.Reports;
 
@@ -46,6 +47,27 @@ public class ReceptionController : ControllerBase
             return StatusCode(statusCode, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
         }
         return StatusCode(201, new { data = result.Value });
+    }
+
+    // POST /api/v1/reception/patients/{id}/portal-activation
+    // Le tan cap ma kich hoat portal cho benh nhan (in kem phieu kham). Tra ma plaintext 1 lan.
+    [HttpPost("patients/{id:guid}/portal-activation")]
+    [RequirePermission("reception.checkin")]
+    public async Task<IActionResult> IssuePortalActivation(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _mediator.Send(new IssuePortalActivationCommand(id, _tenant.TenantId), ct);
+            return Ok(new { data = result });
+        }
+        catch (PatientNotFoundException)
+        {
+            return NotFound(new { error = new { code = "PATIENT_NOT_FOUND", message = "Không tìm thấy bệnh nhân" } });
+        }
+        catch (PortalPhoneNotRegisteredException)
+        {
+            return BadRequest(new { error = new { code = "PATIENT_PHONE_MISSING", message = "Bệnh nhân chưa có số điện thoại trong hồ sơ" } });
+        }
     }
 
     // GET /api/v1/reception/queue

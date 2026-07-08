@@ -109,15 +109,27 @@ public class CallTicketCommandHandler : IRequestHandler<CallTicketCommand, Resul
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBackgroundJobEnqueuer _jobs;
 
-    public CallTicketCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public CallTicketCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBackgroundJobEnqueuer jobs)
     {
         _db = db;
         _tenant = tenant;
+        _jobs = jobs;
     }
 
     public async Task<Result<ReceptionTicketResponse>> Handle(CallTicketCommand command, CancellationToken cancellationToken)
-        => await TicketTransitionHelper.TransitionTicket(_db, _tenant, command.TicketId, TicketStatus.Called, cancellationToken);
+    {
+        var result = await TicketTransitionHelper.TransitionTicket(_db, _tenant, command.TicketId, TicketStatus.Called, cancellationToken);
+
+        // Bao cho benh nhan gan den luot (fire-and-forget qua Hangfire, khong chan response)
+        if (result.IsSuccess && result.Value!.RoomId != Guid.Empty)
+        {
+            _jobs.EnqueueQueueTurnNotify(result.Value.RoomId.ToString(), _tenant.TenantId, command.TicketId.ToString());
+        }
+
+        return result;
+    }
 }
 
 public class SkipTicketCommandHandler : IRequestHandler<SkipTicketCommand, Result<ReceptionTicketResponse>>

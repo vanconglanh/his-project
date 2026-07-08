@@ -198,6 +198,7 @@ public record PortalPrescriptionResponse(
     string PrescriptionCode,
     DateTime IssuedAt,
     string DoctorName,
+    string? Note,
     string? DtqgCode,
     List<PrescriptionItemDto> Items
 );
@@ -214,4 +215,113 @@ public record PortalAppointmentCreateRequest(
     Guid? DoctorId = null,
     Guid? DepartmentId = null,
     string? Note = null
+);
+
+// --- Portal: Lab results ---
+public record PortalLabResultResponse(
+    Guid Id,
+    string TestName,
+    DateTime ResultDate,
+    string? Conclusion,
+    string Status
+);
+
+// --- Portal: Encounter detail ---
+public record PortalEncounterDetailResponse(
+    Guid Id,
+    string EncounterCode,
+    DateTime VisitedAt,
+    string DoctorName,
+    string ChiefComplaint,
+    List<DiagnosisItem> Diagnosis,
+    string? Conclusion,
+    string? DoctorAdvice,
+    List<PortalEncounterPrescriptionItem> PrescriptionItems
+);
+
+public record PortalEncounterPrescriptionItem(
+    string DrugName,
+    string Dosage,
+    string? Frequency,
+    int? DurationDays,
+    string? Instructions
+);
+
+// --- Portal: Queue status ---
+public record PortalQueueStatusResponse(
+    string TicketNo,
+    string? RoomName,
+    string Status,
+    string? CurrentCalledNo,
+    int WaitingAhead,
+    int EstWaitMinutes
+);
+
+// --- Portal: Booking ---
+public record PortalDoctorOptionResponse(Guid DoctorRef, string FullName);
+
+public record PortalSlotResponse(DateTime SlotAt, bool Available);
+
+// --- Portal: Med reminders ---
+public record PortalMedReminderResponse(
+    Guid Id,
+    string DrugName,
+    string? DoseLabel,
+    string TimeSlot,
+    TimeOnly RemindTime,
+    DateOnly StartDate,
+    DateOnly? EndDate,
+    bool Enabled
+);
+
+public record UpdateMedReminderRequest(bool Enabled);
+
+// --- Portal: Notification preferences ---
+public record PortalNotifyPreferencesResponse(bool Push, bool Email);
+public record UpdatePortalNotifyPreferencesRequest(bool Push, bool Email);
+
+public record PortalPushSubscribeRequest(string Endpoint, string P256dh, string Auth);
+public record PortalPushUnsubscribeRequest(string Endpoint);
+
+// --- Admin: Doctor schedules ---
+public record DoctorScheduleResponse(
+    int Id,
+    Guid DoctorRef,
+    int DayOfWeek,
+    TimeOnly StartTime,
+    TimeOnly EndTime,
+    int SlotMinutes,
+    int MaxPerSlot,
+    DateOnly? EffectiveFrom,
+    DateOnly? EffectiveTo,
+    bool Enabled
+);
+
+public record DoctorScheduleUpsertRequest(
+    Guid DoctorRef,
+    int DayOfWeek,
+    TimeOnly StartTime,
+    TimeOnly EndTime,
+    int SlotMinutes = 15,
+    int MaxPerSlot = 1,
+    DateOnly? EffectiveFrom = null,
+    DateOnly? EffectiveTo = null,
+    bool Enabled = true
+);
+
+public record ScheduleBlockResponse(
+    int Id,
+    Guid DoctorRef,
+    DateOnly BlockDate,
+    TimeOnly? StartTime,
+    TimeOnly? EndTime,
+    string? Reason
+);
+
+public record ScheduleBlockCreateRequest(
+    Guid DoctorRef,
+    DateOnly BlockDate,
+    TimeOnly? StartTime = null,
+    TimeOnly? EndTime = null,
+    string? Reason = null
 );

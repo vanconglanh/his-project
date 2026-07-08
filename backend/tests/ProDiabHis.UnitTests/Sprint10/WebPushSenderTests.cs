@@ -33,8 +33,9 @@ public class WebPushSenderTests
 
         var dbFactory = Substitute.For<ProDiabHis.Application.Common.IDapperConnectionFactory>();
         var logger = NullLogger<WebPushSenderImpl>.Instance;
+        var config = Substitute.For<Microsoft.Extensions.Configuration.IConfiguration>();
 
-        var sender = new WebPushSenderImpl(vapidService, httpFactory, dbFactory, logger);
+        var sender = new WebPushSenderImpl(vapidService, httpFactory, dbFactory, logger, config);
 
         // Act + Assert: should not throw even with stub connection
         var act = async () => await sender.SendAsync(

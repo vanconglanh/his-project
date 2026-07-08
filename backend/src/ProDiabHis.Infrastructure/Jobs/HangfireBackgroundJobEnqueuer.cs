@@ -24,4 +24,7 @@ public class HangfireBackgroundJobEnqueuer : IBackgroundJobEnqueuer
     public string EnqueueBhytReconcileParse(string uploadId, int exportId, int tenantId, string filePath)
         => _client.Enqueue<BhytReconcileParseJob>(j =>
             j.ExecuteAsync(uploadId, exportId, tenantId, filePath));
+
+    public string EnqueueQueueTurnNotify(string roomId, int tenantId, string calledTicketId)
+        => _client.Enqueue<QueueTurnNotifyJob>(j => j.ExecuteAsync(roomId, tenantId, calledTicketId, default));
 }

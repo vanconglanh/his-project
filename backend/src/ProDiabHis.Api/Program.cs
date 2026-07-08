@@ -219,6 +219,17 @@ try
         j => j.ExecuteAsync(default),
         "0 * * * *");
 
+    // Patient Portal: nhac tai kham + nhac lich hen T-1 (08:00 hang ngay)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.RecallNotifyJob>(
+        "portal-recall-notify",
+        j => j.ExecuteAsync(default),
+        "0 8 * * *");
+    // Patient Portal: nhac uong thuoc (moi 30 phut)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.MedReminderJob>(
+        "portal-med-reminder",
+        j => j.ExecuteAsync(default),
+        "*/30 * * * *");
+
     // Minimal endpoint kiem tra nhanh
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
