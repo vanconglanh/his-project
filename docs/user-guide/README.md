@@ -15,6 +15,7 @@ Tài liệu hướng dẫn dành cho người dùng cuối hệ thống quản l
 | [06 - Quản trị hệ thống](06-admin.md) | Quản trị (Admin) |
 | [07 - Cổng bệnh nhân](07-portal.md) | Bệnh nhân |
 | [08 - Báo cáo & Thống kê (BI)](08-bao-cao-bi.md) | Kế toán, Bác sĩ, Dược sĩ, Quản trị |
+| [09 - Tự tạo báo cáo (Report Builder)](09-tao-bao-cao-tu-phuc-vu.md) | Power user (quyền report.build) |
 
 ## Hỗ trợ
 
