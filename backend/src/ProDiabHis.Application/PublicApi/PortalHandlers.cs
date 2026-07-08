@@ -7,7 +7,16 @@ using ProDiabHis.Application.PublicApi;
 namespace ProDiabHis.Application.PublicApi;
 
 // ============================================================
-// Portal: Request OTP
+// GHI CHU KIEN TRUC (2026-07-08):
+//   Toan bo id he thong benh nhan/luot kham la CHAR(36) (chuoi UUID), KHONG phai
+//   BINARY(16). Cac view "his_patient"/"his_encounter" khong ton tai -> query truc
+//   tiep bang that: diab_his_pat_patients, diab_his_enc_encounters,
+//   diab_his_enc_diagnoses, diab_his_sec_users, diab_his_pat_insurances.
+//   Bo het UUID_TO_BIN/BIN_TO_UUID. So sanh id = @Id (chuoi).
+// ============================================================
+
+// ============================================================
+// Portal: Request OTP (dung cho quen PIN — gui OTP qua email/SMS)
 // ============================================================
 public record PortalRequestOtpCommand(string Phone, int TenantId) : IRequest;
 
@@ -28,20 +37,18 @@ public class PortalRequestOtpHandler : IRequestHandler<PortalRequestOtpCommand>
     {
         using var conn = _db.CreateConnection();
 
-        var account = await conn.QueryFirstOrDefaultAsync<(Guid patient_id, int failed_attempts, DateTime? locked_until, DateTime? last_otp_sent_at)>(
-            @"SELECT BIN_TO_UUID(patient_id) AS patient_id, failed_attempts, locked_until, last_otp_sent_at
+        var account = await conn.QueryFirstOrDefaultAsync<(string patient_id, int failed_attempts, DateTime? locked_until)>(
+            @"SELECT patient_id, failed_attempts, locked_until
               FROM diab_his_pat_portal_accounts
               WHERE tenant_id = @TenantId AND phone = @Phone",
             new { cmd.TenantId, cmd.Phone });
 
-        if (account == default)
+        if (account.patient_id == null)
             throw new PortalPhoneNotRegisteredException();
 
-        // Check lock
         if (account.locked_until.HasValue && account.locked_until.Value > DateTime.UtcNow)
             throw new OtpTooManyAttemptsException();
 
-        // Throttle: max 5 req/hour
         var sentLastHour = await conn.ExecuteScalarAsync<int>(
             @"SELECT COUNT(*) FROM diab_his_pat_portal_otp_log
               WHERE tenant_id = @TenantId AND phone = @Phone
@@ -57,7 +64,7 @@ public class PortalRequestOtpHandler : IRequestHandler<PortalRequestOtpCommand>
         await conn.ExecuteAsync(
             @"INSERT INTO diab_his_pat_portal_otp_log
                 (id, tenant_id, phone, otp_hash, purpose, sent_at, expires_at, attempts)
-              VALUES (UUID_TO_BIN(@Id), @TenantId, @Phone, @Hash, 'LOGIN', UTC_TIMESTAMP(),
+              VALUES (@Id, @TenantId, @Phone, @Hash, 'LOGIN', UTC_TIMESTAMP(),
                       DATE_ADD(UTC_TIMESTAMP(), INTERVAL 5 MINUTE), 0)",
             new { Id = Guid.NewGuid().ToString(), cmd.TenantId, cmd.Phone, Hash = hash });
 
@@ -98,31 +105,31 @@ public class PortalVerifyOtpHandler : IRequestHandler<PortalVerifyOtpCommand, Po
         using var conn = _db.CreateConnection();
 
         var account = await conn.QueryFirstOrDefaultAsync<(string patient_id, int failed_attempts, DateTime? locked_until)>(
-            @"SELECT BIN_TO_UUID(patient_id) AS patient_id, failed_attempts, locked_until
+            @"SELECT patient_id, failed_attempts, locked_until
               FROM diab_his_pat_portal_accounts
               WHERE tenant_id = @TenantId AND phone = @Phone",
             new { cmd.TenantId, cmd.Phone });
 
-        if (account == default) throw new PortalPhoneNotRegisteredException();
+        if (account.patient_id == null) throw new PortalPhoneNotRegisteredException();
         if (account.locked_until.HasValue && account.locked_until.Value > DateTime.UtcNow)
             throw new OtpTooManyAttemptsException();
 
         var otpLog = await conn.QueryFirstOrDefaultAsync<(string id, string otp_hash, DateTime expires_at, int attempts)>(
-            @"SELECT BIN_TO_UUID(id) AS id, otp_hash, expires_at, attempts
+            @"SELECT id, otp_hash, expires_at, attempts
               FROM diab_his_pat_portal_otp_log
               WHERE tenant_id = @TenantId AND phone = @Phone AND purpose = 'LOGIN'
                 AND verified_at IS NULL
               ORDER BY sent_at DESC LIMIT 1",
             new { cmd.TenantId, cmd.Phone });
 
-        if (otpLog == default || otpLog.expires_at < DateTime.UtcNow)
+        if (otpLog.id == null || otpLog.expires_at < DateTime.UtcNow)
             throw new OtpExpiredException();
 
         if (!_hasher.Verify(cmd.Otp, otpLog.otp_hash))
         {
             var newAttempts = otpLog.attempts + 1;
             await conn.ExecuteAsync(
-                "UPDATE diab_his_pat_portal_otp_log SET attempts = @A WHERE id = UUID_TO_BIN(@Id)",
+                "UPDATE diab_his_pat_portal_otp_log SET attempts = @A WHERE id = @Id",
                 new { A = newAttempts, Id = otpLog.id });
 
             if (newAttempts >= 5)
@@ -137,28 +144,24 @@ public class PortalVerifyOtpHandler : IRequestHandler<PortalVerifyOtpCommand, Po
             throw new OtpInvalidException();
         }
 
-        // Mark verified
         await conn.ExecuteAsync(
-            "UPDATE diab_his_pat_portal_otp_log SET verified_at = UTC_TIMESTAMP() WHERE id = UUID_TO_BIN(@Id)",
+            "UPDATE diab_his_pat_portal_otp_log SET verified_at = UTC_TIMESTAMP() WHERE id = @Id",
             new { Id = otpLog.id });
 
-        // Reset failed attempts
         await conn.ExecuteAsync(
             "UPDATE diab_his_pat_portal_accounts SET failed_attempts = 0, locked_until = NULL WHERE tenant_id = @TenantId AND phone = @Phone",
             new { cmd.TenantId, cmd.Phone });
 
-        // Get patient info
         var patient = await conn.QueryFirstAsync<(string patient_code, string full_name)>(
-            "SELECT patient_code, full_name FROM his_patient WHERE id = UUID_TO_BIN(@Id)",
-            new { Id = account.patient_id });
+            "SELECT code AS patient_code, full_name FROM diab_his_pat_patients WHERE id = @Id AND tenant_id = @TenantId",
+            new { Id = account.patient_id, cmd.TenantId });
 
         var token = _jwt.GeneratePortalToken(Guid.Parse(account.patient_id), patient.patient_code, cmd.TenantId, out var jti);
 
-        // Save session
         await conn.ExecuteAsync(
             @"INSERT INTO diab_his_pat_portal_sessions
                 (id, tenant_id, patient_id, jti, issued_at, expires_at)
-              VALUES (UUID_TO_BIN(@Id), @TenantId, UUID_TO_BIN(@PatientId), @Jti,
+              VALUES (@Id, @TenantId, @PatientId, @Jti,
                       UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL 24 HOUR))",
             new { Id = Guid.NewGuid().ToString(), cmd.TenantId, PatientId = account.patient_id, Jti = jti });
 
@@ -194,25 +197,26 @@ public class GetPortalMeHandler : IRequestHandler<GetPortalMeQuery, PortalMeResp
     {
         using var conn = _db.CreateConnection();
         var p = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT p.patient_code, p.full_name, p.gender,
-                     p.dob, p.phone, p.address,
-                     i.insurance_number AS bhyt_number
-              FROM his_patient p
-              LEFT JOIN his_insurance i ON i.patient_id = p.id AND i.is_primary = 1
-              WHERE p.id = UUID_TO_BIN(@Id) AND p.tenant_id = @TenantId AND p.deleted_at IS NULL",
+            @"SELECT p.code AS patient_code, p.full_name, p.gender,
+                     p.date_of_birth AS dob, p.phone, p.street AS address,
+                     (SELECT i.card_no_masked FROM diab_his_pat_insurances i
+                       WHERE i.patient_id = p.id AND i.type = 'BHYT' AND i.deleted_at IS NULL
+                       ORDER BY i.valid_to DESC LIMIT 1) AS bhyt_number
+              FROM diab_his_pat_patients p
+              WHERE p.id = @Id AND p.tenant_id = @TenantId AND p.deleted_at IS NULL",
             new { Id = q.PatientId.ToString(), q.TenantId });
 
         if (p == null) throw new PatientNotFoundException();
 
         return new PortalMeResponse(
-            (string)p.patient_code, (string)p.full_name, (string)p.gender,
-            DateOnly.FromDateTime((DateTime)p.dob),
-            (string)p.phone, (string?)p.address, (string?)p.bhyt_number);
+            (string)p.patient_code, (string)p.full_name, (string?)p.gender ?? "",
+            p.dob != null ? DateOnly.FromDateTime((DateTime)p.dob) : default,
+            (string?)p.phone ?? "", (string?)p.address, (string?)p.bhyt_number);
     }
 }
 
 // ============================================================
-// Portal: Encounters
+// Portal: Encounters (danh sach)
 // ============================================================
 public record GetPortalEncountersQuery(Guid PatientId, int TenantId, int Page, int PageSize)
     : IRequest<(List<PortalEncounterResponse> Items, int Total)>;
@@ -228,16 +232,16 @@ public class GetPortalEncountersHandler : IRequestHandler<GetPortalEncountersQue
         int offset = (q.Page - 1) * q.PageSize;
 
         var total = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM his_encounter WHERE patient_id = UUID_TO_BIN(@Id) AND tenant_id = @TenantId AND deleted_at IS NULL",
+            "SELECT COUNT(*) FROM diab_his_enc_encounters WHERE patient_id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL",
             new { Id = q.PatientId.ToString(), q.TenantId });
 
         var rows = await conn.QueryAsync<dynamic>(
-            @"SELECT BIN_TO_UUID(e.id) AS id, e.encounter_code, e.started_at AS visited_at,
+            @"SELECT e.id AS id, e.encounter_no AS encounter_code, e.started_at AS visited_at,
                      u.full_name AS doctor_name, e.chief_complaint, e.status
-              FROM his_encounter e
-              LEFT JOIN sec_users u ON u.id = e.doctor_id
-              WHERE e.patient_id = UUID_TO_BIN(@Id) AND e.tenant_id = @TenantId AND e.deleted_at IS NULL
-              ORDER BY e.started_at DESC
+              FROM diab_his_enc_encounters e
+              LEFT JOIN diab_his_sec_users u ON u.id = e.doctor_id
+              WHERE e.patient_id = @Id AND e.tenant_id = @TenantId AND e.deleted_at IS NULL
+              ORDER BY e.started_at DESC, e.created_at DESC
               LIMIT @PageSize OFFSET @Offset",
             new { Id = q.PatientId.ToString(), q.TenantId, q.PageSize, Offset = offset });
 
@@ -245,18 +249,19 @@ public class GetPortalEncountersHandler : IRequestHandler<GetPortalEncountersQue
         foreach (var r in rows)
         {
             var diagRows = await conn.QueryAsync<(string icd10, string name)>(
-                @"SELECT icd10_code AS icd10, icd10_name AS name
-                  FROM his_encounter_diagnosis WHERE encounter_id = UUID_TO_BIN(@Id)",
+                @"SELECT icd10_code AS icd10, name
+                  FROM diab_his_enc_diagnoses WHERE encounter_id = @Id AND deleted_at IS NULL
+                  ORDER BY (type = 'PRIMARY') DESC",
                 new { Id = (string)r.id });
 
             items.Add(new PortalEncounterResponse(
                 Guid.Parse((string)r.id),
-                (string)r.encounter_code,
-                (DateTime)r.visited_at,
+                (string?)r.encounter_code ?? "",
+                r.visited_at != null ? (DateTime)r.visited_at : default,
                 (string?)r.doctor_name ?? "",
                 (string?)r.chief_complaint ?? "",
                 diagRows.Select(d => new DiagnosisItem(d.icd10, d.name)).ToList(),
-                (string)r.status));
+                (string?)r.status ?? ""));
         }
 
         return (items, total);
@@ -277,20 +282,20 @@ public class GetPortalAppointmentsHandler : IRequestHandler<GetPortalAppointment
     {
         using var conn = _db.CreateConnection();
         var rows = await conn.QueryAsync<dynamic>(
-            @"SELECT BIN_TO_UUID(a.id) AS id, a.appointment_code, a.status, a.appointment_at,
-                     u.full_name AS doctor_name,
-                     BIN_TO_UUID(a.source_partner_id) AS source_partner_id,
-                     a.partner_reference
+            @"SELECT a.uuid AS id, a.appointment_code, a.status, a.appointment_at,
+                     u.full_name AS doctor_name, a.partner_reference
               FROM diab_his_sch_appointments a
-              LEFT JOIN sec_users u ON u.id = a.doctor_id
-              WHERE a.patient_id = UUID_TO_BIN(@PatientId) AND a.tenant_id = @TenantId
+              LEFT JOIN diab_his_sec_users u ON u.id = a.doctor_ref
+              WHERE a.patient_ref = @PatientId AND a.tenant_id = @TenantId AND a.deleted_at IS NULL
               ORDER BY a.appointment_at DESC",
             new { PatientId = q.PatientId.ToString(), q.TenantId });
 
         return rows.Select(r => new PublicAppointmentResponse(
-            Guid.Parse((string)r.id), (string)r.appointment_code, (string)r.status,
+            r.id != null ? Guid.Parse((string)r.id) : Guid.Empty,
+            (string?)r.appointment_code ?? "",
+            (string?)r.status ?? "",
             (DateTime)r.appointment_at, (string?)r.doctor_name,
-            r.source_partner_id != null ? Guid.Parse((string)r.source_partner_id) : null,
+            null,
             (string?)r.partner_reference)).ToList();
     }
 }
@@ -306,38 +311,40 @@ public class CreatePortalAppointmentHandler : IRequestHandler<CreatePortalAppoin
     {
         using var conn = _db.CreateConnection();
 
-        // Slot conflict check
+        // Kiem tra trung slot bac si (+-30 phut), bo qua lich da huy
         if (cmd.Request.DoctorId.HasValue)
         {
             var conflict = await conn.ExecuteScalarAsync<int>(
                 @"SELECT COUNT(*) FROM diab_his_sch_appointments
-                  WHERE tenant_id = @TenantId AND doctor_id = UUID_TO_BIN(@DoctorId)
+                  WHERE tenant_id = @TenantId AND doctor_ref = @DoctorRef
                     AND ABS(TIMESTAMPDIFF(MINUTE, appointment_at, @AppointmentAt)) < 30
-                    AND status != 'CANCELLED'",
-                new { cmd.TenantId, DoctorId = cmd.Request.DoctorId.ToString(), cmd.Request.AppointmentAt });
+                    AND status <> 'CANCELLED' AND deleted_at IS NULL",
+                new { cmd.TenantId, DoctorRef = cmd.Request.DoctorId.ToString(), cmd.Request.AppointmentAt });
             if (conflict > 0) throw new SlotTakenException();
         }
 
-        var apptId = Guid.NewGuid();
-        var code = $"LH{DateTime.UtcNow:yyyyMMdd}{apptId.ToString("N")[..6].ToUpper()}";
+        var apptUuid = Guid.NewGuid();
+        var code = $"LH{DateTime.UtcNow:yyyyMMdd}{apptUuid.ToString("N")[..6].ToUpper()}";
 
+        // id INT AUTO_INCREMENT — chi set uuid/patient_ref/doctor_ref (CHAR36), status PENDING (khop ENUM 0016)
         await conn.ExecuteAsync(
             @"INSERT INTO diab_his_sch_appointments
-                (id, tenant_id, appointment_code, patient_id, doctor_id, department_id,
-                 appointment_at, note, status, created_at, updated_at)
-              VALUES (UUID_TO_BIN(@Id), @TenantId, @Code, UUID_TO_BIN(@PatientId),
-                      @DoctorId, @DeptId, @AppointmentAt, @Note, 'BOOKED', UTC_TIMESTAMP(), UTC_TIMESTAMP())",
+                (tenant_id, uuid, appointment_code, patient_ref, doctor_ref,
+                 appointment_at, note, status, source, created_at, updated_at)
+              VALUES (@TenantId, @Uuid, @Code, @PatientRef, @DoctorRef,
+                      @AppointmentAt, @Note, 'PENDING', 'APP', UTC_TIMESTAMP(), UTC_TIMESTAMP())",
             new
             {
-                Id = apptId.ToString(), cmd.TenantId, Code = code,
-                PatientId = cmd.PatientId.ToString(),
-                DoctorId = cmd.Request.DoctorId?.ToString(),
-                DeptId = cmd.Request.DepartmentId?.ToString(),
+                cmd.TenantId,
+                Uuid = apptUuid.ToString(),
+                Code = code,
+                PatientRef = cmd.PatientId.ToString(),
+                DoctorRef = cmd.Request.DoctorId?.ToString(),
                 cmd.Request.AppointmentAt,
                 Note = cmd.Request.Note
             });
 
-        return new PublicAppointmentResponse(apptId, code, "BOOKED", cmd.Request.AppointmentAt, null, null, null);
+        return new PublicAppointmentResponse(apptUuid, code, "PENDING", cmd.Request.AppointmentAt, null, null, null);
     }
 }
 
@@ -354,17 +361,17 @@ public class CancelPortalAppointmentHandler : IRequestHandler<CancelPortalAppoin
 
         var appt = await conn.QueryFirstOrDefaultAsync<(string status, DateTime appointment_at)>(
             @"SELECT status, appointment_at FROM diab_his_sch_appointments
-              WHERE id = UUID_TO_BIN(@Id) AND patient_id = UUID_TO_BIN(@PatientId) AND tenant_id = @TenantId",
+              WHERE uuid = @Id AND patient_ref = @PatientId AND tenant_id = @TenantId AND deleted_at IS NULL",
             new { Id = cmd.AppointmentId.ToString(), PatientId = cmd.PatientId.ToString(), cmd.TenantId });
 
-        if (appt == default) throw new AppointmentNotFoundException();
+        if (appt.status == null) throw new AppointmentNotFoundException();
 
         if ((appt.appointment_at - DateTime.UtcNow).TotalHours < 2)
             throw new AppointmentCancelTooLateException();
 
         await conn.ExecuteAsync(
-            "UPDATE diab_his_sch_appointments SET status = 'CANCELLED', updated_at = UTC_TIMESTAMP() WHERE id = UUID_TO_BIN(@Id)",
-            new { Id = cmd.AppointmentId.ToString() });
+            "UPDATE diab_his_sch_appointments SET status = 'CANCELLED', updated_at = UTC_TIMESTAMP() WHERE uuid = @Id AND tenant_id = @TenantId",
+            new { Id = cmd.AppointmentId.ToString(), cmd.TenantId });
     }
 }
 
