@@ -25,6 +25,29 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
   auth?: boolean;
 }
 
+// API .NET dung JSON snake_case toan cuc. FE dung camelCase -> chuyen 2 chieu tai bien:
+//  - request body: camelCase -> snake_case
+//  - response data: snake_case -> camelCase
+function camelToSnakeKey(k: string): string {
+  return k.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase());
+}
+function snakeToCamelKey(k: string): string {
+  return k.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
+}
+function convertKeys(input: unknown, mapKey: (k: string) => string): unknown {
+  if (Array.isArray(input)) return input.map((v) => convertKeys(v, mapKey));
+  if (input && typeof input === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      out[mapKey(k)] = convertKeys(v, mapKey);
+    }
+    return out;
+  }
+  return input;
+}
+const toSnake = (o: unknown) => convertKeys(o, camelToSnakeKey);
+const toCamel = (o: unknown) => convertKeys(o, snakeToCamelKey);
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, auth = true, headers, ...rest } = options;
 
@@ -53,7 +76,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
         ? undefined
         : body instanceof FormData
           ? body
-          : JSON.stringify(body),
+          : JSON.stringify(toSnake(body)),
   });
 
   if (res.status === 204) {
@@ -78,8 +101,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     return undefined as T;
   }
 
-  const json = (await res.json()) as { data: T };
-  return json.data;
+  const json = (await res.json()) as { data: unknown };
+  return toCamel(json.data) as T;
 }
 
 export const api = {

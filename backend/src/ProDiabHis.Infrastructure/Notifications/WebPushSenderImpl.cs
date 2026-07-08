@@ -62,7 +62,7 @@ public class WebPushSenderImpl : IWebPushSender
         var subs = await conn.QueryAsync<(string endpoint, string p256dh, string auth)>(
             @"SELECT endpoint, p256dh_key AS p256dh, auth_key AS auth
               FROM diab_his_nti_web_push_subs
-              WHERE user_id = @UserId AND tenant_id = @TenantId",
+              WHERE user_id = UUID_TO_BIN(@UserId) AND tenant_id = @TenantId",
             new { UserId = userId.ToString(), TenantId = tenantId });
 
         foreach (var sub in subs)

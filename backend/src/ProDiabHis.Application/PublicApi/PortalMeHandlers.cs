@@ -37,9 +37,10 @@ public class GetPortalPrescriptionsHandler : IRequestHandler<GetPortalPrescripti
         {
             string id = (string)r.id;
             var itemRows = await conn.QueryAsync<dynamic>(
-                @"SELECT i.drug_name, i.drug_strength, i.dosage, i.frequency, i.duration_days,
-                         i.quantity, i.unit, i.note
+                @"SELECT d.name AS drug_name, d.strength AS drug_strength, d.unit,
+                         i.dosage, i.frequency, i.duration_days, i.quantity, i.instructions AS note
                   FROM diab_his_pha_prescription_items i
+                  JOIN diab_his_pha_drugs d ON d.id = i.drug_id
                   WHERE i.prescription_id = @Id AND i.tenant_id = @TenantId",
                 new { Id = id, q.TenantId });
 
@@ -54,7 +55,7 @@ public class GetPortalPrescriptionsHandler : IRequestHandler<GetPortalPrescripti
                 : id[..Math.Min(8, id.Length)].ToUpperInvariant();
 
             items.Add(new PortalPrescriptionResponse(
-                Guid.Parse(id),
+                Guid.TryParse(id, out var pid) ? pid : Guid.Empty,
                 code,
                 (DateTime)r.issued_at,
                 (string?)r.doctor_name ?? "",
@@ -92,7 +93,7 @@ public class GetPortalLabResultsHandler : IRequestHandler<GetPortalLabResultsQue
 
         var rows = await conn.QueryAsync<dynamic>(
             @"SELECT id, test_name, performed_at, value_numeric, unit, flag, status
-              FROM cli_lab_results
+              FROM diab_his_lab_results
               WHERE patient_id = @PatientId AND tenant_id = @TenantId
                 AND status = 'VERIFIED' AND deleted_at IS NULL
               ORDER BY performed_at DESC",
@@ -147,11 +148,14 @@ public class GetPortalEncounterDetailHandler
               ORDER BY (type = 'PRIMARY') DESC",
             new { Id = encId });
 
+        // Ket luan CDHA: diab_his_rad_results lien ket qua order_id (khong co encounter_id/patient_id
+        // truc tiep). Join qua rad order de lay dung ket luan cua luot kham nay.
         var conclusion = await conn.ExecuteScalarAsync<string?>(
-            @"SELECT conclusion FROM cli_rad_results
-              WHERE encounter_id = @Id AND patient_id = @PatientId AND tenant_id = @TenantId AND deleted_at IS NULL
-              ORDER BY performed_at DESC LIMIT 1",
-            new { Id = encId, PatientId = q.PatientId.ToString(), q.TenantId });
+            @"SELECT rr.conclusion FROM diab_his_rad_results rr
+              JOIN diab_his_rad_orders ro ON ro.id = rr.order_id
+              WHERE ro.encounter_id = @Id AND ro.tenant_id = @TenantId AND rr.deleted_at IS NULL
+              ORDER BY rr.performed_at DESC LIMIT 1",
+            new { Id = encId, q.TenantId });
 
         var presc = await conn.QueryFirstOrDefaultAsync<dynamic>(
             @"SELECT id, note FROM diab_his_pha_prescriptions
@@ -164,9 +168,10 @@ public class GetPortalEncounterDetailHandler
         if (presc != null)
         {
             var itemRows = await conn.QueryAsync<dynamic>(
-                @"SELECT drug_name, dosage, frequency, duration_days, note
-                  FROM diab_his_pha_prescription_items
-                  WHERE prescription_id = @Id AND tenant_id = @TenantId",
+                @"SELECT d.name AS drug_name, i.dosage, i.frequency, i.duration_days, i.instructions AS note
+                  FROM diab_his_pha_prescription_items i
+                  JOIN diab_his_pha_drugs d ON d.id = i.drug_id
+                  WHERE i.prescription_id = @Id AND i.tenant_id = @TenantId",
                 new { Id = (string)presc.id, q.TenantId });
 
             prescItems = itemRows.Select(i => new PortalEncounterPrescriptionItem(

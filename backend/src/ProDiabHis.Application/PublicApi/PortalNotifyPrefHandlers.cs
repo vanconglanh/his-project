@@ -83,9 +83,11 @@ public class PortalPushSubscribeHandler : IRequestHandler<PortalPushSubscribeCom
     {
         using var conn = _db.CreateConnection();
         await conn.ExecuteAsync(
+            // user_id/id la BINARY(16) NOT NULL -> dung UUID_TO_BIN. Benh nhan khong phai user noi bo
+            // nhung tai dung cot user_id = UUID cua patient (patient_id CHAR36 rieng de query portal).
             @"INSERT INTO diab_his_nti_web_push_subs
                 (id, tenant_id, user_id, patient_id, endpoint, p256dh_key, auth_key, created_at)
-              VALUES (@Id, @TenantId, @PatientId, @PatientId, @Endpoint, @P256dh, @Auth, UTC_TIMESTAMP())
+              VALUES (UUID_TO_BIN(@Id), @TenantId, UUID_TO_BIN(@PatientId), @PatientId, @Endpoint, @P256dh, @Auth, UTC_TIMESTAMP())
               ON DUPLICATE KEY UPDATE p256dh_key = @P256dh, auth_key = @Auth, patient_id = @PatientId",
             new
             {
