@@ -1,0 +1,135 @@
+{
+  "clinic": {
+    "code": "abc",
+    "name": "Phòng khám Đa khoa ABC",
+    "company_name": "Công ty TNHH Y tế ABC",
+    "cskcb_code": "",
+    "tax_code": "0312345678",
+    "address": "123 Nguyễn Văn Cừ, Quận 5, TP.HCM",
+    "phone": "02839999999",
+    "email": "lienhe@phongkhamabc.vn",
+    "website": "phongkhamabc.vn",
+    "slogan": "Chăm sóc sức khỏe tận tâm"
+  },
+  "deployment": {
+    "domain": "abc.diab.com.vn",
+    "nginx_port": 8091,
+    "timezone": "Asia/Ho_Chi_Minh",
+    "locale": "vi",
+    "currency": "VND",
+    "sentry_dsn": ""
+  },
+  "branding": {
+    "logo": "",
+    "primary_color": "#01645A",
+    "app_display_name": "Phòng khám ABC"
+  },
+  "specialty_preset": "da_khoa",
+  "services": [
+    { "code": "KHAM_TQ", "name": "Khám tổng quát", "price": 150000, "vat": 0, "bhyt_code": "" },
+    { "code": "KHAM_CK", "name": "Khám chuyên khoa", "price": 200000, "vat": 0, "bhyt_code": "" }
+  ],
+  "admin": {
+    "full_name": "Nguyễn Văn Quản Trị",
+    "email": "admin@phongkhamabc.vn",
+    "password_mode": "set_now",
+    "password": "Admin@12345"
+  },
+  "staff": [
+    {
+      "full_name": "BS. Trần Thị B",
+      "email": "bsb@phongkhamabc.vn",
+      "roles": ["bac_si"],
+      "phone": "0901234567",
+      "password_mode": "set_now",
+      "password": "BacSi@12345",
+      "room": "P1",
+      "doctor": {
+        "so_cchn": "001234/HCM-CCHN",
+        "noi_cap_cchn": "Sở Y tế TP.HCM",
+        "ngay_cap_cchn": "2018-05-20",
+        "pham_vi_hanh_nghe": "Khám chữa bệnh nội khoa",
+        "chuyen_khoa": "Nội tổng quát",
+        "schedule": [
+          { "day_of_week": 1, "start": "07:30", "end": "17:00", "break_start": "12:00", "break_end": "13:30" }
+        ],
+        "allowed_services": ["KHAM_TQ", "KHAM_CK"],
+        "custom_fee": null
+      }
+    },
+    {
+      "full_name": "Lê Thị Lễ Tân",
+      "email": "letan@phongkhamabc.vn",
+      "roles": ["le_tan"],
+      "phone": "0907654321",
+      "password_mode": "invite_email",
+      "password": null,
+      "room": null,
+      "doctor": null
+    }
+  ],
+  "facility": {
+    "exam_rooms": 2,
+    "reception_counters": 1,
+    "working_hours": {
+      "mon": { "open": "07:30", "close": "17:00" },
+      "tue": { "open": "07:30", "close": "17:00" },
+      "wed": { "open": "07:30", "close": "17:00" },
+      "thu": { "open": "07:30", "close": "17:00" },
+      "fri": { "open": "07:30", "close": "17:00" },
+      "sat": { "open": "07:30", "close": "12:00" },
+      "sun": null
+    }
+  },
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "user": "",
+    "pass": "",
+    "from": "no-reply@phongkhamabc.vn",
+    "ssl": true
+  },
+  "modules": {
+    "bhyt": false,
+    "dtqg": false,
+    "pharmacy": true,
+    "einvoice": false,
+    "cdss": true,
+    "patient_portal": false,
+    "lab_integration": false,
+    "online_booking": false,
+    "sms_reminder": false,
+    "zalo_oa": false
+  },
+  "integrations": {
+    "einvoice": { "provider": null, "config": {} },
+    "sms": { "provider": null, "config": {} },
+    "zalo": { "app_id": null, "secret": null }
+  },
+  "appointment": {
+    "slot_duration_minutes": 15,
+    "buffer_before": 0,
+    "buffer_after": 0
+  },
+  "finance": {
+    "vat_rate_default": 0,
+    "invoice_symbol": "",
+    "invoice_start_number": 1,
+    "bank_account": { "name": "", "number": "", "bank": "", "vietqr": "" },
+    "payment_methods": ["cash", "bank_transfer"]
+  },
+  "ops": {
+    "password_policy": { "min_length": 8 },
+    "data_retention_years": 10,
+    "backup_schedule": "nightly",
+    "date_format": "dd/MM/yyyy",
+    "notification_channels": ["email"]
+  },
+  "pharmacy": {
+    "drug_units": ["viên", "vỉ", "hộp", "chai", "ống", "gói"],
+    "default_supplier": null,
+    "low_stock_threshold": 10,
+    "expiry_alert_days": 90,
+    "seed_drug_catalog": false
+  }
+}

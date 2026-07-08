@@ -2,6 +2,12 @@
 
 > Mục tiêu: khách/vận hành trả lời bộ câu hỏi này → generator sinh ra bộ deploy hoàn chỉnh
 > (`.env` + `docker-compose.yml` + `nginx.conf` + `seed.sql`) cho **1 phòng khám = 1 stack Docker + 1 DB riêng**.
+
+> ### 🎯 Phạm vi MVP đợt 1 (đã chốt 08/07/2026)
+> Wizard đợt đầu bao gồm **đầy đủ nhóm A–M + E6**, **NGOẠI TRỪ** (hoãn giai đoạn sau):
+> - ❌ **ĐTQG liên thông + chữ ký số** (H2, I2, I8, E6.6 scan, E6.7 chữ ký số) — MVP chỉ kê đơn nội bộ + in PDF.
+> - ❌ **Đặt lịch online / patient self-booking** (H8, J3–J5) — Phần J chỉ giữ `slot_duration` + buffer nội bộ.
+> - ✅ Vẫn thu thập CCHN cơ bản của bác sĩ (E6.1–E6.5) để in trên đơn thuốc + chuẩn bị hồ sơ sau này.
 >
 > Quy ước cột **Mức độ**:
 > - 🔴 **Bắt buộc để chạy** — thiếu là hệ thống không lên / không đăng nhập / không khám được.

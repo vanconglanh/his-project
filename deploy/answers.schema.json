@@ -1,0 +1,180 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://prodiab.vn/schemas/clinic-answers.json",
+  "title": "Pro-Diab HIS — Clinic Onboarding Answers",
+  "description": "Câu trả lời onboarding cho 1 phòng khám. Generator đọc file này để sinh .env/compose/nginx/seed. Xem deploy/onboarding-questions.md.",
+  "type": "object",
+  "required": ["clinic", "deployment", "admin"],
+  "additionalProperties": false,
+  "properties": {
+    "clinic": {
+      "type": "object",
+      "required": ["code", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "pattern": "^[a-z0-9-]{3,20}$", "description": "Mã phòng khám (slug) — dùng đặt tên DB/container/network" },
+        "name": { "type": "string", "minLength": 1 },
+        "company_name": { "type": "string" },
+        "cskcb_code": { "type": "string" },
+        "tax_code": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "website": { "type": "string" },
+        "slogan": { "type": "string" }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "required": ["domain"],
+      "additionalProperties": false,
+      "properties": {
+        "domain": { "type": "string", "minLength": 3 },
+        "nginx_port": { "type": "integer", "minimum": 1024, "maximum": 65535 },
+        "timezone": { "type": "string", "default": "Asia/Ho_Chi_Minh" },
+        "locale": { "type": "string", "enum": ["vi", "en"], "default": "vi" },
+        "currency": { "type": "string", "default": "VND" },
+        "sentry_dsn": { "type": "string" }
+      }
+    },
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "logo": { "type": "string", "description": "URL hoặc đường dẫn file logo" },
+        "primary_color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#01645A" },
+        "app_display_name": { "type": "string" }
+      }
+    },
+    "specialty_preset": {
+      "type": "string",
+      "enum": ["noi_tong_quat", "noi_tiet_dtd", "san_phu", "nhi", "da_lieu", "da_khoa"],
+      "default": "da_khoa"
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "name", "price"],
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "price": { "type": "number", "minimum": 0 },
+          "vat": { "type": "number", "default": 0 },
+          "bhyt_code": { "type": "string" }
+        }
+      }
+    },
+    "admin": {
+      "type": "object",
+      "required": ["full_name", "email", "password_mode"],
+      "additionalProperties": false,
+      "properties": {
+        "full_name": { "type": "string", "minLength": 1 },
+        "email": { "type": "string", "format": "email" },
+        "password_mode": { "type": "string", "enum": ["set_now", "invite_email"] },
+        "password": { "type": ["string", "null"] }
+      }
+    },
+    "staff": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/staffMember" }
+    },
+    "facility": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exam_rooms": { "type": "integer", "minimum": 0, "default": 1 },
+        "reception_counters": { "type": "integer", "minimum": 0, "default": 1 },
+        "working_hours": { "type": "object" }
+      }
+    },
+    "smtp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "integer", "default": 587 },
+        "user": { "type": "string" },
+        "pass": { "type": "string" },
+        "from": { "type": "string" },
+        "ssl": { "type": "boolean", "default": true }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bhyt": { "type": "boolean", "default": false },
+        "dtqg": { "type": "boolean", "default": false },
+        "pharmacy": { "type": "boolean", "default": true },
+        "einvoice": { "type": "boolean", "default": false },
+        "cdss": { "type": "boolean", "default": true },
+        "patient_portal": { "type": "boolean", "default": false },
+        "lab_integration": { "type": "boolean", "default": false },
+        "online_booking": { "type": "boolean", "default": false },
+        "sms_reminder": { "type": "boolean", "default": false },
+        "zalo_oa": { "type": "boolean", "default": false }
+      }
+    },
+    "integrations": { "type": "object" },
+    "appointment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "slot_duration_minutes": { "type": "integer", "default": 15 },
+        "buffer_before": { "type": "integer", "default": 0 },
+        "buffer_after": { "type": "integer", "default": 0 }
+      }
+    },
+    "finance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vat_rate_default": { "type": "number", "default": 0 },
+        "invoice_symbol": { "type": "string" },
+        "invoice_start_number": { "type": "integer", "default": 1 },
+        "bank_account": { "type": "object" },
+        "payment_methods": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ops": { "type": "object" },
+    "pharmacy": { "type": "object" }
+  },
+  "$defs": {
+    "staffMember": {
+      "type": "object",
+      "required": ["full_name", "email", "roles", "password_mode"],
+      "additionalProperties": false,
+      "properties": {
+        "full_name": { "type": "string", "minLength": 1 },
+        "email": { "type": "string", "format": "email" },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "enum": ["admin", "bac_si", "le_tan", "duoc_si", "ke_toan", "ky_thuat_vien"] }
+        },
+        "phone": { "type": ["string", "null"] },
+        "password_mode": { "type": "string", "enum": ["set_now", "invite_email"] },
+        "password": { "type": ["string", "null"] },
+        "room": { "type": ["string", "null"] },
+        "doctor": {
+          "type": ["object", "null"],
+          "description": "Hồ sơ hành nghề — chỉ khi roles chứa bac_si. Scan CCHN + chữ ký số (E6.6/E6.7) hoãn giai đoạn sau.",
+          "additionalProperties": false,
+          "properties": {
+            "so_cchn": { "type": "string" },
+            "noi_cap_cchn": { "type": "string" },
+            "ngay_cap_cchn": { "type": "string" },
+            "pham_vi_hanh_nghe": { "type": "string" },
+            "chuyen_khoa": { "type": "string" },
+            "schedule": { "type": "array" },
+            "allowed_services": { "type": "array", "items": { "type": "string" } },
+            "custom_fee": { "type": ["number", "null"] }
+          }
+        }
+      }
+    }
+  }
+}
