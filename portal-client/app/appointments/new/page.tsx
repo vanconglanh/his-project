@@ -88,7 +88,7 @@ export default function NewAppointmentPage() {
               }}
               className="min-h-14 rounded-2xl border-2 border-slate-200 bg-white px-4 text-left text-lg font-semibold text-slate-900 hover:border-blue-400 hover:bg-blue-50"
             >
-              BS. {d.fullName}
+              {d.fullName}
             </button>
           ))}
         </div>
@@ -148,7 +148,7 @@ export default function NewAppointmentPage() {
         <div className="flex flex-col gap-4">
           <h2 className="text-slate-800">Xác nhận thông tin</h2>
           <div className="rounded-2xl border-2 border-slate-200 bg-white p-4">
-            <p className="mb-1 text-lg font-semibold text-slate-900">BS. {doctorName}</p>
+            <p className="mb-1 text-lg font-semibold text-slate-900">{doctorName}</p>
             <p className="text-base text-slate-600">
               {formatDate(slotAt)}{" "}
               {slotAt &&

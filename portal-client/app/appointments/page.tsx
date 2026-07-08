@@ -64,8 +64,8 @@ export default function AppointmentsPage() {
       )}
 
       <div className="flex flex-col gap-3">
-        {appointments?.map((a) => (
-          <div key={a.id} className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+        {appointments?.map((a, idx) => (
+          <div key={`${a.id}-${idx}`} className="rounded-2xl border-2 border-slate-200 bg-white p-4">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-lg font-semibold text-slate-900">
                 {formatDateTime(a.appointmentAt)}
@@ -74,7 +74,7 @@ export default function AppointmentsPage() {
                 {STATUS_LABEL[a.status] ?? a.status}
               </span>
             </div>
-            <p className="mb-3 text-base text-slate-600">BS. {a.doctorName}</p>
+            <p className="mb-3 text-base text-slate-600">{a.doctorName}</p>
             {a.status !== "cancelled" && a.status !== "done" && (
               <button
                 type="button"

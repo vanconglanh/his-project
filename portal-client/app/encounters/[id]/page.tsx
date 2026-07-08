@@ -37,7 +37,7 @@ export default function EncounterDetailPage() {
             <p className="text-lg font-semibold text-slate-900">
               {formatDateTime(encounter.visitedAt)}
             </p>
-            <p className="text-base text-slate-600">BS. {encounter.doctorName}</p>
+            <p className="text-base text-slate-600">{encounter.doctorName}</p>
             <p className="mt-2 text-base text-slate-700">
               <b>Lý do khám:</b> {encounter.chiefComplaint}
             </p>
