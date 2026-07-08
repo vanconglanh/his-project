@@ -126,23 +126,26 @@ export interface MovementListParams {
 
 // ─── API calls ────────────────────────────────────────────────────────────────
 
+// FIX: backend phục vụ warehouse tại /pharmacy/warehouses (PharmacyWarehouseController).
+// Trước đây gọi "/warehouses" (thiếu prefix /pharmacy) -> 404 -> useWarehouses() luôn rỗng ->
+// dropdown "Kho phát thuốc" trong dialog cấp phát KHÔNG có option nào -> không phát thuốc được.
 export async function listWarehouses(): Promise<Warehouse[]> {
-  const { data } = await apiClient.get<ApiResponse<Warehouse[]>>("/warehouses");
+  const { data } = await apiClient.get<ApiResponse<Warehouse[]>>("/pharmacy/warehouses");
   return data.data;
 }
 
 export async function createWarehouse(body: WarehouseRequest): Promise<Warehouse> {
-  const { data } = await apiClient.post<ApiResponse<Warehouse>>("/warehouses", body);
+  const { data } = await apiClient.post<ApiResponse<Warehouse>>("/pharmacy/warehouses", body);
   return data.data;
 }
 
 export async function updateWarehouse(id: string, body: WarehouseRequest): Promise<Warehouse> {
-  const { data } = await apiClient.put<ApiResponse<Warehouse>>(`/warehouses/${id}`, body);
+  const { data } = await apiClient.put<ApiResponse<Warehouse>>(`/pharmacy/warehouses/${id}`, body);
   return data.data;
 }
 
 export async function deleteWarehouse(id: string): Promise<void> {
-  await apiClient.delete(`/warehouses/${id}`);
+  await apiClient.delete(`/pharmacy/warehouses/${id}`);
 }
 
 export async function listPurchaseOrders(params?: {
