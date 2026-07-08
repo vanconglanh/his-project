@@ -42,6 +42,13 @@ public record GetLabResultHistoryTrendQuery(Guid PatientId, string TestCode, Dat
 public record ExportLabResultPdfQuery(Guid Id)
     : IRequest<Result<byte[]>>;
 
+/// <summary>
+/// Portal: xuat PDF ket qua XN, chi cho phep benh nhan xem KQ CUA CHINH MINH (loc them
+/// PatientId tu JWT claim "patient_id" cua PortalBearer).
+/// </summary>
+public record GetPortalLabResultPdfQuery(Guid LabResultId, Guid PatientId, int TenantId)
+    : IRequest<Result<byte[]>>;
+
 public record BatchVerifyLabResultsCommand(IReadOnlyList<Guid> ResultIds)
     : IRequest<Result<BatchVerifyResponse>>;
 
@@ -528,6 +535,34 @@ public class ExportLabResultPdfQueryHandler
     public async Task<Result<byte[]>> Handle(ExportLabResultPdfQuery q, CancellationToken ct)
     {
         var entity = await _db.LabResults.FirstOrDefaultAsync(e => e.Id == q.Id, ct);
+        if (entity is null)
+            return Result<byte[]>.Failure("LAB_RESULT_NOT_FOUND", "Không tìm thấy kết quả XN");
+        if (entity.Status != LabResultStatus.Verified)
+            return Result<byte[]>.Failure("LAB_RESULT_NOT_VERIFIED", "Chỉ xuất PDF khi kết quả đã xác thực");
+
+        var pdf = await _pdfExporter.ExportLabResultAsync(entity, ct);
+        return Result<byte[]>.Success(pdf);
+    }
+}
+
+// ═══════════════════════════════════════════════
+// PORTAL EXPORT PDF (loc theo PatientId, chong xem cheo benh nhan)
+// ═══════════════════════════════════════════════
+public class GetPortalLabResultPdfQueryHandler
+    : IRequestHandler<GetPortalLabResultPdfQuery, Result<byte[]>>
+{
+    private readonly IApplicationDbContext _db;
+    private readonly ILabResultPdfExporter _pdfExporter;
+
+    public GetPortalLabResultPdfQueryHandler(IApplicationDbContext db, ILabResultPdfExporter pdfExporter)
+    { _db = db; _pdfExporter = pdfExporter; }
+
+    public async Task<Result<byte[]>> Handle(GetPortalLabResultPdfQuery q, CancellationToken ct)
+    {
+        var patientIdStr = q.PatientId.ToString();
+        var entity = await _db.LabResults.FirstOrDefaultAsync(
+            e => e.Id == q.LabResultId && e.TenantId == q.TenantId && e.PatientId == patientIdStr, ct);
+
         if (entity is null)
             return Result<byte[]>.Failure("LAB_RESULT_NOT_FOUND", "Không tìm thấy kết quả XN");
         if (entity.Status != LabResultStatus.Verified)

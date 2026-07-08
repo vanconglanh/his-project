@@ -1,3 +1,5 @@
+using ProDiabHis.Application.Reports;
+using ProDiabHis.Infrastructure.Reports;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -5,14 +7,10 @@ using QuestPDF.Infrastructure;
 namespace ProDiabHis.Api.Services;
 
 /// <summary>
-/// QuestPDF render bien lai nhiet K80 (58mm x chieu cao dong).
-/// Khong co footer trang co dinh — height tu gian theo noi dung.
+/// QuestPDF render bien lai thu tien kho A5, theo chuan format chung (letterhead teal ReportPdfCommon).
 /// </summary>
 public class ReceiptPdfService : IReceiptPdfService
 {
-    // K80 thermal roll: 58mm rong, height tu gian
-    private static readonly PageSize K80Size = new(58, 200, Unit.Millimetre);
-
     static ReceiptPdfService()
     {
         QuestPDF.Settings.License = LicenseType.Community;
@@ -23,40 +21,35 @@ public class ReceiptPdfService : IReceiptPdfService
         bool reprint = false,
         CancellationToken ct = default)
     {
+        var lh = receipt.Letterhead ?? new LetterheadDto(
+            receipt.TenantName ?? "Pro-Diab HIS", receipt.TenantCskcbCode, null, receipt.TenantAddress,
+            null, null, null, null);
+
         var pdf = Document.Create(container =>
         {
             container.Page(page =>
             {
-                page.Size(K80Size);
-                page.Margin(3, Unit.Millimetre);
-                page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Arial"));
+                page.Size(PageSizes.A5);
+                page.MarginTop(8, Unit.Millimetre);
+                page.MarginBottom(8, Unit.Millimetre);
+                page.MarginHorizontal(9, Unit.Millimetre);
+                page.DefaultTextStyle(x => x.FontSize(9.5f).FontColor(ReportPdfCommon.Ink));
 
-                page.Content().Column(col =>
+                page.Header().Column(col =>
                 {
-                    // Header phong kham
-                    if (!string.IsNullOrEmpty(receipt.TenantName))
-                    {
-                        col.Item().AlignCenter().Text(receipt.TenantName).Bold().FontSize(10);
-                    }
-                    if (!string.IsNullOrEmpty(receipt.TenantAddress))
-                    {
-                        col.Item().AlignCenter().Text(receipt.TenantAddress).FontSize(7)
-                            .FontColor(Colors.Grey.Darken1);
-                    }
-                    if (!string.IsNullOrEmpty(receipt.TenantCskcbCode))
-                    {
-                        col.Item().AlignCenter().Text($"Mã CSKCB: {receipt.TenantCskcbCode}").FontSize(7)
-                            .FontColor(Colors.Grey.Darken1);
-                    }
-
-                    col.Item().PaddingTop(3).LineHorizontal(0.5f).LineColor(Colors.Black);
-                    col.Item().AlignCenter().PaddingVertical(2).Text("BIEN LAI THU TIEN").Bold().FontSize(9);
                     if (reprint)
-                        col.Item().AlignCenter().Text("[IN LAI]").FontSize(8).FontColor(Colors.Red.Medium).Bold();
-                    col.Item().LineHorizontal(0.5f).LineColor(Colors.Black);
+                        col.Item().AlignRight()
+                            .Text("[IN LẠI]").FontSize(8).FontColor(ReportPdfCommon.Brand).Bold();
+
+                    col.Item().Element(c => ReportPdfCommon.RenderLetterhead(c, lh, null));
+                });
+
+                page.Content().PaddingTop(8).Column(col =>
+                {
+                    col.Item().Element(c => ReportPdfCommon.RenderTitle(c, "BIÊN LAI THU TIỀN"));
 
                     // Thong tin bien lai
-                    col.Item().PaddingTop(3).Table(table =>
+                    col.Item().PaddingTop(8).Table(table =>
                     {
                         table.ColumnsDefinition(c =>
                         {
@@ -66,76 +59,99 @@ public class ReceiptPdfService : IReceiptPdfService
 
                         void Row(string label, string? value)
                         {
-                            table.Cell().PaddingBottom(1).Text(label + ":").Bold().FontSize(7);
-                            table.Cell().PaddingBottom(1).Text(value ?? "-").FontSize(7);
+                            table.Cell().PaddingBottom(2).Text(label + ":").FontColor(ReportPdfCommon.Muted).SemiBold();
+                            table.Cell().PaddingBottom(2).Text(value ?? "—");
                         }
 
-                        Row("So bien lai", receipt.ReceiptNo);
-                        Row("Ngay", receipt.PaidAt.ToString("dd/MM/yyyy HH:mm"));
-                        Row("Benh nhan", receipt.PatientName);
+                        Row("Số biên lai", receipt.ReceiptNo);
+                        Row("Ngày", receipt.PaidAt.ToString("dd/MM/yyyy HH:mm"));
+                        Row("Bệnh nhân", receipt.PatientName);
                         if (!string.IsNullOrEmpty(receipt.PatientCode))
-                            Row("Ma BN", receipt.PatientCode);
+                            Row("Mã BN", receipt.PatientCode);
                         if (!string.IsNullOrEmpty(receipt.Phone))
-                            Row("DT", receipt.Phone);
+                            Row("Điện thoại", receipt.Phone);
                     });
-
-                    col.Item().PaddingTop(2).LineHorizontal(0.3f).LineColor(Colors.Grey.Medium);
 
                     // Danh sach item
-                    col.Item().PaddingTop(2).Text("CHI TIET:").Bold().FontSize(7);
-                    foreach (var item in receipt.Items)
+                    col.Item().PaddingTop(8).Table(table =>
                     {
-                        col.Item().Row(row =>
+                        table.ColumnsDefinition(c =>
                         {
-                            row.RelativeItem(4).Text(item.Name).FontSize(7);
-                            row.RelativeItem(2).AlignRight()
-                                .Text($"{item.Quantity:N0} x {item.UnitPrice:N0}").FontSize(7);
+                            c.RelativeColumn(4);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(2);
+                            c.RelativeColumn(2);
                         });
-                        col.Item().AlignRight()
-                            .Text($"= {item.LineTotal:N0} VND").FontSize(7).FontColor(Colors.Grey.Darken2);
-                    }
 
-                    col.Item().PaddingTop(2).LineHorizontal(0.5f).LineColor(Colors.Black);
+                        table.Header(h =>
+                        {
+                            h.Cell().Element(c => ReportPdfCommon.HText(c, "Nội dung thu"));
+                            h.Cell().Element(ReportPdfCommon.HeadCell).AlignCenter().Text("SL").FontColor("#FFFFFF").Bold().FontSize(9.5f);
+                            h.Cell().Element(ReportPdfCommon.HeadCell).AlignRight().Text("Đơn giá").FontColor("#FFFFFF").Bold().FontSize(9.5f);
+                            h.Cell().Element(ReportPdfCommon.HeadCell).AlignRight().Text("Thành tiền").FontColor("#FFFFFF").Bold().FontSize(9.5f);
+                        });
 
-                    // Tong tien
-                    col.Item().PaddingTop(2).Row(row =>
-                    {
-                        row.RelativeItem(2).Text("TONG TIEN:").Bold().FontSize(9);
-                        row.RelativeItem(3).AlignRight()
-                            .Text($"{receipt.Amount:N0} VND").Bold().FontSize(9)
-                            .FontColor(Colors.Blue.Darken2);
+                        var i = 0;
+                        foreach (var item in receipt.Items)
+                        {
+                            i++;
+                            table.Cell().Element(c => ReportPdfCommon.BodyCell(c, i)).Text(item.Name).FontSize(8.5f);
+                            table.Cell().Element(c => ReportPdfCommon.BodyCell(c, i)).AlignCenter().Text(item.Quantity.ToString("N0")).FontSize(8.5f);
+                            table.Cell().Element(c => ReportPdfCommon.BodyCell(c, i)).AlignRight().Text(item.UnitPrice.ToString("N0")).FontSize(8.5f);
+                            table.Cell().Element(c => ReportPdfCommon.BodyCell(c, i)).AlignRight().Text(item.LineTotal.ToString("N0")).FontSize(8.5f);
+                        }
                     });
 
-                    col.Item().PaddingTop(1).Row(row =>
+                    // Tong tien
+                    col.Item().PaddingTop(8).Row(row =>
                     {
-                        row.RelativeItem(2).Text("Phuong thuc:").FontSize(7);
-                        row.RelativeItem(3).AlignRight().Text(receipt.Method).FontSize(7);
+                        row.RelativeItem(2).Text("TỔNG TIỀN:").Bold().FontSize(11).FontColor(ReportPdfCommon.Ink);
+                        row.RelativeItem(3).AlignRight()
+                            .Text($"{receipt.Amount:N0} VNĐ").Bold().FontSize(13)
+                            .FontColor(ReportPdfCommon.Brand);
+                    });
+
+                    col.Item().PaddingTop(3).Row(row =>
+                    {
+                        row.RelativeItem(2).Text("Phương thức:").FontColor(ReportPdfCommon.Muted).FontSize(9);
+                        row.RelativeItem(3).AlignRight().Text(receipt.Method).FontSize(9);
                     });
 
                     if (!string.IsNullOrEmpty(receipt.Reference))
-                    {
                         col.Item().Row(row =>
                         {
-                            row.RelativeItem(2).Text("Ma GD:").FontSize(7);
-                            row.RelativeItem(3).AlignRight().Text(receipt.Reference).FontSize(7);
+                            row.RelativeItem(2).Text("Mã GD:").FontColor(ReportPdfCommon.Muted).FontSize(9);
+                            row.RelativeItem(3).AlignRight().Text(receipt.Reference).FontSize(9);
                         });
-                    }
 
                     if (!string.IsNullOrEmpty(receipt.CashierName))
-                    {
-                        col.Item().PaddingTop(2).Row(row =>
+                        col.Item().PaddingTop(3).Row(row =>
                         {
-                            row.RelativeItem(2).Text("Thu ngan:").FontSize(7);
-                            row.RelativeItem(3).AlignRight().Text(receipt.CashierName).FontSize(7);
+                            row.RelativeItem(2).Text("Thu ngân:").FontColor(ReportPdfCommon.Muted).FontSize(9);
+                            row.RelativeItem(3).AlignRight().Text(receipt.CashierName).FontSize(9);
                         });
-                    }
 
-                    col.Item().PaddingTop(3).LineHorizontal(0.5f).LineColor(Colors.Black);
+                    col.Item().PaddingTop(16).Row(row =>
+                    {
+                        row.RelativeItem();
+                        row.RelativeItem().AlignCenter().Column(sig =>
+                        {
+                            sig.Item().AlignCenter().Text($"Ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}")
+                                .Italic().FontSize(8.5f).FontColor(ReportPdfCommon.Muted);
+                            sig.Item().AlignCenter().Text("NGƯỜI THU TIỀN").Bold().FontSize(9.5f);
+                            sig.Item().AlignCenter().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8f).FontColor(ReportPdfCommon.Muted);
+                        });
+                    });
+                });
+
+                page.Footer().Column(col =>
+                {
+                    col.Item().LineHorizontal(0.75f).LineColor(ReportPdfCommon.LineColor);
                     col.Item().PaddingTop(3).AlignCenter()
-                        .Text("Cam on quy khach!").FontSize(8).Bold();
+                        .Text("Cảm ơn quý khách!").FontSize(8.5f).FontColor(ReportPdfCommon.Muted);
                     col.Item().AlignCenter()
-                        .Text($"In: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(6)
-                        .FontColor(Colors.Grey.Lighten1);
+                        .Text($"In lúc: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(7.5f)
+                        .FontColor(ReportPdfCommon.Muted);
                 });
             });
         });

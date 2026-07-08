@@ -171,6 +171,10 @@ public static class DependencyInjection
         services.AddScoped<CucQldSyncDailyJob>();
         services.AddScoped<NearExpiryNotificationJob>();
 
+        // CDSS (clinical decision support - DDI, drug-allergy, drug-lab, critical lab)
+        services.AddMemoryCache();
+        services.AddScoped<Application.Cdss.ICdssEngine, Cdss.CdssEngineImpl>();
+
         // Pharmacy services (Sprint 6-7 EPIC 5)
         services.AddScoped<IDdiChecker, DdiCheckerImpl>();
         services.AddScoped<IUsbTokenSigner, MockUsbTokenSigner>();
@@ -294,6 +298,21 @@ public static class DependencyInjection
         services.AddScoped<IExcelExporter, ReportExcelExporter>();
         services.AddScoped<ReportCacheRefreshJob>();
 
+        // CDSS Sprint: risk stratification + chronic care recall jobs
+        services.AddScoped<PatientRiskStratificationJob>();
+        services.AddScoped<ChronicCareRecallJob>();
+
+        // AI treatment suggestion (guideline-driven, chua goi Azure OpenAI that)
+        var azureOpenAiOptions = new Ai.AzureOpenAiOptions
+        {
+            Enabled = string.Equals(configuration["AzureOpenAi:Enabled"], "true", StringComparison.OrdinalIgnoreCase),
+            Endpoint = configuration["AzureOpenAi:Endpoint"] ?? "",
+            ApiKey = configuration["AzureOpenAi:ApiKey"] ?? "",
+            Deployment = configuration["AzureOpenAi:Deployment"] ?? "gpt-4o"
+        };
+        services.AddSingleton(azureOpenAiOptions);
+        services.AddScoped<Application.Ai.ITreatmentSuggestionService, Ai.GuidelineSuggestionService>();
+
         // Report Engine config-driven (23 bao cao — docs/prd/reports-catalog-prd.md)
         services.AddSingleton<Application.Reports.Engine.IReportRegistry, Reports.ReportRegistry>();
         services.AddScoped<Application.Reports.Engine.IGenericReportDataService, Reports.GenericReportDataService>();
@@ -301,6 +320,9 @@ public static class DependencyInjection
         services.AddScoped<Application.Pharmacy.Prescriptions.IPrescriptionPdfBuilder, Reports.PrescriptionPdfBuilder>();
         services.AddScoped<Application.CLS.IClsOrderSlipPdfBuilder, Reports.ClsOrderSlipPdfBuilder>();
         services.AddScoped<Application.Appointments.IAppointmentSlipPdfBuilder, Reports.AppointmentSlipPdfBuilder>();
+        services.AddScoped<Application.Pharmacy.Dispensing.IPharmacyDispenseReceiptPdfBuilder, Reports.PharmacyDispenseReceiptPdfBuilder>();
+        services.AddScoped<Application.Pharmacy.Warehouse.IStocktakePdfBuilder, Reports.StocktakePdfBuilder>();
+        services.AddScoped<Application.Billing.ICashierShiftReportPdfBuilder, Reports.CashierShiftReportPdfBuilder>();
 
         // Sprint 14: Report PDF A4 — ma bao cao (Redis INCR, bat buoc — khong fallback)
         services.AddScoped<IReportCodeGenerator>(sp =>

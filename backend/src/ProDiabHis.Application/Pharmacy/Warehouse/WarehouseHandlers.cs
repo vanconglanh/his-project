@@ -693,16 +693,65 @@ public class GetStocktakePdfHandler : IRequestHandler<GetStocktakePdfQuery, Resu
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IStocktakePdfBuilder _builder;
 
-    public GetStocktakePdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public GetStocktakePdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IStocktakePdfBuilder builder)
+    { _db = db; _currentUser = currentUser; _builder = builder; }
 
     public async Task<Result<byte[]>> Handle(GetStocktakePdfQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
-        var warehouseName = "Kho tổng"; // pha_warehouses chua co, dung ten mac dinh
+        var tenantId = _currentUser.TenantId!.Value;
 
-        // Minimal PDF stub - full rendering via IPdfService in Infrastructure
-        var content = $"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>/Contents 4 0 R>>endobj\n4 0 obj<</Length 50>>stream\nBT /F1 12 Tf 50 750 Td (KIEM KE: {warehouseName}) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000266 00000 n\ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n360\n%%EOF";
-        return Result<byte[]>.Success(System.Text.Encoding.ASCII.GetBytes(content));
+        // Ghi chu: diab_his_pha_stocktakes chua co cot warehouse_id (chi co "location" dang text
+        // tu do), nen KHONG the loc chinh xac theo q.WarehouseId. Lay phien kiem ke gan nhat
+        // cua tenant (theo stocktake_date DESC) — pha_warehouses.id chi dung de tra ten kho hien thi.
+        var warehouseName = await conn.ExecuteScalarAsync<string?>(
+            "SELECT name FROM pha_warehouses WHERE id = @id AND tenant_id = @tenantId",
+            new { id = q.WarehouseId, tenantId });
+
+        var st = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT id, code, stocktake_date, location, note
+              FROM diab_his_pha_stocktakes
+              WHERE tenant_id = @tenantId AND deleted_at IS NULL
+              ORDER BY stocktake_date DESC, created_at DESC LIMIT 1",
+            new { tenantId });
+
+        if (st == null)
+            return Result<byte[]>.Failure("STOCKTAKE_NOT_FOUND", "Không tìm thấy phiếu kiểm kê kho.");
+
+        var itemRows = await conn.QueryAsync<dynamic>(
+            @"SELECT it.lot_number, it.system_qty, it.counted_qty, it.difference,
+                     d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name, d.unit AS unit
+              FROM diab_his_pha_stocktake_items it
+              LEFT JOIN diab_his_pha_drugs d ON d.id = it.drug_id AND d.tenant_id = it.tenant_id
+              WHERE it.stocktake_id = @stId AND it.tenant_id = @tenantId AND it.deleted_at IS NULL
+              ORDER BY drug_name, it.lot_number",
+            new { stId = (string)st.id, tenantId });
+
+        var items = itemRows.Select((r, idx) => new StocktakeItemRow(
+            idx + 1,
+            (string?)r.drug_code,
+            (string?)r.drug_name ?? "—",
+            (string?)r.unit,
+            (string?)r.lot_number,
+            (int)r.system_qty,
+            (int)r.counted_qty,
+            (int)r.difference)).ToList();
+
+        var lh = await conn.QueryFirstOrDefaultAsync<Application.Reports.LetterheadDto>(
+            @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                     phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                     slogan AS Slogan, website AS Website
+              FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
+        lh ??= new Application.Reports.LetterheadDto("Pro-Diab HIS", null, null, null, null, null, null, null);
+
+        var location = !string.IsNullOrWhiteSpace(warehouseName) ? warehouseName : (string?)st.location;
+
+        var data = new StocktakeData(
+            lh, (string?)st.code, DateOnly.FromDateTime((DateTime)st.stocktake_date), location, (string?)st.note, items);
+
+        var pdf = _builder.Build(data);
+        return Result<byte[]>.Success(pdf);
     }
 }

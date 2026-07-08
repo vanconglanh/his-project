@@ -110,7 +110,9 @@
     "services": "Services",
     "einvoice": "E-Invoice",
     "apiPartners": "API Partners",
-    "notificationsConfig": "Notification Settings"
+    "notificationsConfig": "Notification Settings",
+    "riskList": "Diabetes Risk List",
+    "recall": "Follow-up Recall"
   },
   "ApiPartner": {
     "title": "API Partners",

@@ -314,8 +314,10 @@ public class GetDispenseReceiptPdfHandler : IRequestHandler<GetDispenseReceiptPd
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IPharmacyDispenseReceiptPdfBuilder _builder;
 
-    public GetDispenseReceiptPdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public GetDispenseReceiptPdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IPharmacyDispenseReceiptPdfBuilder builder)
+    { _db = db; _currentUser = currentUser; _builder = builder; }
 
     public async Task<Result<byte[]>> Handle(GetDispenseReceiptPdfQuery q, CancellationToken ct)
     {
@@ -323,14 +325,48 @@ public class GetDispenseReceiptPdfHandler : IRequestHandler<GetDispenseReceiptPd
         var tenantId = _currentUser.TenantId!.Value;
 
         var record = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, prescription_id, total_amount, dispensed_at FROM diab_his_pha_dispense_records WHERE id = @id AND tenant_id = @tenantId",
+            @"SELECT dr.id, dr.prescription_id, dr.total_amount, dr.dispensed_at, dr.note,
+                     COALESCE(pat.full_name, '') AS patient_name, pat.code AS patient_code
+              FROM diab_his_pha_dispense_records dr
+              LEFT JOIN diab_his_pha_prescriptions p ON p.id = dr.prescription_id AND p.tenant_id = dr.tenant_id
+              LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id AND pat.tenant_id = dr.tenant_id
+              WHERE dr.id = @id AND dr.tenant_id = @tenantId",
             new { id = q.DispenseRecordId, tenantId });
 
         if (record == null)
             return Result<byte[]>.Failure("PHARMACY_BATCH_NOT_FOUND", "Khong tim thay phieu phat.");
 
-        // Minimal PDF stub
-        var content = $"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 420 595]/Parent 2 0 R/Resources<<>>/Contents 4 0 R>>endobj\n4 0 obj<</Length 40>>stream\nBT /F1 12 Tf 50 500 Td (PHIEU PHAT THUOC) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000266 00000 n\ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n360\n%%EOF";
-        return Result<byte[]>.Success(System.Text.Encoding.ASCII.GetBytes(content));
+        var itemRows = await conn.QueryAsync<dynamic>(
+            @"SELECT di.batch_no, di.expiry_date, di.quantity,
+                     COALESCE(d.name_vi, d.name) AS drug_name, d.unit AS unit
+              FROM diab_his_pha_dispense_items di
+              LEFT JOIN diab_his_pha_drugs d ON d.id = di.drug_id AND d.tenant_id = di.tenant_id
+              WHERE di.dispense_record_id = @id AND di.tenant_id = @tenantId
+              ORDER BY di.created_at ASC",
+            new { id = q.DispenseRecordId, tenantId });
+
+        var items = itemRows.Select((r, idx) => new DispenseReceiptItem(
+            idx + 1,
+            (string?)r.drug_name ?? "—",
+            (string?)r.unit,
+            (decimal)r.quantity,
+            (string?)r.batch_no,
+            r.expiry_date == null ? (DateOnly?)null : DateOnly.FromDateTime((DateTime)r.expiry_date))).ToList();
+
+        var lh = await conn.QueryFirstOrDefaultAsync<Reports.LetterheadDto>(
+            @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                     phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                     slogan AS Slogan, website AS Website
+              FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
+        lh ??= new Reports.LetterheadDto("Pro-Diab HIS", null, null, null, null, null, null, null);
+
+        var data = new DispenseReceiptData(
+            lh, (string)record.id, (string)record.prescription_id,
+            string.IsNullOrWhiteSpace((string)record.patient_name) ? null : (string)record.patient_name,
+            (string?)record.patient_code,
+            (DateTime)record.dispensed_at, (string?)record.note, items, (decimal)record.total_amount);
+
+        var pdf = _builder.Build(data);
+        return Result<byte[]>.Success(pdf);
     }
 }

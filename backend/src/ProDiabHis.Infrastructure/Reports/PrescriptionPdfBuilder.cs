@@ -13,11 +13,10 @@ namespace ProDiabHis.Infrastructure.Reports;
 /// </summary>
 public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
 {
-    private static readonly string Brand = "#01645A";
-    private static readonly string Ink = "#0F172A";
-    private static readonly string Muted = "#64748B";
-    private static readonly string LineColor = "#E2E8F0";
-    private static readonly string ZebraBg = "#F3F8F7";
+    private const string Brand = ReportPdfCommon.Brand;
+    private const string Ink = ReportPdfCommon.Ink;
+    private const string Muted = ReportPdfCommon.Muted;
+    private const string LineColor = ReportPdfCommon.LineColor;
 
     static PrescriptionPdfBuilder()
     {
@@ -181,10 +180,10 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
 
             tbl.Header(h =>
             {
-                HText(h.Cell(), "#");
-                HText(h.Cell(), "Tên thuốc");
-                HText(h.Cell(), "Cách dùng");
-                HeadCell(h.Cell()).AlignRight().Text("SL").FontColor("#FFFFFF").Bold().FontSize(9);
+                ReportPdfCommon.HText(h.Cell(), "#");
+                ReportPdfCommon.HText(h.Cell(), "Tên thuốc");
+                ReportPdfCommon.HText(h.Cell(), "Cách dùng");
+                ReportPdfCommon.HeadCell(h.Cell()).AlignRight().Text("SL").FontColor("#FFFFFF").Bold().FontSize(9);
             });
 
             var i = 0;
@@ -199,19 +198,14 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
                     usageParts.Add(it.Instructions);
                 var usageLabel = string.Join(", ", usageParts.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                BodyCell(tbl.Cell(), i).Text(it.Stt.ToString()).FontSize(9);
-                BodyCell(tbl.Cell(), i).Text(t => t.Span(drugLabel).SemiBold().FontSize(9.5f));
-                BodyCell(tbl.Cell(), i).Text(usageLabel).FontSize(9);
-                BodyCell(tbl.Cell(), i).AlignRight().Text(qtyLabel).FontSize(9);
                 i++;
+                ReportPdfCommon.BodyCell(tbl.Cell(), i).Text(it.Stt.ToString()).FontSize(9);
+                ReportPdfCommon.BodyCell(tbl.Cell(), i).Text(t => t.Span(drugLabel).SemiBold().FontSize(9.5f));
+                ReportPdfCommon.BodyCell(tbl.Cell(), i).Text(usageLabel).FontSize(9);
+                ReportPdfCommon.BodyCell(tbl.Cell(), i).AlignRight().Text(qtyLabel).FontSize(9);
             }
         });
     }
-
-    private static IContainer HeadCell(IContainer c) => c.Background(Brand).PaddingVertical(5).PaddingHorizontal(4);
-    private static void HText(IContainer c, string s) => HeadCell(c).Text(s).FontColor("#FFFFFF").Bold().FontSize(9);
-    private static IContainer BodyCell(IContainer c, int i) => c.Background(i % 2 == 1 ? ZebraBg : "#FFFFFF")
-        .PaddingVertical(4).PaddingHorizontal(4).BorderBottom(0.5f).BorderColor(LineColor);
 
     private static string RouteLabel(string? route) => route switch
     {

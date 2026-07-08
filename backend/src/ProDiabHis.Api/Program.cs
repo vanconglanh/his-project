@@ -203,6 +203,16 @@ try
         j => j.ExecuteAsync(),
         "0 1 * * *");
 
+    // CDSS: phan tang nguy co benh nhan DTD (03:00) + recall tai kham chu dong (03:30)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.PatientRiskStratificationJob>(
+        "patient-risk-stratification",
+        j => j.ExecuteAsync(default),
+        "0 3 * * *");
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.ChronicCareRecallJob>(
+        "chronic-care-recall",
+        j => j.ExecuteAsync(default),
+        "30 3 * * *");
+
     // Minimal endpoint kiem tra nhanh
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 

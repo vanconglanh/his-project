@@ -16,7 +16,7 @@ namespace ProDiabHis.Infrastructure.Reports;
 /// cho Report Engine config-driven). Tach ra de tai su dung letterhead/brand/footer/barcode
 /// ma khong lap lai code o nhieu class.
 /// </summary>
-internal static class ReportPdfCommon
+public static class ReportPdfCommon
 {
     // Mau nhan dien diaB chinh thuc (dong bo voi preview thiet ke da duyet)
     public const string Brand = "#01645A";
