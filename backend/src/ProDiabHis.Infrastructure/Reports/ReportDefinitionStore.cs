@@ -20,21 +20,41 @@ public class ReportDefinitionStore : IReportDefinitionStore
 
     public ReportDefinitionStore(IDapperConnectionFactory db) => _db = db;
 
-    public async Task<IReadOnlyList<ReportDefinition>> GetVisibleAsync(int tenantId, string? currentUserId, CancellationToken ct)
+    public async Task<IReadOnlyList<ReportDefinition>> GetVisibleAsync(int tenantId, string? currentUserId, IReadOnlyList<string> currentUserRoles, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        // Lay ca TENANT + PRIVATE(cua chinh minh) + ROLE (loc chinh xac trong C# vi can so sanh JSON
+        // shared_roles_json voi danh sach role cua user hien tai — khong the lam gon trong 1 cau SQL portable).
         var rows = await conn.QueryAsync<RepDefinitionRow>(new CommandDefinition(
             @"SELECT id, tenant_id AS TenantId, code, title, dataset_key AS DatasetKey,
                      definition_json AS DefinitionJson, chart_json AS ChartJson,
-                     view_type AS ViewType, orientation, visibility, is_active AS IsActive,
+                     view_type AS ViewType, orientation, visibility, shared_roles_json AS SharedRolesJson, is_active AS IsActive,
                      created_by AS CreatedBy, created_at AS CreatedAt, updated_by AS UpdatedBy, updated_at AS UpdatedAt
               FROM diab_his_rep_definitions
               WHERE tenant_id = @tenantId AND is_active = 1 AND deleted_at IS NULL
-                AND (visibility = 'TENANT' OR (visibility = 'PRIVATE' AND created_by = @currentUserId))
+                AND (visibility = 'TENANT' OR visibility = 'ROLE' OR (visibility = 'PRIVATE' AND created_by = @currentUserId))
               ORDER BY created_at DESC",
             new { tenantId, currentUserId }, cancellationToken: ct));
 
-        return rows.Select(Map).ToList();
+        return rows.Select(Map)
+            .Where(d => IsVisibleToUser(d, currentUserId, currentUserRoles))
+            .ToList();
+    }
+
+    /// <summary>Kiem tra 1 ReportDefinition da nap co "nhin thay duoc" boi user hien tai khong — dung chung
+    /// cho GetVisibleAsync (loc danh sach) va CompositeReportRegistry (loc GetByCode).</summary>
+    public static bool IsVisibleToUser(ReportDefinition d, string? currentUserId, IReadOnlyList<string>? currentUserRoles)
+    {
+        var isOwner = currentUserId is not null && string.Equals(d.CreatedBy, currentUserId, StringComparison.OrdinalIgnoreCase);
+
+        return d.Visibility switch
+        {
+            ReportVisibility.Tenant => true,
+            ReportVisibility.Private => isOwner,
+            ReportVisibility.Role => isOwner || (currentUserRoles is not null &&
+                d.SharedRoles.Any(sr => currentUserRoles.Any(r => string.Equals(r, sr, StringComparison.OrdinalIgnoreCase)))),
+            _ => false
+        };
     }
 
     public async Task<ReportDefinition?> GetByCodeAsync(int tenantId, string code, CancellationToken ct)
@@ -43,7 +63,7 @@ public class ReportDefinitionStore : IReportDefinitionStore
         var row = await conn.QueryFirstOrDefaultAsync<RepDefinitionRow>(new CommandDefinition(
             @"SELECT id, tenant_id AS TenantId, code, title, dataset_key AS DatasetKey,
                      definition_json AS DefinitionJson, chart_json AS ChartJson,
-                     view_type AS ViewType, orientation, visibility, is_active AS IsActive,
+                     view_type AS ViewType, orientation, visibility, shared_roles_json AS SharedRolesJson, is_active AS IsActive,
                      created_by AS CreatedBy, created_at AS CreatedAt, updated_by AS UpdatedBy, updated_at AS UpdatedAt
               FROM diab_his_rep_definitions
               WHERE tenant_id = @tenantId AND code = @code AND is_active = 1 AND deleted_at IS NULL
@@ -59,7 +79,7 @@ public class ReportDefinitionStore : IReportDefinitionStore
         var row = await conn.QueryFirstOrDefaultAsync<RepDefinitionRow>(new CommandDefinition(
             @"SELECT id, tenant_id AS TenantId, code, title, dataset_key AS DatasetKey,
                      definition_json AS DefinitionJson, chart_json AS ChartJson,
-                     view_type AS ViewType, orientation, visibility, is_active AS IsActive,
+                     view_type AS ViewType, orientation, visibility, shared_roles_json AS SharedRolesJson, is_active AS IsActive,
                      created_by AS CreatedBy, created_at AS CreatedAt, updated_by AS UpdatedBy, updated_at AS UpdatedAt
               FROM diab_his_rep_definitions
               WHERE tenant_id = @tenantId AND id = @id AND deleted_at IS NULL
@@ -78,9 +98,9 @@ public class ReportDefinitionStore : IReportDefinitionStore
 
         await conn.ExecuteAsync(new CommandDefinition(
             @"INSERT INTO diab_his_rep_definitions
-                (id, tenant_id, code, title, dataset_key, definition_json, chart_json, view_type, visibility, is_active, created_by, created_at, updated_by, updated_at)
+                (id, tenant_id, code, title, dataset_key, definition_json, chart_json, view_type, visibility, shared_roles_json, is_active, created_by, created_at, updated_by, updated_at)
               VALUES
-                (@id, @tenantId, @code, @title, @datasetKey, CAST(@definitionJson AS JSON), CAST(@chartJson AS JSON), @viewType, @visibility, 1, @createdBy, NOW(), @createdBy, NOW())",
+                (@id, @tenantId, @code, @title, @datasetKey, CAST(@definitionJson AS JSON), CAST(@chartJson AS JSON), @viewType, @visibility, CAST(@sharedRolesJson AS JSON), 1, @createdBy, NOW(), @createdBy, NOW())",
             new
             {
                 id,
@@ -91,7 +111,8 @@ public class ReportDefinitionStore : IReportDefinitionStore
                 definitionJson = SerializeDefinition(input),
                 chartJson = SerializeChart(input.Chart),
                 viewType = input.ViewType == ReportViewType.Chart ? "CHART" : "TABLE",
-                visibility = input.Visibility == ReportVisibility.Private ? "PRIVATE" : "TENANT",
+                visibility = VisibilityCode(input.Visibility),
+                sharedRolesJson = SerializeSharedRoles(input.SharedRoles),
                 createdBy
             }, cancellationToken: ct));
 
@@ -106,6 +127,7 @@ public class ReportDefinitionStore : IReportDefinitionStore
             @"UPDATE diab_his_rep_definitions
                  SET title = @title, dataset_key = @datasetKey, definition_json = CAST(@definitionJson AS JSON),
                      chart_json = CAST(@chartJson AS JSON), view_type = @viewType, visibility = @visibility,
+                     shared_roles_json = CAST(@sharedRolesJson AS JSON),
                      updated_by = @updatedBy, updated_at = NOW()
                WHERE tenant_id = @tenantId AND id = @id AND deleted_at IS NULL",
             new
@@ -117,7 +139,8 @@ public class ReportDefinitionStore : IReportDefinitionStore
                 definitionJson = SerializeDefinition(input),
                 chartJson = SerializeChart(input.Chart),
                 viewType = input.ViewType == ReportViewType.Chart ? "CHART" : "TABLE",
-                visibility = input.Visibility == ReportVisibility.Private ? "PRIVATE" : "TENANT",
+                visibility = VisibilityCode(input.Visibility),
+                sharedRolesJson = SerializeSharedRoles(input.SharedRoles),
                 updatedBy
             }, cancellationToken: ct));
 
@@ -137,16 +160,31 @@ public class ReportDefinitionStore : IReportDefinitionStore
 
     // ---- Mapping ---- //
 
+    private static string VisibilityCode(ReportVisibility v) => v switch
+    {
+        ReportVisibility.Private => "PRIVATE",
+        ReportVisibility.Role => "ROLE",
+        _ => "TENANT"
+    };
+
+    private static ReportVisibility VisibilityFromCode(string code) => code switch
+    {
+        "PRIVATE" => ReportVisibility.Private,
+        "ROLE" => ReportVisibility.Role,
+        _ => ReportVisibility.Tenant
+    };
+
     private static ReportDefinition Map(RepDefinitionRow row)
     {
-        var (columns, filters, groupBy, sort, kpis) = DeserializeDefinition(row.DefinitionJson);
+        var (columns, filters, groupBy, sort, kpis, calcFields) = DeserializeDefinition(row.DefinitionJson);
         var chart = DeserializeChart(row.ChartJson);
+        var sharedRoles = DeserializeSharedRoles(row.SharedRolesJson);
 
         return new ReportDefinition(
             row.Id, row.TenantId, row.Code, row.Title, row.DatasetKey,
-            columns, filters, groupBy, sort, kpis, chart,
+            columns, filters, groupBy, sort, kpis, calcFields, chart,
             row.ViewType == "CHART" ? ReportViewType.Chart : ReportViewType.Table,
-            row.Visibility == "PRIVATE" ? ReportVisibility.Private : ReportVisibility.Tenant,
+            VisibilityFromCode(row.Visibility), sharedRoles,
             row.IsActive, row.CreatedBy, row.CreatedAt, row.UpdatedBy, row.UpdatedAt);
     }
 
@@ -157,7 +195,8 @@ public class ReportDefinitionStore : IReportDefinitionStore
             (input.Filters ?? Array.Empty<ReportDefinitionFilter>()).Select(f => new FilterJsonDto(f.Field, f.Op, f.Value.ToList())).ToList(),
             (input.GroupBy ?? Array.Empty<string>()).ToList(),
             (input.Sort ?? Array.Empty<ReportDefinitionSort>()).Select(s => new SortJsonDto(s.Field, s.Desc)).ToList(),
-            (input.Kpis ?? Array.Empty<ReportDefinitionKpi>()).Select(k => new KpiJsonDto(k.Label, k.Field, ReportAggregationCodes.ToCode(k.Agg))).ToList());
+            (input.Kpis ?? Array.Empty<ReportDefinitionKpi>()).Select(k => new KpiJsonDto(k.Label, k.Field, ReportAggregationCodes.ToCode(k.Agg))).ToList(),
+            (input.CalcFields ?? Array.Empty<ReportDefinitionCalcField>()).Select(c => new CalcFieldJsonDto(c.Key, c.Label, c.Formula, c.DataType)).ToList());
 
         return JsonSerializer.Serialize(dto, JsonOpts);
     }
@@ -165,15 +204,19 @@ public class ReportDefinitionStore : IReportDefinitionStore
     private static string? SerializeChart(ReportDefinitionChart? chart)
         => chart is null ? null : JsonSerializer.Serialize(new ChartJsonDto(chart.Type, chart.Dims.ToList(), chart.Measure), JsonOpts);
 
+    private static string SerializeSharedRoles(IReadOnlyList<string>? roles)
+        => JsonSerializer.Serialize((roles ?? Array.Empty<string>()).ToList(), JsonOpts);
+
     private static (
         IReadOnlyList<ReportDefinitionColumn> Columns,
         IReadOnlyList<ReportDefinitionFilter> Filters,
         IReadOnlyList<string> GroupBy,
         IReadOnlyList<ReportDefinitionSort> Sort,
-        IReadOnlyList<ReportDefinitionKpi> Kpis) DeserializeDefinition(string json)
+        IReadOnlyList<ReportDefinitionKpi> Kpis,
+        IReadOnlyList<ReportDefinitionCalcField> CalcFields) DeserializeDefinition(string json)
     {
         var dto = JsonSerializer.Deserialize<DefinitionJsonDto>(json, JsonOpts)
-            ?? new DefinitionJsonDto(new(), new(), new(), new(), new());
+            ?? new DefinitionJsonDto(new(), new(), new(), new(), new(), new());
 
         var columns = dto.Columns.Select(c => new ReportDefinitionColumn(
             c.Field, c.Label, ReportAggregationCodes.TryFromCode(c.Agg, out var agg) ? agg : null, c.IsSubtotal)).ToList();
@@ -182,8 +225,9 @@ public class ReportDefinitionStore : IReportDefinitionStore
         var groupBy = dto.GroupBy.ToList();
         var sort = dto.Sort.Select(s => new ReportDefinitionSort(s.Field, s.Desc)).ToList();
         var kpis = dto.Kpis.Select(k => new ReportDefinitionKpi(k.Label, k.Field, ReportAggregationCodes.FromCode(k.Agg))).ToList();
+        var calcFields = (dto.CalcFields ?? new()).Select(c => new ReportDefinitionCalcField(c.Key, c.Label, c.Formula, c.DataType)).ToList();
 
-        return (columns, filters, groupBy, sort, kpis);
+        return (columns, filters, groupBy, sort, kpis, calcFields);
     }
 
     private static ReportDefinitionChart? DeserializeChart(string? json)
@@ -193,17 +237,26 @@ public class ReportDefinitionStore : IReportDefinitionStore
         return dto is null ? null : new ReportDefinitionChart(dto.Type, dto.Dims, dto.Measure);
     }
 
+    private static IReadOnlyList<string> DeserializeSharedRoles(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return Array.Empty<string>();
+        return JsonSerializer.Deserialize<List<string>>(json, JsonOpts) ?? new List<string>();
+    }
+
     private record RepDefinitionRow(
         string Id, int TenantId, string Code, string Title, string DatasetKey,
         string DefinitionJson, string? ChartJson, string ViewType, string Orientation, string Visibility,
+        string? SharedRolesJson,
         bool IsActive, string? CreatedBy, DateTime CreatedAt, string? UpdatedBy, DateTime UpdatedAt);
 
     private record DefinitionJsonDto(
-        List<ColumnJsonDto> Columns, List<FilterJsonDto> Filters, List<string> GroupBy, List<SortJsonDto> Sort, List<KpiJsonDto> Kpis);
+        List<ColumnJsonDto> Columns, List<FilterJsonDto> Filters, List<string> GroupBy, List<SortJsonDto> Sort, List<KpiJsonDto> Kpis,
+        List<CalcFieldJsonDto>? CalcFields = null);
 
     private record ColumnJsonDto(string Field, string Label, string? Agg, bool IsSubtotal);
     private record FilterJsonDto(string Field, string Op, List<string?> Value);
     private record SortJsonDto(string Field, bool Desc);
     private record KpiJsonDto(string Label, string Field, string Agg);
     private record ChartJsonDto(string Type, List<string> Dims, string Measure);
+    private record CalcFieldJsonDto(string Key, string Label, string Formula, string DataType);
 }

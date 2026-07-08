@@ -213,6 +213,12 @@ try
         j => j.ExecuteAsync(default),
         "30 3 * * *");
 
+    // Report Builder P3.3: quet lich gui bao cao qua email den han, chay dau moi gio
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.ReportScheduleDispatchJob>(
+        "report-schedule-dispatch",
+        j => j.ExecuteAsync(default),
+        "0 * * * *");
+
     // Minimal endpoint kiem tra nhanh
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 

@@ -13,18 +13,31 @@ public static class DynamicDescriptorFactory
 
     public static ReportDescriptor Create(ReportDefinition definition, Dataset dataset, int limit = DataLimit)
     {
+        var calcFields = definition.CalcFields ?? Array.Empty<ReportDefinitionCalcField>();
+
         var columns = new List<ReportColumn>();
         foreach (var col in definition.Columns)
         {
-            var field = dataset.FindField(col.Field)
-                ?? throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Trường '{col.Field}' không thuộc dataset '{dataset.Key}'");
-
+            var calcField = calcFields.FirstOrDefault(c => string.Equals(c.Key, col.Field, StringComparison.OrdinalIgnoreCase));
             var alias = SafeQueryBuilder.SanitizeAlias(col.Field);
-            var align = field.DataType is ReportColumnType.Money or ReportColumnType.Number
+
+            ReportColumnType dataType;
+            if (calcField is not null)
+            {
+                dataType = ParseColumnType(calcField.DataType);
+            }
+            else
+            {
+                var field = dataset.FindField(col.Field)
+                    ?? throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Trường '{col.Field}' không thuộc dataset '{dataset.Key}'");
+                dataType = field.DataType;
+            }
+
+            var align = dataType is ReportColumnType.Money or ReportColumnType.Number
                 ? ReportAlign.Right
                 : ReportAlign.Left;
 
-            columns.Add(new ReportColumn(alias, col.Label, field.DataType, align, 1f, col.IsSubtotal));
+            columns.Add(new ReportColumn(alias, col.Label, dataType, align, 1f, col.IsSubtotal));
         }
 
         var kpis = new List<ReportKpiSpec>();
@@ -53,7 +66,7 @@ public static class DynamicDescriptorFactory
         var inputForQuery = new ReportDefinitionInput(
             definition.Title, definition.DatasetKey, definition.Columns, definition.Filters,
             definition.GroupBy, definition.Sort, definition.Kpis, definition.Chart,
-            definition.ViewType, definition.Visibility);
+            definition.ViewType, definition.Visibility, calcFields, definition.SharedRoles);
 
         return new ReportDescriptor
         {
@@ -73,4 +86,11 @@ public static class DynamicDescriptorFactory
             BuildQuery = ctx => SafeQueryBuilder.Build(dataset, inputForQuery, ctx, limit)
         };
     }
+
+    /// <summary>Parse chuoi data_type cua calc field (nhap tu request/JSON) sang <see cref="ReportColumnType"/>.
+    /// Chi chap nhan dung ten enum (khong phan biet hoa/thuong) — sai -> 400 REPORT_DEFINITION_INVALID.</summary>
+    private static ReportColumnType ParseColumnType(string raw)
+        => Enum.TryParse<ReportColumnType>(raw, ignoreCase: true, out var type)
+            ? type
+            : throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Kiểu dữ liệu '{raw}' không hợp lệ cho cột tính toán");
 }

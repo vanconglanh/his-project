@@ -68,17 +68,31 @@ public static class SafeQueryBuilder
         var dimSelects = new List<(string Alias, string Expr)>();
         var measureSelects = new List<(string Alias, string Expr)>();
 
+        var calcFields = definition.CalcFields ?? Array.Empty<ReportDefinitionCalcField>();
+
         foreach (var col in definition.Columns)
         {
             if (string.IsNullOrWhiteSpace(col.Field))
                 throw new ReportValidationException("REPORT_DEFINITION_INVALID", "Cột thiếu tên trường");
 
-            var field = dataset.FindField(col.Field)
-                ?? throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Trường '{col.Field}' không thuộc dataset '{dataset.Key}'");
-
             var alias = SanitizeAlias(col.Field);
             if (!seenKeys.Add(alias))
                 throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Trường '{col.Field}' bị lặp lại");
+
+            // ---- Cot tro toi calc field (cong thuc tinh toan an toan — CalcFormulaParser) ---- //
+            var calcField = calcFields.FirstOrDefault(c => string.Equals(c.Key, col.Field, StringComparison.OrdinalIgnoreCase));
+            if (calcField is not null)
+            {
+                if (col.Agg is not null)
+                    throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Cột tính toán '{col.Field}' không được chỉ định phép gộp (agg)");
+
+                var calcExpr = CalcFormulaParser.ToSql(dataset, calcField.Formula);
+                measureSelects.Add((alias, calcExpr));
+                continue;
+            }
+
+            var field = dataset.FindField(col.Field)
+                ?? throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Trường '{col.Field}' không thuộc dataset '{dataset.Key}'");
 
             if (col.Agg is null)
             {

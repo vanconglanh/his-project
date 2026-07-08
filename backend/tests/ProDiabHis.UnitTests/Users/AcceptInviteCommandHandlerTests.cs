@@ -86,7 +86,7 @@ public class AcceptInviteCommandHandlerTests
         await db.SaveChangesAsync();
 
         _passwordHasher.Hash("M@tKhauManh2026!").Returns("hashed_pwd");
-        _jwtService.GenerateAccessToken(Arg.Any<User>(), Arg.Any<IEnumerable<string>>()).Returns("access_token_xyz");
+        _jwtService.GenerateAccessToken(Arg.Any<User>(), Arg.Any<IEnumerable<string>>(), Arg.Any<IEnumerable<string>?>()).Returns("access_token_xyz");
         _jwtService.GenerateRefreshToken().Returns("refresh_token_xyz");
 
         var result = await handler.Handle(

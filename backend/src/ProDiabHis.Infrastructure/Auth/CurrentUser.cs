@@ -40,4 +40,7 @@ public class CurrentUser : ICurrentUser
 
     public IReadOnlyList<string> Roles =>
         User?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? [];
+
+    public IReadOnlyList<string> RoleCodes =>
+        User?.FindAll("role_code").Select(c => c.Value).ToList() ?? [];
 }

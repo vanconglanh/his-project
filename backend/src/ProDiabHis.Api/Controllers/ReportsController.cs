@@ -518,7 +518,7 @@ public class ReportsController : ControllerBase
     [RequirePermission("report.build")]
     public async Task<IActionResult> CreateDefinition([FromBody] SaveReportDefinitionRequest request, CancellationToken ct)
     {
-        var input = ReportBuilderRequestMapper.ToInput(request.Title, request.DatasetKey, request.Definition, request.Chart, request.ViewType, request.Visibility);
+        var input = ReportBuilderRequestMapper.ToInput(request.Title, request.DatasetKey, request.Definition, request.Chart, request.ViewType, request.Visibility, request.SharedRoles);
         var created = await _mediator.Send(new CreateReportDefinitionCommand(input), ct);
         return Ok(new { data = ToDefinitionResponse(created) });
     }
@@ -528,7 +528,7 @@ public class ReportsController : ControllerBase
     [RequirePermission("report.build")]
     public async Task<IActionResult> UpdateDefinition(string id, [FromBody] SaveReportDefinitionRequest request, CancellationToken ct)
     {
-        var input = ReportBuilderRequestMapper.ToInput(request.Title, request.DatasetKey, request.Definition, request.Chart, request.ViewType, request.Visibility);
+        var input = ReportBuilderRequestMapper.ToInput(request.Title, request.DatasetKey, request.Definition, request.Chart, request.ViewType, request.Visibility, request.SharedRoles);
         var updated = await _mediator.Send(new UpdateReportDefinitionCommand(id, input), ct);
         return Ok(new { data = ToDefinitionResponse(updated) });
     }
@@ -553,7 +553,7 @@ public class ReportsController : ControllerBase
         var toDate = to ?? DateOnly.FromDateTime(DateTime.Today);
 
         var result = await _mediator.Send(new PreviewReportDefinitionQuery(
-            request.DatasetKey, input.Columns, input.Filters, input.GroupBy, input.Sort, input.Kpis, fromDate, toDate), ct);
+            request.DatasetKey, input.Columns, input.Filters, input.GroupBy, input.Sort, input.Kpis, fromDate, toDate, input.CalcFields), ct);
 
         return Ok(new
         {
@@ -590,6 +590,66 @@ public class ReportsController : ControllerBase
             meta = new { page = 1, page_size = DynamicDescriptorFactory.PreviewLimit, total = result.TotalRows }
         });
     }
+
+    // ======== LICH GUI BAO CAO QUA EMAIL P3.3 (docs/prd/report-builder-prd.md) ======== //
+
+    /// <summary>Danh sach lich gui bao cao qua email cua tenant hien tai.</summary>
+    [HttpGet("schedules")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> GetSchedules(CancellationToken ct)
+    {
+        var schedules = await _mediator.Send(new GetReportSchedulesQuery(), ct);
+        return Ok(new { data = schedules.Select(ToScheduleResponse) });
+    }
+
+    /// <summary>Tao 1 lich gui bao cao qua email moi.</summary>
+    [HttpPost("schedules")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> CreateSchedule([FromBody] SaveReportScheduleRequest request, CancellationToken ct)
+    {
+        var input = ReportScheduleRequestMapper.ToInput(request);
+        var created = await _mediator.Send(new CreateReportScheduleCommand(input), ct);
+        return Ok(new { data = ToScheduleResponse(created) });
+    }
+
+    /// <summary>Sua 1 lich gui bao cao (chi chu so huu hoac admin).</summary>
+    [HttpPut("schedules/{id}")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> UpdateSchedule(string id, [FromBody] SaveReportScheduleRequest request, CancellationToken ct)
+    {
+        var input = ReportScheduleRequestMapper.ToInput(request);
+        var updated = await _mediator.Send(new UpdateReportScheduleCommand(id, input), ct);
+        return Ok(new { data = ToScheduleResponse(updated) });
+    }
+
+    /// <summary>Xoa (mem) 1 lich gui bao cao (chi chu so huu hoac admin).</summary>
+    [HttpDelete("schedules/{id}")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> DeleteSchedule(string id, CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteReportScheduleCommand(id), ct);
+        return Ok(new { data = new { id, deleted = true } });
+    }
+
+    private static object ToScheduleResponse(ReportSchedule s) => new
+    {
+        id = s.Id,
+        report_code = s.ReportCode,
+        title = s.Title,
+        frequency = ReportScheduleCodes.ToCode(s.Frequency),
+        hour = s.Hour,
+        day_of_week = s.DayOfWeek,
+        day_of_month = s.DayOfMonth,
+        period = ReportScheduleCodes.ToCode(s.Period),
+        format = ReportScheduleCodes.ToCode(s.Format),
+        recipients = s.Recipients,
+        enabled = s.Enabled,
+        last_run_at = s.LastRunAt,
+        created_by = s.CreatedBy,
+        created_at = s.CreatedAt,
+        updated_by = s.UpdatedBy,
+        updated_at = s.UpdatedAt
+    };
 
     // ======== DASHBOARD TUY BIEN P2.2 (docs/prd/report-builder-prd.md) — ghim nhieu bao cao thanh widget ======== //
 
@@ -736,11 +796,13 @@ public class ReportsController : ControllerBase
             filters = d.Filters.Select(f => new { field = f.Field, op = f.Op, value = f.Value }),
             group_by = d.GroupBy,
             sort = d.Sort.Select(s => new { field = s.Field, desc = s.Desc }),
-            kpis = d.Kpis.Select(k => new { label = k.Label, field = k.Field, agg = ReportAggregationCodes.ToCode(k.Agg) })
+            kpis = d.Kpis.Select(k => new { label = k.Label, field = k.Field, agg = ReportAggregationCodes.ToCode(k.Agg) }),
+            calc_fields = d.CalcFields.Select(c => new { key = c.Key, label = c.Label, formula = c.Formula, data_type = c.DataType })
         },
         chart = d.Chart is null ? null : new { type = d.Chart.Type, dims = d.Chart.Dims, measure = d.Chart.Measure },
         view_type = d.ViewType.ToString().ToUpperInvariant(),
         visibility = d.Visibility.ToString().ToUpperInvariant(),
+        shared_roles = d.SharedRoles,
         is_active = d.IsActive,
         created_by = d.CreatedBy,
         created_at = d.CreatedAt,

@@ -82,8 +82,12 @@ public class AcceptInviteCommandHandler : IRequestHandler<AcceptInviteCommand, R
             .Where(ur => ur.Role != null)
             .Select(ur => ur.Role!.Name)
             .ToList();
+        var roleCodes = user.UserRoles
+            .Where(ur => ur.Role != null)
+            .Select(ur => ur.Role!.Code)
+            .ToList();
 
-        var accessToken = _jwtService.GenerateAccessToken(user, roles);
+        var accessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes);
         var refreshTokenValue = _jwtService.GenerateRefreshToken();
 
         _db.RefreshTokens.Add(new RefreshToken

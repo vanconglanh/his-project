@@ -12,12 +12,17 @@ public record ReportDefinitionKpiRequest(string Label, string Field, string Agg)
 
 public record ReportDefinitionChartRequest(string Type, List<string> Dims, string Measure);
 
+/// <summary>1 cot tinh toan (calc field) trong request — Formula chi duoc parse qua CalcFormulaParser,
+/// khong bao gio noi suy truc tiep vao SQL.</summary>
+public record ReportDefinitionCalcFieldRequest(string Key, string Label, string Formula, string DataType);
+
 public record ReportDefinitionBodyRequest(
     List<ReportDefinitionColumnRequest> Columns,
     List<ReportDefinitionFilterRequest>? Filters,
     List<string>? GroupBy,
     List<ReportDefinitionSortRequest>? Sort,
-    List<ReportDefinitionKpiRequest>? Kpis);
+    List<ReportDefinitionKpiRequest>? Kpis,
+    List<ReportDefinitionCalcFieldRequest>? CalcFields = null);
 
 public record SaveReportDefinitionRequest(
     string Title,
@@ -25,7 +30,8 @@ public record SaveReportDefinitionRequest(
     ReportDefinitionBodyRequest Definition,
     ReportDefinitionChartRequest? Chart,
     string? ViewType,
-    string? Visibility);
+    string? Visibility,
+    List<string>? SharedRoles = null);
 
 public record PreviewReportDefinitionRequest(
     string DatasetKey,
@@ -37,7 +43,7 @@ public record PreviewReportDefinitionRequest(
 public static class ReportBuilderRequestMapper
 {
     public static ReportDefinitionInput ToInput(string title, string datasetKey, ReportDefinitionBodyRequest def,
-        ReportDefinitionChartRequest? chart, string? viewType, string? visibility)
+        ReportDefinitionChartRequest? chart, string? viewType, string? visibility, List<string>? sharedRoles = null)
     {
         if (def is null || def.Columns is null || def.Columns.Count == 0)
             throw new ReportValidationException("REPORT_DEFINITION_INVALID", "Báo cáo phải có ít nhất 1 cột");
@@ -51,6 +57,7 @@ public static class ReportBuilderRequestMapper
         var groupBy = def.GroupBy ?? new();
         var sort = (def.Sort ?? new()).Select(s => new ReportDefinitionSort(s.Field, s.Desc)).ToList();
         var kpis = (def.Kpis ?? new()).Select(k => new ReportDefinitionKpi(k.Label, k.Field, ReportAggregationCodes.FromCode(k.Agg))).ToList();
+        var calcFields = (def.CalcFields ?? new()).Select(c => new ReportDefinitionCalcField(c.Key, c.Label, c.Formula, c.DataType)).ToList();
 
         var chartDto = chart is null ? null : new ReportDefinitionChart(chart.Type, chart.Dims, chart.Measure);
 
@@ -60,9 +67,19 @@ public static class ReportBuilderRequestMapper
         if (viewTypeEnum == ReportViewType.Chart && chartDto is null)
             throw new ReportValidationException("REPORT_DEFINITION_INVALID", "Báo cáo dạng biểu đồ (CHART) phải kèm cấu hình 'chart'");
 
-        var visibilityEnum = string.Equals(visibility, "PRIVATE", StringComparison.OrdinalIgnoreCase)
-            ? ReportVisibility.Private : ReportVisibility.Tenant;
+        var visibilityEnum = visibility?.Trim().ToUpperInvariant() switch
+        {
+            "PRIVATE" => ReportVisibility.Private,
+            "ROLE" => ReportVisibility.Role,
+            _ => ReportVisibility.Tenant
+        };
 
-        return new ReportDefinitionInput(title, datasetKey, columns, filters, groupBy, sort, kpis, chartDto, viewTypeEnum, visibilityEnum);
+        var sharedRolesList = sharedRoles?.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+            ?? new List<string>();
+
+        if (visibilityEnum == ReportVisibility.Role && sharedRolesList.Count == 0)
+            throw new ReportValidationException("REPORT_DEFINITION_INVALID", "Báo cáo chia sẻ theo vai trò (ROLE) phải chỉ định ít nhất 1 role trong 'shared_roles'");
+
+        return new ReportDefinitionInput(title, datasetKey, columns, filters, groupBy, sort, kpis, chartDto, viewTypeEnum, visibilityEnum, calcFields, sharedRolesList);
     }
 }

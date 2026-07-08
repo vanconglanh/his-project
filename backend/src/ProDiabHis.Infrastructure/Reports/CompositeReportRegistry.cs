@@ -45,10 +45,10 @@ public class CompositeReportRegistry : IReportRegistry
             .GetAwaiter().GetResult();
         if (definition is null) return null;
 
-        // visibility PRIVATE: chi chu so huu duoc chay/xem. Tenant isolation da dam bao boi store
+        // Enforce visibility PRIVATE/ROLE ngay tai /data (khong chi o danh sach) — user khong duoc chia se
+        // khong the "doan" ma bao cao roi chay duoc du biet code. Tenant isolation da dam bao boi store
         // (WHERE tenant_id=@tenantId trong ReportDefinitionStore) — khong the lay dinh nghia tenant khac.
-        if (definition.Visibility == ReportVisibility.Private &&
-            !string.Equals(definition.CreatedBy, _currentUser.UserId?.ToString(), StringComparison.OrdinalIgnoreCase))
+        if (!ReportDefinitionStore.IsVisibleToUser(definition, _currentUser.UserId?.ToString(), _currentUser.RoleCodes))
             return null;
 
         var dataset = _datasets.GetByKey(definition.DatasetKey);
@@ -57,7 +57,7 @@ public class CompositeReportRegistry : IReportRegistry
 
     private List<ReportDescriptor> GetDynamicDescriptors()
     {
-        var definitions = _store.GetVisibleAsync(_tenant.TenantId, _currentUser.UserId?.ToString(), CancellationToken.None)
+        var definitions = _store.GetVisibleAsync(_tenant.TenantId, _currentUser.UserId?.ToString(), _currentUser.RoleCodes, CancellationToken.None)
             .GetAwaiter().GetResult();
 
         var list = new List<ReportDescriptor>();

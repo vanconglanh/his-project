@@ -324,6 +324,10 @@ public static class DependencyInjection
         services.AddScoped<Application.Reports.Engine.IReportDashboardStore, Reports.ReportDashboardStore>();
         services.AddScoped<Application.Reports.Engine.IReportRegistry, Reports.CompositeReportRegistry>();
         services.AddScoped<Application.Reports.Engine.IGenericReportPdfExporter, Reports.GenericReportPdfExporter>();
+
+        // Report Builder P3.3 — lich gui bao cao qua email dinh ky (Hangfire recurring job)
+        services.AddScoped<Application.Reports.Engine.IReportScheduleStore, Reports.ReportScheduleStore>();
+        services.AddScoped<Jobs.ReportScheduleDispatchJob>();
         services.AddScoped<Application.Pharmacy.Prescriptions.IPrescriptionPdfBuilder, Reports.PrescriptionPdfBuilder>();
         services.AddScoped<Application.CLS.IClsOrderSlipPdfBuilder, Reports.ClsOrderSlipPdfBuilder>();
         services.AddScoped<Application.Appointments.IAppointmentSlipPdfBuilder, Reports.AppointmentSlipPdfBuilder>();

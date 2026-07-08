@@ -5,7 +5,13 @@ namespace ProDiabHis.Application.Auth;
 /// <summary>Sinh va xac thuc JWT token</summary>
 public interface IJwtService
 {
-    string GenerateAccessToken(User user, IEnumerable<string> roles);
+    /// <summary>
+    /// Sinh access token. <paramref name="roles"/> la ten hien thi (vd "Bác sĩ") — giu nguyen de tuong thich
+    /// nguoc (ClaimTypes.Role). <paramref name="roleCodes"/> (optional) la ma role on dinh (vd "bac_si") —
+    /// nhung tinh nang can so sanh chinh xac (chia se bao cao theo role...) nen dung claim "role_code" nay
+    /// thay vi Roles (ten hien thi, co the trung/doi theo ngon ngu).
+    /// </summary>
+    string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null);
     string GenerateRefreshToken();
     bool ValidateRefreshToken(string token);
 

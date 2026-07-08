@@ -66,7 +66,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var accessToken = _jwtService.GenerateAccessToken(user, roles);
+        var accessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes);
         var refreshTokenValue = _jwtService.GenerateRefreshToken();
 
         var refreshToken = new RefreshToken

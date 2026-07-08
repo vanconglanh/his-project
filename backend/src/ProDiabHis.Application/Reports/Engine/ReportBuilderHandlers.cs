@@ -31,7 +31,7 @@ public class GetReportDefinitionsHandler : IRequestHandler<GetReportDefinitionsQ
     }
 
     public Task<IReadOnlyList<ReportDefinition>> Handle(GetReportDefinitionsQuery request, CancellationToken ct)
-        => _store.GetVisibleAsync(_tenant.TenantId, _currentUser.UserId?.ToString(), ct);
+        => _store.GetVisibleAsync(_tenant.TenantId, _currentUser.UserId?.ToString(), _currentUser.RoleCodes, ct);
 }
 
 // ---- POST /reports/definitions ---- //
@@ -140,15 +140,17 @@ public class PreviewReportDefinitionHandler : IRequestHandler<PreviewReportDefin
         var dataset = _datasets.GetByKey(request.DatasetKey)
             ?? throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Dataset '{request.DatasetKey}' không tồn tại");
 
+        var calcFields = request.CalcFields ?? Array.Empty<ReportDefinitionCalcField>();
+
         var input = new ReportDefinitionInput(
             "Xem trước", request.DatasetKey, request.Columns, request.Filters, request.GroupBy, request.Sort,
-            request.Kpis, Chart: null, ReportViewType.Table, ReportVisibility.Private);
+            request.Kpis, Chart: null, ReportViewType.Table, ReportVisibility.Private, calcFields);
 
         var previewDefinition = new ReportDefinition(
             Id: "preview", TenantId: _tenant.TenantId, Code: "preview", Title: "Xem trước",
             DatasetKey: request.DatasetKey, Columns: request.Columns, Filters: request.Filters,
-            GroupBy: request.GroupBy, Sort: request.Sort, Kpis: request.Kpis, Chart: null,
-            ViewType: ReportViewType.Table, Visibility: ReportVisibility.Private, IsActive: true,
+            GroupBy: request.GroupBy, Sort: request.Sort, Kpis: request.Kpis, CalcFields: calcFields, Chart: null,
+            ViewType: ReportViewType.Table, Visibility: ReportVisibility.Private, SharedRoles: Array.Empty<string>(), IsActive: true,
             CreatedBy: null, CreatedAt: DateTime.UtcNow, UpdatedBy: null, UpdatedAt: DateTime.UtcNow);
 
         var descriptor = DynamicDescriptorFactory.Create(previewDefinition, dataset, DynamicDescriptorFactory.PreviewLimit);

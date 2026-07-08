@@ -60,10 +60,10 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         };
         _db.RefreshTokens.Add(newRefreshToken);
 
-        var newAccessToken = _jwtService.GenerateAccessToken(user, roles);
+        var roleCodes = user.UserRoles.Where(ur => ur.Role != null).Select(ur => ur.Role!.Code).ToList();
+        var newAccessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var roleCodes = user.UserRoles.Where(ur => ur.Role != null).Select(ur => ur.Role!.Code).ToList();
         var roleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
         var permissions = await _db.RolePermissions
             .Where(rp => roleIds.Contains(rp.RoleId) && rp.Permission != null)

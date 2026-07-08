@@ -20,7 +20,14 @@ public class SmtpEmailSender : IEmailSender
     }
 
     /// <summary>Gui email HTML</summary>
-    public async Task SendAsync(string to, string subject, string htmlBody, CancellationToken cancellationToken = default)
+    public Task SendAsync(string to, string subject, string htmlBody, CancellationToken cancellationToken = default)
+        => SendCoreAsync(to, subject, htmlBody, attachment: null, cancellationToken);
+
+    /// <summary>Gui email HTML kem file dinh kem (vd PDF/Excel bao cao dinh ky — Report Builder P3.3).</summary>
+    public Task SendWithAttachmentAsync(string to, string subject, string htmlBody, EmailAttachment attachment, CancellationToken cancellationToken = default)
+        => SendCoreAsync(to, subject, htmlBody, attachment, cancellationToken);
+
+    private async Task SendCoreAsync(string to, string subject, string htmlBody, EmailAttachment? attachment, CancellationToken cancellationToken)
     {
         var host = _configuration["Smtp:Host"] ?? "localhost";
         var port = _configuration.GetValue<int>("Smtp:Port", 1025);
@@ -34,7 +41,11 @@ public class SmtpEmailSender : IEmailSender
         message.From.Add(new MailboxAddress(fromName, fromEmail));
         message.To.Add(MailboxAddress.Parse(to));
         message.Subject = subject;
-        message.Body = new TextPart(MimeKit.Text.TextFormat.Html) { Text = htmlBody };
+
+        var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
+        if (attachment is not null)
+            bodyBuilder.Attachments.Add(attachment.FileName, attachment.Content, ContentType.Parse(attachment.ContentType));
+        message.Body = bodyBuilder.ToMessageBody();
 
         using var client = new SmtpClient();
         try
@@ -48,7 +59,7 @@ public class SmtpEmailSender : IEmailSender
             await client.SendAsync(message, cancellationToken);
             await client.DisconnectAsync(true, cancellationToken);
 
-            _logger.LogInformation("Email gui thanh cong den {To}, chu de: {Subject}", to, subject);
+            _logger.LogInformation("Email gui thanh cong den {To}, chu de: {Subject}, co dinh kem: {HasAttachment}", to, subject, attachment is not null);
         }
         catch (Exception ex)
         {

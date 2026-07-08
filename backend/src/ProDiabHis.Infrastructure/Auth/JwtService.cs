@@ -18,7 +18,7 @@ public class JwtService : IJwtService
         _configuration = configuration;
     }
 
-    public string GenerateAccessToken(User user, IEnumerable<string> roles)
+    public string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null)
     {
         var secret = _configuration["JWT__SECRET"]
             ?? _configuration["Jwt:Secret"]
@@ -40,6 +40,11 @@ public class JwtService : IJwtService
         var roleList = roles.ToList();
         foreach (var role in roleList)
             claims.Add(new Claim(ClaimTypes.Role, role));
+
+        // Ma role on dinh (vd "bac_si") — dung cho tinh nang can so sanh chinh xac (chia se bao cao theo
+        // role...) thay vi ClaimTypes.Role (ten hien thi tieng Viet, khong on dinh de so sanh/i18n).
+        foreach (var code in roleCodes ?? Enumerable.Empty<string>())
+            claims.Add(new Claim("role_code", code));
 
         // SUPER_ADMIN / ADMIN / Quan tri vien bypass tat ca permission check
         var isAdmin = roleList.Any(r =>

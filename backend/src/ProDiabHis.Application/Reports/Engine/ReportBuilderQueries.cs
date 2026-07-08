@@ -22,4 +22,5 @@ public record PreviewReportDefinitionQuery(
     IReadOnlyList<ReportDefinitionSort> Sort,
     IReadOnlyList<ReportDefinitionKpi> Kpis,
     DateOnly From,
-    DateOnly To) : IRequest<ReportDataResult>;
+    DateOnly To,
+    IReadOnlyList<ReportDefinitionCalcField>? CalcFields = null) : IRequest<ReportDataResult>;
