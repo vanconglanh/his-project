@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProDiabHis.Application.Common;
 using ProDiabHis.Application.PublicApi;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -12,77 +13,117 @@ public class PatientPortalController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IPortalAuthService _portalAuth;
+    private readonly ITenantProvider _tenant;
 
-    public PatientPortalController(IMediator mediator, IPortalAuthService portalAuth)
+    public PatientPortalController(IMediator mediator, IPortalAuthService portalAuth, ITenantProvider tenant)
     {
         _mediator = mediator;
         _portalAuth = portalAuth;
+        _tenant = tenant;
     }
 
     private Guid PatientId => Guid.Parse(User.FindFirst("patient_id")!.Value);
     private int TenantId => int.Parse(User.FindFirst("tenant_id")!.Value);
 
-    // -------- Auth --------
-    [HttpPost("auth/request-otp")]
-    [AllowAnonymous]
-    public async Task<IActionResult> RequestOtp(
-        [FromBody] PortalAuthOtpRequest request,
-        CancellationToken cancellationToken)
-    {
-        // Determine tenant from TenantCode header or query
-        int tenantId = 0;
-        if (Request.Headers.TryGetValue("X-Tenant-Id", out var tidHeader)
-            && int.TryParse(tidHeader, out var tid))
-            tenantId = tid;
+    // Tenant cua request an danh (login/activate) do TenantScopeMiddleware set tu Host header.
+    private int AnonymousTenantId => _tenant.TenantId;
 
-        try
-        {
-            await _mediator.Send(new PortalRequestOtpCommand(request.Phone, tenantId), cancellationToken);
-            return Accepted();
-        }
-        catch (PortalPhoneNotRegisteredException)
-        {
-            return NotFound(new { error = new { code = "PORTAL_PHONE_NOT_REGISTERED", message = "So dien thoai chua dang ky" } });
-        }
-        catch (OtpTooManyAttemptsException)
-        {
-            return StatusCode(429, new { error = new { code = "PORTAL_OTP_TOO_MANY_ATTEMPTS", message = "Qua nhieu yeu cau OTP, thu lai sau 1 gio" } });
-        }
+    private IActionResult ErrTenantUnresolved()
+        => StatusCode(400, new { error = new { code = "PORTAL_TENANT_UNRESOLVED", message = "Không xác định được phòng khám từ tên miền" } });
+
+    // -------- Tenant info (cho man login: ten + logo + VAPID public key) --------
+    [HttpGet("tenant-info")]
+    [AllowAnonymous]
+    public async Task<IActionResult> TenantInfo(CancellationToken cancellationToken)
+    {
+        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
+        var info = await _mediator.Send(new GetPortalTenantInfoQuery(AnonymousTenantId), cancellationToken);
+        return Ok(new { data = info });
     }
 
-    [HttpPost("auth/verify-otp")]
+    // -------- Auth: kich hoat + PIN (khong SMS) --------
+    [HttpPost("auth/activate")]
     [AllowAnonymous]
-    public async Task<IActionResult> VerifyOtp(
-        [FromBody] PortalVerifyRequest request,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Activate([FromBody] PortalActivateRequest request, CancellationToken cancellationToken)
     {
-        int tenantId = 0;
-        if (Request.Headers.TryGetValue("X-Tenant-Id", out var tidHeader)
-            && int.TryParse(tidHeader, out var tid))
-            tenantId = tid;
-
+        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
         try
         {
             var result = await _mediator.Send(
-                new PortalVerifyOtpCommand(request.Phone, request.Otp, tenantId), cancellationToken);
-            return Ok(new PortalAuthResponse(
-                result.AccessToken, "Bearer", result.ExpiresIn, result.PatientCode, result.FullName));
+                new PortalActivateCommand(request.Phone, request.ActivationCode, request.Pin, AnonymousTenantId), cancellationToken);
+            return Ok(new { data = result });
         }
-        catch (OtpInvalidException)
+        catch (PortalActivationInvalidException)
         {
-            return BadRequest(new { error = new { code = "PORTAL_OTP_INVALID", message = "OTP khong dung" } });
+            return BadRequest(new { error = new { code = "PORTAL_ACTIVATION_INVALID", message = "Mã kích hoạt không đúng hoặc đã hết hạn" } });
         }
-        catch (OtpExpiredException)
+        catch (PortalPinInvalidException)
         {
-            return StatusCode(410, new { error = new { code = "PORTAL_OTP_EXPIRED", message = "OTP da het han" } });
+            return BadRequest(new { error = new { code = "PORTAL_PIN_INVALID", message = "Mã PIN phải gồm đúng 6 chữ số" } });
         }
-        catch (OtpTooManyAttemptsException)
+    }
+
+    [HttpPost("auth/login-pin")]
+    [AllowAnonymous]
+    public async Task<IActionResult> LoginPin([FromBody] PortalPinLoginRequest request, CancellationToken cancellationToken)
+    {
+        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
+        try
         {
-            return StatusCode(429, new { error = new { code = "PORTAL_OTP_TOO_MANY_ATTEMPTS", message = "Qua nhieu lan thu sai" } });
+            var result = await _mediator.Send(
+                new PortalPinLoginCommand(request.Phone, request.Pin, AnonymousTenantId), cancellationToken);
+            return Ok(new { data = result });
         }
         catch (PortalPhoneNotRegisteredException)
         {
-            return NotFound(new { error = new { code = "PORTAL_PHONE_NOT_REGISTERED", message = "So dien thoai chua dang ky" } });
+            return NotFound(new { error = new { code = "PORTAL_PHONE_NOT_REGISTERED", message = "Số điện thoại chưa đăng ký. Vui lòng lấy mã kích hoạt tại quầy lễ tân." } });
+        }
+        catch (PortalNotActivatedException)
+        {
+            return BadRequest(new { error = new { code = "PORTAL_NOT_ACTIVATED", message = "Tài khoản chưa kích hoạt. Vui lòng kích hoạt bằng mã lễ tân cấp." } });
+        }
+        catch (PortalAccountLockedException)
+        {
+            return StatusCode(429, new { error = new { code = "PORTAL_ACCOUNT_LOCKED", message = "Nhập sai PIN quá 5 lần. Vui lòng thử lại sau 15 phút." } });
+        }
+        catch (PortalPinInvalidException)
+        {
+            return BadRequest(new { error = new { code = "PORTAL_PIN_INVALID", message = "Mã PIN không đúng" } });
+        }
+    }
+
+    [HttpPost("auth/forgot-pin")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPin([FromBody] PortalForgotPinRequest request, CancellationToken cancellationToken)
+    {
+        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
+        await _mediator.Send(new PortalForgotPinCommand(request.Phone, AnonymousTenantId), cancellationToken);
+        // Luon tra 202 (khong tiet lo SDT/email co ton tai)
+        return Accepted(new { data = new { message = "Nếu số điện thoại có đăng ký email, mã xác nhận đã được gửi." } });
+    }
+
+    [HttpPost("auth/reset-pin")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPin([FromBody] PortalResetPinRequest request, CancellationToken cancellationToken)
+    {
+        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
+        try
+        {
+            var result = await _mediator.Send(
+                new PortalResetPinCommand(request.Phone, request.Otp, request.NewPin, AnonymousTenantId), cancellationToken);
+            return Ok(new { data = result });
+        }
+        catch (OtpInvalidException)
+        {
+            return BadRequest(new { error = new { code = "PORTAL_OTP_INVALID", message = "Mã xác nhận không đúng" } });
+        }
+        catch (OtpExpiredException)
+        {
+            return StatusCode(410, new { error = new { code = "PORTAL_OTP_EXPIRED", message = "Mã xác nhận đã hết hạn" } });
+        }
+        catch (PortalPinInvalidException)
+        {
+            return BadRequest(new { error = new { code = "PORTAL_PIN_INVALID", message = "Mã PIN phải gồm đúng 6 chữ số" } });
         }
     }
 
