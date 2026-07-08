@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarClock, PhoneCall, CalendarCheck, XCircle, Send } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -42,6 +43,7 @@ const RECALL_TYPE_LABELS: Record<string, string> = {
 };
 
 function RecallContent() {
+  const router = useRouter();
   const [status, setStatus] = useState<string>("PENDING");
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -213,6 +215,7 @@ function RecallContent() {
         isLoading={isLoading}
         meta={meta}
         onPageChange={setPage}
+        onRowDoubleClick={(row) => router.push(`/patients/${row.patient_id}`)}
         skeletonRows={8}
         emptyState={
           <div className="flex flex-col items-center gap-3 py-6">

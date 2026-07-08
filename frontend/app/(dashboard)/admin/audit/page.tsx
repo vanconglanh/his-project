@@ -153,6 +153,7 @@ export default function AuditPage() {
         meta={data?.meta}
         onPageChange={setPage}
         onRowClick={(row) => setSelectedLog(row)}
+        onRowDoubleClick={(row) => setSelectedLog(row)}
       />
 
       {/* Detail sheet */}

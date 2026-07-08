@@ -11,14 +11,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import type { InviteUserRequest } from "@/lib/api/types";
 
+// Role code theo seed DB (9001-series): snake_case thường
 const ROLES = [
-  { code: "ADMIN", label: "Quản trị viên" },
-  { code: "BACSI", label: "Bác sĩ" },
-  { code: "DIEUDUONG", label: "Điều dưỡng" },
-  { code: "LETAN", label: "Lễ tân" },
-  { code: "DUOCSI", label: "Dược sĩ" },
-  { code: "KETOAN", label: "Kế toán" },
-  { code: "KYTHUATVIEN", label: "Kỹ thuật viên" },
+  { code: "admin", label: "Quản trị viên" },
+  { code: "bac_si", label: "Bác sĩ" },
+  { code: "le_tan", label: "Lễ tân" },
+  { code: "duoc_si", label: "Dược sĩ" },
+  { code: "ke_toan", label: "Kế toán" },
+  { code: "ky_thuat_vien", label: "Kỹ thuật viên" },
 ];
 
 const schema = z.object({

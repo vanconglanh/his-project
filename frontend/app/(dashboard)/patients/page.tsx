@@ -13,7 +13,7 @@ import {
   UserPlus,
   Filter,
 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -174,6 +174,7 @@ export default function PatientsPage() {
           <DropdownMenuTrigger
             className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            onDoubleClick={(e: React.MouseEvent) => e.stopPropagation()}
             aria-label="Thao tác"
           >
             <MoreHorizontal className="h-4 w-4" />
@@ -277,6 +278,7 @@ export default function PatientsPage() {
         meta={meta}
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/patients/${row.id}`)}
+        onRowDoubleClick={(row) => router.push(`/patients/${row.id}`)}
         skeletonRows={8}
         emptyState={
           <div className="flex flex-col items-center gap-3 py-6">

@@ -13,7 +13,7 @@ interface CanProps {
  * Conditionally render children based on permission or role.
  * Usage:
  *   <Can permission="user.invite"><Button>Mời</Button></Can>
- *   <Can role="ADMIN"><Button>Admin action</Button></Can>
+ *   <Can role="admin"><Button>Admin action</Button></Can>
  */
 export function Can({ permission, role, children, fallback = null }: CanProps) {
   const { data: me, isLoading } = useMe();

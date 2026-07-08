@@ -479,9 +479,10 @@ public class ReportingServiceImpl : IReportingService
             @"SELECT SUM(opening_balance) AS opening, SUM(closing_balance) AS closing
               FROM diab_his_bil_cashier_shifts
               WHERE tenant_id = @tenantId
-                AND shift_date = @date
+                AND shift_date = @shiftDate
                 AND (@cashierId IS NULL OR cashier_user_id = @cashierId)",
-            new { tenantId, date, cashierId = cashierIdStr });
+            // MySqlConnector khong bind duoc DateOnly -> truyen chuoi yyyy-MM-dd (khop cot DATE)
+            new { tenantId, shiftDate = date.ToString("yyyy-MM-dd"), cashierId = cashierIdStr });
 
         return new CashierDailySummaryResponse(
             date,
@@ -546,19 +547,20 @@ public class ReportingServiceImpl : IReportingService
         var fromPeriod = from.ToString("yyyy-MM");
         var toPeriod   = to.ToString("yyyy-MM");
 
-        // Nguon du lieu: diab_his_int_bhyt_exports (module BHYT dang dung bang nay — xem BhytExportCommands/Queries),
-        // KHONG dung diab_his_bhyt_exports (bang du thua tao boi 9006b, khong duoc app code nao tham chieu).
+        // Nguon du lieu: diab_his_bhyt_exports (co cot that: export_period, total_records,
+        // total_amount, status). Bang diab_his_int_bhyt_exports KHONG co cot so lieu (chi
+        // luu file/trang thai) nen truoc day query bi loi Unknown column 'encounter_count'.
         var sql = @"
             SELECT
-                COALESCE(SUM(encounter_count), 0)        AS total_cards,
-                COALESCE(SUM(total_requested_amount), 0) AS claimed,
-                COALESCE(SUM(total_approved_amount), 0)  AS paid,
-                COALESCE(SUM(total_rejected_amount), 0)  AS rejected,
+                COALESCE(SUM(total_records), 0)                                              AS total_cards,
+                COALESCE(SUM(total_amount), 0)                                               AS claimed,
+                COALESCE(SUM(CASE WHEN status = 'APPROVED' THEN total_amount ELSE 0 END), 0) AS paid,
+                COALESCE(SUM(CASE WHEN status = 'REJECTED' THEN total_amount ELSE 0 END), 0) AS rejected,
                 COALESCE(SUM(CASE WHEN status NOT IN ('APPROVED','REJECTED') THEN 1 ELSE 0 END), 0) AS pending
-            FROM diab_his_int_bhyt_exports
+            FROM diab_his_bhyt_exports
             WHERE tenant_id = @tenantId
               AND deleted_at IS NULL
-              AND period_month BETWEEN @fromPeriod AND @toPeriod";
+              AND export_period BETWEEN @fromPeriod AND @toPeriod";
 
         var r = await conn.QueryFirstOrDefaultAsync<dynamic>(sql, new { tenantId, fromPeriod, toPeriod });
 

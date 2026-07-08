@@ -107,7 +107,13 @@ public static class DependencyInjection
                 client = client.WithSSL();
             return client.Build();
         });
-        services.AddScoped<IFileStorage, MinioFileStorage>();
+
+        // Storage:Provider = "Local" dung khi may dev khong co MinIO/docker (xem appsettings.Development.json)
+        var storageProvider = configuration["Storage:Provider"] ?? "Minio";
+        if (string.Equals(storageProvider, "Local", StringComparison.OrdinalIgnoreCase))
+            services.AddScoped<IFileStorage, ProDiabHis.Infrastructure.Storage.LocalFileStorage>();
+        else
+            services.AddScoped<IFileStorage, MinioFileStorage>();
 
         // JWT Authentication
         var jwtSecret = configuration["JWT__SECRET"]

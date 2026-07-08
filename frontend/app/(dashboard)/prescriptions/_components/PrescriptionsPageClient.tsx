@@ -19,7 +19,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -125,7 +124,8 @@ export function PrescriptionsPageClient() {
               variant="ghost"
               size="sm"
               className="text-xs h-8"
-              onClick={() => router.push(`/prescriptions/${row.id}?action=add-drug`)}
+              onClick={(e) => { e.stopPropagation(); router.push(`/prescriptions/${row.id}?action=add-drug`); }}
+              onDoubleClick={(e) => e.stopPropagation()}
               aria-label="Thêm thuốc"
             >
               <Pill className="mr-1 h-3.5 w-3.5" />
@@ -137,7 +137,8 @@ export function PrescriptionsPageClient() {
               variant="ghost"
               size="sm"
               className="text-xs h-8 text-primary"
-              onClick={() => router.push(`/prescriptions/${row.id}?action=submit`)}
+              onClick={(e) => { e.stopPropagation(); router.push(`/prescriptions/${row.id}?action=submit`); }}
+              onDoubleClick={(e) => e.stopPropagation()}
               aria-label="Gửi đơn"
             >
               <Send className="mr-1 h-3.5 w-3.5" />
@@ -145,7 +146,12 @@ export function PrescriptionsPageClient() {
             </Button>
           )}
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted" aria-label="Thao tác">
+            <DropdownMenuTrigger
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              aria-label="Thao tác"
+            >
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -218,7 +224,7 @@ export function PrescriptionsPageClient() {
           <DataTable
             columns={columns}
             data={data?.data ?? []}
-           
+            onRowDoubleClick={(row) => router.push(`/prescriptions/${row.id}`)}
           />
 
           {/* Pagination */}

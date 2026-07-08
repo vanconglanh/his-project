@@ -176,7 +176,8 @@ public class ListPurchaseOrdersHandler : IRequestHandler<ListPurchaseOrdersQuery
 
         var items = rows.Select(r => new PurchaseOrderResponse(
             (string)r.id, (int)r.tenant_id, (string)r.supplier_id, (string?)r.supplier_name,
-            (int)r.warehouse_id, (string?)r.order_no, (DateTime?)r.ordered_at, (DateOnly?)r.expected_delivery,
+            (int)r.warehouse_id, (string?)r.order_no, (DateTime?)r.ordered_at,
+            r.expected_delivery is DateTime ed ? DateOnly.FromDateTime(ed) : (DateOnly?)null,
             (string)r.status, [], (decimal)r.total_amount, (DateTime)r.created_at)).ToList();
 
         return Result<PagedResult<PurchaseOrderResponse>>.Success(new PagedResult<PurchaseOrderResponse>(items, q.Page, q.PageSize, total));
@@ -401,8 +402,9 @@ public class ListMovementsHandler : IRequestHandler<ListMovementsQuery, Result<P
         var tenantId = _currentUser.TenantId!.Value;
         var offset = (q.Page - 1) * q.PageSize;
 
-        // Schema thuc te: id, tenant_id, drug_id, movement_type, quantity, note, ref_id, created_at, created_by
-        // Khong co warehouse_id, stock_id, movement_at, unit_price, batch_no
+        // Schema thuc te (mig 0013): id, tenant_id, stock_id, warehouse_id, movement_type, quantity,
+        // unit_price, reason, reference_type, reference_id, movement_at, performed_by, audit cols.
+        // drug_id lay qua join diab_his_pha_stock.
         var where = new List<string> { "m.tenant_id = @tenantId" };
         var prm = new DynamicParameters();
         prm.Add("tenantId", tenantId); prm.Add("offset", offset); prm.Add("limit", q.PageSize);
@@ -415,11 +417,12 @@ public class ListMovementsHandler : IRequestHandler<ListMovementsQuery, Result<P
         var total = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM diab_his_pha_stock_movements m WHERE {wc}", prm);
 
         var rows = await conn.QueryAsync<dynamic>(
-            $@"SELECT m.id, m.tenant_id, m.drug_id, m.movement_type, m.quantity,
-                      m.note, m.ref_id, m.created_at, m.created_by,
-                      d.name_vi AS drug_name
+            $@"SELECT m.id, m.tenant_id, s.drug_id, m.movement_type, m.quantity,
+                      m.reason AS note, m.reference_id AS ref_id, m.created_at, m.created_by,
+                      COALESCE(NULLIF(d.name_vi, ''), d.name) AS drug_name
                FROM diab_his_pha_stock_movements m
-               LEFT JOIN diab_his_pha_drugs d ON d.id = m.drug_id AND d.tenant_id = m.tenant_id
+               LEFT JOIN diab_his_pha_stock s ON s.id = m.stock_id AND s.tenant_id = m.tenant_id
+               LEFT JOIN diab_his_pha_drugs d ON d.id = s.drug_id AND d.tenant_id = m.tenant_id
                WHERE {wc} ORDER BY m.created_at DESC LIMIT @limit OFFSET @offset", prm);
 
         var items = rows.Select(r => new StockMovementResponse(

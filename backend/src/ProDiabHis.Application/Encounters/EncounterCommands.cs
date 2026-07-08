@@ -15,6 +15,14 @@ public record CreateEncounterRequest(
 public record CreateEncounterCommand(CreateEncounterRequest Request)
     : IRequest<Result<EncounterResponse>>;
 
+// ── Admit (Tiep don -> Kham): tao (hoac lay lai) luot kham tu ve hang doi ──
+public record AdmitTicketToEncounterCommand(Guid TicketId)
+    : IRequest<Result<AdmitTicketResponse>>;
+
+/// <param name="EncounterId">Luot kham (moi tao hoac da co san).</param>
+/// <param name="Created">true = vua tao moi; false = da ton tai luot kham active.</param>
+public record AdmitTicketResponse(Guid EncounterId, bool Created);
+
 // ── Update ──
 public record UpdateEncounterRequest(
     string? RoomId,

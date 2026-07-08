@@ -62,7 +62,7 @@ export default function NewEncounterPage() {
   );
   const patients = patientsData?.data ?? [];
 
-  const { data: usersData } = useUsers({ role: "BACSI", page_size: 100 });
+  const { data: usersData } = useUsers({ role: "bac_si", page_size: 100 });
   const doctors = usersData?.data ?? [];
 
   const {

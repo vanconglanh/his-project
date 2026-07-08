@@ -51,24 +51,39 @@ public class DashboardController : ControllerBase
         return Ok(new { data = new { series } });
     }
 
-    /// <summary>Top bac si (stub)</summary>
+    /// <summary>Top bac si theo doanh thu</summary>
     [HttpGet("charts/top-doctors")]
     [RequirePermission("dashboard.read")]
-    public IActionResult GetTopDoctors(
+    public async Task<IActionResult> GetTopDoctors(
         [FromQuery] string range = "30d",
-        [FromQuery] int top = 5)
+        [FromQuery] int top = 5,
+        CancellationToken ct = default)
     {
-        return Ok(new { data = new { series = Array.Empty<object>() } });
+        var (from, to) = ParseRange(range);
+        var rows = await _mediator.Send(new GetDoctorKpiQuery(from, to, top), ct);
+        var series = rows.Select(r => new ChartDataPoint(r.DoctorName, r.TotalRevenue)).ToList();
+        return Ok(new { data = new { series } });
     }
 
-    /// <summary>Top thuoc (stub)</summary>
+    /// <summary>Top thuoc theo so luong ke don</summary>
     [HttpGet("charts/top-drugs")]
     [RequirePermission("dashboard.read")]
-    public IActionResult GetTopDrugs(
+    public async Task<IActionResult> GetTopDrugs(
         [FromQuery] string range = "30d",
-        [FromQuery] int top = 5)
+        [FromQuery] int top = 5,
+        CancellationToken ct = default)
     {
-        return Ok(new { data = new { series = Array.Empty<object>() } });
+        var (from, to) = ParseRange(range);
+        var rows = await _mediator.Send(new GetTopDrugsQuery(from, to, top), ct);
+        var series = rows.Select(r => new ChartDataPoint(r.DrugName, r.QuantityDispensed)).ToList();
+        return Ok(new { data = new { series } });
+    }
+
+    private static (DateOnly From, DateOnly To) ParseRange(string range)
+    {
+        var days = range switch { "7d" => 7, "90d" => 90, _ => 30 };
+        var to = DateOnly.FromDateTime(DateTime.Today);
+        return (to.AddDays(-days), to);
     }
 
     /// <summary>Phan phoi HbA1c dai thao duong</summary>

@@ -69,9 +69,9 @@ export default function NewPrescriptionPage() {
   );
   const patients = patientsData?.data ?? [];
 
-  const { data: usersData } = useUsers({ role: "BACSI", page_size: 100 });
+  const { data: usersData } = useUsers({ role: "bac_si", page_size: 100 });
   const doctors = (usersData?.data ?? []).filter((u) =>
-    u.roles.some((r) => r.code === "BACSI")
+    u.roles.some((r) => r.code === "bac_si")
   );
 
   const { data: icd10Data } = useIcd10Search({

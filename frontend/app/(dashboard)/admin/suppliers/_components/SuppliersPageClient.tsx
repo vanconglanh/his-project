@@ -70,11 +70,21 @@ export function SuppliersPageClient() {
       key: "actions",
       header: "",
       cell: (row: SupplierResponse) => (
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditSupplier(row)}>
+        <div className="flex gap-1" onDoubleClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={(e) => { e.stopPropagation(); setEditSupplier(row); }}
+          >
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteSupplier(row)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive"
+            onClick={(e) => { e.stopPropagation(); setDeleteSupplier(row); }}
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -106,7 +116,11 @@ export function SuppliersPageClient() {
         </div>
       ) : (
         <>
-          <DataTable columns={columns} data={data?.data ?? []} />
+          <DataTable
+            columns={columns}
+            data={data?.data ?? []}
+            onRowDoubleClick={(row) => setEditSupplier(row)}
+          />
           {data?.meta && data.meta.total > 20 && (
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Tổng: {data.meta.total}</span>

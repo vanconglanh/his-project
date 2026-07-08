@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, SkipForward, X, Printer } from "lucide-react";
+import { Phone, SkipForward, X, Printer, Stethoscope } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,8 +27,10 @@ interface TicketCardProps {
   onCall?: (id: string) => void;
   onSkip?: (id: string) => void;
   onCancel?: (id: string) => void;
+  onAdmit?: (id: string) => void;
   isCallLoading?: boolean;
   isSkipLoading?: boolean;
+  isAdmitLoading?: boolean;
 }
 
 export function TicketCard({
@@ -36,8 +38,10 @@ export function TicketCard({
   onCall,
   onSkip,
   onCancel,
+  onAdmit,
   isCallLoading,
   isSkipLoading,
+  isAdmitLoading,
 }: TicketCardProps) {
   const statusCfg = STATUS_CONFIG[ticket.status];
   const priorityCfg = PRIORITY_CONFIG[ticket.priority];
@@ -86,11 +90,25 @@ export function TicketCard({
         <p className="text-xs text-muted-foreground line-clamp-2">{ticket.reason_for_visit}</p>
       )}
 
-      {/* Actions */}
+      {/* Đưa vào khám: tạo lượt khám + điều hướng sang màn khám (action chính) */}
+      {canAct && onAdmit && (
+        <Button
+          size="sm"
+          className="w-full h-8 text-xs gap-1.5"
+          onClick={() => onAdmit(ticket.id)}
+          disabled={isAdmitLoading}
+        >
+          <Stethoscope className="h-3.5 w-3.5" />
+          Đưa vào khám
+        </Button>
+      )}
+
+      {/* Actions phụ */}
       <div className="flex gap-1 pt-1">
         {canAct && onCall && (
           <Button
             size="sm"
+            variant="outline"
             className="flex-1 h-7 text-xs gap-1"
             onClick={() => onCall(ticket.id)}
             disabled={isCallLoading}

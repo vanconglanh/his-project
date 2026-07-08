@@ -39,7 +39,6 @@ import { InviteUserForm } from "@/components/domain/InviteUserForm";
 import { UserDetail } from "@/components/domain/UserDetail";
 import { AssignRolesForm } from "@/components/domain/AssignRolesForm";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
-import { Can } from "@/components/auth/Can";
 import {
   useUsers,
   useInviteUser,
@@ -133,6 +132,7 @@ export default function UsersPage() {
             className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
             aria-label="Thao tác"
             onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
           >
             <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>
@@ -196,13 +196,12 @@ export default function UsersPage() {
         <Select
           items={{
             ALL: "Tất cả vai trò",
-            ADMIN: "Quản trị",
-            BACSI: "Bác sĩ",
-            DIEUDUONG: "Điều dưỡng",
-            LETAN: "Lễ tân",
-            DUOCSI: "Dược sĩ",
-            KETOAN: "Kế toán",
-            KYTHUATVIEN: "Kỹ thuật viên",
+            admin: "Quản trị",
+            bac_si: "Bác sĩ",
+            le_tan: "Lễ tân",
+            duoc_si: "Dược sĩ",
+            ke_toan: "Kế toán",
+            ky_thuat_vien: "Kỹ thuật viên",
           }}
           value={roleFilter}
           onValueChange={(v) => { if (v) { setRoleFilter(v); setPage(1); } }}
@@ -212,13 +211,12 @@ export default function UsersPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">Tất cả vai trò</SelectItem>
-            <SelectItem value="ADMIN">Quản trị</SelectItem>
-            <SelectItem value="BACSI">Bác sĩ</SelectItem>
-            <SelectItem value="DIEUDUONG">Điều dưỡng</SelectItem>
-            <SelectItem value="LETAN">Lễ tân</SelectItem>
-            <SelectItem value="DUOCSI">Dược sĩ</SelectItem>
-            <SelectItem value="KETOAN">Kế toán</SelectItem>
-            <SelectItem value="KYTHUATVIEN">Kỹ thuật viên</SelectItem>
+            <SelectItem value="admin">Quản trị</SelectItem>
+            <SelectItem value="bac_si">Bác sĩ</SelectItem>
+            <SelectItem value="le_tan">Lễ tân</SelectItem>
+            <SelectItem value="duoc_si">Dược sĩ</SelectItem>
+            <SelectItem value="ke_toan">Kế toán</SelectItem>
+            <SelectItem value="ky_thuat_vien">Kỹ thuật viên</SelectItem>
           </SelectContent>
         </Select>
         <Select
@@ -246,6 +244,7 @@ export default function UsersPage() {
         meta={data?.meta}
         onPageChange={setPage}
         onRowClick={(row) => setDetailTarget(row)}
+        onRowDoubleClick={(row) => setDetailTarget(row)}
       />
 
       {/* Invite dialog */}

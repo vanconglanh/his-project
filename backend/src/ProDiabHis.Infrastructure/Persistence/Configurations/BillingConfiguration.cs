@@ -37,10 +37,20 @@ public class ServicePackageConfiguration : IEntityTypeConfiguration<ServicePacka
     {
         builder.ToTable("diab_his_bil_service_packages");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasMaxLength(36);
-        builder.Property(x => x.Code).HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Name).HasMaxLength(255).IsRequired();
-        builder.Property(x => x.DiscountPercent).HasColumnType("DECIMAL(5,2)");
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
+        builder.Property(x => x.DiscountPercent).HasColumnName("discount_percent").HasColumnType("DECIMAL(5,2)");
+        builder.Property(x => x.ValidFrom).HasColumnName("valid_from");
+        builder.Property(x => x.ValidTo).HasColumnName("valid_to");
+        builder.Property(x => x.IsActive).HasColumnName("is_active");
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(36);
+        builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+        builder.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(36);
         builder.HasMany(x => x.Items).WithOne(x => x.Package).HasForeignKey(x => x.PackageId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
     }
@@ -52,9 +62,11 @@ public class ServicePackageItemConfiguration : IEntityTypeConfiguration<ServiceP
     {
         builder.ToTable("diab_his_bil_service_package_items");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasMaxLength(36);
-        builder.Property(x => x.PackageId).HasMaxLength(36);
-        builder.Property(x => x.ServiceId).HasMaxLength(36);
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.PackageId).HasColumnName("package_id").HasMaxLength(36);
+        builder.Property(x => x.ServiceId).HasColumnName("service_id").HasMaxLength(36);
+        builder.Property(x => x.Quantity).HasColumnName("quantity");
+        builder.Ignore(x => x.Service);
     }
 }
 
@@ -64,19 +76,31 @@ public class BillingConfiguration : IEntityTypeConfiguration<BillingEntity>
     {
         builder.ToTable("diab_his_bil_billing");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasMaxLength(36);
-        builder.Property(x => x.PatientId).HasMaxLength(36);
-        builder.Property(x => x.EncounterId).HasMaxLength(36);
-        builder.Property(x => x.BillNo).HasMaxLength(30);
-        builder.Property(x => x.Subtotal).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.VatTotal).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.DiscountAmount).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.BhytAmount).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.PatientPayable).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.PaidAmount).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.Balance).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.Status).HasMaxLength(20);
-        builder.Property(x => x.RightRoute).HasMaxLength(20);
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.PatientId).HasColumnName("patient_id").HasMaxLength(36);
+        builder.Property(x => x.EncounterId).HasColumnName("encounter_id").HasMaxLength(36);
+        builder.Property(x => x.BillNo).HasColumnName("bill_no").HasMaxLength(30);
+        builder.Property(x => x.Payer).HasColumnName("payer").HasMaxLength(20);
+        builder.Property(x => x.Subtotal).HasColumnName("subtotal").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.VatTotal).HasColumnName("vat_total").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.DiscountAmount).HasColumnName("discount_amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.BhytAmount).HasColumnName("bhyt_amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.PatientPayable).HasColumnName("patient_payable").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.PaidAmount).HasColumnName("paid_amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.Balance).HasColumnName("balance").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.Status).HasColumnName("status").HasMaxLength(20);
+        builder.Property(x => x.RightRoute).HasColumnName("right_route").HasMaxLength(20);
+        builder.Property(x => x.PaymentDueDate).HasColumnName("payment_due_date");
+        builder.Property(x => x.Note).HasColumnName("note");
+        builder.Property(x => x.VoidReason).HasColumnName("void_reason");
+        builder.Property(x => x.FinalizedAt).HasColumnName("finalized_at");
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(36);
+        builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+        builder.Ignore(x => x.DeletedBy); // bang khong co cot deleted_by
         builder.HasMany(x => x.Items).WithOne(x => x.Billing).HasForeignKey(x => x.BillingId).OnDelete(DeleteBehavior.Cascade);
     }
 }
@@ -87,15 +111,21 @@ public class BillingItemConfiguration : IEntityTypeConfiguration<BillingItem>
     {
         builder.ToTable("diab_his_bil_billing_items");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasMaxLength(36);
-        builder.Property(x => x.BillingId).HasMaxLength(36);
-        builder.Property(x => x.RefId).HasMaxLength(36);
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.BillingId).HasColumnName("billing_id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.RefId).HasColumnName("ref_id").HasMaxLength(36);
         builder.Property(x => x.ItemType).HasMaxLength(20).HasColumnName("item_type");
-        builder.Property(x => x.Quantity).HasColumnType("DECIMAL(10,3)");
-        builder.Property(x => x.UnitPrice).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.DiscountPercent).HasColumnType("DECIMAL(5,2)");
-        builder.Property(x => x.LineTotal).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.BhytAmount).HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.Code).HasColumnName("code").HasMaxLength(50);
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(255);
+        builder.Property(x => x.Quantity).HasColumnName("quantity").HasColumnType("DECIMAL(10,3)");
+        builder.Property(x => x.UnitPrice).HasColumnName("unit_price").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.VatRate).HasColumnName("vat_rate");
+        builder.Property(x => x.DiscountPercent).HasColumnName("discount_percent").HasColumnType("DECIMAL(5,2)");
+        builder.Property(x => x.LineTotal).HasColumnName("line_total").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.BhytApplicable).HasColumnName("bhyt_applicable");
+        builder.Property(x => x.BhytAmount).HasColumnName("bhyt_amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Ignore(x => x.Billing);
     }
 }
@@ -106,19 +136,23 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
     {
         builder.ToTable("diab_his_bil_payments");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasMaxLength(36);
-        builder.Property(x => x.BillingId).HasMaxLength(36);
-        builder.Property(x => x.CashierShiftId).HasMaxLength(36);
-        builder.Property(x => x.PaidBy).HasMaxLength(36);
-        builder.Property(x => x.CreatedBy).HasMaxLength(36);
-        builder.Property(x => x.Amount).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.RefundedAmount).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.Method).HasMaxLength(20);
-        builder.Property(x => x.Status).HasMaxLength(20);
-        builder.Property(x => x.Provider).HasMaxLength(50);
-        builder.Property(x => x.ProviderTxnId).HasMaxLength(100);
-        builder.Property(x => x.Reference).HasMaxLength(100);
-        builder.Property(x => x.ProviderTxnId).HasMaxLength(100);
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.BillingId).HasColumnName("billing_id").HasMaxLength(36);
+        builder.Property(x => x.CashierShiftId).HasColumnName("cashier_shift_id").HasMaxLength(36);
+        builder.Property(x => x.Amount).HasColumnName("amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.Method).HasColumnName("method").HasMaxLength(20);
+        builder.Property(x => x.Status).HasColumnName("status").HasMaxLength(20);
+        builder.Property(x => x.Reference).HasColumnName("reference").HasMaxLength(100);
+        builder.Property(x => x.Provider).HasColumnName("provider").HasMaxLength(50);
+        builder.Property(x => x.ProviderTxnId).HasColumnName("provider_txn_id").HasMaxLength(100);
+        builder.Property(x => x.PaidAt).HasColumnName("paid_at");
+        builder.Property(x => x.PaidBy).HasColumnName("paid_by").HasMaxLength(36);
+        builder.Property(x => x.Note).HasColumnName("note");
+        builder.Property(x => x.RefundedAmount).HasColumnName("refunded_amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
     }
 }
 
@@ -128,13 +162,18 @@ public class QrCodeConfiguration : IEntityTypeConfiguration<QrCode>
     {
         builder.ToTable("diab_his_bil_qr_codes");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasMaxLength(36);
-        builder.Property(x => x.BillingId).HasMaxLength(36);
-        builder.Property(x => x.Provider).HasMaxLength(20);
-        builder.Property(x => x.QrUrl).HasMaxLength(500);
-        builder.Property(x => x.TransactionRef).HasMaxLength(50);
-        builder.Property(x => x.Amount).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.Status).HasMaxLength(20);
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.BillingId).HasColumnName("billing_id").HasMaxLength(36);
+        builder.Property(x => x.Provider).HasColumnName("provider").HasMaxLength(20);
+        builder.Property(x => x.QrPayload).HasColumnName("qr_payload");
+        builder.Property(x => x.QrUrl).HasColumnName("qr_image_path").HasMaxLength(500);
+        builder.Property(x => x.Amount).HasColumnName("amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.ExpiresAt).HasColumnName("expires_at");
+        builder.Property(x => x.PaidAt).HasColumnName("paid_at");
+        builder.Property(x => x.TransactionRef).HasColumnName("transaction_ref").HasMaxLength(50);
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.Status).HasColumnName("status").HasMaxLength(20); // cot bo sung boi mig 9061
     }
 }
 
@@ -144,18 +183,27 @@ public class EInvoiceConfiguration : IEntityTypeConfiguration<EInvoice>
     {
         builder.ToTable("diab_his_bil_einvoices");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasMaxLength(36);
-        builder.Property(x => x.BillingId).HasMaxLength(36);
-        builder.Property(x => x.CreatedBy).HasMaxLength(36);
-        builder.Property(x => x.Provider).HasMaxLength(10);
-        builder.Property(x => x.InvoiceNo).HasMaxLength(50);
-        builder.Property(x => x.InvoiceSeries).HasMaxLength(20);
-        builder.Property(x => x.CqtCode).HasMaxLength(13);
-        builder.Property(x => x.TotalAmount).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.VatAmount).HasColumnType("DECIMAL(15,2)");
-        builder.Property(x => x.Status).HasMaxLength(20);
-        builder.Property(x => x.PdfUrl).HasMaxLength(500);
-        builder.Property(x => x.XmlUrl).HasMaxLength(500);
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.BillingId).HasColumnName("billing_id").HasMaxLength(36);
+        builder.Property(x => x.Provider).HasColumnName("provider").HasMaxLength(10);
+        builder.Property(x => x.InvoiceNo).HasColumnName("invoice_no").HasMaxLength(50);
+        builder.Property(x => x.InvoiceSeries).HasColumnName("invoice_series").HasMaxLength(20);
+        builder.Property(x => x.CqtCode).HasColumnName("cqt_code").HasMaxLength(13);
+        builder.Property(x => x.IssueDate).HasColumnName("issue_date");
+        builder.Property(x => x.TotalAmount).HasColumnName("total_amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.VatAmount).HasColumnName("vat_amount").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.Status).HasColumnName("status").HasMaxLength(20);
+        builder.Property(x => x.PdfUrl).HasColumnName("pdf_url").HasMaxLength(500);
+        builder.Property(x => x.XmlUrl).HasColumnName("xml_url").HasMaxLength(500);
+        builder.Property(x => x.SignedAt).HasColumnName("signed_at");
+        builder.Property(x => x.CancelReason).HasColumnName("cancel_reason");
+        builder.Property(x => x.CancelledAt).HasColumnName("cancelled_at");
+        builder.Property(x => x.RetryCount).HasColumnName("retry_count");
+        builder.Property(x => x.LastError).HasColumnName("last_error");
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
     }
 }
 

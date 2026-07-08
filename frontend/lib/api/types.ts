@@ -124,15 +124,14 @@ export interface UpdateTenantProfileRequest {
 
 export type UserStatus = "PENDING" | "ACTIVE" | "LOCKED" | "DISABLED";
 
+// Role code theo seed DB (db/migrations/9001_create_sec_all.sql + 9007): snake_case thường
 export type SystemRoleCode =
-  | "SUPER_ADMIN"
-  | "ADMIN"
-  | "BACSI"
-  | "DIEUDUONG"
-  | "LETAN"
-  | "DUOCSI"
-  | "KETOAN"
-  | "KYTHUATVIEN";
+  | "admin"
+  | "bac_si"
+  | "le_tan"
+  | "duoc_si"
+  | "ke_toan"
+  | "ky_thuat_vien";
 
 export interface RoleRef {
   code: string;

@@ -27,6 +27,8 @@ interface DataTableProps<T> {
   meta?: ApiMeta;
   onPageChange?: (page: number) => void;
   onRowClick?: (row: T) => void;
+  /** Thao tác nhanh: double-click vào hàng để chạy action dùng nhiều nhất. */
+  onRowDoubleClick?: (row: T) => void;
   emptyState?: React.ReactNode;
   skeletonRows?: number;
 }
@@ -38,6 +40,7 @@ export function DataTable<T>({
   meta,
   onPageChange,
   onRowClick,
+  onRowDoubleClick,
   emptyState,
   skeletonRows = 5,
 }: DataTableProps<T>) {
@@ -79,8 +82,13 @@ export function DataTable<T>({
               data.map((row, i) => (
                 <TableRow
                   key={i}
-                  className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+                  className={
+                    onRowClick || onRowDoubleClick
+                      ? "cursor-pointer hover:bg-muted/50"
+                      : ""
+                  }
                   onClick={() => onRowClick?.(row)}
+                  onDoubleClick={() => onRowDoubleClick?.(row)}
                 >
                   {columns.map((col) => (
                     <TableCell key={col.key} className={col.className}>

@@ -117,7 +117,7 @@ const MASTER: Cfg[] = [
   { prefix: "PK", name: "Phòng khám (Tenant)", route: "/admin/tenants", search: 'input[placeholder*="Tìm" i]', create: /Tạo phòng khám mới/i, type: "dialog",
     fields: [["#code", "PK"], ["#subdomain", "pkabc"], ["#name", "Phòng khám Đa khoa An Bình"], ["#email", "lienhe@anbinh.vn"], ["#phone", "02838123456"], ["#cskcb_code", "79001"], ["#tax_code", "0312345678"], ["#address", "12 Lê Lợi, Q1"], ["#admin_email", "admin@anbinh.vn"], ["#admin_full_name", "Nguyễn Quản Trị"]], submit: "Tạo phòng khám", mandatory: "Mã + Subdomain + Tên + Email + Admin bắt buộc" },
   { prefix: "ND", name: "Người dùng", route: "/admin/users", search: 'input[placeholder*="Tìm" i]', create: /Mời người dùng/i, type: "dialog",
-    fields: [["#inv-email", "letan.moi@phongkham.vn"], ["#inv-full-name", "Phạm Thị Lễ Tân"], ["#inv-phone", "0987654321"]], checks: ["#role-LETAN", '[id^="role-"]'], submit: "Gửi lời mời", mandatory: "Email + Tên + ≥1 vai trò bắt buộc" },
+    fields: [["#inv-email", "letan.moi@phongkham.vn"], ["#inv-full-name", "Phạm Thị Lễ Tân"], ["#inv-phone", "0987654321"]], checks: ["#role-le_tan", '[id^="role-"]'], submit: "Gửi lời mời", mandatory: "Email + Tên + ≥1 vai trò bắt buộc" },
 ];
 
 async function ute(page: Page, c: Cfg) {

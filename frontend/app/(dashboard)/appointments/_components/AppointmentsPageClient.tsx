@@ -219,7 +219,11 @@ export function AppointmentsPageClient() {
       cell: (row) => (
         <div className="text-right">
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted">
+            <DropdownMenuTrigger
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted"
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+            >
               <MoreHorizontal className="h-4 w-4" />
               <span className="sr-only">Thao tác</span>
             </DropdownMenuTrigger>
@@ -393,6 +397,11 @@ export function AppointmentsPageClient() {
           isLoading={isLoading}
           meta={data?.meta}
           onPageChange={setPage}
+          onRowDoubleClick={(row) => {
+            if (row.status !== "CHECKED_IN" && row.status !== "CANCELLED" && row.status !== "NO_SHOW") {
+              requestStatusChange(row, "CHECKED_IN");
+            }
+          }}
           emptyState={
             <EmptyState
               variant="generic"

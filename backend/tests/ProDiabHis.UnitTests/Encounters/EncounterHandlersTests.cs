@@ -14,12 +14,15 @@ public class EncounterHandlersTests
     private readonly FakeTenantProvider _tenant = new(1);
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IDapperConnectionFactory _dapper;
 
     public EncounterHandlersTests()
     {
         _user = Substitute.For<ICurrentUser>();
         _user.UserId.Returns(Guid.NewGuid());
         _audit = Substitute.For<IAuditService>();
+        // Dong bo hang doi tiep don la side-effect non-fatal -> mock rong, loi bi nuot trong QueueTicketSync.
+        _dapper = Substitute.For<IDapperConnectionFactory>();
     }
 
     // ──────────────────────────────────────────
@@ -154,7 +157,7 @@ public class EncounterHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new StartEncounterCommandHandler(db, _tenant, _user, _audit);
+        var handler = new StartEncounterCommandHandler(db, _tenant, _user, _audit, _dapper);
         var result = await handler.Handle(new StartEncounterCommand(encId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -178,7 +181,7 @@ public class EncounterHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new StartEncounterCommandHandler(db, _tenant, _user, _audit);
+        var handler = new StartEncounterCommandHandler(db, _tenant, _user, _audit, _dapper);
         var result = await handler.Handle(new StartEncounterCommand(encId), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
@@ -249,7 +252,7 @@ public class EncounterHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new CloseEncounterCommandHandler(db, _user, _audit);
+        var handler = new CloseEncounterCommandHandler(db, _user, _audit, _dapper);
         var result = await handler.Handle(new CloseEncounterCommand(encId), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();

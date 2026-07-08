@@ -105,7 +105,7 @@ export default function TenantsPage() {
       key: "actions",
       header: "",
       cell: (row) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onDoubleClick={(e) => e.stopPropagation()}>
           {row.status === "ACTIVE" && (
             <Button
               variant="outline"
@@ -230,6 +230,7 @@ export default function TenantsPage() {
         meta={data?.meta}
         onPageChange={setPage}
         onRowClick={(row) => setDetailTarget(row)}
+        onRowDoubleClick={(row) => setDetailTarget(row)}
       />
 
       {/* Create sheet */}

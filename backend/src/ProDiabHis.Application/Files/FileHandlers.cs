@@ -149,11 +149,12 @@ public class UploadClsCommandHandler : IRequestHandler<UploadClsCommand, Result<
             return Result<ClsUploadResponse>.Failure("CLS_UPLOAD_INVALID_FORMAT", "Chỉ chấp nhận file PNG/JPEG/PDF");
 
         using var conn = _db.CreateConnection();
-        var intPatId = await conn.ExecuteScalarAsync<int?>(
-            "SELECT id FROM pat_patients WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
+        var patientExists = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM pat_patients WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
             new { Id = command.PatientId.ToString(), TenantId = _tenant.TenantId });
-        if (intPatId is null)
+        if (patientExists == 0)
             return Result<ClsUploadResponse>.Failure("PATIENT_NOT_FOUND", "Không tìm thấy bệnh nhân");
+        var patientId = command.PatientId.ToString();
 
         var fileId = Guid.NewGuid();
         var ext = Path.GetExtension(command.FileName);
@@ -191,7 +192,7 @@ public class UploadClsCommandHandler : IRequestHandler<UploadClsCommand, Result<
             {
                 Id = clsId,
                 TenantId = _tenant.TenantId,
-                PatId = intPatId.Value,
+                PatId = patientId,
                 EncId = command.EncounterId?.ToString(),
                 DocType = command.DocType,
                 FileId = fileId.ToString(),

@@ -1,3 +1,5 @@
+using System.Data;
+using Dapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
@@ -136,6 +138,89 @@ public class UpdateEncounterCommandHandler : IRequestHandler<UpdateEncounterComm
 }
 
 // ────────────────────────────────────────────────
+// Admit (Tiep don -> Kham): tao/lay luot kham tu ve hang doi
+// ────────────────────────────────────────────────
+public class AdmitTicketToEncounterCommandHandler
+    : IRequestHandler<AdmitTicketToEncounterCommand, Result<AdmitTicketResponse>>
+{
+    private readonly IApplicationDbContext _db;
+    private readonly IDapperConnectionFactory _dapper;
+    private readonly ITenantProvider _tenant;
+    private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
+
+    public AdmitTicketToEncounterCommandHandler(IApplicationDbContext db, IDapperConnectionFactory dapper,
+        ITenantProvider tenant, ICurrentUser user, IAuditService audit)
+    {
+        _db = db; _dapper = dapper; _tenant = tenant; _user = user; _audit = audit;
+    }
+
+    public async Task<Result<AdmitTicketResponse>> Handle(AdmitTicketToEncounterCommand cmd, CancellationToken ct)
+    {
+        var tenantId = _tenant.TenantId;
+        using var conn = (IDbConnection)_dapper.CreateConnection();
+
+        // 1) Doc ve hang doi
+        var ticket = await conn.QueryFirstOrDefaultAsync(
+            @"SELECT patient_id, room_id, doctor_id, reason_for_visit, status
+              FROM diab_his_rcp_queue_tickets
+              WHERE id = @Id AND tenant_id = @Tid AND deleted_at IS NULL",
+            new { Id = cmd.TicketId.ToString(), Tid = tenantId });
+        if (ticket is null)
+            return Result<AdmitTicketResponse>.Failure("TICKET_NOT_FOUND", "Không tìm thấy phiếu tiếp đón");
+
+        string patientId = (string)ticket.patient_id;
+        string? roomId = ticket.room_id is null ? null : (string)ticket.room_id;
+        string? doctorId = ticket.doctor_id is null ? null : (string)ticket.doctor_id;
+        string? reason = ticket.reason_for_visit is null ? null : (string)ticket.reason_for_visit;
+        string ticketStatus = (string)ticket.status;
+
+        // 2) Idempotent: neu benh nhan da co luot kham dang hoat dong (Cho/Dang kham) thi dung lai
+        var existing = await _db.Encounters
+            .Where(e => e.PatientId == patientId
+                     && (e.Status == EncounterStatus.Waiting || e.Status == EncounterStatus.InProgress))
+            .OrderByDescending(e => e.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (existing is not null)
+            return Result<AdmitTicketResponse>.Success(new AdmitTicketResponse(existing.Id, false));
+
+        // 3) Tao luot kham moi tu thong tin ve
+        var now = DateTime.UtcNow;
+        var enc = new Encounter
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            PatientId = patientId,
+            RoomId = roomId,
+            DoctorId = doctorId ?? _user.UserId?.ToString(),
+            EncounterType = EncounterTypes.FirstVisit,
+            Status = EncounterStatus.Waiting,
+            ReasonForVisit = reason,
+            CreatedAt = now,
+            CreatedBy = _user.UserId,
+            UpdatedAt = now
+        };
+        _db.Encounters.Add(enc);
+
+        // Ve dang Cho -> chuyen Da goi (dua vao kham ngu y da goi benh nhan)
+        if (ticketStatus == TicketStatus.Waiting)
+        {
+            await conn.ExecuteAsync(
+                @"UPDATE diab_his_rcp_queue_tickets
+                  SET status = 'CALLED', called_at = @now, updated_at = @now
+                  WHERE id = @Id AND tenant_id = @Tid",
+                new { now, Id = cmd.TicketId.ToString(), Tid = tenantId });
+        }
+
+        await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync("ADMIT", "Encounter", enc.Id.ToString(),
+            new { ticketId = cmd.TicketId }, ct);
+
+        return Result<AdmitTicketResponse>.Success(new AdmitTicketResponse(enc.Id, true));
+    }
+}
+
+// ────────────────────────────────────────────────
 // Start
 // ────────────────────────────────────────────────
 public class StartEncounterCommandHandler : IRequestHandler<StartEncounterCommand, Result<EncounterResponse>>
@@ -144,11 +229,12 @@ public class StartEncounterCommandHandler : IRequestHandler<StartEncounterComman
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IDapperConnectionFactory _dapper;
 
     public StartEncounterCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
+        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapper)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _dapper = dapper;
     }
 
     public async Task<Result<EncounterResponse>> Handle(StartEncounterCommand cmd, CancellationToken ct)
@@ -169,6 +255,11 @@ public class StartEncounterCommandHandler : IRequestHandler<StartEncounterComman
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync("START", "Encounter", enc.Id.ToString(), null, ct);
 
+        // Dong bo VE hang doi: bac si "Bat dau kham" -> ve chuyen sang "Dang kham"
+        // (de man Tiep don + o thong ke "Dang kham" phan anh dung).
+        await QueueTicketSync.SyncStatusAsync(
+            _dapper, enc.TenantId, enc.PatientId, enc.RoomId, TicketStatus.InProgress, ct);
+
         var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit);
         return Result<EncounterResponse>.Success(await helper.BuildEncounterResponse(enc, ct));
     }
@@ -182,10 +273,12 @@ public class CloseEncounterCommandHandler : IRequestHandler<CloseEncounterComman
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IDapperConnectionFactory _dapper;
 
-    public CloseEncounterCommandHandler(IApplicationDbContext db, ICurrentUser user, IAuditService audit)
+    public CloseEncounterCommandHandler(IApplicationDbContext db, ICurrentUser user, IAuditService audit,
+        IDapperConnectionFactory dapper)
     {
-        _db = db; _user = user; _audit = audit;
+        _db = db; _user = user; _audit = audit; _dapper = dapper;
     }
 
     public async Task<Result<bool>> Handle(CloseEncounterCommand cmd, CancellationToken ct)
@@ -219,7 +312,57 @@ public class CloseEncounterCommandHandler : IRequestHandler<CloseEncounterComman
 
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync("CLOSE", "Encounter", enc.Id.ToString(), null, ct);
+
+        // Dong luot kham -> ve hang doi chuyen sang "Xong".
+        await QueueTicketSync.SyncStatusAsync(
+            _dapper, enc.TenantId, enc.PatientId, enc.RoomId, TicketStatus.Done, ct);
+
         return Result<bool>.Success(true);
+    }
+}
+
+/// <summary>
+/// Dong bo trang thai VE hang doi (diab_his_rcp_queue_tickets) theo LUOT KHAM.
+/// ReceptionTicket khong nam trong EF context nen cap nhat truc tiep bang Dapper.
+/// Match theo benh nhan + phong (neu biet) + cac trang thai con hoat dong; khong lam
+/// fail luong kham neu khong tim thay ve tuong ung (0 dong bi anh huong).
+/// </summary>
+internal static class QueueTicketSync
+{
+    public static async Task SyncStatusAsync(
+        IDapperConnectionFactory dapper, int tenantId, string patientId, string? roomId,
+        string newStatus, CancellationToken ct)
+    {
+        // Dong bo trang thai ve hang doi tiep don chi la SIDE-EFFECT hien thi (man Tiep don + thong ke).
+        // Khong duoc lam hong nghiep vu bat dau/dong luot kham neu buoc dong bo nay loi -> non-fatal.
+        try
+        {
+            using var conn = (IDbConnection)dapper.CreateConnection();
+            var now = DateTime.UtcNow;
+            // Trang thai nguon hop le: Bat dau kham chi tu Cho/Da goi; Xong thi tu ca Dang kham.
+            var fromStatuses = newStatus == TicketStatus.InProgress
+                ? new[] { TicketStatus.Waiting, TicketStatus.Called }
+                : new[] { TicketStatus.Waiting, TicketStatus.Called, TicketStatus.InProgress };
+            var startedAt  = newStatus == TicketStatus.InProgress ? (DateTime?)now : null;
+            var finishedAt = newStatus == TicketStatus.Done       ? (DateTime?)now : null;
+
+            await conn.ExecuteAsync(
+                @"UPDATE diab_his_rcp_queue_tickets
+                  SET status      = @newStatus,
+                      started_at  = COALESCE(@startedAt, started_at),
+                      finished_at = COALESCE(@finishedAt, finished_at),
+                      updated_at  = @now
+                  WHERE tenant_id = @tenantId
+                    AND patient_id = @patientId
+                    AND status IN @fromStatuses
+                    AND deleted_at IS NULL
+                    AND (@roomId IS NULL OR room_id = @roomId)",
+                new { newStatus, startedAt, finishedAt, now, tenantId, patientId, fromStatuses, roomId });
+        }
+        catch
+        {
+            // Nuot loi dong bo hang doi (khong chan luong kham). Loi thuc su van duoc log boi middleware neu bubble len.
+        }
     }
 }
 

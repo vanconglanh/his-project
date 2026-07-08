@@ -151,6 +151,7 @@ function RiskListContent() {
         meta={meta}
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/patients/${row.patient_id}/diabetes`)}
+        onRowDoubleClick={(row) => router.push(`/patients/${row.patient_id}/diabetes`)}
         skeletonRows={8}
         emptyState={
           <div className="flex flex-col items-center gap-3 py-6">

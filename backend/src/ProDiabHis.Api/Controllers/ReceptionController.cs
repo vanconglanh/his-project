@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using ProDiabHis.Api.Filters;
 using ProDiabHis.Api.Services;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Application.Encounters;
 using ProDiabHis.Application.Reception;
 using ProDiabHis.Application.Reports;
 
@@ -66,6 +67,22 @@ public class ReceptionController : ControllerBase
     public async Task<IActionResult> CallTicket(Guid ticketId, CancellationToken ct = default)
     {
         var result = await _mediator.Send(new CallTicketCommand(ticketId), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode == "TICKET_NOT_FOUND" ? 404 : 422;
+            return StatusCode(status, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return Ok(new { data = result.Value });
+    }
+
+    // POST /api/v1/reception/queue/{ticketId}/admit
+    // Dua benh nhan vao kham: tao (hoac lay lai) luot kham tu ve hang doi,
+    // tra ve encounter_id de FE dieu huong sang man kham /encounters/{id}.
+    [HttpPost("queue/{ticketId:guid}/admit")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> AdmitTicket(Guid ticketId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new AdmitTicketToEncounterCommand(ticketId), ct);
         if (!result.IsSuccess)
         {
             var status = result.ErrorCode == "TICKET_NOT_FOUND" ? 404 : 422;

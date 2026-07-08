@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +12,7 @@ import {
   useCallTicket,
   useSkipTicket,
   useCancelTicket,
+  useAdmitTicket,
 } from "@/lib/hooks/use-reception";
 import { useRooms } from "@/lib/hooks/use-reception";
 import type { ReceptionTicketResponse } from "@/lib/api/types";
@@ -23,12 +25,20 @@ interface CancelState {
 
 export function ReceptionQueueBoard() {
   const [cancelState, setCancelState] = useState<CancelState | null>(null);
+  const router = useRouter();
 
   const { data: tickets, isLoading, refetch, isFetching } = useReceptionQueue();
   const { data: rooms } = useRooms();
   const callMutation = useCallTicket();
   const skipMutation = useSkipTicket();
   const cancelMutation = useCancelTicket();
+  const admitMutation = useAdmitTicket();
+
+  // Đưa bệnh nhân vào khám: tạo/lấy lượt khám rồi điều hướng sang màn khám.
+  const handleAdmit = (ticketId: string) =>
+    admitMutation.mutate(ticketId, {
+      onSuccess: (res) => router.push(`/encounters/${res.encounter_id}`),
+    });
 
   const activeTickets = (tickets ?? []).filter(
     (t) => !["DONE", "CANCELLED"].includes(t.status)
@@ -107,8 +117,10 @@ export function ReceptionQueueBoard() {
                       onCall={(id) => callMutation.mutate(id)}
                       onSkip={(id) => skipMutation.mutate(id)}
                       onCancel={(id) => setCancelState({ ticketId: id, reason: "" })}
+                      onAdmit={handleAdmit}
                       isCallLoading={callMutation.isPending}
                       isSkipLoading={skipMutation.isPending}
+                      isAdmitLoading={admitMutation.isPending}
                     />
                   ))
                 )}
@@ -127,6 +139,10 @@ export function ReceptionQueueBoard() {
                 onCall={(id) => callMutation.mutate(id)}
                 onSkip={(id) => skipMutation.mutate(id)}
                 onCancel={(id) => setCancelState({ ticketId: id, reason: "" })}
+                onAdmit={handleAdmit}
+                isCallLoading={callMutation.isPending}
+                isSkipLoading={skipMutation.isPending}
+                isAdmitLoading={admitMutation.isPending}
               />
             ))}
           </div>

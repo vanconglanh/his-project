@@ -51,6 +51,19 @@ export async function cancelTicket(ticketId: string, reason?: string): Promise<R
   return data.data;
 }
 
+export interface AdmitTicketResult {
+  encounter_id: string;
+  created: boolean;
+}
+
+/** Đưa bệnh nhân từ vé hàng đợi vào khám: tạo/lấy lượt khám, trả về encounter_id. */
+export async function admitTicket(ticketId: string): Promise<AdmitTicketResult> {
+  const { data } = await apiClient.post<ApiResponse<AdmitTicketResult>>(
+    `/reception/queue/${ticketId}/admit`
+  );
+  return data.data;
+}
+
 export function getTicketPdfUrl(ticketId: string): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
   return `${base}/api/v1/reception/queue/${ticketId}/ticket-pdf`;

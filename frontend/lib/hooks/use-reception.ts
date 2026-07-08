@@ -8,6 +8,7 @@ import {
   callTicket,
   skipTicket,
   cancelTicket,
+  admitTicket,
   getRooms,
   getReceptionStats,
 } from "@/lib/api/reception";
@@ -67,6 +68,19 @@ export function useCallTicket() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: receptionKeys.all });
       toast.success("Đã gọi bệnh nhân");
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+/** Đưa bệnh nhân vào khám: tạo/lấy lượt khám từ vé. Trả về encounter_id để điều hướng. */
+export function useAdmitTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ticketId: string) => admitTicket(ticketId),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: receptionKeys.all });
+      toast.success(res.created ? "Đã tạo lượt khám" : "Mở lượt khám hiện có");
     },
     onError: (e) => toast.error(getErrorMessage(e)),
   });

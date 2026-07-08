@@ -71,7 +71,7 @@ export default function RolesPage() {
       key: "actions",
       header: "",
       cell: (row) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onDoubleClick={(e) => e.stopPropagation()}>
           <Button
             variant="ghost"
             size="sm"
@@ -133,6 +133,7 @@ export default function RolesPage() {
         data={roles}
         isLoading={isLoading}
         onRowClick={(row) => setSelectedRole(row)}
+        onRowDoubleClick={(row) => setSelectedRole(row)}
       />
 
       {/* Permission matrix sheet */}
