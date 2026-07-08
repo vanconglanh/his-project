@@ -25,7 +25,7 @@ export default function HomePage() {
         <div className="mb-5 rounded-2xl border-2 border-blue-200 bg-blue-50 p-4">
           <p className="text-base font-semibold text-blue-800">Lịch hẹn sắp tới</p>
           <p className="mt-1 text-lg text-blue-900">
-            {formatDateTime(upcoming.appointmentAt)} — BS. {upcoming.doctorName}
+            {formatDateTime(upcoming.appointmentAt)} — {upcoming.doctorName}
           </p>
         </div>
       )}

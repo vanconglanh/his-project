@@ -37,7 +37,7 @@ export default function EncountersPage() {
                 {e.status}
               </span>
             </div>
-            <p className="text-base text-slate-600">BS. {e.doctorName}</p>
+            <p className="text-base text-slate-600">{e.doctorName}</p>
             <p className="text-base text-slate-600">Lý do khám: {e.chiefComplaint}</p>
             {e.diagnosis.length > 0 && (
               <p className="mt-1 text-base font-medium text-slate-800">

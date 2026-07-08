@@ -47,13 +47,13 @@ export default function PrescriptionsPage() {
       )}
 
       <div className="flex flex-col gap-3">
-        {prescriptions?.map((p) => (
-          <div key={p.id} className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+        {prescriptions?.map((p, idx) => (
+          <div key={`${p.id}-${idx}`} className="rounded-2xl border-2 border-slate-200 bg-white p-4">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-lg font-semibold text-slate-900">{formatDate(p.issuedAt)}</span>
               <span className="text-sm text-slate-500">{p.prescriptionCode}</span>
             </div>
-            <p className="mb-2 text-base text-slate-600">BS. {p.doctorName}</p>
+            <p className="mb-2 text-base text-slate-600">{p.doctorName}</p>
             <ul className="mb-3 flex flex-col gap-1">
               {p.items.map((item, idx) => (
                 <li key={idx} className="text-base text-slate-700">
