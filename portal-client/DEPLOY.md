@@ -74,5 +74,5 @@ tường minh để nó thắng regex ở trên. Backend đọc `Host` → tra s
 ## 5. Việc còn lại trước khi go-live
 - Bổ sung asset thật `public/icons/icon-192.png`, `icon-512.png` (PWA installable).
 - Đăng ký subdomain cho từng phòng khám vào `diab_his_sys_tenants.subdomain`.
-- Web Push hiện là stub (chỉ log) → thông báo đẩy sẽ fallback qua email; cần hiện thực RFC 8291
-  (VAPID JWT + ECDH aes128gcm) trong `WebPushSenderImpl` khi bật push thật.
+- Web Push đã hiện thực thật (RFC 8291 aes128gcm + RFC 8292 VAPID trong `WebPushCrypto`, verify test
+  vector chính thức). Cấu hình `WebPush:Subject` = `mailto:...` liên hệ của phòng khám (BYT/push service yêu cầu).
