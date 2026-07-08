@@ -116,7 +116,7 @@ public class EncounterHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new AddDiagnosisCommandHandler(db, _tenant, _user, _audit);
+        var handler = new AddDiagnosisCommandHandler(db, _tenant, _user, _audit, _dapper);
         var req = new DiagnosisRequest("E11", "PRIMARY", null);
         var result = await handler.Handle(new AddDiagnosisCommand(encId, req), CancellationToken.None);
 
@@ -133,7 +133,7 @@ public class EncounterHandlersTests
     public async Task AddDiagnosis_EncounterNotFound_ReturnsFailure()
     {
         using var db = TestDbContextFactory.Create(tenantId: 1);
-        var handler = new AddDiagnosisCommandHandler(db, _tenant, _user, _audit);
+        var handler = new AddDiagnosisCommandHandler(db, _tenant, _user, _audit, _dapper);
         var req = new DiagnosisRequest("E11", "PRIMARY", null);
         var result = await handler.Handle(new AddDiagnosisCommand(Guid.NewGuid(), req), CancellationToken.None);
 

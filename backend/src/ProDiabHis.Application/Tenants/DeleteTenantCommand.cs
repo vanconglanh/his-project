@@ -6,7 +6,7 @@ using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Tenants;
 
-public record DeleteTenantCommand(Guid Id) : IRequest<Result>;
+public record DeleteTenantCommand(int Id) : IRequest<Result>;
 
 public class DeleteTenantCommandHandler : IRequestHandler<DeleteTenantCommand, Result>
 {

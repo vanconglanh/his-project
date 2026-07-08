@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
@@ -49,17 +50,20 @@ public class CreateTenantCommandHandler : IRequestHandler<CreateTenantCommand, R
     private readonly IApplicationDbContext _db;
     private readonly IEmailSender _emailSender;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IConfiguration _config;
     private readonly ILogger<CreateTenantCommandHandler> _logger;
 
     public CreateTenantCommandHandler(
         IApplicationDbContext db,
         IEmailSender emailSender,
         IPasswordHasher passwordHasher,
+        IConfiguration config,
         ILogger<CreateTenantCommandHandler> logger)
     {
         _db = db;
         _emailSender = emailSender;
         _passwordHasher = passwordHasher;
+        _config = config;
         _logger = logger;
     }
 
@@ -79,7 +83,6 @@ public class CreateTenantCommandHandler : IRequestHandler<CreateTenantCommand, R
 
         var tenant = new Tenant
         {
-            Id = Guid.NewGuid(),
             Code = req.Code,
             Name = req.Name,
             CskcbCode = req.CskcbCode,
@@ -93,16 +96,19 @@ public class CreateTenantCommandHandler : IRequestHandler<CreateTenantCommand, R
             ExpiresAt = req.ExpiresAt
         };
 
+        // Luu tenant truoc de MySQL sinh Id (INT AUTO_INCREMENT), can Id nay de gan cho admin user
         _db.Tenants.Add(tenant);
+        await _db.SaveChangesAsync(ct);
 
-        // Tao user ADMIN dau tien cho tenant
+        // Tao user ADMIN dau tien cho tenant, gan dung TenantId vua sinh
         var inviteToken = GenerateInviteToken();
         var adminRole = await _db.Roles.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(r => r.Code == "ADMIN" && r.DeletedAt == null, ct);
+            .FirstOrDefaultAsync(r => r.Code == "admin" && r.DeletedAt == null, ct);
 
         var adminUser = new User
         {
             Id = Guid.NewGuid(),
+            TenantId = tenant.Id,
             Email = req.AdminEmail,
             FullName = req.AdminFullName,
             PasswordHash = string.Empty, // Se set khi accept invite
@@ -119,14 +125,19 @@ public class CreateTenantCommandHandler : IRequestHandler<CreateTenantCommand, R
             {
                 UserId = adminUser.Id,
                 RoleId = adminRole.Id,
-                TenantId = 0 // se update sau
+                TenantId = tenant.Id
             });
+        }
+        else
+        {
+            _logger.LogWarning("Khong tim thay role 'admin' khi tao tenant {Code} - admin user chua duoc gan vai tro", req.Code);
         }
 
         await _db.SaveChangesAsync(ct);
 
-        // Gui email moi
-        var inviteUrl = $"https://{req.Subdomain}.prodiab.vn/accept-invite?token={inviteToken}";
+        // Gui email moi — base domain cau hinh qua Platform:BaseDomain (mac dinh prodiab.vn)
+        var baseDomain = _config["Platform:BaseDomain"] ?? "prodiab.vn";
+        var inviteUrl = $"https://{req.Subdomain}.{baseDomain}/accept-invite?token={inviteToken}";
         var emailBody = BuildInviteEmail(req.AdminFullName, req.Name, inviteUrl);
         await _emailSender.SendAsync(req.AdminEmail, $"Mời bạn kích hoạt tài khoản {req.Name}", emailBody, ct);
 

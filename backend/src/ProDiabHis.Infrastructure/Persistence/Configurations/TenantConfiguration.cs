@@ -11,7 +11,7 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.ToTable("diab_his_sys_tenants");
 
         builder.HasKey(t => t.Id);
-        builder.Property(t => t.Id).HasColumnName("id");
+        builder.Property(t => t.Id).HasColumnName("id").ValueGeneratedOnAdd();
         builder.Property(t => t.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
         builder.Property(t => t.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
         builder.Property(t => t.CompanyName).HasColumnName("company_name").HasMaxLength(255);
@@ -22,6 +22,8 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.Email).HasColumnName("email").HasMaxLength(255);
         builder.Property(t => t.EmailSupport).HasColumnName("email_support").HasMaxLength(255);
         builder.Property(t => t.LogoUrl).HasColumnName("logo_url").HasMaxLength(500);
+        builder.Property(t => t.Slogan).HasColumnName("slogan").HasMaxLength(500);
+        builder.Property(t => t.Website).HasColumnName("website").HasMaxLength(255);
         builder.Property(t => t.Subdomain).HasColumnName("subdomain").HasMaxLength(63).IsRequired();
         builder.Property(t => t.StorageQuotaGb).HasColumnName("storage_quota_gb").HasDefaultValue(20);
         builder.Property(t => t.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("ACTIVE");

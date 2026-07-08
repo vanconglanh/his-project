@@ -51,7 +51,7 @@ public class ListTenantsQueryHandler : IRequestHandler<ListTenantsQuery, PagedRe
                LIMIT @limit OFFSET @offset", p);
 
         var items = rows.Select(r => new TenantResponse(
-            Guid.Empty, // id là INT trong DB, dùng Guid.Empty placeholder
+            (int)r.id,
             (string)r.code,
             (string)r.name,
             (string?)r.cskcb_code,

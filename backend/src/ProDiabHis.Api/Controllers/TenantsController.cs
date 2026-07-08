@@ -53,9 +53,9 @@ public class TenantsController : ControllerBase
     }
 
     /// <summary>Chi tiet tenant (SUPER_ADMIN)</summary>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:int}")]
     [RequireSuperAdmin]
-    public async Task<IActionResult> GetTenant(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetTenant(int id, CancellationToken ct)
     {
         var result = await _mediator.Send(new GetTenantQuery(id), ct);
         if (!result.IsSuccess)
@@ -64,9 +64,9 @@ public class TenantsController : ControllerBase
     }
 
     /// <summary>Cap nhat tenant (SUPER_ADMIN)</summary>
-    [HttpPut("{id:guid}")]
+    [HttpPut("{id:int}")]
     [RequireSuperAdmin]
-    public async Task<IActionResult> UpdateTenant(Guid id, [FromBody] UpdateTenantRequest request, CancellationToken ct)
+    public async Task<IActionResult> UpdateTenant(int id, [FromBody] UpdateTenantRequest request, CancellationToken ct)
     {
         var result = await _mediator.Send(new UpdateTenantCommand(
             id, request.Name, request.CskcbCode, request.TaxCode,
@@ -81,9 +81,9 @@ public class TenantsController : ControllerBase
     }
 
     /// <summary>Cham dut tenant - soft delete (SUPER_ADMIN)</summary>
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id:int}")]
     [RequireSuperAdmin]
-    public async Task<IActionResult> DeleteTenant(Guid id, CancellationToken ct)
+    public async Task<IActionResult> DeleteTenant(int id, CancellationToken ct)
     {
         var result = await _mediator.Send(new DeleteTenantCommand(id), ct);
         if (!result.IsSuccess)
@@ -92,9 +92,9 @@ public class TenantsController : ControllerBase
     }
 
     /// <summary>Tam ngung tenant (SUPER_ADMIN)</summary>
-    [HttpPost("{id:guid}/suspend")]
+    [HttpPost("{id:int}/suspend")]
     [RequireSuperAdmin]
-    public async Task<IActionResult> SuspendTenant(Guid id, [FromBody] SuspendRequest? request, CancellationToken ct)
+    public async Task<IActionResult> SuspendTenant(int id, [FromBody] SuspendRequest? request, CancellationToken ct)
     {
         var result = await _mediator.Send(new SuspendTenantCommand(id, request?.Reason), ct);
         if (!result.IsSuccess)
@@ -103,9 +103,9 @@ public class TenantsController : ControllerBase
     }
 
     /// <summary>Kich hoat lai tenant (SUPER_ADMIN)</summary>
-    [HttpPost("{id:guid}/activate")]
+    [HttpPost("{id:int}/activate")]
     [RequireSuperAdmin]
-    public async Task<IActionResult> ActivateTenant(Guid id, CancellationToken ct)
+    public async Task<IActionResult> ActivateTenant(int id, CancellationToken ct)
     {
         var result = await _mediator.Send(new ActivateTenantCommand(id), ct);
         if (!result.IsSuccess)
@@ -157,7 +157,9 @@ public class TenantsController : ControllerBase
     {
         var result = await _mediator.Send(new UpdateMyTenantCommand(
             request.Name, request.Address, request.Phone,
-            request.Email, request.CskcbCode, request.BhytToken), ct);
+            request.Email, request.CskcbCode, request.BhytToken,
+            request.CompanyName, request.EmailSupport, request.LogoUrl,
+            request.Slogan, request.Website), ct);
 
         if (!result.IsSuccess)
             return UnprocessableEntity(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
@@ -182,7 +184,9 @@ public record UpdateTenantRequest(
 
 public record UpdateTenantProfileRequest(
     string? Name, string? Address, string? Phone,
-    string? Email, string? CskcbCode, string? BhytToken
+    string? Email, string? CskcbCode, string? BhytToken,
+    string? CompanyName = null, string? EmailSupport = null, string? LogoUrl = null,
+    string? Slogan = null, string? Website = null
 );
 
 public record SuspendRequest(string? Reason);

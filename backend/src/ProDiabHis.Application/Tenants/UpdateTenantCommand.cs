@@ -6,7 +6,7 @@ using ProDiabHis.Application.Common;
 namespace ProDiabHis.Application.Tenants;
 
 public record UpdateTenantCommand(
-    Guid Id,
+    int Id,
     string? Name,
     string? CskcbCode,
     string? TaxCode,

@@ -5,7 +5,7 @@ using ProDiabHis.Application.Common;
 
 namespace ProDiabHis.Application.Tenants;
 
-public record GetTenantQuery(Guid Id) : IRequest<Result<TenantResponse>>;
+public record GetTenantQuery(int Id) : IRequest<Result<TenantResponse>>;
 
 public class GetTenantQueryHandler : IRequestHandler<GetTenantQuery, Result<TenantResponse>>
 {

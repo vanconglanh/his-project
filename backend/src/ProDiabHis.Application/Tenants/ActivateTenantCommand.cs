@@ -6,7 +6,7 @@ using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Tenants;
 
-public record ActivateTenantCommand(Guid Id) : IRequest<Result<TenantResponse>>;
+public record ActivateTenantCommand(int Id) : IRequest<Result<TenantResponse>>;
 
 public class ActivateTenantCommandHandler : IRequestHandler<ActivateTenantCommand, Result<TenantResponse>>
 {

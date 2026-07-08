@@ -270,7 +270,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        foreach (var entry in ChangeTracker.Entries<IAuditTimestamps>())
         {
             if (entry.State == EntityState.Added)
                 entry.Entity.CreatedAt = now;

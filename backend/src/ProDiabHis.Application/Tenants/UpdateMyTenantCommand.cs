@@ -11,7 +11,12 @@ public record UpdateMyTenantCommand(
     string? Phone,
     string? Email,
     string? CskcbCode,
-    string? BhytToken
+    string? BhytToken,
+    string? CompanyName,
+    string? EmailSupport,
+    string? LogoUrl,
+    string? Slogan,
+    string? Website
 ) : IRequest<Result<TenantResponse>>;
 
 public class UpdateMyTenantCommandHandler : IRequestHandler<UpdateMyTenantCommand, Result<TenantResponse>>
@@ -44,6 +49,11 @@ public class UpdateMyTenantCommandHandler : IRequestHandler<UpdateMyTenantComman
         if (req.Email != null) tenant.Email = req.Email;
         if (req.CskcbCode != null) tenant.CskcbCode = req.CskcbCode;
         if (req.BhytToken != null) tenant.BhytTokenEncrypted = _encryption.Encrypt(req.BhytToken);
+        if (req.CompanyName != null) tenant.CompanyName = req.CompanyName;
+        if (req.EmailSupport != null) tenant.EmailSupport = req.EmailSupport;
+        if (req.LogoUrl != null) tenant.LogoUrl = req.LogoUrl;
+        if (req.Slogan != null) tenant.Slogan = req.Slogan;
+        if (req.Website != null) tenant.Website = req.Website;
 
         await _db.SaveChangesAsync(ct);
         return Result<TenantResponse>.Success(tenant.ToResponse());

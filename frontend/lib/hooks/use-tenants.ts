@@ -26,7 +26,7 @@ export function useTenants(params?: ListTenantsParams) {
   });
 }
 
-export function useTenant(id: string) {
+export function useTenant(id: number) {
   return useQuery({
     queryKey: [TENANTS_KEY, id],
     queryFn: () => getTenant(id),
@@ -56,7 +56,7 @@ export function useCreateTenant() {
 export function useUpdateTenant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateTenantRequest }) =>
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateTenantRequest }) =>
       updateTenant(id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [TENANTS_KEY] });
@@ -81,7 +81,7 @@ export function useUpdateMyTenant() {
 export function useSuspendTenant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
       suspendTenant(id, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [TENANTS_KEY] });
@@ -94,7 +94,7 @@ export function useSuspendTenant() {
 export function useActivateTenant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => activateTenant(id),
+    mutationFn: (id: number) => activateTenant(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [TENANTS_KEY] });
       toast.success("Đã kích hoạt phòng khám");
@@ -106,7 +106,7 @@ export function useActivateTenant() {
 export function useDeleteTenant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteTenant(id),
+    mutationFn: (id: number) => deleteTenant(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [TENANTS_KEY] });
       toast.success("Đã chấm dứt phòng khám");

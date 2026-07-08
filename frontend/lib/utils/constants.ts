@@ -1,6 +1,9 @@
 export const APP_NAME = "Pro-Diab HIS";
 export const APP_VERSION = "0.1.0";
 
+/** Domain goc cua nen tang (cau hinh qua NEXT_PUBLIC_BASE_DOMAIN). Dung dung ghep subdomain phong kham. */
+export const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? "prodiab.vn";
+
 export const USER_ROLES = {
   Admin: "Admin",
   BacSi: "BacSi",

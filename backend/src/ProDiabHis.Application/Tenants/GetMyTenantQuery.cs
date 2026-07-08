@@ -36,7 +36,7 @@ public class GetMyTenantQueryHandler : IRequestHandler<GetMyTenantQuery, Result<
 
         // Map sang TenantResponse — cac cot optional chua co trong DB tra ve null
         var response = new TenantResponse(
-            Id: Guid.Empty, // tenant dung INT PK, khong co UUID — tra Guid.Empty de tuong thich DTO
+            Id: (int)row.id,
             Code: (string)row.code,
             Name: (string)row.name,
             CskcbCode: (string?)row.cskcb_code,

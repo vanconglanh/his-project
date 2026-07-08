@@ -1,6 +1,7 @@
 import { StatusBadge } from "@/components/ui/entity-status-badge";
 import type { TenantResponse } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/utils/format";
+import { BASE_DOMAIN } from "@/lib/utils/constants";
 
 interface TenantDetailProps {
   tenant: TenantResponse;
@@ -20,7 +21,7 @@ export function TenantDetail({ tenant }: TenantDetailProps) {
     <div className="mt-4 space-y-0">
       <DetailRow label="Mã phòng khám" value={<span className="font-mono">{tenant.code}</span>} />
       <DetailRow label="Tên" value={tenant.name} />
-      <DetailRow label="Subdomain" value={`${tenant.subdomain}.prodiab.vn`} />
+      <DetailRow label="Subdomain" value={`${tenant.subdomain}.${BASE_DOMAIN}`} />
       <DetailRow label="Trạng thái" value={<StatusBadge status={tenant.status} />} />
       <DetailRow label="Mã CSKCB" value={tenant.cskcb_code} />
       <DetailRow label="Mã số thuế" value={tenant.tax_code} />

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ProDiabHis.Application.Auth;
@@ -13,13 +14,14 @@ public class CreateTenantCommandHandlerTests
 {
     private readonly IEmailSender _emailSender = Substitute.For<IEmailSender>();
     private readonly IPasswordHasher _passwordHasher = Substitute.For<IPasswordHasher>();
+    private readonly IConfiguration _config = Substitute.For<IConfiguration>();
     private readonly ILogger<CreateTenantCommandHandler> _logger =
         Substitute.For<ILogger<CreateTenantCommandHandler>>();
 
     private CreateTenantCommandHandler CreateHandler(string dbName)
     {
         var db = TestDbContextFactory.Create(dbName);
-        return new CreateTenantCommandHandler(db, _emailSender, _passwordHasher, _logger);
+        return new CreateTenantCommandHandler(db, _emailSender, _passwordHasher, _config, _logger);
     }
 
     [Fact]
@@ -32,7 +34,7 @@ public class CreateTenantCommandHandlerTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new CreateTenantCommandHandler(db, _emailSender, _passwordHasher, _logger);
+        var handler = new CreateTenantCommandHandler(db, _emailSender, _passwordHasher, _config, _logger);
         var result = await handler.Handle(CreateCommand("PK001", "anbinh"), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
@@ -49,7 +51,7 @@ public class CreateTenantCommandHandlerTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new CreateTenantCommandHandler(db, _emailSender, _passwordHasher, _logger);
+        var handler = new CreateTenantCommandHandler(db, _emailSender, _passwordHasher, _config, _logger);
         var result = await handler.Handle(CreateCommand("PK001", "newsubdomain"), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
@@ -60,10 +62,10 @@ public class CreateTenantCommandHandlerTests
     public async Task Handle_WhenValidData_ReturnsTenantResponse()
     {
         var db = TestDbContextFactory.Create();
-        db.Roles.Add(new Role { Code = "ADMIN", Name = "Administrator", RoleType = "SYSTEM" });
+        db.Roles.Add(new Role { Code = "admin", Name = "Administrator", RoleType = "SYSTEM" });
         await db.SaveChangesAsync();
 
-        var handler = new CreateTenantCommandHandler(db, _emailSender, _passwordHasher, _logger);
+        var handler = new CreateTenantCommandHandler(db, _emailSender, _passwordHasher, _config, _logger);
         var result = await handler.Handle(CreateCommand("PK001", "anbinh"), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();

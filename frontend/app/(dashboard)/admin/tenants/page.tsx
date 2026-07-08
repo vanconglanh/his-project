@@ -35,6 +35,7 @@ import {
 } from "@/lib/hooks/use-tenants";
 import type { TenantResponse } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/utils/format";
+import { BASE_DOMAIN } from "@/lib/utils/constants";
 
 export default function TenantsPage() {
   const [page, setPage] = useState(1);
@@ -72,7 +73,7 @@ export default function TenantsPage() {
       cell: (row) => (
         <div>
           <p className="font-medium">{row.name}</p>
-          <p className="text-xs text-muted-foreground">{row.subdomain}.prodiab.vn</p>
+          <p className="text-xs text-muted-foreground">{row.subdomain}.{BASE_DOMAIN}</p>
         </div>
       ),
     },

@@ -31,27 +31,27 @@ export async function createTenant(payload: CreateTenantRequest): Promise<Tenant
   return data.data;
 }
 
-export async function getTenant(id: string): Promise<TenantResponse> {
+export async function getTenant(id: number): Promise<TenantResponse> {
   const { data } = await apiClient.get<ApiResponse<TenantResponse>>(`/tenants/${id}`);
   return data.data;
 }
 
-export async function updateTenant(id: string, payload: UpdateTenantRequest): Promise<TenantResponse> {
+export async function updateTenant(id: number, payload: UpdateTenantRequest): Promise<TenantResponse> {
   const { data } = await apiClient.put<ApiResponse<TenantResponse>>(`/tenants/${id}`, payload);
   return data.data;
 }
 
-export async function suspendTenant(id: string, reason?: string): Promise<TenantResponse> {
+export async function suspendTenant(id: number, reason?: string): Promise<TenantResponse> {
   const { data } = await apiClient.post<ApiResponse<TenantResponse>>(`/tenants/${id}/suspend`, { reason });
   return data.data;
 }
 
-export async function activateTenant(id: string): Promise<TenantResponse> {
+export async function activateTenant(id: number): Promise<TenantResponse> {
   const { data } = await apiClient.post<ApiResponse<TenantResponse>>(`/tenants/${id}/activate`);
   return data.data;
 }
 
-export async function deleteTenant(id: string): Promise<void> {
+export async function deleteTenant(id: number): Promise<void> {
   await apiClient.delete(`/tenants/${id}`);
 }
 

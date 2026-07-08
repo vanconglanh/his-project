@@ -70,7 +70,7 @@ export interface RefreshTokenResponse {
 export type TenantStatus = "ACTIVE" | "SUSPENDED" | "TERMINATED";
 
 export interface TenantResponse {
-  id: string;
+  id: number;
   code: string;
   name: string;
   cskcb_code?: string;
@@ -118,6 +118,11 @@ export interface UpdateTenantProfileRequest {
   email?: string;
   cskcb_code?: string;
   bhyt_token?: string;
+  company_name?: string;
+  email_support?: string;
+  logo_url?: string;
+  slogan?: string;
+  website?: string;
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Tenants;
 
-public record SuspendTenantCommand(Guid Id, string? Reason) : IRequest<Result<TenantResponse>>;
+public record SuspendTenantCommand(int Id, string? Reason) : IRequest<Result<TenantResponse>>;
 
 public class SuspendTenantCommandHandler : IRequestHandler<SuspendTenantCommand, Result<TenantResponse>>
 {

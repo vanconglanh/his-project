@@ -2,7 +2,7 @@ namespace ProDiabHis.Application.Tenants;
 
 /// <summary>DTO tra ve thong tin phong kham</summary>
 public record TenantResponse(
-    Guid Id,
+    int Id,
     string Code,
     string Name,
     string? CskcbCode,

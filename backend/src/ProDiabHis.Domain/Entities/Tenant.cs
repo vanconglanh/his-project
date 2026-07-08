@@ -2,9 +2,14 @@ using ProDiabHis.Domain.Common;
 
 namespace ProDiabHis.Domain.Entities;
 
-/// <summary>Phong kham / tenant trong he thong SaaS. Map bang diab_his_sys_tenants</summary>
-public class Tenant : BaseEntity
+/// <summary>
+/// Phong kham / tenant trong he thong SaaS. Map bang diab_his_sys_tenants.
+/// PK la INT AUTO_INCREMENT (khong dung Guid cua BaseEntity) de khop cot tenant_id INT
+/// o toan bo bang nghiep vu + claim tenant_id trong JWT.
+/// </summary>
+public class Tenant : IAuditTimestamps
 {
+    public int Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? CompanyName { get; set; }
@@ -15,6 +20,8 @@ public class Tenant : BaseEntity
     public string? Email { get; set; }
     public string? EmailSupport { get; set; }
     public string? LogoUrl { get; set; }
+    public string? Slogan { get; set; }
+    public string? Website { get; set; }
     public string Subdomain { get; set; } = string.Empty;
     public int StorageQuotaGb { get; set; } = 20;
     public string Status { get; set; } = TenantStatus.Active;
@@ -22,6 +29,13 @@ public class Tenant : BaseEntity
     /// <summary>BHYT token ma hoa AES-256-GCM</summary>
     public string? BhytTokenEncrypted { get; set; }
 
+    // Audit columns (kieu int khop schema diab_his_sys_tenants)
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public int? CreatedBy { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public int? UpdatedBy { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public int? DeletedBy { get; set; }
 }
 
 public static class TenantStatus
