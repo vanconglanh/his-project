@@ -77,6 +77,32 @@
 > Nếu `invite_email`: cần Phần G (SMTP) hoạt động để gửi link kích hoạt. Nếu môi trường chưa có SMTP,
 > nên chọn `set_now` để đăng nhập được ngay.
 
+### E5 — Danh sách nhân sự (người dùng) — thêm bao nhiêu tuỳ ý
+
+Mỗi nhân sự là 1 tài khoản đăng nhập. Lặp lại bộ trường dưới cho từng người (`staff[]`).
+Vai trò lấy từ danh mục hệ thống: **admin, bac_si (bác sĩ), le_tan (lễ tân), duoc_si (dược sĩ), ke_toan (kế toán), ky_thuat_vien (KTV)**. 1 người có thể giữ nhiều vai trò.
+
+| # | Trường | Key | Kiểu | Mức độ | Mặc định | Dùng cho |
+|---|--------|-----|------|--------|----------|----------|
+| E5.1 | Họ tên | `staff[].full_name` | string | 🔴 (mỗi nhân sự) | — | seed (user) |
+| E5.2 | Email (đăng nhập) | `staff[].email` | email | 🔴 | — | seed (user, unique/tenant) |
+| E5.3 | Vai trò (chọn ≥1) | `staff[].roles` | multi-enum (6 vai trò trên) | 🔴 | — | seed (user_roles) |
+| E5.4 | Số điện thoại | `staff[].phone` | string | 🟡 | rỗng | seed (user.phone) |
+| E5.5 | Cách đặt mật khẩu | `staff[].password_mode` | enum `set_now` \| `invite_email` | 🔴 | `invite_email` | seed |
+| E5.6 | Mật khẩu (nếu `set_now`) | `staff[].password` | password | 🟡 | — | seed (băm bcrypt) |
+| E5.7 | Phòng khám phụ trách (cho bác sĩ) | `staff[].room` | ref phòng (Phần F1) | 🟢 | rỗng | seed (phân phòng) |
+
+**Cần cho BÁC SĨ nếu bật kê đơn ĐTQG / BHYT** (⚠️ hiện **chưa có cột** trong bảng user — cần bổ sung migration nếu dùng):
+
+| # | Trường | Key | Mức độ | Ghi chú |
+|---|--------|-----|--------|---------|
+| E5.8 | Số chứng chỉ hành nghề (CCHN) | `staff[].practice_cert_no` | 🟡 (🔴 nếu kê đơn ĐTQG/BHYT) | In trên đơn thuốc (TT 27/2021); **cần thêm cột `practice_cert_no` vào `diab_his_sec_users`** |
+| E5.9 | Mã bác sĩ / chức danh | `staff[].doctor_code` | 🟢 | Định danh nội bộ; cần thêm cột nếu muốn lưu |
+| E5.10 | Chuyên khoa của bác sĩ | `staff[].specialty` | 🟢 | Hiển thị/thống kê KPI bác sĩ |
+
+> **Tối thiểu**: có thể chỉ tạo admin (Phần E1–E4) rồi mời/ thêm nhân sự sau qua màn Quản lý người dùng
+> (đã có sẵn: InviteUserForm / AssignRolesForm). Nhưng để "khám được ngay" nên khai tối thiểu **1 bác sĩ**.
+
 ---
 
 ## Phần F — Cơ sở, phòng & giờ làm việc
