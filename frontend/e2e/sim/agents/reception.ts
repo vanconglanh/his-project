@@ -121,22 +121,36 @@ export class ReceptionAgent {
     if (!page.url().includes("/reception")) {
       await page.goto("/reception", { waitUntil: "domcontentloaded", timeout: 30_000 });
     }
-    // Trang có 2 heading trùng text "Tiếp đón bệnh nhân": h2 tiêu đề trang (page.tsx) + h3 trong
-    // form check-in (ReceptionCheckInForm.tsx) -> chỉ định level:2 để tránh strict-mode violation.
-    await page.getByRole("heading", { level: 2, name: "Tiếp đón bệnh nhân" }).waitFor({ timeout: 15_000 });
+    // Trang có 2 heading trùng text "Tiếp đón bệnh nhân": tiêu đề trang (page.tsx) + h3 trong
+    // form check-in (ReceptionCheckInForm.tsx). KHÔNG khoá cấp heading (develop dùng h2, bản deploy
+    // cũ trên prod dùng h1) — chỉ chờ heading tiêu đề trang xuất hiện, .first() né strict-mode.
+    await page
+      .getByRole("heading", { name: "Tiếp đón bệnh nhân" })
+      .first()
+      .waitFor({ timeout: 15_000 });
   }
 
   private async searchAndSelect(page: Page, fullName: string): Promise<boolean> {
     const input = page.getByPlaceholder("Tìm tên, SĐT, CMND, BHYT...");
-    const ok = await typeAndPickFromDropdown(page, input, fullName, new RegExp(escapeRegExp(fullName)), {
-      role: "button",
-      debounceMs: 500,
-      timeout: 6000,
-    });
-    if (ok) {
-      await page.getByText(fullName, { exact: false }).first().waitFor({ timeout: 5000 }).catch(() => {});
+    const matcher = new RegExp(escapeRegExp(fullName));
+    // Bản deploy cũ trên prod render item kết quả KHÔNG phải role="button" (là div/li có onClick),
+    // trong khi bản develop dùng button. Thử lần lượt các role phổ biến, cuối cùng fallback click
+    // thẳng phần tử hiển thị tên trong panel gợi ý — thẻ hàng đợi bên phải KHÔNG mang tên BN này
+    // (BN chưa được tiếp đón) nên không sợ click nhầm.
+    for (const role of ["button", "option", "menuitem"] as const) {
+      const ok = await typeAndPickFromDropdown(page, input, fullName, matcher, { role, debounceMs: 600, timeout: 4000 });
+      if (ok) {
+        await page.getByText(fullName, { exact: false }).first().waitFor({ timeout: 5000 }).catch(() => {});
+        return true;
+      }
     }
-    return ok;
+    const resultRow = page.locator('[role="option"], li, button').filter({ hasText: fullName }).first();
+    if (await resultRow.count()) {
+      await resultRow.click({ timeout: 4000 }).catch(() => {});
+      await page.getByText(fullName, { exact: false }).first().waitFor({ timeout: 5000 }).catch(() => {});
+      return true;
+    }
+    return false;
   }
 
   private async createNewPatient(page: Page, persona: Persona): Promise<void> {

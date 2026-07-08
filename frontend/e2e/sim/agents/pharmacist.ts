@@ -23,12 +23,22 @@ export class PharmacistAgent {
   async dispense(page: Page, persona: Persona): Promise<boolean> {
     await this.gotoDispense(page);
 
-    const card = page.locator('[data-slot="card"]').filter({ hasText: persona.fullName }).first();
+    // Hàng chờ nạp bất đồng bộ (list + auto-refresh) -> chờ tên BN hiện ra trước khi kết luận "không
+    // có đơn", tránh check quá sớm lúc list chưa render. Đồng thời KHÔNG khoá selector vào
+    // data-slot="card" (bản deploy cũ trên prod chưa gắn attribute này) — fallback tìm tổ tiên gần
+    // nhất của tên BN có chứa nút "Phát thuốc".
+    const nameLoc = page.getByText(persona.fullName, { exact: false }).first();
+    await nameLoc.waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
+
+    let card = page.locator('[data-slot="card"]').filter({ hasText: persona.fullName }).first();
+    if (!(await card.count())) {
+      card = nameLoc.locator('xpath=ancestor::*[.//button[normalize-space()="Phát thuốc"]][1]');
+    }
     if (!(await card.count())) {
       return false;
     }
 
-    await card.getByRole("button", { name: "Phát thuốc", exact: true }).click({ timeout: 10_000 });
+    await card.getByRole("button", { name: "Phát thuốc", exact: true }).first().click({ timeout: 10_000 });
 
     const dialog = page.getByRole("dialog");
     await dialog.waitFor({ timeout: 10_000 });

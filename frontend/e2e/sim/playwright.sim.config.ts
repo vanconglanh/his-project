@@ -7,7 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./",
-  testMatch: ["clinic-simulation.spec.ts", "exceptions.spec.ts", "evidence.spec.ts"],
+  testMatch: ["clinic-simulation.spec.ts", "exceptions.spec.ts", "evidence.spec.ts", "evidence-10.spec.ts", "print-sweep.spec.ts"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,

@@ -35,14 +35,24 @@ export class DoctorAgent {
     const patientInput = page.locator("#enc-patient-search");
     // Gõ tên kích hoạt GET /patients/search — bắt response song song để chẩn đoán rõ nếu lỗi quyền,
     // thay vì chỉ thấy dropdown không hiện rồi timeout mơ hồ khi chờ nút kết quả.
-    const searchResp = await actionWithResponse(page, () => patientInput.fill(persona.fullName), {
-      urlIncludes: "/patients/search",
-      method: "GET",
-    });
-    await assertOkResponse(searchResp, `Tìm bệnh nhân "${persona.fullName}" khi tạo lượt khám`);
-    await page.waitForTimeout(500);
+    // BN vừa được tạo có thể chưa xuất hiện ngay trong kết quả search (độ trễ index/replica) -> thử
+    // lại tối đa 3 lần, xoá rồi gõ lại tên, chờ giữa các lần, trước khi bỏ cuộc.
     const option = page.getByRole("button", { name: new RegExp(escapeRegExp(persona.fullName)) }).first();
-    await option.waitFor({ state: "visible", timeout: 8000 });
+    let picked = false;
+    for (let attempt = 1; attempt <= 3 && !picked; attempt++) {
+      await patientInput.fill("");
+      const searchResp = await actionWithResponse(page, () => patientInput.fill(persona.fullName), {
+        urlIncludes: "/patients/search",
+        method: "GET",
+      });
+      await assertOkResponse(searchResp, `Tìm bệnh nhân "${persona.fullName}" khi tạo lượt khám`);
+      await page.waitForTimeout(600);
+      picked = await option.waitFor({ state: "visible", timeout: 5000 }).then(() => true).catch(() => false);
+      if (!picked && attempt < 3) await page.waitForTimeout(1500);
+    }
+    if (!picked) {
+      throw new Error(`Không thấy bệnh nhân "${persona.fullName}" trong kết quả tìm khi tạo lượt khám (sau 3 lần thử)`);
+    }
     await option.click();
     await page.getByText(`Đã chọn: ${persona.fullName}`).waitFor({ timeout: 5000 });
 
