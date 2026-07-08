@@ -64,7 +64,30 @@ Còn lại (GAP-1..5, 8, 10..12 mức TB-Thấp: FE label/format validate, `Depa
 
 ---
 
-## 3. Evidence (ute-shots/portal/)
+## 3. Evidence
+
+### 3a. Evidence TỪNG STEP có khoanh focus — [ute-shots/portal-steps/](ute-shots/portal-steps/) (CHUẨN)
+Mỗi ảnh = 1 step, **banner xanh** `[Mã case] 観点 · 期待: <kết quả mong đợi>`, **khoanh đỏ (#ef4444)** vùng cần confirm — đúng chuẩn `ute-evidence.spec.ts`. Manifest: [manifest.jsonl](ute-shots/portal-steps/manifest.jsonl).
+
+| # | Mã case | 観点 · Step | Vùng khoanh focus |
+|---|---|---|---|
+| 01 | ACT-A01 | Load màn kích hoạt | Form kích hoạt |
+| 02 | LOGIN-A01 | 初期表示 load đăng nhập | Tiêu đề "Cổng bệnh nhân" |
+| 03 | LOGIN-L01 | 異常系 sai PIN | Lỗi "Mã PIN không đúng" |
+| 04 | LOGIN-B01 | Nhập SĐT | Ô số điện thoại |
+| 05 | LOGIN-B02 | Nhập PIN 6 số | Bàn phím/chấm PIN |
+| 06 | HOME-A02 | Trang chủ sau đăng nhập | "Xin chào + tên BN" |
+| 07 | HOME-A03 | Thẻ Hàng đợi | Thẻ Hàng đợi |
+| 08 | QUEUE-A01 | Số thứ tự của tôi | Card số 001 |
+| 09 | QUEUE-E01 | Nhắc sắp tới lượt | Banner "Sắp tới lượt" |
+| 10 | BOOK-A01 | Đặt lịch bước 1 | Danh sách bác sĩ |
+| 11 | LAB-A01 | Kết quả XN VERIFIED | Giá trị 12.4 mmol/L |
+| 12 | RX-A01 | Đơn thuốc | Nút tải PDF |
+| 13 | MED-A01 | Nhắc uống thuốc | Lịch theo buổi |
+| 14 | ME-A01 | Hồ sơ cá nhân | Tên bệnh nhân |
+| 15 | NOTI-A01 | Cài đặt thông báo | Toggle push/email |
+
+### 3b. Evidence toàn màn (bổ trợ) — ute-shots/portal/
 | Ảnh | Nội dung |
 |---|---|
 | 01-dang-nhap | Màn đăng nhập (SĐT + NumPad PIN) |

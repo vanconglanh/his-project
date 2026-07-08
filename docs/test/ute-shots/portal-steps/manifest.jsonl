@@ -1,0 +1,15 @@
+{"file":"01-act-a01.png","code":"ACT-A01","view":"Load màn kích hoạt","expect":"Hiện ô SĐT + mã kích hoạt (bước 1/3)"}
+{"file":"02-login-a01.png","code":"LOGIN-A01","view":"初期表示 load màn đăng nhập","expect":"Tiêu đề \"Cổng bệnh nhân\" + ô SĐT + bàn phím PIN"}
+{"file":"03-login-l01.png","code":"LOGIN-L01","view":"異常系 nhập sai PIN","expect":"Báo lỗi PIN không đúng, không đăng nhập"}
+{"file":"04-login-b01.png","code":"LOGIN-B01","view":"項目入力 nhập số điện thoại","expect":"Ô SĐT nhận đúng 10 số"}
+{"file":"05-login-b02.png","code":"LOGIN-B02","view":"項目入力 nhập PIN 6 số","expect":"6 chấm PIN đầy, nút Đăng nhập bật"}
+{"file":"06-home-a02.png","code":"HOME-A02","view":"登録後再表示 trang chủ sau đăng nhập","expect":"Tên BN + lịch hẹn sắp tới + 4 thẻ"}
+{"file":"07-home-a03.png","code":"HOME-A03","view":"Trang chủ thẻ Hàng đợi","expect":"Thẻ \"Hàng đợi\" hiển thị số đang chờ"}
+{"file":"08-queue-a01.png","code":"QUEUE-A01","view":"Hàng đợi số thứ tự của tôi","expect":"Số 001 khổ lớn + phòng khám"}
+{"file":"09-queue-e01.png","code":"QUEUE-E01","view":"Hàng đợi nhắc sắp tới lượt","expect":"Banner \"Sắp tới lượt của bạn!\""}
+{"file":"10-book-a01.png","code":"BOOK-A01","view":"Đặt lịch bước 1 chọn bác sĩ","expect":"Danh sách bác sĩ từ lịch làm việc"}
+{"file":"11-lab-a01.png","code":"LAB-A01","view":"Kết quả XN chỉ VERIFIED","expect":"Đường huyết 12.4 mmol/L (HIGH) + PDF"}
+{"file":"12-rx-a01.png","code":"RX-A01","view":"Đơn thuốc danh sách","expect":"Đơn thuốc + nút tải PDF"}
+{"file":"13-med-a01.png","code":"MED-A01","view":"Nhắc uống thuốc theo buổi","expect":"Lịch nhắc + bật/tắt"}
+{"file":"14-me-a01.png","code":"ME-A01","view":"Hồ sơ cá nhân","expect":"Thông tin BN + BHYT + đăng xuất"}
+{"file":"15-noti-a01.png","code":"NOTI-A01","view":"Cài đặt thông báo","expect":"Toggle push/email + hướng dẫn A2HS"}

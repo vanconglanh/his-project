@@ -94,7 +94,13 @@ try
     {
         opt.AddPolicy("DevPolicy", policy =>
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:3100")
+            // Dev: cho phep moi origin loopback (localhost/127.0.0.1 moi cong) — phuc vu
+            // portal-client chay o cong bat ky khi dev. Prod dung same-origin (khong CORS)
+            // + CorsHardeningMiddleware whitelist, khong dung DevPolicy nay.
+            policy.SetIsOriginAllowed(origin =>
+                    {
+                        try { return new Uri(origin).IsLoopback; } catch { return false; }
+                    })
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
