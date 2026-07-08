@@ -50,24 +50,13 @@ public static class DependencyInjection
         services.AddScoped<ITenantProvider, TenantProvider>();
         services.AddScoped<ICurrentUser, CurrentUser>();
 
-        // EF Core + Dapper — connection resolve PER REQUEST theo tenant (mo hinh DB-per-tenant).
-        // Fallback DefaultConnection khi tenant chua co DB rieng (che do shared-DB hien tai).
+        // EF Core
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found");
 
-        // Tenant connection resolver (Singleton, cache trong IMemoryCache) — doc catalog cat_tenant_databases
-        services.AddMemoryCache();
-        services.AddSingleton<ITenantConnectionResolver, ProDiabHis.Infrastructure.Catalog.TenantConnectionResolver>();
-
-        // ServerVersion PIN (khong AutoDetect — tranh mo ket noi moi lan build options + moi tenant)
-        var serverVersion = new MySqlServerVersion(new Version(8, 0, 36));
-
         services.AddDbContext<AppDbContext>((sp, options) =>
         {
-            var resolver = sp.GetRequiredService<ITenantConnectionResolver>();
-            var tenant = sp.GetRequiredService<ITenantProvider>();
-            var connStr = resolver.ResolveConnectionString(tenant.TenantId);
-            options.UseMySql(connStr, serverVersion,
+            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
                 mysql => mysql.EnableRetryOnFailure(maxRetryCount: 3))
                 // Workaround Pomelo 8.0.3 + EF Core 8.0.13+ bug:
                 // ValidatePropertyMapping goi FindCollectionMapping(null) -> NullReferenceException khi co byte[] properties
@@ -79,13 +68,8 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
-        // Dapper — Scoped, resolve connection theo tenant hien tai (bo Singleton 1 conn string)
-        services.AddScoped<Application.Common.IDapperConnectionFactory>(sp =>
-        {
-            var resolver = sp.GetRequiredService<ITenantConnectionResolver>();
-            var tenant = sp.GetRequiredService<ITenantProvider>();
-            return new DapperConnectionFactory(resolver.ResolveConnectionString(tenant.TenantId));
-        });
+        // Dapper
+        services.AddSingleton<Application.Common.IDapperConnectionFactory>(_ => new DapperConnectionFactory(connectionString));
 
         // Auth services
         services.AddScoped<IJwtService, JwtService>();
