@@ -1,0 +1,155 @@
+{
+  "generatedAt": "2026-07-08T13:04:19.365Z",
+  "baseUrl": "https://his.diab.com.vn",
+  "total": 16,
+  "pass": 16,
+  "fail": 0,
+  "skip": 0,
+  "uiPdfCaptured": 3,
+  "results": [
+    {
+      "step": "B1",
+      "name": "Trang Báo cáo (/reports)",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/01-reports-home.png"
+      ],
+      "note": "màn danh mục báo cáo"
+    },
+    {
+      "step": "B2-financial",
+      "name": "Báo cáo IN: financial",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/02-report-financial.png"
+      ],
+      "note": "PDF 107331B -> prints/report-financial.pdf"
+    },
+    {
+      "step": "B2-clinical",
+      "name": "Báo cáo IN: clinical",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/02-report-clinical.png"
+      ],
+      "note": "PDF 134816B -> prints/report-clinical.pdf"
+    },
+    {
+      "step": "B2-pharmacy",
+      "name": "Báo cáo IN: pharmacy",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/02-report-pharmacy.png"
+      ],
+      "note": "PDF 141025B -> prints/report-pharmacy.pdf"
+    },
+    {
+      "step": "B3-emr-1",
+      "name": "Phiếu bệnh án EMR — Đặng Thị Trang 10-3488825",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/03-emr-1.png"
+      ],
+      "note": "PDF 121175B -> prints/benh-an-1.pdf | đã bấm nút in (không bắt được PDF response)"
+    },
+    {
+      "step": "B3-emr-2",
+      "name": "Phiếu bệnh án EMR — Võ Văn Nam 09-3488825",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/03-emr-2.png"
+      ],
+      "note": "PDF 121176B -> prints/benh-an-2.pdf"
+    },
+    {
+      "step": "B3-emr-3",
+      "name": "Phiếu bệnh án EMR — Vũ Thị Mai 08-3488825",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/03-emr-3.png"
+      ],
+      "note": "PDF 120319B -> prints/benh-an-3.pdf"
+    },
+    {
+      "step": "B3-rx-1",
+      "name": "Đơn thuốc PDF — SIGNED",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/04-rx-1.png"
+      ],
+      "note": "PDF 117038B -> prints/don-thuoc-1.pdf"
+    },
+    {
+      "step": "B3-rx-2",
+      "name": "Đơn thuốc PDF — SIGNED",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/04-rx-2.png"
+      ],
+      "note": "PDF 115252B -> prints/don-thuoc-2.pdf"
+    },
+    {
+      "step": "B3-rx-3",
+      "name": "Đơn thuốc PDF — SIGNED",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/04-rx-3.png"
+      ],
+      "note": "PDF 115723B -> prints/don-thuoc-3.pdf"
+    },
+    {
+      "step": "B4-cashier",
+      "name": "Màn Thu ngân (in biên lai/hoá đơn)",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/05-B4-cashier.png"
+      ],
+      "note": "chụp màn có nút in"
+    },
+    {
+      "step": "B4-billings",
+      "name": "Màn Hoá đơn (in hoá đơn)",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/05-B4-billings.png"
+      ],
+      "note": "chụp màn có nút in"
+    },
+    {
+      "step": "B4-dispense",
+      "name": "Màn Phát thuốc (in phiếu phát)",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/05-B4-dispense.png"
+      ],
+      "note": "chụp màn có nút in"
+    },
+    {
+      "step": "B4-reception",
+      "name": "Màn Tiếp đón (in phiếu tiếp đón)",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/05-B4-reception.png"
+      ],
+      "note": "chụp màn có nút in"
+    },
+    {
+      "step": "B4-appointments",
+      "name": "Màn Lịch hẹn (in giấy hẹn)",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/05-B4-appointments.png"
+      ],
+      "note": "chụp màn có nút in"
+    },
+    {
+      "step": "B4-labrad",
+      "name": "Màn Kết quả CLS (in KQ XN/CĐHA)",
+      "status": "PASS",
+      "screenshots": [
+        "sweep/05-B4-labrad.png"
+      ],
+      "note": "chụp màn có nút in"
+    }
+  ]
+}

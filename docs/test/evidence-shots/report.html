@@ -1,0 +1,793 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Evidence — Flow khám 10 BN + Sweep nút in — Pro-Diab HIS</title>
+<style>
+  :root{--bg:#f6f8f9;--card:#fff;--ink:#0f172a;--mut:#64748b;--ok:#047857;--fail:#b91c1c;--skip:#b45309;--teal:#01645A}
+  *{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--teal);color:#fff;padding:20px 24px}header h1{margin:0 0 4px;font-size:20px}header .meta{color:#bfe0db}
+  main{max-width:1200px;margin:0 auto;padding:20px}
+  h2{margin:28px 0 10px;font-size:17px;border-bottom:2px solid #e2e8f0;padding-bottom:6px}
+  .patient{background:var(--card);border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:14px 0}
+  .patient h3{margin:0 0 10px;font-size:15px}.patient h3 small{color:var(--mut);font-weight:400}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+  .shot{margin:0}.shot img{width:100%;height:132px;object-fit:cover;object-position:top;border:1px solid #e2e8f0;border-radius:6px;background:#fff}
+  figcaption{font-size:12px;color:var(--mut);margin-top:4px}
+  .b{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;color:#fff}
+  .b.ok{background:var(--ok)}.b.fail{background:var(--fail)}.b.skip{background:var(--skip)}
+  .err{color:var(--fail);font-size:11px;margin-top:2px;word-break:break-word}
+  .imgwarn{color:var(--fail);font-weight:600}
+  .summary{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0}
+  .kpi{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 16px;min-width:120px}
+  .kpi b{display:block;font-size:22px}.kpi span{color:var(--mut);font-size:12px}
+</style></head><body>
+<header><h1>Evidence — Flow khám 10 bệnh nhân + Sweep nút in</h1>
+<div class="meta">Pro-Diab HIS · https://his.diab.com.vn · tạo lúc 2026-07-08T12:37:13.788Z</div></header>
+<main>
+  <div class="summary">
+    <div class="kpi"><b>10</b><span>bệnh nhân</span></div>
+    <div class="kpi"><b>140/160</b><span>bước flow OK</span></div>
+    <div class="kpi"><b>176</b><span>ảnh evidence</span></div>
+    <div class="kpi"><b style="color:var(--ok)">0</b><span>ảnh nghi hỏng</span></div>
+  </div>
+  <h2>Phần A — Luồng khám đầy đủ (10 BN, mỗi bước 1 ảnh)</h2>
+  <section class="patient">
+      <h3>BN 1: Nguyễn Văn An 01-3488825 <small>E11.9 · Phòng khám số 1 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p01/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p01/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p01/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Nguyễn Văn An 01-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Nguyễn Văn An 01-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p01/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 1"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 1
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/04-goi-so.png" target="_blank"><img loading="lazy" src="p01/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 1"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 1
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p01/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p01/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p01/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/08-chan-doan.png" target="_blank"><img loading="lazy" src="p01/08-chan-doan.png" alt="Ghi chẩn đoán E11.9"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán E11.9
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/09-benh-an.png" target="_blank"><img loading="lazy" src="p01/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p01/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/11-ke-don.png" target="_blank"><img loading="lazy" src="p01/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p01/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p01/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p01/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">locator.waitFor: Timeout 8000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('option').first() to be visible[22m
+</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p01/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p01/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p01/16-thu-tien.png" target="_blank"><img loading="lazy" src="p01/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Nguyễn Văn An 01-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 2: Trần Thị Chi 02-3488825 <small>I10 · Phòng khám số 2 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p02/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p02/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p02/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Trần Thị Chi 02-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Trần Thị Chi 02-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p02/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 2"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 2
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/04-goi-so.png" target="_blank"><img loading="lazy" src="p02/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 2"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 2
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p02/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p02/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p02/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/08-chan-doan.png" target="_blank"><img loading="lazy" src="p02/08-chan-doan.png" alt="Ghi chẩn đoán I10"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán I10
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/09-benh-an.png" target="_blank"><img loading="lazy" src="p02/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p02/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/11-ke-don.png" target="_blank"><img loading="lazy" src="p02/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p02/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p02/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p02/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">locator.waitFor: Timeout 8000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('option').first() to be visible[22m
+</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p02/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p02/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p02/16-thu-tien.png" target="_blank"><img loading="lazy" src="p02/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Trần Thị Chi 02-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 3: Lê Văn Cường 03-3488825 <small>E78.5 · Phòng khám số 3 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p03/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p03/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p03/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Lê Văn Cường 03-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Lê Văn Cường 03-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p03/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 3"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 3
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/04-goi-so.png" target="_blank"><img loading="lazy" src="p03/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 3"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 3
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p03/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p03/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p03/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/08-chan-doan.png" target="_blank"><img loading="lazy" src="p03/08-chan-doan.png" alt="Ghi chẩn đoán E78.5"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán E78.5
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/09-benh-an.png" target="_blank"><img loading="lazy" src="p03/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p03/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/11-ke-don.png" target="_blank"><img loading="lazy" src="p03/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p03/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p03/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p03/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">locator.waitFor: Timeout 8000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('option').first() to be visible[22m
+</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p03/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p03/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p03/16-thu-tien.png" target="_blank"><img loading="lazy" src="p03/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Lê Văn Cường 03-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 4: Phạm Thị Hà 04-3488825 <small>E11.4 · Phòng khám số 1 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p04/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p04/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p04/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Phạm Thị Hà 04-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Phạm Thị Hà 04-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p04/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 1"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 1
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/04-goi-so.png" target="_blank"><img loading="lazy" src="p04/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 1"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 1
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p04/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p04/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p04/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/08-chan-doan.png" target="_blank"><img loading="lazy" src="p04/08-chan-doan.png" alt="Ghi chẩn đoán E11.4"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán E11.4
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/09-benh-an.png" target="_blank"><img loading="lazy" src="p04/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p04/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/11-ke-don.png" target="_blank"><img loading="lazy" src="p04/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p04/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p04/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p04/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">locator.waitFor: Timeout 8000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('option').first() to be visible[22m
+</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p04/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p04/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p04/16-thu-tien.png" target="_blank"><img loading="lazy" src="p04/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Phạm Thị Hà 04-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 5: Hoàng Văn Hải 05-3488825 <small>K29.7 · Phòng khám số 2 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p05/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p05/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p05/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Hoàng Văn Hải 05-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Hoàng Văn Hải 05-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p05/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 2"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 2
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/04-goi-so.png" target="_blank"><img loading="lazy" src="p05/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 2"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 2
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p05/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p05/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p05/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/08-chan-doan.png" target="_blank"><img loading="lazy" src="p05/08-chan-doan.png" alt="Ghi chẩn đoán K29.7"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán K29.7
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/09-benh-an.png" target="_blank"><img loading="lazy" src="p05/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p05/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/11-ke-don.png" target="_blank"><img loading="lazy" src="p05/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p05/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p05/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p05/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">locator.waitFor: Timeout 8000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('option').first() to be visible[22m
+</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p05/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p05/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p05/16-thu-tien.png" target="_blank"><img loading="lazy" src="p05/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Hoàng Văn Hải 05-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 6: Huỳnh Thị Lan 06-3488825 <small>J06.9 · Phòng khám số 3 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p06/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p06/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p06/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Huỳnh Thị Lan 06-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Huỳnh Thị Lan 06-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p06/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 3"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 3
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/04-goi-so.png" target="_blank"><img loading="lazy" src="p06/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 3"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 3
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p06/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p06/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p06/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/08-chan-doan.png" target="_blank"><img loading="lazy" src="p06/08-chan-doan.png" alt="Ghi chẩn đoán J06.9"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán J06.9
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/09-benh-an.png" target="_blank"><img loading="lazy" src="p06/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p06/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/11-ke-don.png" target="_blank"><img loading="lazy" src="p06/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p06/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p06/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p06/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">Không thấy đơn của &quot;Huỳnh Thị Lan 06-3488825&quot; trong hàng chờ phát thuốc</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p06/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p06/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p06/16-thu-tien.png" target="_blank"><img loading="lazy" src="p06/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Huỳnh Thị Lan 06-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 7: Phan Văn Khang 07-3488825 <small>E11.9 · Phòng khám số 1 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p07/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p07/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p07/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Phan Văn Khang 07-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Phan Văn Khang 07-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p07/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 1"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 1
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/04-goi-so.png" target="_blank"><img loading="lazy" src="p07/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 1"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 1
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p07/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p07/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p07/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/08-chan-doan.png" target="_blank"><img loading="lazy" src="p07/08-chan-doan.png" alt="Ghi chẩn đoán E11.9"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán E11.9
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/09-benh-an.png" target="_blank"><img loading="lazy" src="p07/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p07/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/11-ke-don.png" target="_blank"><img loading="lazy" src="p07/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p07/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p07/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p07/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">Không thấy đơn của &quot;Phan Văn Khang 07-3488825&quot; trong hàng chờ phát thuốc</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p07/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p07/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p07/16-thu-tien.png" target="_blank"><img loading="lazy" src="p07/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Phan Văn Khang 07-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 8: Vũ Thị Mai 08-3488825 <small>I10 · Phòng khám số 2 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p08/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p08/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p08/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Vũ Thị Mai 08-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Vũ Thị Mai 08-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p08/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 2"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 2
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/04-goi-so.png" target="_blank"><img loading="lazy" src="p08/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 2"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 2
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p08/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p08/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p08/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/08-chan-doan.png" target="_blank"><img loading="lazy" src="p08/08-chan-doan.png" alt="Ghi chẩn đoán I10"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán I10
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/09-benh-an.png" target="_blank"><img loading="lazy" src="p08/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p08/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/11-ke-don.png" target="_blank"><img loading="lazy" src="p08/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p08/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p08/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p08/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">Không thấy đơn của &quot;Vũ Thị Mai 08-3488825&quot; trong hàng chờ phát thuốc</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p08/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p08/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p08/16-thu-tien.png" target="_blank"><img loading="lazy" src="p08/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Vũ Thị Mai 08-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 9: Võ Văn Nam 09-3488825 <small>E78.5 · Phòng khám số 3 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p09/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p09/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p09/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Võ Văn Nam 09-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Võ Văn Nam 09-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p09/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 3"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 3
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/04-goi-so.png" target="_blank"><img loading="lazy" src="p09/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 3"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 3
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p09/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p09/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p09/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/08-chan-doan.png" target="_blank"><img loading="lazy" src="p09/08-chan-doan.png" alt="Ghi chẩn đoán E78.5"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán E78.5
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/09-benh-an.png" target="_blank"><img loading="lazy" src="p09/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p09/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/11-ke-don.png" target="_blank"><img loading="lazy" src="p09/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p09/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p09/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p09/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">Không thấy đơn của &quot;Võ Văn Nam 09-3488825&quot; trong hàng chờ phát thuốc</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p09/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p09/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p09/16-thu-tien.png" target="_blank"><img loading="lazy" src="p09/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Võ Văn Nam 09-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+<section class="patient">
+      <h3>BN 10: Đặng Thị Trang 10-3488825 <small>E11.4 · Phòng khám số 1 · 14/16 bước OK</small></h3>
+      <div class="grid"><figure class="shot">
+    <a href="p10/01-dang-nhap-le-tan.png" target="_blank"><img loading="lazy" src="p10/01-dang-nhap-le-tan.png" alt="Đăng nhập lễ tân"></a>
+    <figcaption><span class="b ok">OK</span> <b>#1</b> Đăng nhập lễ tân
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/02-tiep-don-chon-bn.png" target="_blank"><img loading="lazy" src="p10/02-tiep-don-chon-bn.png" alt="Tìm/tạo &amp; chọn bệnh nhân Đặng Thị Trang 10-3488825"></a>
+    <figcaption><span class="b ok">OK</span> <b>#2</b> Tìm/tạo &amp; chọn bệnh nhân Đặng Thị Trang 10-3488825
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/03-tiep-don-xong.png" target="_blank"><img loading="lazy" src="p10/03-tiep-don-xong.png" alt="Tiếp đón vào Phòng khám số 1"></a>
+    <figcaption><span class="b ok">OK</span> <b>#3</b> Tiếp đón vào Phòng khám số 1
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/04-goi-so.png" target="_blank"><img loading="lazy" src="p10/04-goi-so.png" alt="Gọi bệnh nhân vào Phòng khám số 1"></a>
+    <figcaption><span class="b ok">OK</span> <b>#4</b> Gọi bệnh nhân vào Phòng khám số 1
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/05-tao-luot-kham.png" target="_blank"><img loading="lazy" src="p10/05-tao-luot-kham.png" alt="Tạo lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#5</b> Tạo lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/06-bat-dau-kham.png" target="_blank"><img loading="lazy" src="p10/06-bat-dau-kham.png" alt="Bắt đầu khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#6</b> Bắt đầu khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/07-sinh-hieu.png" target="_blank"><img loading="lazy" src="p10/07-sinh-hieu.png" alt="Ghi sinh hiệu"></a>
+    <figcaption><span class="b ok">OK</span> <b>#7</b> Ghi sinh hiệu
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/08-chan-doan.png" target="_blank"><img loading="lazy" src="p10/08-chan-doan.png" alt="Ghi chẩn đoán E11.4"></a>
+    <figcaption><span class="b ok">OK</span> <b>#8</b> Ghi chẩn đoán E11.4
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/09-benh-an.png" target="_blank"><img loading="lazy" src="p10/09-benh-an.png" alt="Viết bệnh án (EMR)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#9</b> Viết bệnh án (EMR)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/10-ky-benh-an.png" target="_blank"><img loading="lazy" src="p10/10-ky-benh-an.png" alt="Ký số bệnh án"></a>
+    <figcaption><span class="b ok">OK</span> <b>#10</b> Ký số bệnh án
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/11-ke-don.png" target="_blank"><img loading="lazy" src="p10/11-ke-don.png" alt="Kê đơn thuốc"></a>
+    <figcaption><span class="b ok">OK</span> <b>#11</b> Kê đơn thuốc
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/12-ky-dtqg.png" target="_blank"><img loading="lazy" src="p10/12-ky-dtqg.png" alt="Ký số &amp; gửi ĐTQG"></a>
+    <figcaption><span class="b ok">OK</span> <b>#12</b> Ký số &amp; gửi ĐTQG
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/13-dong-luot-kham.png" target="_blank"><img loading="lazy" src="p10/13-dong-luot-kham.png" alt="Đóng lượt khám"></a>
+    <figcaption><span class="b ok">OK</span> <b>#13</b> Đóng lượt khám
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/14-cap-phat-thuoc.png" target="_blank"><img loading="lazy" src="p10/14-cap-phat-thuoc.png" alt="Dược sĩ cấp phát thuốc"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#14</b> Dược sĩ cấp phát thuốc
+      <div class="err">Không thấy đơn của &quot;Đặng Thị Trang 10-3488825&quot; trong hàng chờ phát thuốc</div></figcaption>
+  </figure><figure class="shot">
+    <a href="p10/15-mo-ca-thu-ngan.png" target="_blank"><img loading="lazy" src="p10/15-mo-ca-thu-ngan.png" alt="Thu ngân mở ca (nếu chưa mở)"></a>
+    <figcaption><span class="b ok">OK</span> <b>#15</b> Thu ngân mở ca (nếu chưa mở)
+      </figcaption>
+  </figure><figure class="shot">
+    <a href="p10/16-thu-tien.png" target="_blank"><img loading="lazy" src="p10/16-thu-tien.png" alt="Thu ngân thu tiền"></a>
+    <figcaption><span class="b fail">FAIL</span> <b>#16</b> Thu ngân thu tiền
+      <div class="err">Không thấy hoá đơn chờ thu của &quot;Đặng Thị Trang 10-3488825&quot;</div></figcaption>
+  </figure></div>
+    </section>
+  <h2>Phần B — Sweep màn hình có nút in / xuất file</h2>
+    <p class="meta">Tổng 16 · PASS 16 · FAIL 0 · SKIP 0</p><section class="patient"><h3><span class="b ok">PASS</span> Trang Báo cáo (/reports) <small>màn danh mục báo cáo</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/01-reports-home.png" target="_blank"><img loading="lazy" src="sweep/01-reports-home.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Báo cáo IN: financial <small>PDF 107331B -&gt; prints/report-financial.pdf</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/02-report-financial.png" target="_blank"><img loading="lazy" src="sweep/02-report-financial.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Báo cáo IN: clinical <small>PDF 134816B -&gt; prints/report-clinical.pdf</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/02-report-clinical.png" target="_blank"><img loading="lazy" src="sweep/02-report-clinical.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Báo cáo IN: pharmacy <small>PDF 141025B -&gt; prints/report-pharmacy.pdf</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/02-report-pharmacy.png" target="_blank"><img loading="lazy" src="sweep/02-report-pharmacy.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Phiếu bệnh án EMR — Đặng Thị Trang 10-3488825 <small>PDF 121175B -&gt; prints/benh-an-1.pdf | đã bấm nút in (không bắt được PDF response)</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/03-emr-1.png" target="_blank"><img loading="lazy" src="sweep/03-emr-1.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Phiếu bệnh án EMR — Võ Văn Nam 09-3488825 <small>PDF 121176B -&gt; prints/benh-an-2.pdf</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/03-emr-2.png" target="_blank"><img loading="lazy" src="sweep/03-emr-2.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Phiếu bệnh án EMR — Vũ Thị Mai 08-3488825 <small>PDF 120319B -&gt; prints/benh-an-3.pdf</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/03-emr-3.png" target="_blank"><img loading="lazy" src="sweep/03-emr-3.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Đơn thuốc PDF — SIGNED <small>PDF 117038B -&gt; prints/don-thuoc-1.pdf</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/04-rx-1.png" target="_blank"><img loading="lazy" src="sweep/04-rx-1.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Đơn thuốc PDF — SIGNED <small>PDF 115252B -&gt; prints/don-thuoc-2.pdf</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/04-rx-2.png" target="_blank"><img loading="lazy" src="sweep/04-rx-2.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Đơn thuốc PDF — SIGNED <small>PDF 115723B -&gt; prints/don-thuoc-3.pdf</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/04-rx-3.png" target="_blank"><img loading="lazy" src="sweep/04-rx-3.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Màn Thu ngân (in biên lai/hoá đơn) <small>chụp màn có nút in</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/05-B4-cashier.png" target="_blank"><img loading="lazy" src="sweep/05-B4-cashier.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Màn Hoá đơn (in hoá đơn) <small>chụp màn có nút in</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/05-B4-billings.png" target="_blank"><img loading="lazy" src="sweep/05-B4-billings.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Màn Phát thuốc (in phiếu phát) <small>chụp màn có nút in</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/05-B4-dispense.png" target="_blank"><img loading="lazy" src="sweep/05-B4-dispense.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Màn Tiếp đón (in phiếu tiếp đón) <small>chụp màn có nút in</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/05-B4-reception.png" target="_blank"><img loading="lazy" src="sweep/05-B4-reception.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Màn Lịch hẹn (in giấy hẹn) <small>chụp màn có nút in</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/05-B4-appointments.png" target="_blank"><img loading="lazy" src="sweep/05-B4-appointments.png"></a>
+        <figcaption></figcaption></figure></div></section>
+<section class="patient"><h3><span class="b ok">PASS</span> Màn Kết quả CLS (in KQ XN/CĐHA) <small>chụp màn có nút in</small></h3>
+      
+      <div class="grid"><figure class="shot"><a href="sweep/05-B4-labrad.png" target="_blank"><img loading="lazy" src="sweep/05-B4-labrad.png"></a>
+        <figcaption></figcaption></figure></div></section>
+</main></body></html>

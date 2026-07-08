@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Design tokens — Cổng bệnh nhân (mobile-first, thân thiện
+   người lớn tuổi): chữ to, nút to, tương phản cao.
+   ============================================================ */
+:root {
+  --color-primary: #0d6efd;
+  --color-primary-dark: #0b5ed7;
+  --color-primary-soft: #e7f1ff;
+  --color-secondary: #eef2f7;
+  --color-secondary-fg: #16324f;
+  --color-success: #198754;
+  --color-danger: #dc3545;
+  --color-danger-soft: #fdecec;
+  --color-warning: #b8860b;
+  --color-text: #16202b;
+  --color-text-muted: #55606b;
+  --color-border: #dfe4ea;
+  --color-surface-alt: #eef1f5;
+  --color-focus: #0d6efd;
+
+  --radius-card: 16px;
+  --radius-button: 14px;
+}
+
+html {
+  font-size: 18px;
+}
+
+body {
+  background: #f4f6f9;
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1 {
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Vùng chạm tối thiểu 44px cho mọi phần tử tương tác */
+button,
+a,
+input,
+select,
+textarea {
+  min-height: 44px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: unset;
+  min-width: unset;
+}
+
+::selection {
+  background: var(--color-primary-soft);
+}

@@ -1,0 +1,1542 @@
+{
+  "generatedAt": "2026-07-08T12:37:13.788Z",
+  "baseUrl": "https://his.diab.com.vn",
+  "patientCount": 10,
+  "totalSteps": 160,
+  "passed": 140,
+  "failed": 20,
+  "patients": [
+    {
+      "index": 1,
+      "code": "EVD-348882501",
+      "fullName": "Nguyễn Văn An 01-3488825",
+      "icd10": "E11.9",
+      "room": "Phòng khám số 1"
+    },
+    {
+      "index": 2,
+      "code": "EVD-348882502",
+      "fullName": "Trần Thị Chi 02-3488825",
+      "icd10": "I10",
+      "room": "Phòng khám số 2"
+    },
+    {
+      "index": 3,
+      "code": "EVD-348882503",
+      "fullName": "Lê Văn Cường 03-3488825",
+      "icd10": "E78.5",
+      "room": "Phòng khám số 3"
+    },
+    {
+      "index": 4,
+      "code": "EVD-348882504",
+      "fullName": "Phạm Thị Hà 04-3488825",
+      "icd10": "E11.4",
+      "room": "Phòng khám số 1"
+    },
+    {
+      "index": 5,
+      "code": "EVD-348882505",
+      "fullName": "Hoàng Văn Hải 05-3488825",
+      "icd10": "K29.7",
+      "room": "Phòng khám số 2"
+    },
+    {
+      "index": 6,
+      "code": "EVD-348882506",
+      "fullName": "Huỳnh Thị Lan 06-3488825",
+      "icd10": "J06.9",
+      "room": "Phòng khám số 3"
+    },
+    {
+      "index": 7,
+      "code": "EVD-348882507",
+      "fullName": "Phan Văn Khang 07-3488825",
+      "icd10": "E11.9",
+      "room": "Phòng khám số 1"
+    },
+    {
+      "index": 8,
+      "code": "EVD-348882508",
+      "fullName": "Vũ Thị Mai 08-3488825",
+      "icd10": "I10",
+      "room": "Phòng khám số 2"
+    },
+    {
+      "index": 9,
+      "code": "EVD-348882509",
+      "fullName": "Võ Văn Nam 09-3488825",
+      "icd10": "E78.5",
+      "room": "Phòng khám số 3"
+    },
+    {
+      "index": 10,
+      "code": "EVD-348882510",
+      "fullName": "Đặng Thị Trang 10-3488825",
+      "icd10": "E11.4",
+      "room": "Phòng khám số 1"
+    }
+  ],
+  "results": [
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 1,
+      "file": "p01/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 2,
+      "file": "p01/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Nguyễn Văn An 01-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 3,
+      "file": "p01/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 1",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 4,
+      "file": "p01/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 1",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 5,
+      "file": "p01/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 6,
+      "file": "p01/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 7,
+      "file": "p01/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 8,
+      "file": "p01/08-chan-doan.png",
+      "label": "Ghi chẩn đoán E11.9",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 9,
+      "file": "p01/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 10,
+      "file": "p01/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 11,
+      "file": "p01/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 12,
+      "file": "p01/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 13,
+      "file": "p01/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 14,
+      "file": "p01/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('option').first() to be visible\u001b[22m\n"
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 15,
+      "file": "p01/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Nguyễn Văn An 01-3488825",
+      "patientCode": "EVD-348882501",
+      "index": 1,
+      "step": 16,
+      "file": "p01/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Nguyễn Văn An 01-3488825\""
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 1,
+      "file": "p02/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 2,
+      "file": "p02/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Trần Thị Chi 02-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 3,
+      "file": "p02/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 2",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 4,
+      "file": "p02/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 2",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 5,
+      "file": "p02/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 6,
+      "file": "p02/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 7,
+      "file": "p02/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 8,
+      "file": "p02/08-chan-doan.png",
+      "label": "Ghi chẩn đoán I10",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 9,
+      "file": "p02/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 10,
+      "file": "p02/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 11,
+      "file": "p02/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 12,
+      "file": "p02/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 13,
+      "file": "p02/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 14,
+      "file": "p02/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('option').first() to be visible\u001b[22m\n"
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 15,
+      "file": "p02/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Trần Thị Chi 02-3488825",
+      "patientCode": "EVD-348882502",
+      "index": 2,
+      "step": 16,
+      "file": "p02/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Trần Thị Chi 02-3488825\""
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 1,
+      "file": "p03/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 2,
+      "file": "p03/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Lê Văn Cường 03-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 3,
+      "file": "p03/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 3",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 4,
+      "file": "p03/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 3",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 5,
+      "file": "p03/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 6,
+      "file": "p03/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 7,
+      "file": "p03/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 8,
+      "file": "p03/08-chan-doan.png",
+      "label": "Ghi chẩn đoán E78.5",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 9,
+      "file": "p03/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 10,
+      "file": "p03/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 11,
+      "file": "p03/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 12,
+      "file": "p03/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 13,
+      "file": "p03/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 14,
+      "file": "p03/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('option').first() to be visible\u001b[22m\n"
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 15,
+      "file": "p03/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Lê Văn Cường 03-3488825",
+      "patientCode": "EVD-348882503",
+      "index": 3,
+      "step": 16,
+      "file": "p03/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Lê Văn Cường 03-3488825\""
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 1,
+      "file": "p04/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 2,
+      "file": "p04/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Phạm Thị Hà 04-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 3,
+      "file": "p04/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 1",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 4,
+      "file": "p04/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 1",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 5,
+      "file": "p04/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 6,
+      "file": "p04/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 7,
+      "file": "p04/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 8,
+      "file": "p04/08-chan-doan.png",
+      "label": "Ghi chẩn đoán E11.4",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 9,
+      "file": "p04/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 10,
+      "file": "p04/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 11,
+      "file": "p04/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 12,
+      "file": "p04/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 13,
+      "file": "p04/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 14,
+      "file": "p04/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('option').first() to be visible\u001b[22m\n"
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 15,
+      "file": "p04/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Phạm Thị Hà 04-3488825",
+      "patientCode": "EVD-348882504",
+      "index": 4,
+      "step": 16,
+      "file": "p04/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Phạm Thị Hà 04-3488825\""
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 1,
+      "file": "p05/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 2,
+      "file": "p05/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Hoàng Văn Hải 05-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 3,
+      "file": "p05/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 2",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 4,
+      "file": "p05/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 2",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 5,
+      "file": "p05/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 6,
+      "file": "p05/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 7,
+      "file": "p05/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 8,
+      "file": "p05/08-chan-doan.png",
+      "label": "Ghi chẩn đoán K29.7",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 9,
+      "file": "p05/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 10,
+      "file": "p05/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 11,
+      "file": "p05/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 12,
+      "file": "p05/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 13,
+      "file": "p05/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 14,
+      "file": "p05/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('option').first() to be visible\u001b[22m\n"
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 15,
+      "file": "p05/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Hoàng Văn Hải 05-3488825",
+      "patientCode": "EVD-348882505",
+      "index": 5,
+      "step": 16,
+      "file": "p05/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Hoàng Văn Hải 05-3488825\""
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 1,
+      "file": "p06/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 2,
+      "file": "p06/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Huỳnh Thị Lan 06-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 3,
+      "file": "p06/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 3",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 4,
+      "file": "p06/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 3",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 5,
+      "file": "p06/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 6,
+      "file": "p06/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 7,
+      "file": "p06/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 8,
+      "file": "p06/08-chan-doan.png",
+      "label": "Ghi chẩn đoán J06.9",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 9,
+      "file": "p06/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 10,
+      "file": "p06/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 11,
+      "file": "p06/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 12,
+      "file": "p06/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 13,
+      "file": "p06/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 14,
+      "file": "p06/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "Không thấy đơn của \"Huỳnh Thị Lan 06-3488825\" trong hàng chờ phát thuốc"
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 15,
+      "file": "p06/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Huỳnh Thị Lan 06-3488825",
+      "patientCode": "EVD-348882506",
+      "index": 6,
+      "step": 16,
+      "file": "p06/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Huỳnh Thị Lan 06-3488825\""
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 1,
+      "file": "p07/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 2,
+      "file": "p07/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Phan Văn Khang 07-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 3,
+      "file": "p07/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 1",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 4,
+      "file": "p07/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 1",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 5,
+      "file": "p07/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 6,
+      "file": "p07/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 7,
+      "file": "p07/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 8,
+      "file": "p07/08-chan-doan.png",
+      "label": "Ghi chẩn đoán E11.9",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 9,
+      "file": "p07/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 10,
+      "file": "p07/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 11,
+      "file": "p07/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 12,
+      "file": "p07/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 13,
+      "file": "p07/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 14,
+      "file": "p07/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "Không thấy đơn của \"Phan Văn Khang 07-3488825\" trong hàng chờ phát thuốc"
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 15,
+      "file": "p07/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Phan Văn Khang 07-3488825",
+      "patientCode": "EVD-348882507",
+      "index": 7,
+      "step": 16,
+      "file": "p07/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Phan Văn Khang 07-3488825\""
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 1,
+      "file": "p08/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 2,
+      "file": "p08/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Vũ Thị Mai 08-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 3,
+      "file": "p08/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 2",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 4,
+      "file": "p08/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 2",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 5,
+      "file": "p08/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 6,
+      "file": "p08/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 7,
+      "file": "p08/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 8,
+      "file": "p08/08-chan-doan.png",
+      "label": "Ghi chẩn đoán I10",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 9,
+      "file": "p08/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 10,
+      "file": "p08/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 11,
+      "file": "p08/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 12,
+      "file": "p08/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 13,
+      "file": "p08/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 14,
+      "file": "p08/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "Không thấy đơn của \"Vũ Thị Mai 08-3488825\" trong hàng chờ phát thuốc"
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 15,
+      "file": "p08/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Vũ Thị Mai 08-3488825",
+      "patientCode": "EVD-348882508",
+      "index": 8,
+      "step": 16,
+      "file": "p08/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Vũ Thị Mai 08-3488825\""
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 1,
+      "file": "p09/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 2,
+      "file": "p09/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Võ Văn Nam 09-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 3,
+      "file": "p09/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 3",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 4,
+      "file": "p09/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 3",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 5,
+      "file": "p09/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 6,
+      "file": "p09/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 7,
+      "file": "p09/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 8,
+      "file": "p09/08-chan-doan.png",
+      "label": "Ghi chẩn đoán E78.5",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 9,
+      "file": "p09/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 10,
+      "file": "p09/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 11,
+      "file": "p09/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 12,
+      "file": "p09/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 13,
+      "file": "p09/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 14,
+      "file": "p09/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "Không thấy đơn của \"Võ Văn Nam 09-3488825\" trong hàng chờ phát thuốc"
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 15,
+      "file": "p09/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Võ Văn Nam 09-3488825",
+      "patientCode": "EVD-348882509",
+      "index": 9,
+      "step": 16,
+      "file": "p09/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Võ Văn Nam 09-3488825\""
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 1,
+      "file": "p10/01-dang-nhap-le-tan.png",
+      "label": "Đăng nhập lễ tân",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 2,
+      "file": "p10/02-tiep-don-chon-bn.png",
+      "label": "Tìm/tạo & chọn bệnh nhân Đặng Thị Trang 10-3488825",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 3,
+      "file": "p10/03-tiep-don-xong.png",
+      "label": "Tiếp đón vào Phòng khám số 1",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 4,
+      "file": "p10/04-goi-so.png",
+      "label": "Gọi bệnh nhân vào Phòng khám số 1",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 5,
+      "file": "p10/05-tao-luot-kham.png",
+      "label": "Tạo lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 6,
+      "file": "p10/06-bat-dau-kham.png",
+      "label": "Bắt đầu khám",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 7,
+      "file": "p10/07-sinh-hieu.png",
+      "label": "Ghi sinh hiệu",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 8,
+      "file": "p10/08-chan-doan.png",
+      "label": "Ghi chẩn đoán E11.4",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 9,
+      "file": "p10/09-benh-an.png",
+      "label": "Viết bệnh án (EMR)",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 10,
+      "file": "p10/10-ky-benh-an.png",
+      "label": "Ký số bệnh án",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 11,
+      "file": "p10/11-ke-don.png",
+      "label": "Kê đơn thuốc",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 12,
+      "file": "p10/12-ky-dtqg.png",
+      "label": "Ký số & gửi ĐTQG",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 13,
+      "file": "p10/13-dong-luot-kham.png",
+      "label": "Đóng lượt khám",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 14,
+      "file": "p10/14-cap-phat-thuoc.png",
+      "label": "Dược sĩ cấp phát thuốc",
+      "ok": false,
+      "error": "Không thấy đơn của \"Đặng Thị Trang 10-3488825\" trong hàng chờ phát thuốc"
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 15,
+      "file": "p10/15-mo-ca-thu-ngan.png",
+      "label": "Thu ngân mở ca (nếu chưa mở)",
+      "ok": true
+    },
+    {
+      "patient": "Đặng Thị Trang 10-3488825",
+      "patientCode": "EVD-348882510",
+      "index": 10,
+      "step": 16,
+      "file": "p10/16-thu-tien.png",
+      "label": "Thu ngân thu tiền",
+      "ok": false,
+      "error": "Không thấy hoá đơn chờ thu của \"Đặng Thị Trang 10-3488825\""
+    }
+  ]
+}
