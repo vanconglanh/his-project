@@ -14,7 +14,7 @@ public class DatasetRegistry : IDatasetRegistry
 
     public DatasetRegistry()
     {
-        _all = new List<Dataset> { ThuNgan(), LuotKham(), Kho(), DonThuoc() };
+        _all = new List<Dataset> { ThuNgan(), LuotKham(), Kho(), DonThuoc(), CongNo(), Cls() };
         _byKey = _all.ToDictionary(d => d.Key, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -134,5 +134,63 @@ public class DatasetRegistry : IDatasetRegistry
         };
 
         return new Dataset("don-thuoc", "Đơn thuốc", from, baseWhere, "prescribedDate", fields);
+    }
+
+    // ================= Dataset 5: Cong no (Billing balance > 0) ================= //
+    // diab_his_bil_billing la unicode_ci (nhom bil_* dung chung), pat_patients la 0900_ai_ci -> phai COLLATE
+    // khi join. Bang khong co cot bill_date rieng -> dung created_at lam truong ngay bat buoc.
+    private static Dataset CongNo()
+    {
+        const string from = @"
+            diab_his_bil_billing b
+            LEFT JOIN diab_his_pat_patients pt ON pt.id = b.patient_id COLLATE utf8mb4_unicode_ci AND pt.tenant_id = b.tenant_id";
+
+        const string baseWhere = "b.tenant_id = @tenantId AND b.deleted_at IS NULL AND b.balance > 0";
+
+        var fields = new List<DatasetField>
+        {
+            DatasetField.Dimension("billDate", "Ngày", "DATE(b.created_at)", ReportColumnType.Date),
+            DatasetField.Dimension("patientName", "Bệnh nhân", "pt.full_name", ReportColumnType.Text),
+            DatasetField.Dimension("patientCode", "Mã bệnh nhân", "pt.code", ReportColumnType.Text),
+            DatasetField.Dimension("status", "Trạng thái", "b.status", ReportColumnType.Text),
+            DatasetField.Measure("balance", "Còn nợ", "b.balance", ReportColumnType.Money,
+                ReportAggregation.Sum, ReportAggregation.Avg, ReportAggregation.Min, ReportAggregation.Max),
+            DatasetField.Measure("billCount", "Số phiếu", "b.id", ReportColumnType.Number,
+                ReportAggregation.Count, ReportAggregation.CountDistinct)
+        };
+
+        return new Dataset("cong-no", "Công nợ", from, baseWhere, "billDate", fields);
+    }
+
+    // ================= Dataset 6: Chi dinh CLS (Lab + Rad orders gop qua UNION ALL) ================= //
+    // diab_his_lab_orders/rad_orders/sec_users deu 0900_ai_ci -> khong can COLLATE. Gop 2 bang bang subquery
+    // UNION ALL lam FromSql (alias "cls") — cac DatasetField ben duoi tham chieu truc tiep alias nay, giong
+    // nhu tham chieu 1 bang thuong; SafeQueryBuilder khong can biet gi ve UNION ben trong.
+    private static Dataset Cls()
+    {
+        const string from = @"
+            (
+                SELECT lo.id AS id, lo.tenant_id AS tenant_id, lo.ordered_at AS ordered_at,
+                       lo.ordered_by AS ordered_by, N'Xét nghiệm' AS modality, lo.deleted_at AS deleted_at
+                FROM diab_his_lab_orders lo
+                UNION ALL
+                SELECT ro.id AS id, ro.tenant_id AS tenant_id, ro.ordered_at AS ordered_at,
+                       ro.ordered_by AS ordered_by, ro.modality AS modality, ro.deleted_at AS deleted_at
+                FROM diab_his_rad_orders ro
+            ) cls
+            LEFT JOIN diab_his_sec_users doc ON doc.id = cls.ordered_by";
+
+        const string baseWhere = "cls.tenant_id = @tenantId AND cls.deleted_at IS NULL";
+
+        var fields = new List<DatasetField>
+        {
+            DatasetField.Dimension("orderedDate", "Ngày chỉ định", "DATE(cls.ordered_at)", ReportColumnType.Date),
+            DatasetField.Dimension("modality", "Loại", "cls.modality", ReportColumnType.Text),
+            DatasetField.Dimension("doctorName", "Bác sĩ chỉ định", "COALESCE(doc.full_name, N'Chưa xác định')", ReportColumnType.Text),
+            DatasetField.Measure("orderCount", "Số lượt", "cls.id", ReportColumnType.Number,
+                ReportAggregation.Count, ReportAggregation.CountDistinct)
+        };
+
+        return new Dataset("cls", "Chỉ định CLS", from, baseWhere, "orderedDate", fields);
     }
 }

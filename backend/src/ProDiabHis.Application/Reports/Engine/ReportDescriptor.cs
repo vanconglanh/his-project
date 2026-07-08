@@ -144,6 +144,13 @@ public record ReportDescriptor
     /// <summary>Ma 2-3 ky tu dung cho ReportCodeGenerator (vd "RVD" cho revenue-daily).</summary>
     public required string PdfTypeCode { get; init; }
 
+    /// <summary>Kieu hien thi (TABLE|CHART). Bao cao code-defined luon la Table; bao cao tu tao (P1) doc tu
+    /// definition_json cua nguoi dung.</summary>
+    public ReportViewType ViewType { get; init; } = ReportViewType.Table;
+
+    /// <summary>Cau hinh bieu do — chi khac null khi <see cref="ViewType"/> = Chart.</summary>
+    public ReportDefinitionChart? Chart { get; init; }
+
     /// <summary>Tu suy huong trang theo so cot: >=11 cot => Landscape, con lai Portrait.</summary>
     public static ReportOrientation OrientationFor(int columnCount)
         => columnCount >= 11 ? ReportOrientation.Landscape : ReportOrientation.Portrait;

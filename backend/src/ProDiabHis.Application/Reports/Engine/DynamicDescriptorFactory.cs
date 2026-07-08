@@ -68,6 +68,8 @@ public static class DynamicDescriptorFactory
             Kpis = kpis,
             Filters = Array.Empty<ReportFilter>(),
             PdfTypeCode = PdfTypeCode,
+            ViewType = definition.ViewType,
+            Chart = definition.Chart,
             BuildQuery = ctx => SafeQueryBuilder.Build(dataset, inputForQuery, ctx, limit)
         };
     }

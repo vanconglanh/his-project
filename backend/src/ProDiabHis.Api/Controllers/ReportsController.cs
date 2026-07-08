@@ -388,6 +388,8 @@ public class ReportsController : ControllerBase
                 icon = d.Icon,
                 orientation = d.Orientation.ToString(),
                 group_by_key = d.GroupByKey,
+                view_type = d.ViewType.ToString().ToUpperInvariant(),
+                chart = d.Chart is null ? null : new { type = d.Chart.Type, dims = d.Chart.Dims, measure = d.Chart.Measure },
                 filters = d.Filters.Select(f => new
                 {
                     key = f.Key,
@@ -588,6 +590,139 @@ public class ReportsController : ControllerBase
             meta = new { page = 1, page_size = DynamicDescriptorFactory.PreviewLimit, total = result.TotalRows }
         });
     }
+
+    // ======== DASHBOARD TUY BIEN P2.2 (docs/prd/report-builder-prd.md) — ghim nhieu bao cao thanh widget ======== //
+
+    /// <summary>Danh sach dashboard tuy bien (cua tenant hien tai — TENANT hoac PRIVATE cua chinh minh).</summary>
+    [HttpGet("dashboards")]
+    [RequirePermission("report.read")]
+    public async Task<IActionResult> GetDashboards(CancellationToken ct)
+    {
+        var dashboards = await _mediator.Send(new GetReportDashboardsQuery(), ct);
+        return Ok(new { data = dashboards.Select(ToDashboardResponse) });
+    }
+
+    /// <summary>Chi tiet 1 dashboard (title + widgets).</summary>
+    [HttpGet("dashboards/{id}")]
+    [RequirePermission("report.read")]
+    public async Task<IActionResult> GetDashboardById(string id, CancellationToken ct)
+    {
+        var dashboard = await _mediator.Send(new GetReportDashboardByIdQuery(id), ct);
+        return Ok(new { data = ToDashboardResponse(dashboard) });
+    }
+
+    /// <summary>Tao 1 dashboard tuy bien moi (ghim toi da 12 widget).</summary>
+    [HttpPost("dashboards")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> CreateDashboard([FromBody] SaveReportDashboardRequest request, CancellationToken ct)
+    {
+        var input = ReportDashboardRequestMapper.ToInput(request.Title, request.Widgets, request.Visibility);
+        var created = await _mediator.Send(new CreateReportDashboardCommand(input), ct);
+        return Ok(new { data = ToDashboardResponse(created) });
+    }
+
+    /// <summary>Sua 1 dashboard tuy bien (chi chu so huu hoac admin).</summary>
+    [HttpPut("dashboards/{id}")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> UpdateDashboard(string id, [FromBody] SaveReportDashboardRequest request, CancellationToken ct)
+    {
+        var input = ReportDashboardRequestMapper.ToInput(request.Title, request.Widgets, request.Visibility);
+        var updated = await _mediator.Send(new UpdateReportDashboardCommand(id, input), ct);
+        return Ok(new { data = ToDashboardResponse(updated) });
+    }
+
+    /// <summary>Xoa (mem) 1 dashboard tuy bien (chi chu so huu hoac admin).</summary>
+    [HttpDelete("dashboards/{id}")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> DeleteDashboard(string id, CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteReportDashboardCommand(id), ct);
+        return Ok(new { data = new { id, deleted = true } });
+    }
+
+    /// <summary>Chay du lieu tung widget cua 1 dashboard theo khoang ngay (tai su dung pipeline bao cao thuong).</summary>
+    [HttpGet("dashboards/{id}/data")]
+    [RequirePermission("report.read")]
+    public async Task<IActionResult> GetDashboardData(
+        string id,
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
+        CancellationToken ct = default)
+    {
+        var fromDate = from ?? DateOnly.FromDateTime(DateTime.Today.AddDays(-29));
+        var toDate = to ?? DateOnly.FromDateTime(DateTime.Today);
+
+        var result = await _mediator.Send(new GetReportDashboardDataQuery(id, fromDate, toDate), ct);
+
+        return Ok(new
+        {
+            data = new
+            {
+                title = result.Title,
+                widgets = result.Widgets.Select(w => new
+                {
+                    report_code = w.ReportCode,
+                    title = w.Title,
+                    widget_type = w.WidgetType.ToString().ToUpperInvariant(),
+                    payload = ToReportDataResponse(w.Payload)
+                })
+            }
+        });
+    }
+
+    private static object ToReportDataResponse(ReportDataResult result) => new
+    {
+        columns = result.Columns.Select(c => new
+        {
+            key = c.Key,
+            label = c.Label,
+            type = c.Type.ToString(),
+            align = c.Align.ToString(),
+            width = c.Width,
+            is_group_subtotal = c.IsGroupSubtotal
+        }),
+        groups = result.Groups?.Select(g => new
+        {
+            key = g.Key,
+            label = g.Label,
+            count = g.Count,
+            rows = g.Rows,
+            subtotals = g.Subtotals
+        }),
+        rows = result.Rows,
+        totals = result.Totals,
+        kpis = result.Kpis.Select(k => new
+        {
+            label = k.Label,
+            tint = k.Tint,
+            tint_token = ReportTintTokens.FromHex(k.Tint),
+            value = k.Value,
+            is_money = k.IsMoney
+        })
+    };
+
+    private static object ToDashboardResponse(ReportDashboard d) => new
+    {
+        id = d.Id,
+        code = d.Code,
+        title = d.Title,
+        widgets = d.Widgets.Select(w => new
+        {
+            report_code = w.ReportCode,
+            title = w.Title,
+            widget_type = w.WidgetType.ToString().ToUpperInvariant(),
+            w = w.W,
+            h = w.H,
+            x = w.X,
+            y = w.Y
+        }),
+        visibility = d.Visibility.ToString().ToUpperInvariant(),
+        is_active = d.IsActive,
+        created_by = d.CreatedBy,
+        created_at = d.CreatedAt,
+        updated_by = d.UpdatedBy,
+        updated_at = d.UpdatedAt
+    };
 
     private static object ToDefinitionResponse(ReportDefinition d) => new
     {

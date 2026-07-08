@@ -321,6 +321,7 @@ public static class DependencyInjection
         // IReportRegistry doi sang CompositeReportRegistry (Scoped, gop code-defined + dong theo tenant/user).
         services.AddSingleton<Application.Reports.Engine.IDatasetRegistry, Reports.DatasetRegistry>();
         services.AddScoped<Application.Reports.Engine.IReportDefinitionStore, Reports.ReportDefinitionStore>();
+        services.AddScoped<Application.Reports.Engine.IReportDashboardStore, Reports.ReportDashboardStore>();
         services.AddScoped<Application.Reports.Engine.IReportRegistry, Reports.CompositeReportRegistry>();
         services.AddScoped<Application.Reports.Engine.IGenericReportPdfExporter, Reports.GenericReportPdfExporter>();
         services.AddScoped<Application.Pharmacy.Prescriptions.IPrescriptionPdfBuilder, Reports.PrescriptionPdfBuilder>();
