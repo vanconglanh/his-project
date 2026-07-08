@@ -31,17 +31,23 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 interface ApiPartnerFormProps {
+  /** id gắn vào <form> để FullPageFormShell trigger submit từ ngoài */
+  formId?: string;
   defaultValues?: Partial<ApiPartnerResponse>;
   onSubmit: (data: ApiPartnerCreateRequest) => void;
   isLoading?: boolean;
   submitLabel?: string;
+  /** Ẩn nút submit trong form (khi dùng trong FullPageFormShell) */
+  hideSubmit?: boolean;
 }
 
 export function ApiPartnerForm({
+  formId,
   defaultValues,
   onSubmit,
   isLoading,
   submitLabel = "Tạo đối tác",
+  hideSubmit,
 }: ApiPartnerFormProps) {
   const {
     register,
@@ -92,7 +98,7 @@ export function ApiPartnerForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+    <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
       <div className="space-y-1.5">
         <Label htmlFor="name">
           Tên đối tác <span className="text-destructive">*</span>
@@ -162,9 +168,11 @@ export function ApiPartnerForm({
         <Input id="expires_at" type="date" {...register("expires_at")} />
       </div>
 
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? "Đang xử lý..." : submitLabel}
-      </Button>
+      {!hideSubmit && (
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Đang xử lý..." : submitLabel}
+        </Button>
+      )}
     </form>
   );
 }

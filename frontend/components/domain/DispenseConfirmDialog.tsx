@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,11 +54,11 @@ export function DispenseConfirmDialog({ open, onClose, item }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent fullScreen>
-        <DialogHeader>
-          <DialogTitle>Phát thuốc — {item.patient_name}</DialogTitle>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={handleClose}>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
+        <SheetHeader className="px-0">
+          <SheetTitle>Phát thuốc — {item.patient_name}</SheetTitle>
+        </SheetHeader>
 
         {lastDispenseId ? (
           <div className="space-y-4">
@@ -138,7 +138,7 @@ export function DispenseConfirmDialog({ open, onClose, item }: Props) {
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

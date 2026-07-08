@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useEmrTemplates, useDeleteEmrTemplate } from "@/lib/hooks/use-emr";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,26 +10,22 @@ import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { Can } from "@/components/auth/Can";
 import { Trash2, Plus, FileText, Pencil } from "lucide-react";
 import type { EmrTemplateResponse } from "@/lib/api/types";
-import { EmrTemplateFormDialog } from "./EmrTemplateFormDialog";
 
 export function EmrTemplatesPageClient() {
+  const router = useRouter();
   const { data: templates, isLoading } = useEmrTemplates();
   const deleteTemplate = useDeleteEmrTemplate();
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<EmrTemplateResponse | null>(null);
 
   const systemTemplates = templates?.filter((t) => t.is_system) ?? [];
   const customTemplates = templates?.filter((t) => !t.is_system) ?? [];
 
   function openCreate() {
-    setEditingTemplate(null);
-    setFormOpen(true);
+    router.push("/admin/emr-templates/new");
   }
 
   function openEdit(template: EmrTemplateResponse) {
-    setEditingTemplate(template);
-    setFormOpen(true);
+    router.push(`/admin/emr-templates/${template.id}/edit`);
   }
 
   return (
@@ -70,8 +67,6 @@ export function EmrTemplatesPageClient() {
           )}
         </>
       )}
-
-      <EmrTemplateFormDialog open={formOpen} onOpenChange={setFormOpen} template={editingTemplate} />
 
       <ConfirmDialog
         open={!!pendingDelete}

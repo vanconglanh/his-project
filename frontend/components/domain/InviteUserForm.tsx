@@ -31,12 +31,16 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 interface InviteUserFormProps {
+  /** id gắn vào <form> để FullPageFormShell trigger submit từ ngoài */
+  formId?: string;
   onSubmit: (values: InviteUserRequest) => Promise<void>;
   isLoading?: boolean;
-  onCancel: () => void;
+  /** Ẩn nút Huỷ/Gửi trong form (khi dùng trong FullPageFormShell) */
+  hideActions?: boolean;
+  onCancel?: () => void;
 }
 
-export function InviteUserForm({ onSubmit, isLoading, onCancel }: InviteUserFormProps) {
+export function InviteUserForm({ formId, onSubmit, isLoading, hideActions, onCancel }: InviteUserFormProps) {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   const {
@@ -62,7 +66,7 @@ export function InviteUserForm({ onSubmit, isLoading, onCancel }: InviteUserForm
   }
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} noValidate className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} noValidate className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="inv-email">Email *</Label>
         <Input id="inv-email" type="email" placeholder="ten@phongkham.vn" {...register("email")} />
@@ -101,15 +105,17 @@ export function InviteUserForm({ onSubmit, isLoading, onCancel }: InviteUserForm
         )}
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Huỷ
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Gửi lời mời
-        </Button>
-      </div>
+      {!hideActions && (
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            Huỷ
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Gửi lời mời
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

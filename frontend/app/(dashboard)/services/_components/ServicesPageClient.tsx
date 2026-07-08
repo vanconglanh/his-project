@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Table,
@@ -14,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +27,6 @@ import {
   useDeleteService,
   useImportServices,
 } from "@/lib/hooks/use-services";
-import { ServiceForm } from "@/components/domain/ServiceForm";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { formatCurrency } from "@/lib/utils/format";
 import type { ServiceResponse } from "@/lib/api/services";
@@ -42,9 +41,8 @@ const CATEGORY_LABEL: Record<string, { label: string; className: string }> = {
 };
 
 export function ServicesPageClient() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<ServiceResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServiceResponse | null>(null);
 
   const { data, isLoading } = useServices({ q: search || undefined, page_size: 100 });
@@ -93,7 +91,7 @@ export function ServicesPageClient() {
             <Upload className="mr-2 h-4 w-4" />
             Import Excel
           </Button>
-          <Button size="sm" onClick={() => { setEditTarget(null); setFormOpen(true); }}>
+          <Button size="sm" onClick={() => router.push("/services/new")}>
             <Plus className="mr-2 h-4 w-4" />
             Tạo dịch vụ
           </Button>
@@ -161,7 +159,7 @@ export function ServicesPageClient() {
                           <MoreHorizontal className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setEditTarget(svc); setFormOpen(true); }}>
+                          <DropdownMenuItem onClick={() => router.push(`/services/${svc.id}/edit`)}>
                             <Pencil className="mr-2 h-4 w-4" /> Sửa
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -179,8 +177,6 @@ export function ServicesPageClient() {
           </TableBody>
         </Table>
       </div>
-
-      <ServiceForm open={formOpen} onOpenChange={setFormOpen} editTarget={editTarget} />
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

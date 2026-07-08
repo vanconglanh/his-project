@@ -6,12 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -182,13 +181,13 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent fullScreen>
-          <DialogHeader>
-            <DialogTitle>Thu tiền</DialogTitle>
-          </DialogHeader>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto px-6 pb-6">
+          <SheetHeader className="px-0">
+            <SheetTitle>Thu tiền</SheetTitle>
+          </SheetHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
             {/* Method picker */}
             <div>
               <Label className="mb-2 block text-sm font-medium">
@@ -288,7 +287,7 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
               <Input id="note" {...register("note")} className="mt-1" />
             </div>
 
-            <DialogFooter className="gap-2">
+            <div className="flex justify-end gap-2 border-t pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Huỷ
               </Button>
@@ -306,10 +305,10 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
                   {isPending ? "Đang xử lý..." : "Xác nhận thu tiền (F4)"}
                 </Button>
               )}
-            </DialogFooter>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {qrData && (
         <QrPaymentModal

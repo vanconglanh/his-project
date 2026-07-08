@@ -1,16 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, Trash2, TestTube, BarChart2, FileText, Edit } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +23,12 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -36,14 +37,11 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ApiPartnerForm } from "@/components/domain/ApiPartnerForm";
 import { ApiPartnerKeyDisplay } from "@/components/domain/ApiPartnerKeyDisplay";
 import { ApiPartnerUsageChart } from "@/components/domain/ApiPartnerUsageChart";
 import { ApiPartnerRequestLogsTable } from "@/components/domain/ApiPartnerRequestLogsTable";
 import {
   useApiPartners,
-  useCreateApiPartner,
-  useUpdateApiPartner,
   useDeleteApiPartner,
   useRegenerateApiKey,
   useTestApiPartnerCall,
@@ -57,11 +55,10 @@ const STATUS_BADGE: Record<ApiPartnerStatus, { label: string; variant: "default"
 };
 
 export default function ApiPartnersPage() {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<ApiPartnerStatus | "ALL">("ALL");
-  const [showCreate, setShowCreate] = useState(false);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
-  const [editPartner, setEditPartner] = useState<ApiPartnerResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ApiPartnerResponse | null>(null);
   const [regenerateTarget, setRegenerateTarget] = useState<ApiPartnerResponse | null>(null);
   const [drawerPartner, setDrawerPartner] = useState<ApiPartnerResponse | null>(null);
@@ -69,26 +66,9 @@ export default function ApiPartnersPage() {
   const { data, isLoading } = useApiPartners(
     statusFilter !== "ALL" ? { q, status: statusFilter } : { q }
   );
-  const createMutation = useCreateApiPartner();
-  const updateMutation = useUpdateApiPartner(editPartner?.id ?? "");
   const deleteMutation = useDeleteApiPartner();
   const regenMutation = useRegenerateApiKey();
   const testMutation = useTestApiPartnerCall();
-
-  function handleCreate(form: Parameters<typeof createMutation.mutate>[0]) {
-    createMutation.mutate(form, {
-      onSuccess: (res) => {
-        setShowCreate(false);
-        setNewApiKey(res.api_key_plain);
-      },
-    });
-  }
-
-  function handleUpdate(form: Parameters<typeof updateMutation.mutate>[0]) {
-    updateMutation.mutate(form, {
-      onSuccess: () => setEditPartner(null),
-    });
-  }
 
   function handleDelete() {
     if (!deleteTarget) return;
@@ -115,7 +95,7 @@ export default function ApiPartnersPage() {
           <h1 className="text-xl font-bold tracking-tight">API Partners</h1>
           <p className="text-sm text-muted-foreground">Quản lý đối tác tích hợp Public API</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
+        <Button onClick={() => router.push("/admin/api-partners/new")}>
           <Plus className="mr-2 h-4 w-4" />
           Tạo partner mới
         </Button>
@@ -244,7 +224,7 @@ export default function ApiPartnersPage() {
                             variant="ghost"
                             size="icon"
                             title="Sửa"
-                            onClick={() => setEditPartner(partner)}
+                            onClick={() => router.push(`/admin/api-partners/${partner.id}/edit`)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -276,45 +256,14 @@ export default function ApiPartnersPage() {
         )}
       </div>
 
-      {/* Create Dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent fullScreen>
-          <DialogHeader>
-            <DialogTitle>Tạo đối tác mới</DialogTitle>
-          </DialogHeader>
-          <ApiPartnerForm
-            onSubmit={handleCreate}
-            isLoading={createMutation.isPending}
-            submitLabel="Tạo đối tác"
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editPartner} onOpenChange={(open) => !open && setEditPartner(null)}>
-        <DialogContent fullScreen>
-          <DialogHeader>
-            <DialogTitle>Sửa đối tác: {editPartner?.name}</DialogTitle>
-          </DialogHeader>
-          {editPartner && (
-            <ApiPartnerForm
-              defaultValues={editPartner}
-              onSubmit={handleUpdate}
-              isLoading={updateMutation.isPending}
-              submitLabel="Cập nhật"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* New API key dialog (shown after create or regenerate) */}
-      <Dialog open={!!newApiKey} onOpenChange={(open) => !open && setNewApiKey(null)}>
-        <DialogContent fullScreen>
-          <DialogHeader>
-            <DialogTitle>API Key mới</DialogTitle>
-          </DialogHeader>
+      {/* New API key sheet (shown after regenerate) */}
+      <Sheet open={!!newApiKey} onOpenChange={(open) => !open && setNewApiKey(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
+          <SheetHeader className="px-0">
+            <SheetTitle>API Key mới</SheetTitle>
+          </SheetHeader>
           {newApiKey && (
-            <div className="space-y-4">
+            <div className="space-y-4 mt-4">
               <ApiPartnerKeyDisplay apiKey={newApiKey} />
               <Button
                 variant="outline"
@@ -325,8 +274,8 @@ export default function ApiPartnersPage() {
               </Button>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>

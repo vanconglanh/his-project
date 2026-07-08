@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, MoreHorizontal, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,13 +30,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/entity-status-badge";
 import { RoleBadge } from "@/components/ui/RoleBadge";
-import { InviteUserForm } from "@/components/domain/InviteUserForm";
 import { UserDetail } from "@/components/domain/UserDetail";
 import { AssignRolesForm } from "@/components/domain/AssignRolesForm";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import {
   useUsers,
-  useInviteUser,
   useDisableUser,
   useEnableUser,
   useDeleteUser,
@@ -50,11 +43,11 @@ import type { UserResponse } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/utils/format";
 
 export default function UsersPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState<UserResponse | null>(null);
   const [assignRolesTarget, setAssignRolesTarget] = useState<UserResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserResponse | null>(null);
@@ -68,7 +61,6 @@ export default function UsersPage() {
   };
 
   const { data, isLoading } = useUsers(params);
-  const inviteMutation = useInviteUser();
   const disableMutation = useDisableUser();
   const enableMutation = useEnableUser();
   const deleteMutation = useDeleteUser();
@@ -176,7 +168,7 @@ export default function UsersPage() {
         title="Quản lý người dùng"
         description="Danh sách người dùng trong phòng khám"
         actions={
-          <Button onClick={() => setInviteOpen(true)} className="min-h-[44px]">
+          <Button onClick={() => router.push("/admin/users/new")} className="min-h-[44px]">
             <Plus className="h-4 w-4 mr-2" />
             Mời người dùng
           </Button>
@@ -247,23 +239,6 @@ export default function UsersPage() {
         onRowDoubleClick={(row) => setDetailTarget(row)}
       />
 
-      {/* Invite dialog */}
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent fullScreen>
-          <DialogHeader>
-            <DialogTitle>Mời người dùng mới</DialogTitle>
-          </DialogHeader>
-          <InviteUserForm
-            onSubmit={async (values) => {
-              await inviteMutation.mutateAsync(values);
-              setInviteOpen(false);
-            }}
-            isLoading={inviteMutation.isPending}
-            onCancel={() => setInviteOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
       {/* Detail sheet */}
       <Sheet open={!!detailTarget} onOpenChange={(o) => !o && setDetailTarget(null)}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto px-6 pb-6">
@@ -274,20 +249,22 @@ export default function UsersPage() {
         </SheetContent>
       </Sheet>
 
-      {/* Assign roles dialog */}
-      <Dialog open={!!assignRolesTarget} onOpenChange={(o) => !o && setAssignRolesTarget(null)}>
-        <DialogContent fullScreen>
-          <DialogHeader>
-            <DialogTitle>Gán vai trò — {assignRolesTarget?.full_name}</DialogTitle>
-          </DialogHeader>
+      {/* Assign roles sheet */}
+      <Sheet open={!!assignRolesTarget} onOpenChange={(o) => !o && setAssignRolesTarget(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
+          <SheetHeader className="px-0">
+            <SheetTitle>Gán vai trò — {assignRolesTarget?.full_name}</SheetTitle>
+          </SheetHeader>
           {assignRolesTarget && (
-            <AssignRolesForm
-              user={assignRolesTarget}
-              onClose={() => setAssignRolesTarget(null)}
-            />
+            <div className="mt-4">
+              <AssignRolesForm
+                user={assignRolesTarget}
+                onClose={() => setAssignRolesTarget(null)}
+              />
+            </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Delete confirm */}
       <ConfirmDialog

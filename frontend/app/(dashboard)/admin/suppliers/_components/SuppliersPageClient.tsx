@@ -1,23 +1,21 @@
 ﻿"use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSuppliers, useDeleteSupplier } from "@/lib/hooks/use-suppliers";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { SupplierForm } from "@/components/domain/SupplierForm";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Plus, Pencil, Trash2 } from "lucide-react";
 import type { SupplierResponse } from "@/lib/api/suppliers";
 
 export function SuppliersPageClient() {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editSupplier, setEditSupplier] = useState<SupplierResponse | null>(null);
   const [deleteSupplier, setDeleteSupplier] = useState<SupplierResponse | null>(null);
 
   const { data, isLoading } = useSuppliers({ q: q || undefined, page, page_size: 20 });
@@ -75,7 +73,7 @@ export function SuppliersPageClient() {
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={(e) => { e.stopPropagation(); setEditSupplier(row); }}
+            onClick={(e) => { e.stopPropagation(); router.push(`/admin/suppliers/${row.id}/edit`); }}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -104,7 +102,7 @@ export function SuppliersPageClient() {
             className="pl-9"
           />
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
+        <Button size="sm" onClick={() => router.push("/admin/suppliers/new")}>
           <Plus className="h-4 w-4 mr-2" />
           Tạo NCC
         </Button>
@@ -119,7 +117,7 @@ export function SuppliersPageClient() {
           <DataTable
             columns={columns}
             data={data?.data ?? []}
-            onRowDoubleClick={(row) => setEditSupplier(row)}
+            onRowDoubleClick={(row) => router.push(`/admin/suppliers/${row.id}/edit`)}
           />
           {data?.meta && data.meta.total > 20 && (
             <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -133,22 +131,6 @@ export function SuppliersPageClient() {
           )}
         </>
       )}
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent fullScreen>
-          <DialogHeader><DialogTitle>Tạo nhà cung cấp</DialogTitle></DialogHeader>
-          <SupplierForm onSuccess={() => setCreateOpen(false)} onCancel={() => setCreateOpen(false)} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!editSupplier} onOpenChange={(o) => !o && setEditSupplier(null)}>
-        <DialogContent fullScreen>
-          <DialogHeader><DialogTitle>Sửa nhà cung cấp</DialogTitle></DialogHeader>
-          {editSupplier && (
-            <SupplierForm supplier={editSupplier} onSuccess={() => setEditSupplier(null)} onCancel={() => setEditSupplier(null)} />
-          )}
-        </DialogContent>
-      </Dialog>
 
       <ConfirmDialog
         open={!!deleteSupplier}

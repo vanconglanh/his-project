@@ -6,8 +6,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreateSupplier, useUpdateSupplier } from "@/lib/hooks/use-suppliers";
-import type { SupplierResponse } from "@/lib/api/suppliers";
+import type { SupplierRequest, SupplierResponse } from "@/lib/api/suppliers";
 
 const schema = z.object({
   code: z.string().min(1, "Bắt buộc"),
@@ -23,15 +22,17 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 interface Props {
+  /** id gắn vào <form> để FullPageFormShell trigger submit từ ngoài */
+  formId?: string;
   supplier?: SupplierResponse;
-  onSuccess?: () => void;
+  onSubmit: (data: SupplierRequest) => void;
+  isPending?: boolean;
+  /** Hiển thị nút Hủy/Lưu ngay trong form (khi dùng ngoài FullPageFormShell) */
+  showActions?: boolean;
   onCancel?: () => void;
 }
 
-export function SupplierForm({ supplier, onSuccess, onCancel }: Props) {
-  const createSupplier = useCreateSupplier();
-  const updateSupplier = useUpdateSupplier(supplier?.id ?? "");
-
+export function SupplierForm({ formId, supplier, onSubmit, isPending, showActions, onCancel }: Props) {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: supplier
@@ -39,19 +40,8 @@ export function SupplierForm({ supplier, onSuccess, onCancel }: Props) {
       : { status: "ACTIVE" },
   });
 
-  async function onSubmit(data: FormData) {
-    if (supplier) {
-      await updateSupplier.mutateAsync(data);
-    } else {
-      await createSupplier.mutateAsync(data);
-    }
-    onSuccess?.();
-  }
-
-  const isPending = createSupplier.isPending || updateSupplier.isPending;
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit((data) => onSubmit(data))} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label htmlFor="code">Mã NCC <span className="text-destructive">*</span></Label>
@@ -86,12 +76,14 @@ export function SupplierForm({ supplier, onSuccess, onCancel }: Props) {
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
-        {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Hủy</Button>}
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Đang lưu..." : supplier ? "Cập nhật" : "Tạo nhà cung cấp"}
-        </Button>
-      </div>
+      {showActions && (
+        <div className="flex justify-end gap-2">
+          {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Hủy</Button>}
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Đang lưu..." : supplier ? "Cập nhật" : "Tạo nhà cung cấp"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

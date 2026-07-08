@@ -24,22 +24,17 @@ import {
   Heading2,
   Minus,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useCreateEmrTemplate, useUpdateEmrTemplate } from "@/lib/hooks/use-emr";
-import type { EmrTemplateResponse, EmrTemplateSpeciality } from "@/lib/api/types";
+import type {
+  EmrTemplateResponse,
+  EmrTemplateRequest,
+  EmrTemplateSpeciality,
+} from "@/lib/api/types";
 
 const SPECIALITY_LABELS: Record<EmrTemplateSpeciality, string> = {
   GENERAL: "Đa khoa",
@@ -69,21 +64,19 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  /** Truyền vào khi ở chế độ Sửa; để trống khi Tạo mới */
+  /** id gắn vào <form> để FullPageFormShell trigger submit từ ngoài */
+  formId: string;
   template?: EmrTemplateResponse | null;
+  onSubmit: (payload: EmrTemplateRequest) => void;
 }
 
-export function EmrTemplateFormDialog({ open, onOpenChange, template }: Props) {
-  const isEdit = !!template;
-  const createTemplate = useCreateEmrTemplate();
-  const updateTemplate = useUpdateEmrTemplate(template?.id ?? "");
-  const isPending = createTemplate.isPending || updateTemplate.isPending;
-
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormData>({
+export function EmrTemplateForm({ formId, template, onSubmit }: Props) {
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", speciality: "GENERAL" },
+    defaultValues: {
+      name: template?.name ?? "",
+      speciality: (template?.speciality as EmrTemplateSpeciality) ?? "GENERAL",
+    },
   });
   const speciality = watch("speciality");
 
@@ -97,102 +90,70 @@ export function EmrTemplateFormDialog({ open, onOpenChange, template }: Props) {
       Image,
       Placeholder.configure({ placeholder: "Soạn nội dung mẫu bệnh án..." }),
     ],
-    content: EMPTY_DOC,
+    content: (template?.content_json as Record<string, unknown>) ?? EMPTY_DOC,
   });
-  const contentRef = useRef(EMPTY_DOC as Record<string, unknown>);
+  const seededRef = useRef(false);
 
-  // Reset form + nội dung mỗi khi mở dialog hoặc đổi mẫu đang sửa
+  // Đổ nội dung ban đầu vào editor một lần khi editor sẵn sàng
   useEffect(() => {
-    if (!open) return;
-    reset({
-      name: template?.name ?? "",
-      speciality: (template?.speciality as EmrTemplateSpeciality) ?? "GENERAL",
-    });
+    if (!editor || editor.isDestroyed || seededRef.current) return;
     const initial = (template?.content_json as Record<string, unknown>) ?? EMPTY_DOC;
-    contentRef.current = initial;
-    if (editor && !editor.isDestroyed) {
-      editor.commands.setContent(initial);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, template, editor]);
+    editor.commands.setContent(initial);
+    seededRef.current = true;
+  }, [editor, template]);
 
-  async function onSubmit(data: FormData) {
+  function handleSubmitForm(data: FormData) {
     const content_json = (editor?.getJSON() as Record<string, unknown>) ?? EMPTY_DOC;
-    const payload = { name: data.name, speciality: data.speciality, content_json };
-
-    if (isEdit && template) {
-      await updateTemplate.mutateAsync(payload);
-    } else {
-      await createTemplate.mutateAsync(payload);
-    }
-    onOpenChange(false);
+    onSubmit({ name: data.name, speciality: data.speciality, content_json });
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent fullScreen>
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Sửa mẫu bệnh án" : "Tạo mẫu bệnh án mới"}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Cập nhật thông tin và nội dung mẫu bệnh án."
-              : "Soạn mẫu bệnh án dùng lại khi khám bệnh."}
-          </DialogDescription>
-        </DialogHeader>
+    <form
+      id={formId}
+      onSubmit={handleSubmit(handleSubmitForm)}
+      className="flex flex-1 flex-col gap-4"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+        <div className="space-y-1">
+          <Label htmlFor="name">
+            Tên mẫu <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="name"
+            placeholder="VD: Khám tổng quát đái tháo đường"
+            {...register("name")}
+            aria-invalid={!!errors.name}
+          />
+          {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="speciality">Chuyên khoa</Label>
+          <Select
+            value={speciality}
+            onValueChange={(v) => setValue("speciality", (v ?? "GENERAL") as EmrTemplateSpeciality)}
+          >
+            <SelectTrigger id="speciality">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(SPECIALITY_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col gap-4 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="name">
-                Tên mẫu <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="VD: Khám tổng quát đái tháo đường"
-                {...register("name")}
-                aria-invalid={!!errors.name}
-              />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="speciality">Chuyên khoa</Label>
-              <Select
-                value={speciality}
-                onValueChange={(v) => setValue("speciality", (v ?? "GENERAL") as EmrTemplateSpeciality)}
-              >
-                <SelectTrigger id="speciality">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(SPECIALITY_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex flex-1 flex-col gap-2 min-h-[300px]">
-            <Label>Nội dung mẫu</Label>
-            <TemplateEditorToolbar editor={editor} />
-            <div className="flex-1 min-h-[240px] rounded-md border bg-background p-4 prose prose-sm max-w-none dark:prose-invert focus-within:ring-2 focus-within:ring-ring overflow-y-auto">
-              <EditorContent editor={editor} />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Hủy
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Đang lưu..." : isEdit ? "Cập nhật" : "Tạo mẫu"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <div className="flex flex-1 flex-col gap-2 min-h-[300px]">
+        <Label>Nội dung mẫu</Label>
+        <TemplateEditorToolbar editor={editor} />
+        <div className="flex-1 min-h-[240px] rounded-md border bg-background p-4 prose prose-sm max-w-none dark:prose-invert focus-within:ring-2 focus-within:ring-ring overflow-y-auto">
+          <EditorContent editor={editor} />
+        </div>
+      </div>
+    </form>
   );
 }
 

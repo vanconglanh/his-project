@@ -29,14 +29,18 @@ type CreateFormData = z.infer<typeof createSchema>;
 type EditFormData = z.infer<typeof editSchema>;
 
 interface RoleFormProps {
+  /** id gắn vào <form> để FullPageFormShell trigger submit từ ngoài */
+  formId?: string;
   initialValues?: RoleResponse;
   isEdit?: boolean;
   onSubmit: (values: CreateRoleRequest | UpdateRoleRequest) => Promise<void>;
   isLoading?: boolean;
-  onCancel: () => void;
+  /** Ẩn nút Huỷ/Lưu trong form (khi dùng trong FullPageFormShell) */
+  hideActions?: boolean;
+  onCancel?: () => void;
 }
 
-export function RoleForm({ initialValues, isEdit, onSubmit, isLoading, onCancel }: RoleFormProps) {
+export function RoleForm({ formId, initialValues, isEdit, onSubmit, isLoading, hideActions, onCancel }: RoleFormProps) {
   const { data: permissions = [] } = usePermissions();
   const [selectedPerms, setSelectedPerms] = useState<string[]>(
     initialValues?.permission_codes ?? []
@@ -71,7 +75,7 @@ export function RoleForm({ initialValues, isEdit, onSubmit, isLoading, onCancel 
   }
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="space-y-4">
+    <form id={formId} onSubmit={form.handleSubmit(handleSubmit)} noValidate className="space-y-4">
       {!isEdit && (
         <div className="space-y-1.5">
           <Label htmlFor="role-code">Mã vai trò *</Label>
@@ -122,15 +126,17 @@ export function RoleForm({ initialValues, isEdit, onSubmit, isLoading, onCancel 
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Huỷ
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isEdit ? "Lưu thay đổi" : "Tạo vai trò"}
-        </Button>
-      </div>
+      {!hideActions && (
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            Huỷ
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? "Lưu thay đổi" : "Tạo vai trò"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

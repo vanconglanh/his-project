@@ -6,7 +6,6 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DrugForm } from "@/components/domain/DrugForm";
 import { DrugImportDropzone } from "@/components/domain/DrugImportDropzone";
@@ -249,13 +248,15 @@ export function DrugsPageClient() {
         </SheetContent>
       </Sheet>
 
-      {/* Import dialog */}
-      <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent fullScreen>
-          <DialogHeader><DialogTitle>Import thuốc từ Excel</DialogTitle></DialogHeader>
-          <DrugImportDropzone onSuccess={() => setImportOpen(false)} />
-        </DialogContent>
-      </Dialog>
+      {/* Import sheet */}
+      <Sheet open={importOpen} onOpenChange={setImportOpen}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
+          <SheetHeader className="px-0"><SheetTitle>Import thuốc từ Excel</SheetTitle></SheetHeader>
+          <div className="mt-4">
+            <DrugImportDropzone onSuccess={() => setImportOpen(false)} />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Delete confirm */}
       <ConfirmDialog

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import {
@@ -51,7 +52,6 @@ import {
   APPOINTMENT_SOURCE_LABEL,
   APPOINTMENT_STATUS_LABEL,
 } from "./AppointmentStatusBadge";
-import { AppointmentFormDialog } from "./AppointmentFormDialog";
 
 type DatePreset = "today" | "thisWeek" | "thisMonth" | "custom";
 
@@ -97,8 +97,7 @@ export function AppointmentsPageClient() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<AppointmentResponse | null>(null);
+  const router = useRouter();
   const [statusTarget, setStatusTarget] = useState<{
     appointment: AppointmentResponse;
     next: AppointmentStatus;
@@ -137,13 +136,11 @@ export function AppointmentsPageClient() {
   }
 
   function handleCreate() {
-    setEditTarget(null);
-    setFormOpen(true);
+    router.push("/appointments/new");
   }
 
   function handleEdit(appt: AppointmentResponse) {
-    setEditTarget(appt);
-    setFormOpen(true);
+    router.push(`/appointments/${appt.id}/edit`);
   }
 
   function requestStatusChange(appt: AppointmentResponse, next: AppointmentStatus) {
@@ -412,8 +409,6 @@ export function AppointmentsPageClient() {
           }
         />
       )}
-
-      <AppointmentFormDialog open={formOpen} onOpenChange={setFormOpen} editTarget={editTarget} />
 
       <ConfirmDialog
         open={Boolean(statusTarget)}

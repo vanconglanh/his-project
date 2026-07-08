@@ -1,29 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/page-header";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
-import { RoleForm } from "@/components/domain/RoleForm";
 import { PermissionMatrix } from "@/components/domain/PermissionMatrix";
 import { Can } from "@/components/auth/Can";
-import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from "@/lib/hooks/use-roles";
+import { useRoles, useDeleteRole } from "@/lib/hooks/use-roles";
 import type { RoleResponse } from "@/lib/api/types";
 
 export default function RolesPage() {
-  const [createOpen, setCreateOpen] = useState(false);
+  const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<RoleResponse | null>(null);
-  const [editRole, setEditRole] = useState<RoleResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RoleResponse | null>(null);
 
   const { data: roles = [], isLoading } = useRoles();
-  const createMutation = useCreateRole();
-  const updateMutation = useUpdateRole();
   const deleteMutation = useDeleteRole();
 
   const columns: Column<RoleResponse>[] = [
@@ -89,7 +85,7 @@ export default function RolesPage() {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEditRole(row);
+                  router.push(`/admin/roles/${row.code}/edit`);
                 }}
               >
                 Sửa
@@ -120,7 +116,7 @@ export default function RolesPage() {
         description="Quản lý vai trò và ma trận quyền hạn"
         actions={
           <Can permission="admin.role_manage">
-            <Button onClick={() => setCreateOpen(true)} className="min-h-[44px]">
+            <Button onClick={() => router.push("/admin/roles/new")} className="min-h-[44px]">
               <Plus className="h-4 w-4 mr-2" />
               Tạo vai trò mới
             </Button>
@@ -145,49 +141,6 @@ export default function RolesPage() {
           {selectedRole && <PermissionMatrix role={selectedRole} />}
         </SheetContent>
       </Sheet>
-
-      {/* Create dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent fullScreen>
-          <DialogHeader>
-            <DialogTitle>Tạo vai trò mới</DialogTitle>
-          </DialogHeader>
-          <RoleForm
-            onSubmit={async (values) => {
-              await createMutation.mutateAsync(
-                values as import("@/lib/api/types").CreateRoleRequest
-              );
-              setCreateOpen(false);
-            }}
-            isLoading={createMutation.isPending}
-            onCancel={() => setCreateOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit dialog */}
-      <Dialog open={!!editRole} onOpenChange={(o) => !o && setEditRole(null)}>
-        <DialogContent fullScreen>
-          <DialogHeader>
-            <DialogTitle>Sửa vai trò — {editRole?.name}</DialogTitle>
-          </DialogHeader>
-          {editRole && (
-            <RoleForm
-              initialValues={editRole}
-              isEdit
-              onSubmit={async (values) => {
-                await updateMutation.mutateAsync({
-                  code: editRole.code,
-                  payload: values as import("@/lib/api/types").UpdateRoleRequest,
-                });
-                setEditRole(null);
-              }}
-              isLoading={updateMutation.isPending}
-              onCancel={() => setEditRole(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Delete confirm */}
       <ConfirmDialog
