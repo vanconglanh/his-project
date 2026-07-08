@@ -157,6 +157,139 @@ export async function exportReportEngine(
   return { blob, fileName };
 }
 
+// ---- Report Builder (self-service, /reports/datasets + /reports/definitions + /reports/preview) ----
+
+export type DatasetFieldRole = "DIMENSION" | "MEASURE";
+export type DatasetFieldDataType = "Money" | "Number" | "Date" | "DateTime" | "Text" | "Enum";
+export type ReportAggregation = "SUM" | "COUNT" | "AVG" | "MIN" | "MAX" | "COUNT_DISTINCT";
+
+export interface DatasetField {
+  key: string;
+  label: string;
+  role: DatasetFieldRole;
+  data_type: DatasetFieldDataType;
+  aggregations: ReportAggregation[];
+}
+
+export interface ReportDataset {
+  key: string;
+  label: string;
+  fields: DatasetField[];
+}
+
+export type ReportFilterOp = "=" | "<>" | "in" | "between" | "like" | ">" | "<" | ">=" | "<=";
+
+export interface ReportDefinitionColumn {
+  field: string;
+  label: string;
+  agg: ReportAggregation | null;
+  is_subtotal: boolean;
+}
+
+export interface ReportDefinitionFilter {
+  field: string;
+  op: ReportFilterOp;
+  value: string[];
+}
+
+export interface ReportDefinitionSort {
+  field: string;
+  desc: boolean;
+}
+
+export interface ReportDefinitionKpi {
+  label: string;
+  field: string;
+  agg: ReportAggregation;
+}
+
+export interface ReportDefinitionBody {
+  columns: ReportDefinitionColumn[];
+  filters: ReportDefinitionFilter[];
+  group_by: string[];
+  sort: ReportDefinitionSort[];
+  kpis: ReportDefinitionKpi[];
+}
+
+export type ReportChartType = "bar" | "line" | "area" | "pie";
+
+export interface ReportChartConfig {
+  type: ReportChartType;
+  dims: string[];
+  measure: string;
+}
+
+export type ReportViewType = "TABLE" | "CHART";
+export type ReportVisibility = "TENANT" | "PRIVATE";
+
+export interface SaveReportDefinitionRequest {
+  title: string;
+  dataset_key: string;
+  definition: ReportDefinitionBody;
+  chart: ReportChartConfig | null;
+  view_type: ReportViewType;
+  visibility: ReportVisibility;
+}
+
+export interface ReportDefinition extends SaveReportDefinitionRequest {
+  id: number | string;
+  code: string;
+  created_at?: string;
+  updated_at?: string;
+  owner_id?: number | string | null;
+}
+
+/** GET /reports/datasets — 4 dataset khả dụng cho Trình tạo báo cáo (thu-ngan/luot-kham/kho/don-thuoc). */
+export async function getReportDatasets(): Promise<ReportDataset[]> {
+  const { data } = await apiClient.get<{ data: ReportDataset[] }>("/reports/datasets");
+  return data.data;
+}
+
+/** GET /reports/definitions — danh sách báo cáo tự tạo của tenant hiện tại. */
+export async function listReportDefinitions(): Promise<ReportDefinition[]> {
+  const { data } = await apiClient.get<{ data: ReportDefinition[] }>("/reports/definitions");
+  return data.data;
+}
+
+/** POST /reports/definitions — lưu báo cáo tự tạo mới. */
+export async function saveReportDefinition(body: SaveReportDefinitionRequest): Promise<ReportDefinition> {
+  const { data } = await apiClient.post<{ data: ReportDefinition }>("/reports/definitions", body);
+  return data.data;
+}
+
+/** PUT /reports/definitions/{id} — cập nhật báo cáo tự tạo (chủ sở hữu/admin). */
+export async function updateReportDefinition(
+  id: number | string,
+  body: SaveReportDefinitionRequest
+): Promise<ReportDefinition> {
+  const { data } = await apiClient.put<{ data: ReportDefinition }>(`/reports/definitions/${id}`, body);
+  return data.data;
+}
+
+/** DELETE /reports/definitions/{id} — xoá báo cáo tự tạo (chủ sở hữu/admin). */
+export async function deleteReportDefinition(id: number | string): Promise<void> {
+  await apiClient.delete(`/reports/definitions/${id}`);
+}
+
+export interface PreviewReportDefinitionBody {
+  dataset_key: string;
+  definition: ReportDefinitionBody;
+  chart: ReportChartConfig | null;
+}
+
+/** POST /reports/preview?from=&to= — xem trước báo cáo đang xây (LIMIT 200), không lưu. */
+export async function previewReportDefinition(
+  params: { from: string; to: string },
+  body: PreviewReportDefinitionBody
+): Promise<ReportDataResult> {
+  const { data } = await apiClient.post<{ data: ReportDataPayload; meta: ReportEngineMeta }>(
+    "/reports/preview",
+    body,
+    { params }
+  );
+  return { data: data.data, meta: data.meta };
+}
+
 // ---- Types (dashboard cũ) ----
 
 export type ReportPeriod = "DAY" | "WEEK" | "MONTH" | "YEAR";

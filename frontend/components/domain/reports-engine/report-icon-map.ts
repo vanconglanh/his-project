@@ -30,6 +30,7 @@ export const REPORT_GROUP_LABELS: Record<string, string> = {
   Statistics: "Thống kê",
   Pharmacy: "Kho dược",
   Bhyt: "BHYT",
+  UserDefined: "Báo cáo của phòng khám",
 };
 
 export function getReportGroupLabel(group: string): string {

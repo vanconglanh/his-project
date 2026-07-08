@@ -27,6 +27,7 @@ import {
   Bell,
   ShieldAlert,
   BellRing,
+  Wand2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -188,6 +189,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "reports",
         icon: BarChart3,
         permissions: ["report.read"],
+      },
+      {
+        href: "/reports/builder",
+        labelKey: "reportBuilder",
+        icon: Wand2,
+        permissions: ["report.build"],
       },
     ],
   },

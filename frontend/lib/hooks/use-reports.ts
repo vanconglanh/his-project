@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getRevenueReport,
   getRevenueByPaymentMethod,
@@ -13,9 +13,17 @@ import {
   getReportCatalog,
   getReportData,
   getReportOptions,
+  getReportDatasets,
+  listReportDefinitions,
+  saveReportDefinition,
+  updateReportDefinition,
+  deleteReportDefinition,
+  previewReportDefinition,
   type ReportPeriod,
   type ExportReportRequest,
   type ReportDataQueryParams,
+  type SaveReportDefinitionRequest,
+  type PreviewReportDefinitionBody,
 } from "@/lib/api/reports";
 
 // ---- Report Engine (config-driven) ----
@@ -52,6 +60,70 @@ export function useReportData(code: string | null, params: ReportDataQueryParams
     queryFn: () => getReportData(code as string, params as ReportDataQueryParams),
     enabled: !!code && !!params && !!params.from && !!params.to,
     retry: 1,
+  });
+}
+
+// ---- Report Builder (self-service) ----
+
+/** 4 dataset khả dụng cho Trình tạo báo cáo — cache dài, hiếm khi đổi trong phiên làm việc. */
+export function useReportDatasets() {
+  return useQuery({
+    queryKey: ["reports", "builder", "datasets"],
+    queryFn: getReportDatasets,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+/** Danh sách báo cáo tự tạo của tenant hiện tại — dùng cho catalog nhóm "UserDefined" + trang Sửa/Xoá. */
+export function useReportDefinitions(enabled = true) {
+  return useQuery({
+    queryKey: ["reports", "builder", "definitions"],
+    queryFn: listReportDefinitions,
+    enabled,
+    retry: 1,
+  });
+}
+
+/** Xem trước báo cáo đang xây (không lưu) — gọi thủ công khi bấm "Xem trước", không auto mỗi lần đổi cấu hình. */
+export function usePreviewReportDefinition() {
+  return useMutation({
+    mutationFn: (args: { from: string; to: string; body: PreviewReportDefinitionBody }) =>
+      previewReportDefinition({ from: args.from, to: args.to }, args.body),
+  });
+}
+
+export function useSaveReportDefinition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SaveReportDefinitionRequest) => saveReportDefinition(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "engine", "catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["reports", "builder", "definitions"] });
+    },
+  });
+}
+
+export function useUpdateReportDefinition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: number | string; body: SaveReportDefinitionRequest }) =>
+      updateReportDefinition(args.id, args.body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "engine", "catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["reports", "builder", "definitions"] });
+    },
+  });
+}
+
+export function useDeleteReportDefinition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => deleteReportDefinition(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "engine", "catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["reports", "builder", "definitions"] });
+    },
   });
 }
 
