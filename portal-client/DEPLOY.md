@@ -77,6 +77,18 @@ tường minh để nó thắng regex ở trên. Backend đọc `Host` → tra s
 `phongkham-a.localhost:3000` (Chrome/Edge/FF hỗ trợ `*.localhost`). Nếu host là `localhost` thường,
 đặt `NEXT_PUBLIC_DEV_SUBDOMAIN=phongkham-a` để FE gửi header `X-Portal-Subdomain` cho backend resolve.
 
+## 4b. ĐÃ DEPLOY PRODUCTION — https://hisapp.diab.com.vn (08/07/2026)
+
+Deploy thực tế lên VM (stack `/opt/prodiab-his/ops/docker-compose.deploy.yml`, front proxy `vienankids-nginx-1`):
+1. Backup DB (`mysqldump`) → `~/backups/`, apply migration 9070-9075 vào `prodiab_his`.
+2. **Map subdomain → tenant**: `UPDATE diab_his_sys_tenants SET subdomain='hisapp' WHERE id=1;` — để `hisapp.diab.com.vn` resolve về phòng khám DIAB-HCM (label subdomain = phần đầu hostname).
+3. Build `prodiab-his-backend:latest` (có portal) + `prodiab-his-portal:latest` (`--build-arg NEXT_PUBLIC_API_BASE_URL=`).
+4. Thêm service `portal` vào compose + nginx nội bộ (`deploy-prodiab.conf`): `server_name hisapp.diab.com.vn` → portal, giữ `_` → frontend. **Reload nginx nội bộ** (`docker exec prodiab-his-nginx nginx -s reload`) — `compose up -d nginx` KHÔNG recreate khi chỉ đổi file mount.
+5. Front nginx `hisapp.conf` (80 acme+redirect, 443 SSL → `host.docker.internal:8090`, `Host $host`); SSL: `certbot certonly --webroot -w /var/www/certbot -d hisapp.diab.com.vn`.
+6. **CorsHardening**: thêm `CorsHardening__AllowedOrigins__1=https://hisapp.diab.com.vn` vào env backend — dù same-origin, `CorsHardeningMiddleware` chặn theo `Origin` header (curl không gửi Origin → lọt; trình duyệt gửi → 403 nếu thiếu).
+
+Verify: login PIN → /me → home render đúng qua HTTPS trình duyệt thật; `his.diab.com.vn` nội bộ không gián đoạn.
+
 ## 5. Việc còn lại trước khi go-live
 - Bổ sung asset thật `public/icons/icon-192.png`, `icon-512.png` (PWA installable).
 - Đăng ký subdomain cho từng phòng khám vào `diab_his_sys_tenants.subdomain`.
