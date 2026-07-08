@@ -19,11 +19,24 @@ import {
   updateReportDefinition,
   deleteReportDefinition,
   previewReportDefinition,
+  listReportDashboards,
+  getReportDashboard,
+  createReportDashboard,
+  updateReportDashboard,
+  deleteReportDashboard,
+  getReportDashboardData,
+  listReportSchedules,
+  getReportSchedule,
+  createReportSchedule,
+  updateReportSchedule,
+  deleteReportSchedule,
   type ReportPeriod,
   type ExportReportRequest,
   type ReportDataQueryParams,
   type SaveReportDefinitionRequest,
   type PreviewReportDefinitionBody,
+  type SaveReportDashboardRequest,
+  type SaveReportScheduleRequest,
 } from "@/lib/api/reports";
 
 // ---- Report Engine (config-driven) ----
@@ -123,6 +136,119 @@ export function useDeleteReportDefinition() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reports", "engine", "catalog"] });
       queryClient.invalidateQueries({ queryKey: ["reports", "builder", "definitions"] });
+    },
+  });
+}
+
+// ---- Dashboard (P2.2) ----
+
+/** Danh sách dashboard đã lưu (sở hữu + chia sẻ) của tenant hiện tại. */
+export function useReportDashboards(enabled = true) {
+  return useQuery({
+    queryKey: ["reports", "dashboards", "list"],
+    queryFn: listReportDashboards,
+    enabled,
+    retry: 1,
+  });
+}
+
+/** Chi tiết cấu hình 1 dashboard — dùng cho màn hình sửa dashboard. */
+export function useReportDashboard(id: string | null) {
+  return useQuery({
+    queryKey: ["reports", "dashboards", "detail", id],
+    queryFn: () => getReportDashboard(id as string),
+    enabled: !!id,
+    retry: 1,
+  });
+}
+
+/** Dữ liệu render của toàn bộ widget trong dashboard theo khoảng ngày — dùng cho màn hình xem. */
+export function useReportDashboardData(id: string | null, params: { from: string; to: string } | null) {
+  return useQuery({
+    queryKey: ["reports", "dashboards", "data", id, params],
+    queryFn: () => getReportDashboardData(id as string, params as { from: string; to: string }),
+    enabled: !!id && !!params?.from && !!params?.to,
+    retry: 1,
+  });
+}
+
+export function useCreateReportDashboard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SaveReportDashboardRequest) => createReportDashboard(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "dashboards", "list"] });
+    },
+  });
+}
+
+export function useUpdateReportDashboard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; body: SaveReportDashboardRequest }) => updateReportDashboard(args.id, args.body),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "dashboards", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["reports", "dashboards", "detail", variables.id] });
+    },
+  });
+}
+
+export function useDeleteReportDashboard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteReportDashboard(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "dashboards", "list"] });
+    },
+  });
+}
+
+// ---- Lịch gửi báo cáo (P3.3) ----
+
+export function useReportSchedules(enabled = true) {
+  return useQuery({
+    queryKey: ["reports", "schedules", "list"],
+    queryFn: listReportSchedules,
+    enabled,
+    retry: 1,
+  });
+}
+
+export function useReportSchedule(id: string | null) {
+  return useQuery({
+    queryKey: ["reports", "schedules", "detail", id],
+    queryFn: () => getReportSchedule(id as string),
+    enabled: !!id,
+    retry: 1,
+  });
+}
+
+export function useCreateReportSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SaveReportScheduleRequest) => createReportSchedule(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "schedules", "list"] });
+    },
+  });
+}
+
+export function useUpdateReportSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; body: SaveReportScheduleRequest }) => updateReportSchedule(args.id, args.body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "schedules", "list"] });
+    },
+  });
+}
+
+export function useDeleteReportSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteReportSchedule(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", "schedules", "list"] });
     },
   });
 }

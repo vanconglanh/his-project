@@ -13,7 +13,7 @@ import { RefreshCw } from "lucide-react";
 import { Can } from "@/components/auth/Can";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ReportDefinition, SaveReportDefinitionRequest, ReportVisibility } from "@/lib/api/reports";
+import type { ReportDefinition, ReportRoleCode, SaveReportDefinitionRequest, ReportVisibility } from "@/lib/api/reports";
 import {
   useReportDatasets,
   useReportDefinitions,
@@ -21,9 +21,11 @@ import {
   useSaveReportDefinition,
   useUpdateReportDefinition,
 } from "@/lib/hooks/use-reports";
+import { getErrorMessage } from "@/lib/utils/errors";
 import { getReportPresetRange, REPORT_DATE_PRESET_LABELS, type ReportDatePreset } from "@/components/domain/reports-engine/report-date-presets";
 import { DatasetPicker } from "./DatasetPicker";
 import { FieldTray } from "./FieldTray";
+import { CalcFieldBuilder } from "./CalcFieldBuilder";
 import { FilterBuilder } from "./FilterBuilder";
 import { GroupSortConfig } from "./GroupSortConfig";
 import { ViewConfig } from "./ViewConfig";
@@ -117,7 +119,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
     });
   }
 
-  function handleSave(title: string, visibility: ReportVisibility) {
+  function handleSave(title: string, visibility: ReportVisibility, sharedRoles: ReportRoleCode[]) {
     const error = validateBeforeRun();
     if (error) {
       toast.error(error);
@@ -130,6 +132,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
       chart: buildChartConfig(state),
       view_type: state.viewType,
       visibility,
+      shared_roles: sharedRoles,
     };
 
     if (editId && editingDefinition) {
@@ -140,7 +143,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
             toast.success("Đã cập nhật báo cáo.");
             router.push(`/reports?report=${def.code}`);
           },
-          onError: () => toast.error("Không cập nhật được báo cáo. Vui lòng thử lại."),
+          onError: (err) => toast.error(getErrorMessage(err, "Không cập nhật được báo cáo. Vui lòng thử lại.")),
         }
       );
     } else {
@@ -149,7 +152,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
           toast.success("Đã lưu báo cáo.");
           router.push(`/reports?report=${def.code}`);
         },
-        onError: () => toast.error("Không lưu được báo cáo. Vui lòng thử lại."),
+        onError: (err) => toast.error(getErrorMessage(err, "Không lưu được báo cáo. Vui lòng thử lại.")),
       });
     }
   }
@@ -215,7 +218,22 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>3. Bộ lọc</CardTitle>
+                <CardTitle>3. Cột tính toán</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CalcFieldBuilder
+                  measureFields={selectedDataset.fields.filter((f) => f.role === "MEASURE")}
+                  calcFields={state.calcFields}
+                  columns={state.columns}
+                  onCalcFieldsChange={(calcFields) => updateState({ calcFields })}
+                  onColumnsChange={(columns) => updateState({ columns })}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>4. Bộ lọc</CardTitle>
               </CardHeader>
               <CardContent>
                 <FilterBuilder fields={selectedDataset.fields} filters={state.filters} onChange={(filters) => updateState({ filters })} />
@@ -224,7 +242,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>4. Nhóm &amp; sắp xếp</CardTitle>
+                <CardTitle>5. Nhóm &amp; sắp xếp</CardTitle>
               </CardHeader>
               <CardContent>
                 <GroupSortConfig
@@ -239,7 +257,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>5. Kiểu hiển thị</CardTitle>
+                <CardTitle>6. Kiểu hiển thị</CardTitle>
               </CardHeader>
               <CardContent>
                 <ViewConfig
@@ -254,7 +272,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>6. Xem trước &amp; Lưu</CardTitle>
+                <CardTitle>7. Xem trước &amp; Lưu</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-end gap-3">
@@ -307,6 +325,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
                       isEditing={!!editId}
                       defaultTitle={state.title}
                       defaultVisibility={state.visibility}
+                      defaultSharedRoles={state.sharedRoles}
                       disabled={!canRun}
                       isSaving={isSaving}
                       onSave={handleSave}
@@ -318,6 +337,7 @@ export function ReportBuilderClient({ editId }: ReportBuilderClientProps) {
                   result={previewMutation.data}
                   isPending={previewMutation.isPending}
                   isError={previewMutation.isError}
+                  error={previewMutation.error}
                   hasRun={hasRun}
                   viewType={state.viewType}
                   chart={state.chart}

@@ -90,6 +90,8 @@
     "cashier": "Cashier",
     "reports": "Reports",
     "reportBuilder": "Report Builder",
+    "reportDashboards": "Dashboards",
+    "reportSchedules": "Report Schedules",
     "admin": "Admin",
     "labrad": "Lab/Rad",
     "bhyt": "Health Insurance",

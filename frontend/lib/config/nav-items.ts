@@ -196,6 +196,18 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         icon: Wand2,
         permissions: ["report.build"],
       },
+      {
+        href: "/reports/dashboards",
+        labelKey: "reportDashboards",
+        icon: LayoutDashboard,
+        permissions: ["report.read"],
+      },
+      {
+        href: "/reports/schedules",
+        labelKey: "reportSchedules",
+        icon: CalendarClock,
+        permissions: ["report.build"],
+      },
     ],
   },
   {

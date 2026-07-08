@@ -15,6 +15,7 @@ import { useDeleteReportDefinition, useReportData, useReportDefinitions } from "
 import { ReportFilterPanel, type ReportFilterDraft } from "./ReportFilterPanel";
 import { ReportKpiRow } from "./ReportKpiRow";
 import { ReportGrid } from "./ReportGrid";
+import { ReportChart } from "./ReportChart";
 import { getReportPresetRange } from "./report-date-presets";
 
 interface ReportRunnerProps {
@@ -193,16 +194,33 @@ export function ReportRunner({ descriptor }: ReportRunnerProps) {
       {appliedParams && !isError && (isLoading || data) && (
         <div className="space-y-4">
           {data && <ReportKpiRow kpis={data.data.kpis} />}
-          <ReportGrid
-            columns={data?.data.columns ?? []}
-            groups={data?.data.groups ?? null}
-            rows={data?.data.rows ?? null}
-            totals={data?.data.totals ?? {}}
-            meta={data?.meta ?? { page: 1, page_size: 100, total: 0 }}
-            page={page}
-            onPageChange={handlePageChange}
-            isLoading={isLoading}
-          />
+          {descriptor.view_type === "CHART" && descriptor.chart ? (
+            isLoading || !data ? (
+              <div className="rounded-lg border p-4">
+                <div className="h-[280px] animate-pulse rounded-md bg-muted/40" />
+              </div>
+            ) : (
+              <div className="rounded-lg border p-4">
+                <ReportChart
+                  type={descriptor.chart.type}
+                  data={data.data}
+                  dims={descriptor.chart.dims}
+                  measure={descriptor.chart.measure}
+                />
+              </div>
+            )
+          ) : (
+            <ReportGrid
+              columns={data?.data.columns ?? []}
+              groups={data?.data.groups ?? null}
+              rows={data?.data.rows ?? null}
+              totals={data?.data.totals ?? {}}
+              meta={data?.meta ?? { page: 1, page_size: 100, total: 0 }}
+              page={page}
+              onPageChange={handlePageChange}
+              isLoading={isLoading}
+            />
+          )}
         </div>
       )}
 

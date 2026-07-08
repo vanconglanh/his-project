@@ -2,12 +2,14 @@ import type {
   DatasetFieldDataType,
   DatasetFieldRole,
   ReportAggregation,
+  ReportCalcField,
   ReportChartConfig,
   ReportChartType,
   ReportDataset,
   ReportDefinition,
   ReportDefinitionBody,
   ReportFilterOp,
+  ReportRoleCode,
   ReportVisibility,
 } from "@/lib/api/reports";
 
@@ -20,6 +22,17 @@ export interface ColumnDraft {
   availableAggs: ReportAggregation[];
   agg: ReportAggregation | null;
   isSubtotal: boolean;
+  /** true nếu cột trỏ tới 1 cột tính toán (calc field) — hiển thị khác FieldTray, luôn agg=null. */
+  isCalc?: boolean;
+}
+
+/** Cột tính toán tự định nghĩa (draft trong builder) — formula chỉ dùng field measure + số + `+ - * / ( )`. */
+export interface CalcFieldDraft {
+  id: string;
+  key: string;
+  label: string;
+  formula: string;
+  dataType: DatasetFieldDataType;
 }
 
 export interface FilterDraft {
@@ -60,10 +73,12 @@ export interface BuilderState {
   groupBy: string[];
   sort: SortDraft[];
   kpis: KpiDraft[];
+  calcFields: CalcFieldDraft[];
   viewType: ReportBuilderViewType;
   chart: ChartDraft;
   title: string;
   visibility: ReportVisibility;
+  sharedRoles: ReportRoleCode[];
 }
 
 export function newId(): string {
@@ -78,10 +93,12 @@ export function createEmptyBuilderState(): BuilderState {
     groupBy: [],
     sort: [],
     kpis: [],
+    calcFields: [],
     viewType: "TABLE",
     chart: { type: "bar", dims: [], measure: "" },
     title: "",
     visibility: "TENANT",
+    sharedRoles: [],
   };
 }
 
@@ -140,6 +157,16 @@ export function buildDefinitionBody(state: BuilderState): ReportDefinitionBody {
     kpis: state.kpis
       .filter((k) => k.label.trim() && k.field)
       .map((k) => ({ label: k.label.trim(), field: k.field, agg: k.agg })),
+    calc_fields: state.calcFields
+      .filter((c) => c.key.trim() && c.formula.trim())
+      .map(
+        (c): ReportCalcField => ({
+          key: c.key.trim(),
+          label: c.label.trim() || c.key.trim(),
+          formula: c.formula.trim(),
+          data_type: c.dataType,
+        })
+      ),
   };
 }
 
@@ -152,8 +179,23 @@ export function buildChartConfig(state: BuilderState): ReportChartConfig | null 
 /** Khôi phục BuilderState từ 1 ReportDefinition đã lưu (chế độ Sửa) — cần dataset để tra role/data_type/agg khả dụng. */
 export function builderStateFromDefinition(def: ReportDefinition, dataset: ReportDataset | undefined): BuilderState {
   const fieldMeta = new Map((dataset?.fields ?? []).map((f) => [f.key, f]));
+  const calcFieldDefs = def.definition.calc_fields ?? [];
+  const calcMeta = new Map(calcFieldDefs.map((c) => [c.key, c]));
   const columns: ColumnDraft[] = def.definition.columns.map((c) => {
     const meta = fieldMeta.get(c.field);
+    const calc = calcMeta.get(c.field);
+    if (calc) {
+      return {
+        field: c.field,
+        label: c.label,
+        role: "MEASURE",
+        dataType: calc.data_type,
+        availableAggs: [],
+        agg: null,
+        isSubtotal: c.is_subtotal,
+        isCalc: true,
+      };
+    }
     return {
       field: c.field,
       label: c.label,
@@ -177,9 +219,11 @@ export function builderStateFromDefinition(def: ReportDefinition, dataset: Repor
     groupBy: def.definition.group_by,
     sort: def.definition.sort.map((s) => ({ id: newId(), field: s.field, desc: s.desc })),
     kpis: def.definition.kpis.map((k) => ({ id: newId(), label: k.label, field: k.field, agg: k.agg })),
+    calcFields: calcFieldDefs.map((c) => ({ id: newId(), key: c.key, label: c.label, formula: c.formula, dataType: c.data_type })),
     viewType: def.view_type,
     chart: def.chart ?? { type: "bar", dims: [], measure: "" },
     title: def.title,
     visibility: def.visibility,
+    sharedRoles: def.shared_roles ?? [],
   };
 }

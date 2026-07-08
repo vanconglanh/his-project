@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ReportDataResult } from "@/lib/api/reports";
+import { getErrorMessage } from "@/lib/utils/errors";
 import { ReportGrid } from "@/components/domain/reports-engine/ReportGrid";
 import { ReportKpiRow } from "@/components/domain/reports-engine/ReportKpiRow";
 import { ReportChart } from "@/components/domain/reports-engine/ReportChart";
@@ -14,12 +15,14 @@ interface PreviewPaneProps {
   result: ReportDataResult | undefined;
   isPending: boolean;
   isError: boolean;
+  /** Lỗi gốc từ mutation (nếu có) — dùng để hiển thị message backend rõ ràng (vd lỗi công thức calc field 400). */
+  error?: unknown;
   hasRun: boolean;
   viewType: ReportBuilderViewType;
   chart: ChartDraft;
 }
 
-export function PreviewPane({ result, isPending, isError, hasRun, viewType, chart }: PreviewPaneProps) {
+export function PreviewPane({ result, isPending, isError, error, hasRun, viewType, chart }: PreviewPaneProps) {
   if (!hasRun) {
     return (
       <EmptyState
@@ -44,7 +47,9 @@ export function PreviewPane({ result, isPending, isError, hasRun, viewType, char
       <Alert className="border-destructive/40 bg-destructive/5">
         <AlertCircle className="h-4 w-4 text-destructive" />
         <AlertTitle className="text-destructive">Không xem trước được báo cáo</AlertTitle>
-        <AlertDescription>Đã xảy ra lỗi khi xem trước dữ liệu. Vui lòng kiểm tra lại cấu hình và thử lại.</AlertDescription>
+        <AlertDescription>
+          {getErrorMessage(error, "Đã xảy ra lỗi khi xem trước dữ liệu. Vui lòng kiểm tra lại cấu hình và thử lại.")}
+        </AlertDescription>
       </Alert>
     );
   }

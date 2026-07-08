@@ -14,6 +14,15 @@ export interface ReportFilterDescriptor {
 
 export type ReportOrientation = "Portrait" | "Landscape";
 
+export type ReportViewType = "TABLE" | "CHART";
+export type ReportChartType = "bar" | "line" | "area" | "pie";
+
+export interface ReportChartConfig {
+  type: ReportChartType;
+  dims: string[];
+  measure: string;
+}
+
 export interface ReportCatalogItem {
   code: string;
   title: string;
@@ -23,6 +32,8 @@ export interface ReportCatalogItem {
   orientation: ReportOrientation;
   group_by_key?: string | null;
   filters: ReportFilterDescriptor[];
+  view_type: ReportViewType;
+  chart: ReportChartConfig | null;
 }
 
 export type ReportColumnType = "Text" | "Money" | "Number" | "Date" | "DateTime" | "Enum";
@@ -203,24 +214,27 @@ export interface ReportDefinitionKpi {
   agg: ReportAggregation;
 }
 
+/** Cột tính toán tự định nghĩa — formula chỉ dùng field measure của dataset + số + `+ - * / ( )`. */
+export interface ReportCalcField {
+  key: string;
+  label: string;
+  formula: string;
+  data_type: DatasetFieldDataType;
+}
+
 export interface ReportDefinitionBody {
   columns: ReportDefinitionColumn[];
   filters: ReportDefinitionFilter[];
   group_by: string[];
   sort: ReportDefinitionSort[];
   kpis: ReportDefinitionKpi[];
+  calc_fields: ReportCalcField[];
 }
 
-export type ReportChartType = "bar" | "line" | "area" | "pie";
+export type ReportVisibility = "TENANT" | "PRIVATE" | "ROLE";
 
-export interface ReportChartConfig {
-  type: ReportChartType;
-  dims: string[];
-  measure: string;
-}
-
-export type ReportViewType = "TABLE" | "CHART";
-export type ReportVisibility = "TENANT" | "PRIVATE";
+/** Vai trò hệ thống (code snake_case dùng cho chia sẻ báo cáo theo vai trò). */
+export type ReportRoleCode = "admin" | "bac_si" | "le_tan" | "duoc_si" | "ke_toan" | "ky_thuat_vien";
 
 export interface SaveReportDefinitionRequest {
   title: string;
@@ -229,6 +243,7 @@ export interface SaveReportDefinitionRequest {
   chart: ReportChartConfig | null;
   view_type: ReportViewType;
   visibility: ReportVisibility;
+  shared_roles: ReportRoleCode[];
 }
 
 export interface ReportDefinition extends SaveReportDefinitionRequest {
@@ -288,6 +303,141 @@ export async function previewReportDefinition(
     { params }
   );
   return { data: data.data, meta: data.meta };
+}
+
+// ---- Dashboard (P2.2, ghép nhiều báo cáo đã lưu thành lưới widget) ----
+
+export type DashboardWidgetType = "TABLE" | "CHART" | "KPI";
+
+export interface ReportDashboardWidget {
+  report_code: string;
+  title: string;
+  widget_type: DashboardWidgetType;
+  w: number;
+  h: number;
+  x: number;
+  y: number;
+}
+
+export interface ReportDashboard {
+  id: number | string;
+  code: string;
+  title: string;
+  widgets: ReportDashboardWidget[];
+  visibility: ReportVisibility;
+}
+
+export interface SaveReportDashboardRequest {
+  title: string;
+  widgets: ReportDashboardWidget[];
+  visibility: ReportVisibility;
+}
+
+export interface ReportDashboardWidgetData {
+  report_code: string;
+  title: string;
+  widget_type: DashboardWidgetType;
+  payload: ReportDataPayload;
+}
+
+export interface ReportDashboardData {
+  title: string;
+  widgets: ReportDashboardWidgetData[];
+}
+
+/** GET /reports/dashboards — danh sách dashboard khả dụng (sở hữu + chia sẻ) của tenant hiện tại. */
+export async function listReportDashboards(): Promise<ReportDashboard[]> {
+  const { data } = await apiClient.get<{ data: ReportDashboard[] }>("/reports/dashboards");
+  return data.data;
+}
+
+/** GET /reports/dashboards/{id} — chi tiết cấu hình 1 dashboard (dùng để nạp lại builder khi sửa). */
+export async function getReportDashboard(id: number | string): Promise<ReportDashboard> {
+  const { data } = await apiClient.get<{ data: ReportDashboard }>(`/reports/dashboards/${id}`);
+  return data.data;
+}
+
+/** POST /reports/dashboards — tạo dashboard mới. */
+export async function createReportDashboard(body: SaveReportDashboardRequest): Promise<ReportDashboard> {
+  const { data } = await apiClient.post<{ data: ReportDashboard }>("/reports/dashboards", body);
+  return data.data;
+}
+
+/** PUT /reports/dashboards/{id} — cập nhật dashboard. */
+export async function updateReportDashboard(
+  id: number | string,
+  body: SaveReportDashboardRequest
+): Promise<ReportDashboard> {
+  const { data } = await apiClient.put<{ data: ReportDashboard }>(`/reports/dashboards/${id}`, body);
+  return data.data;
+}
+
+/** DELETE /reports/dashboards/{id} — xoá dashboard. */
+export async function deleteReportDashboard(id: number | string): Promise<void> {
+  await apiClient.delete(`/reports/dashboards/${id}`);
+}
+
+/** GET /reports/dashboards/{id}/data?from=&to= — dữ liệu đã render cho toàn bộ widget trong dashboard. */
+export async function getReportDashboardData(
+  id: number | string,
+  params: { from: string; to: string }
+): Promise<ReportDashboardData> {
+  const { data } = await apiClient.get<{ data: ReportDashboardData }>(`/reports/dashboards/${id}/data`, { params });
+  return data.data;
+}
+
+// ---- Lịch gửi báo cáo qua email (P3.3) ----
+
+export type ReportScheduleFrequency = "DAILY" | "WEEKLY" | "MONTHLY";
+export type ReportSchedulePeriod = "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH";
+export type ReportScheduleFormat = "PDF" | "EXCEL";
+
+export interface ReportSchedule {
+  id: number | string;
+  report_code: string;
+  title: string;
+  frequency: ReportScheduleFrequency;
+  hour: number;
+  day_of_week?: number | null;
+  day_of_month?: number | null;
+  period: ReportSchedulePeriod;
+  format: ReportScheduleFormat;
+  recipients: string[];
+  enabled: boolean;
+}
+
+export type SaveReportScheduleRequest = Omit<ReportSchedule, "id">;
+
+/** GET /reports/schedules — danh sách lịch gửi báo cáo tự động của tenant hiện tại. */
+export async function listReportSchedules(): Promise<ReportSchedule[]> {
+  const { data } = await apiClient.get<{ data: ReportSchedule[] }>("/reports/schedules");
+  return data.data;
+}
+
+/** GET /reports/schedules/{id} — chi tiết 1 lịch gửi báo cáo. */
+export async function getReportSchedule(id: number | string): Promise<ReportSchedule> {
+  const { data } = await apiClient.get<{ data: ReportSchedule }>(`/reports/schedules/${id}`);
+  return data.data;
+}
+
+/** POST /reports/schedules — tạo lịch gửi báo cáo mới. */
+export async function createReportSchedule(body: SaveReportScheduleRequest): Promise<ReportSchedule> {
+  const { data } = await apiClient.post<{ data: ReportSchedule }>("/reports/schedules", body);
+  return data.data;
+}
+
+/** PUT /reports/schedules/{id} — cập nhật lịch gửi báo cáo. */
+export async function updateReportSchedule(
+  id: number | string,
+  body: SaveReportScheduleRequest
+): Promise<ReportSchedule> {
+  const { data } = await apiClient.put<{ data: ReportSchedule }>(`/reports/schedules/${id}`, body);
+  return data.data;
+}
+
+/** DELETE /reports/schedules/{id} — xoá lịch gửi báo cáo. */
+export async function deleteReportSchedule(id: number | string): Promise<void> {
+  await apiClient.delete(`/reports/schedules/${id}`);
 }
 
 // ---- Types (dashboard cũ) ----
