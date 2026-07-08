@@ -475,4 +475,141 @@ public class ReportsController : ControllerBase
         var result = await _mediator.Send(new GetReportOptionsQuery(source), ct);
         return Ok(new { data = result.Select(o => new { value = o.Value, label = o.Label }) });
     }
+
+    // ======== REPORT BUILDER P1 (docs/prd/report-builder-prd.md) — tu tao bao cao qua UI, khong code ======== //
+
+    /// <summary>Danh sach Dataset whitelist (nguon du lieu an toan) + truong duoc phep dung cho Report Builder.</summary>
+    [HttpGet("datasets")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> GetDatasets(CancellationToken ct)
+    {
+        var datasets = await _mediator.Send(new GetReportDatasetsQuery(), ct);
+        return Ok(new
+        {
+            data = datasets.Select(d => new
+            {
+                key = d.Key,
+                label = d.Label,
+                fields = d.Fields.Select(f => new
+                {
+                    key = f.Key,
+                    label = f.Label,
+                    role = f.Role.ToString().ToUpperInvariant(),
+                    data_type = f.DataType.ToString(),
+                    aggregations = f.AllowedAggregations.Select(ReportAggregationCodes.ToCode)
+                })
+            })
+        });
+    }
+
+    /// <summary>Danh sach bao cao tu tao (cua tenant hien tai — TENANT hoac PRIVATE cua chinh minh).</summary>
+    [HttpGet("definitions")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> GetDefinitions(CancellationToken ct)
+    {
+        var definitions = await _mediator.Send(new GetReportDefinitionsQuery(), ct);
+        return Ok(new { data = definitions.Select(ToDefinitionResponse) });
+    }
+
+    /// <summary>Tao 1 bao cao tu tao moi tren Dataset whitelist.</summary>
+    [HttpPost("definitions")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> CreateDefinition([FromBody] SaveReportDefinitionRequest request, CancellationToken ct)
+    {
+        var input = ReportBuilderRequestMapper.ToInput(request.Title, request.DatasetKey, request.Definition, request.Chart, request.ViewType, request.Visibility);
+        var created = await _mediator.Send(new CreateReportDefinitionCommand(input), ct);
+        return Ok(new { data = ToDefinitionResponse(created) });
+    }
+
+    /// <summary>Sua 1 bao cao tu tao (chi chu so huu hoac admin).</summary>
+    [HttpPut("definitions/{id}")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> UpdateDefinition(string id, [FromBody] SaveReportDefinitionRequest request, CancellationToken ct)
+    {
+        var input = ReportBuilderRequestMapper.ToInput(request.Title, request.DatasetKey, request.Definition, request.Chart, request.ViewType, request.Visibility);
+        var updated = await _mediator.Send(new UpdateReportDefinitionCommand(id, input), ct);
+        return Ok(new { data = ToDefinitionResponse(updated) });
+    }
+
+    /// <summary>Xoa (mem) 1 bao cao tu tao (chi chu so huu hoac admin).</summary>
+    [HttpDelete("definitions/{id}")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> DeleteDefinition(string id, CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteReportDefinitionCommand(id), ct);
+        return Ok(new { data = new { id, deleted = true } });
+    }
+
+    /// <summary>Chay thu 1 dinh nghia bao cao chua luu (LIMIT nho) — tra dung shape voi GET /{code}/data.</summary>
+    [HttpPost("preview")]
+    [RequirePermission("report.build")]
+    public async Task<IActionResult> PreviewDefinition([FromBody] PreviewReportDefinitionRequest request, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
+    {
+        var input = ReportBuilderRequestMapper.ToInput("Xem trước", request.DatasetKey, request.Definition, request.Chart, "TABLE", "PRIVATE");
+
+        var fromDate = from ?? DateOnly.FromDateTime(DateTime.Today.AddDays(-29));
+        var toDate = to ?? DateOnly.FromDateTime(DateTime.Today);
+
+        var result = await _mediator.Send(new PreviewReportDefinitionQuery(
+            request.DatasetKey, input.Columns, input.Filters, input.GroupBy, input.Sort, input.Kpis, fromDate, toDate), ct);
+
+        return Ok(new
+        {
+            data = new
+            {
+                columns = result.Columns.Select(c => new
+                {
+                    key = c.Key,
+                    label = c.Label,
+                    type = c.Type.ToString(),
+                    align = c.Align.ToString(),
+                    width = c.Width,
+                    is_group_subtotal = c.IsGroupSubtotal
+                }),
+                groups = result.Groups?.Select(g => new
+                {
+                    key = g.Key,
+                    label = g.Label,
+                    count = g.Count,
+                    rows = g.Rows,
+                    subtotals = g.Subtotals
+                }),
+                rows = result.Rows,
+                totals = result.Totals,
+                kpis = result.Kpis.Select(k => new
+                {
+                    label = k.Label,
+                    tint = k.Tint,
+                    tint_token = ReportTintTokens.FromHex(k.Tint),
+                    value = k.Value,
+                    is_money = k.IsMoney
+                })
+            },
+            meta = new { page = 1, page_size = DynamicDescriptorFactory.PreviewLimit, total = result.TotalRows }
+        });
+    }
+
+    private static object ToDefinitionResponse(ReportDefinition d) => new
+    {
+        id = d.Id,
+        code = d.Code,
+        title = d.Title,
+        dataset_key = d.DatasetKey,
+        definition = new
+        {
+            columns = d.Columns.Select(c => new { field = c.Field, label = c.Label, agg = c.Agg is null ? null : ReportAggregationCodes.ToCode(c.Agg.Value), is_subtotal = c.IsSubtotal }),
+            filters = d.Filters.Select(f => new { field = f.Field, op = f.Op, value = f.Value }),
+            group_by = d.GroupBy,
+            sort = d.Sort.Select(s => new { field = s.Field, desc = s.Desc }),
+            kpis = d.Kpis.Select(k => new { label = k.Label, field = k.Field, agg = ReportAggregationCodes.ToCode(k.Agg) })
+        },
+        chart = d.Chart is null ? null : new { type = d.Chart.Type, dims = d.Chart.Dims, measure = d.Chart.Measure },
+        view_type = d.ViewType.ToString().ToUpperInvariant(),
+        visibility = d.Visibility.ToString().ToUpperInvariant(),
+        is_active = d.IsActive,
+        created_by = d.CreatedBy,
+        created_at = d.CreatedAt,
+        updated_by = d.UpdatedBy,
+        updated_at = d.UpdatedAt
+    };
 }

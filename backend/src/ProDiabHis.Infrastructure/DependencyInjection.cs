@@ -314,8 +314,14 @@ public static class DependencyInjection
         services.AddScoped<Application.Ai.ITreatmentSuggestionService, Ai.GuidelineSuggestionService>();
 
         // Report Engine config-driven (23 bao cao — docs/prd/reports-catalog-prd.md)
-        services.AddSingleton<Application.Reports.Engine.IReportRegistry, Reports.ReportRegistry>();
+        services.AddSingleton<Reports.ReportRegistry>();
         services.AddScoped<Application.Reports.Engine.IGenericReportDataService, Reports.GenericReportDataService>();
+
+        // Report Builder P1 (dataset whitelist + bao cao tu tao — docs/prd/report-builder-prd.md).
+        // IReportRegistry doi sang CompositeReportRegistry (Scoped, gop code-defined + dong theo tenant/user).
+        services.AddSingleton<Application.Reports.Engine.IDatasetRegistry, Reports.DatasetRegistry>();
+        services.AddScoped<Application.Reports.Engine.IReportDefinitionStore, Reports.ReportDefinitionStore>();
+        services.AddScoped<Application.Reports.Engine.IReportRegistry, Reports.CompositeReportRegistry>();
         services.AddScoped<Application.Reports.Engine.IGenericReportPdfExporter, Reports.GenericReportPdfExporter>();
         services.AddScoped<Application.Pharmacy.Prescriptions.IPrescriptionPdfBuilder, Reports.PrescriptionPdfBuilder>();
         services.AddScoped<Application.CLS.IClsOrderSlipPdfBuilder, Reports.ClsOrderSlipPdfBuilder>();

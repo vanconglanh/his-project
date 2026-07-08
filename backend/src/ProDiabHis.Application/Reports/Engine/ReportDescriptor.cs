@@ -7,7 +7,10 @@ public enum ReportGroupCategory
     Clinical,
     Statistics,
     Bhyt,
-    Pharmacy
+    Pharmacy,
+
+    /// <summary>Bao cao tu tao qua Report Builder (P1) — hien thi rieng nhom "Bao cao cua phong kham".</summary>
+    UserDefined
 }
 
 /// <summary>Huong trang PDF — tu suy ra theo so cot (>=11 cot => Landscape) khi khoi tao descriptor.</summary>
