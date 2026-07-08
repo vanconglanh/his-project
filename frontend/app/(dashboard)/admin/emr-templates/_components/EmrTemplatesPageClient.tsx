@@ -1,21 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { useEmrTemplates, useDeleteEmrTemplate, useCreateEmrTemplate } from "@/lib/hooks/use-emr";
+import { useEmrTemplates, useDeleteEmrTemplate } from "@/lib/hooks/use-emr";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
-import { Trash2, Plus, FileText } from "lucide-react";
+import { Can } from "@/components/auth/Can";
+import { Trash2, Plus, FileText, Pencil } from "lucide-react";
 import type { EmrTemplateResponse } from "@/lib/api/types";
+import { EmrTemplateFormDialog } from "./EmrTemplateFormDialog";
 
 export function EmrTemplatesPageClient() {
   const { data: templates, isLoading } = useEmrTemplates();
   const deleteTemplate = useDeleteEmrTemplate();
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<EmrTemplateResponse | null>(null);
 
   const systemTemplates = templates?.filter((t) => t.is_system) ?? [];
   const customTemplates = templates?.filter((t) => !t.is_system) ?? [];
+
+  function openCreate() {
+    setEditingTemplate(null);
+    setFormOpen(true);
+  }
+
+  function openEdit(template: EmrTemplateResponse) {
+    setEditingTemplate(template);
+    setFormOpen(true);
+  }
 
   return (
     <div className="space-y-6">
@@ -24,20 +38,28 @@ export function EmrTemplatesPageClient() {
           <h2 className="text-xl font-bold tracking-tight">Mẫu bệnh án</h2>
           <p className="text-sm text-muted-foreground">Quản lý template bệnh án cho từng chuyên khoa</p>
         </div>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Tạo mẫu mới
-        </Button>
+        <Can permission="emr_template.write">
+          <Button size="sm" className="gap-2" onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Tạo mẫu mới
+          </Button>
+        </Can>
       </div>
 
       {isLoading ? (
         <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
       ) : (
         <>
-          <TemplateSection title="Mẫu hệ thống" templates={systemTemplates} onDelete={null} />
+          <TemplateSection
+            title="Mẫu hệ thống"
+            templates={systemTemplates}
+            onEdit={openEdit}
+            onDelete={null}
+          />
           <TemplateSection
             title="Mẫu tùy chỉnh"
             templates={customTemplates}
+            onEdit={openEdit}
             onDelete={(id) => setPendingDelete(id)}
           />
           {customTemplates.length === 0 && (
@@ -48,6 +70,8 @@ export function EmrTemplatesPageClient() {
           )}
         </>
       )}
+
+      <EmrTemplateFormDialog open={formOpen} onOpenChange={setFormOpen} template={editingTemplate} />
 
       <ConfirmDialog
         open={!!pendingDelete}
@@ -67,10 +91,12 @@ export function EmrTemplatesPageClient() {
 function TemplateSection({
   title,
   templates,
+  onEdit,
   onDelete,
 }: {
   title: string;
   templates: EmrTemplateResponse[];
+  onEdit: (template: EmrTemplateResponse) => void;
   onDelete: ((id: string) => void) | null;
 }) {
   if (templates.length === 0 && !onDelete) return null;
@@ -91,15 +117,29 @@ function TemplateSection({
             <Badge variant={t.is_system ? "default" : "outline"} className="text-xs shrink-0">
               {t.is_system ? "Hệ thống" : "Tùy chỉnh"}
             </Badge>
-            {onDelete && !t.is_system && (
+            <Can permission="emr_template.write">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
-                onClick={() => onDelete(t.id)}
+                className="h-8 w-8 shrink-0"
+                onClick={() => onEdit(t)}
+                aria-label="Sửa mẫu bệnh án"
               >
-                <Trash2 className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
               </Button>
+            </Can>
+            {onDelete && !t.is_system && (
+              <Can permission="emr_template.write">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                  onClick={() => onDelete(t.id)}
+                  aria-label="Xóa mẫu bệnh án"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </Can>
             )}
           </div>
         ))}

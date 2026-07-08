@@ -78,6 +78,18 @@ export function useCreateEmrTemplate() {
   });
 }
 
+export function useUpdateEmrTemplate(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: EmrTemplateRequest) => emrApi.updateEmrTemplate(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: emrKeys.templates() });
+      toast.success("Cập nhật mẫu bệnh án thành công");
+    },
+    onError: () => toast.error("Cập nhật mẫu bệnh án thất bại"),
+  });
+}
+
 export function useDeleteEmrTemplate() {
   const qc = useQueryClient();
   return useMutation({
