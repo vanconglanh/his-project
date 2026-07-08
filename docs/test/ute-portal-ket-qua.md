@@ -1,0 +1,72 @@
+# Kết quả THỰC THI UTC (UTE / 単体テスト実施結果) — Portal bệnh nhân
+
+> Spec case: [utc-portal-benh-nhan.md](utc-portal-benh-nhan.md). Quy ước: [utc-00-quy-uoc-chuan-nhat.md](utc-00-quy-uoc-chuan-nhat.md).
+> **Môi trường thực thi:** deploy CỤC BỘ (staging-like) — backend `.NET` (127.0.0.1:5080) + `portal-client` Next.js (localhost:3333) + **MySQL thật `prodiab_his`**. Test **UI thật** bằng trình duyệt Chromium (Playwright), thiết bị mobile 390×844.
+> **Tài khoản test:** bệnh nhân `BN00001 — Trần Văn Bình` (SĐT `0912111001`, PIN `246810`), phòng khám tenant 1 (subdomain `diabetis`). Ngày: 2026-07-08.
+> Evidence ảnh: thư mục [ute-shots/portal/](ute-shots/portal/) (15 ảnh, đặt tên theo luồng).
+
+---
+
+## 0. Lưu ý contract (đọc trước)
+- **API `snake_case`** (`JsonNamingPolicy.SnakeCaseLower`). `portal-client/lib/api.ts` tự chuyển 2 chiều (request camel→snake, response snake→camel) — đã verify hoạt động (mọi field render đúng).
+- **Tenant theo subdomain** (không JWT lúc login): request ẩn danh resolve `Host`→`sys_tenants.subdomain`; dev gửi header `X-Portal-Subdomain=diabetis`. Production dùng subdomain thật (same-origin).
+- **Đăng nhập KHÔNG mật khẩu**: mã kích hoạt (lễ tân cấp) → PIN 6 số → phiên 30 ngày.
+- Web Push: RFC 8291/8292 (đã verify test vector chính thức — xem `WebPushCryptoTests`, 556/556 unit test PASS).
+
+---
+
+## 1. Tóm tắt kết quả (TỔNG QUAN)
+
+| Nhóm chức năng | Case chính | 判定 | Evidence |
+|---|---|---|---|
+| Đăng nhập PIN (happy path) | SĐT + PIN đúng → vào `/` | **OK** | 01, 02, 03 |
+| Đăng nhập PIN (sai PIN) | PIN sai → báo lỗi, không vào | **OK** | 15 |
+| Kích hoạt tài khoản | màn 3 bước (SĐT+mã→PIN→xong) | **OK** (render) | 14 |
+| Tenant resolve subdomain | `tenant-info` trả đúng phòng khám + VAPID | **OK** | (API 200) |
+| Trang chủ | tên BN + lịch hẹn sắp tới + 4 thẻ + bottom-nav | **OK** | 03 |
+| Hàng đợi + nhắc tới lượt | số 001, phòng, đang gọi, còn X người, banner "Sắp tới lượt" | **OK** | 04 |
+| Đặt lịch (slot bác sĩ) | Bước 1/3 chọn BS (từ `booking/doctors`) | **OK** | 06 |
+| Lịch hẹn (danh sách) | list lịch hẹn | **OK** (⚠️ D-PORTAL-01) | 05 |
+| Lịch sử khám + chi tiết | list + chi tiết (chẩn đoán/kết luận/lời dặn/thuốc) | **OK** (⚠️ D-PORTAL-02,03) | 07, 08 |
+| Đơn thuốc | list đơn + tải PDF | **OK** (⚠️ D-PORTAL-01) | 09 |
+| Kết quả XN (chỉ VERIFIED) | "Đường huyết lúc đói 12.4 mmol/L (HIGH)" + PDF | **OK** | 10 |
+| Nhắc uống thuốc | lịch theo buổi + bật/tắt | **OK** (render) | 11 |
+| Hồ sơ cá nhân | thông tin BN + BHYT + đăng xuất | **OK** | 12 |
+| Cài đặt thông báo | toggle push/email + hướng dẫn A2HS iOS | **OK** | 13 |
+
+**Cách ly dữ liệu (bảo mật):** mọi endpoint `/me/*` lọc `tenant_id + patient_id` từ token — verify bằng API (login-pin SĐT chưa đăng ký → 404 `PORTAL_PHONE_NOT_REGISTERED`; token của BN chỉ thấy dữ liệu của chính BN đó). **OK.**
+
+**Tiêu chí PASS:** các luồng mức Cao (đăng nhập, hàng đợi, kết quả, cách ly tenant/BN) **OK**. Còn 3 defect mức Thấp (giao diện/seed-data), không chặn.
+
+---
+
+## 2. Defect phát hiện khi UTE (đã fix ngay trong đợt test)
+
+| ID | Mức | Màn | Mô tả | Root cause | Trạng thái |
+|---|---|---|---|---|---|
+| **D-PORTAL-01** | Thấp | Lịch hẹn / Đơn thuốc (list) | React cảnh báo *"two children with the same key `00000000-0000-...`"* → nhiều item cùng key rỗng | Bản ghi seed có `uuid`/`id` NULL → BE trả `Guid.Empty`; FE dùng `id` làm React key → trùng | ✅ **ĐÃ FIX** — FE key `${id}-${idx}` (appointments/prescriptions); re-test console **sạch** |
+| **D-PORTAL-02** | Thấp | Chi tiết khám / Đặt lịch / Trang chủ… | Tên bác sĩ hiển thị **"BS. BS. Nguyễn Văn An"** (lặp tiền tố "BS.") | `sec_users.full_name` đã chứa "BS. "; UI thêm "BS. " lần nữa (7 chỗ) | ✅ **ĐÃ FIX** — bỏ prefix "BS." literal ở FE (6 file); re-test hiển thị "BS. Nguyễn Văn An" |
+| **D-PORTAL-03** | Info | Chi tiết khám | Lượt khám seed (e0000001-…-012) hiển thị thưa (không chẩn đoán/kết luận/lời dặn/thuốc) | Dữ liệu seed lượt khám này rỗng EMR/đơn — KHÔNG phải lỗi code (query đã verify đúng với lượt có dữ liệu) | ⚪ Không phải bug — cần seed lượt có đơn+chẩn đoán để evidence "lời dặn" đầy đủ |
+
+> Sau fix D-PORTAL-01/02: chạy lại evidence các màn liên quan → **CONSOLE_ERRORS: none**. Ghi chú: 1 request **400** trong đợt đầu là **case âm cố ý** (sai PIN — case No.15), đúng kỳ vọng.
+
+---
+
+## 3. Evidence (ute-shots/portal/)
+| Ảnh | Nội dung |
+|---|---|
+| 01-dang-nhap | Màn đăng nhập (SĐT + NumPad PIN) |
+| 02-nhap-sdt-pin | Đã nhập SĐT + PIN |
+| 03-trang-chu | Trang chủ (tên BN, lịch hẹn, 4 thẻ) |
+| 04-hang-doi-so-thu-tu | Hàng đợi: số 001, phòng, đang gọi, banner sắp tới lượt |
+| 05-lich-hen-danh-sach | Danh sách lịch hẹn |
+| 06-dat-lich-chon-bac-si | Đặt lịch Bước 1/3 — chọn bác sĩ |
+| 07-lich-su-kham | Lịch sử khám |
+| 08-ket-qua-kham-loi-dan | Chi tiết kết quả khám |
+| 09-don-thuoc | Danh sách đơn thuốc |
+| 10-ket-qua-xet-nghiem | Kết quả XN (VERIFIED, đường huyết 12.4 HIGH) |
+| 11-nhac-uong-thuoc | Nhắc uống thuốc theo buổi |
+| 12-ho-so-ca-nhan | Hồ sơ cá nhân |
+| 13-cai-dat-thong-bao | Cài đặt thông báo (push/email + A2HS) |
+| 14-kich-hoat-tai-khoan | Màn kích hoạt tài khoản |
+| 15-sai-pin-bao-loi | Case âm: sai PIN → báo lỗi |
