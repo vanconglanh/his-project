@@ -42,7 +42,7 @@ const CATALOG = [
   { icd10: "E11.9", name: "Đái tháo đường típ 2 không biến chứng", reason: "Đái tháo đường tái khám định kỳ", drugs: ["Metformin 500mg"] },
   { icd10: "I10", name: "Tăng huyết áp vô căn (nguyên phát)", reason: "Tăng huyết áp, tái khám định kỳ", drugs: ["Amlodipine 5mg"] },
   { icd10: "E78.5", name: "Rối loạn chuyển hoá lipid máu", reason: "Rối loạn mỡ máu, khám định kỳ", drugs: ["Atorvastatin 20mg"] },
-  { icd10: "E11.4", name: "Đái tháo đường típ 2 có biến chứng thần kinh", reason: "Đái tháo đường, tê bì đầu chi", drugs: ["Metformin 500mg", "Gliclazide 30mg"] },
+  { icd10: "E11.4", name: "Đái tháo đường típ 2 có biến chứng thần kinh", reason: "Đái tháo đường, tê bì đầu chi", drugs: ["Metformin 500mg", "Amlodipine 5mg"] },
   { icd10: "K29.7", name: "Viêm dạ dày, không đặc hiệu", reason: "Đau thượng vị, ợ chua sau ăn", drugs: ["Omeprazole 20mg"] },
   { icd10: "J06.9", name: "Nhiễm khuẩn hô hấp trên cấp", reason: "Sốt, ho, đau họng 3 ngày", drugs: ["Paracetamol 500mg"] },
 ];
@@ -121,6 +121,7 @@ test.describe.serial("Evidence 10 BN — luồng khám đầy đủ (prod-ready)
       fs.mkdirSync(path.join(SHOTS_DIR, dir), { recursive: true });
       let stepNo = 0;
       let encounterId = "";
+      let billNo = "";
       console.log(`\n[evidence-10] ===== BN ${idx}/${personas.length}: ${persona.fullName} (${room}) =====`);
 
       // step(): luôn chụp ảnh sau khi chạy fn (dù lỗi), ghi kết quả vào results, KHÔNG throw ra ngoài.
@@ -216,14 +217,45 @@ test.describe.serial("Evidence 10 BN — luồng khám đầy đủ (prod-ready)
             if (!ok) throw new Error(`Không thấy đơn của "${persona.fullName}" trong hàng chờ phát thuốc`);
           });
 
+          // ── Tạo & finalize hoá đơn từ lượt khám (sau cấp phát -> gồm cả thuốc đã phát) để có
+          //     hoá đơn ở "chờ thu" cho thu ngân. Dùng API (JWT từ localStorage) — HIS này không tự
+          //     sinh hoá đơn khi đóng lượt khám. ──────────────────────────────────────────────────
+          await step("tao-hoa-don", "Tạo & finalize hoá đơn từ lượt khám", async () => {
+            const tk: string = await page.evaluate(() => {
+              try { return JSON.parse(localStorage.getItem("auth-store") || "{}").state?.accessToken || ""; } catch { return ""; }
+            });
+            const apiBase = `${process.env.BASE_URL || "http://localhost:3100"}/api/v1`;
+            const cr = await page.request.post(`${apiBase}/billings`, {
+              headers: { Authorization: `Bearer ${tk}` },
+              data: { encounter_id: encounterId, include_dispensing: true, payer: "SELF" },
+            });
+            if (!cr.ok()) throw new Error(`Tạo hoá đơn HTTP ${cr.status()}: ${(await cr.text()).slice(0, 200)}`);
+            const created = (await cr.json())?.data;
+            const bid = created?.id;
+            billNo = created?.bill_no || "";
+            if (!bid) throw new Error("Không lấy được id hoá đơn vừa tạo");
+            // Lượt khám không có dịch vụ tính phí -> hoá đơn 0đ. Thử thêm 1 dòng phí khám để hoá đơn
+            // > 0 (thu ngân mới có nút "Thu tiền"). KHÔNG fatal nếu backend build cũ trả 500 — vẫn
+            // finalize để hoá đơn tồn tại (dù 0đ).
+            const ir = await page.request.post(`${apiBase}/billings/${bid}/items`, {
+              headers: { Authorization: `Bearer ${tk}` },
+              data: { type: "SERVICE", name: "Phí khám bệnh", quantity: 1, unit_price: 150000 },
+            }).catch(() => null);
+            if (ir && !ir.ok()) console.log(`[evidence-10]   (thêm dòng phí khám HTTP ${ir.status()} — bỏ qua, finalize hoá đơn 0đ)`);
+            const fr = await page.request.post(`${apiBase}/billings/${bid}/finalize`, {
+              headers: { Authorization: `Bearer ${tk}` },
+            });
+            if (!fr.ok()) throw new Error(`Finalize hoá đơn HTTP ${fr.status()}: ${(await fr.text()).slice(0, 200)}`);
+          });
+
           // ── Thu ngân: thu tiền ──────────────────────────────────────────────
           await loginAs(page, "ketoan").catch(() => {});
           await step("mo-ca-thu-ngan", "Thu ngân mở ca (nếu chưa mở)", async () => {
             await cashier.openShift(page);
           });
           await step("thu-tien", "Thu ngân thu tiền", async () => {
-            const ok = await cashier.collect(page, persona);
-            if (!ok) throw new Error(`Không thấy hoá đơn chờ thu của "${persona.fullName}"`);
+            const ok = await cashier.collect(page, persona, billNo);
+            if (!ok) throw new Error(`Không thấy hoá đơn chờ thu (số HĐ ${billNo || "?"}) của "${persona.fullName}"`);
           });
         }
       }

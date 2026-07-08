@@ -64,13 +64,25 @@ export class CashierAgent {
     await page.waitForTimeout(800);
   }
 
-  /** Thu tiền cho hoá đơn của bệnh nhân trong tab "Hoá đơn chờ thu". Trả về false nếu không thấy hoá đơn. */
-  async collect(page: Page, persona: Persona): Promise<boolean> {
+  /**
+   * Thu tiền cho hoá đơn trong tab "Hoá đơn chờ thu". Trả về false nếu không thấy hoá đơn.
+   * `invoiceNo` (tuỳ chọn): số hoá đơn (bill_no) — ưu tiên tìm theo số HĐ vì hoá đơn tạo qua API có
+   * thể KHÔNG hiển thị tên bệnh nhân ở cột "Bệnh nhân" (patient_summary null) khiến tìm theo tên fail.
+   */
+  async collect(page: Page, persona: Persona, invoiceNo?: string): Promise<boolean> {
     await this.gotoCashier(page);
     await page.getByRole("tab", { name: "Hoá đơn chờ thu" }).click({ timeout: 10_000 });
     await page.waitForTimeout(500);
 
-    const row = page.getByRole("row", { name: new RegExp(escapeRegExp(persona.fullName)) }).first();
+    // Lọc bằng ô "Tìm số HĐ, tên bệnh nhân..." — theo số HĐ nếu có (đáng tin hơn tên).
+    const needle = invoiceNo || persona.fullName;
+    const search = page.getByPlaceholder(/Tìm số HĐ|tên bệnh nhân/i);
+    if (await search.count()) {
+      await search.fill(needle);
+      await page.waitForTimeout(900);
+    }
+
+    const row = page.getByRole("row", { name: new RegExp(escapeRegExp(needle)) }).first();
     if (!(await row.count())) {
       return false;
     }

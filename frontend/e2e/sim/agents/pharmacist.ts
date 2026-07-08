@@ -23,6 +23,14 @@ export class PharmacistAgent {
   async dispense(page: Page, persona: Persona): Promise<boolean> {
     await this.gotoDispense(page);
 
+    // Hàng chờ phát thuốc TÍCH TỤ nhiều đơn (đơn cũ chưa phát) -> lọc bằng ô "Tìm bệnh nhân..." theo
+    // tên BN để chỉ còn 1 card, tránh getByText không thấy khi danh sách quá dài/virtualize.
+    const search = page.getByPlaceholder(/Tìm bệnh nhân/i);
+    if (await search.count()) {
+      await search.fill(persona.fullName);
+      await page.waitForTimeout(1200);
+    }
+
     // Hàng chờ nạp bất đồng bộ (list + auto-refresh) -> chờ tên BN hiện ra trước khi kết luận "không
     // có đơn", tránh check quá sớm lúc list chưa render. Đồng thời KHÔNG khoá selector vào
     // data-slot="card" (bản deploy cũ trên prod chưa gắn attribute này) — fallback tìm tổ tiên gần
@@ -43,9 +51,11 @@ export class PharmacistAgent {
     const dialog = page.getByRole("dialog");
     await dialog.waitFor({ timeout: 10_000 });
 
-    await dialog.getByRole("combobox").first().click();
+    // Select kho phát thuốc: SelectTrigger id="warehouse" (base-ui) — click theo id rồi chọn option
+    // đầu tiên (KHO01). Dùng đúng pattern pickOptionById đã chạy ổn ở các Select khác.
+    await dialog.locator("#warehouse").click({ timeout: 10_000 });
     const firstWarehouse = page.getByRole("option").first();
-    await firstWarehouse.waitFor({ timeout: 8000 });
+    await firstWarehouse.waitFor({ state: "visible", timeout: 10_000 });
     await firstWarehouse.click();
 
     const resp = await actionWithResponse(
