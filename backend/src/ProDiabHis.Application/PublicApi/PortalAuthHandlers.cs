@@ -261,23 +261,42 @@ public class PortalResetPinHandler : IRequestHandler<PortalResetPinCommand, Port
         if (!PortalPinRules.IsValidPin(cmd.NewPin)) throw new PortalPinInvalidException();
 
         using var conn = _db.CreateConnection();
-        var otpLog = await conn.QueryFirstOrDefaultAsync<(string id, string otp_hash, DateTime expires_at)>(
-            @"SELECT id, otp_hash, expires_at FROM diab_his_pat_portal_otp_log
+
+        // GAP-6 fix: chan brute-force OTP reset — check khoa + dem so lan sai + khoa 15' sau 5 lan
+        var acc = await conn.QueryFirstOrDefaultAsync<(string patient_id, DateTime? locked_until)>(
+            "SELECT patient_id, locked_until FROM diab_his_pat_portal_accounts WHERE tenant_id = @TenantId AND phone = @Phone",
+            new { cmd.TenantId, cmd.Phone });
+        if (acc.patient_id == null) throw new PortalPhoneNotRegisteredException();
+        if (acc.locked_until.HasValue && acc.locked_until.Value > DateTime.UtcNow) throw new PortalAccountLockedException();
+
+        var otpLog = await conn.QueryFirstOrDefaultAsync<(string id, string otp_hash, DateTime expires_at, int attempts)>(
+            @"SELECT id, otp_hash, expires_at, attempts FROM diab_his_pat_portal_otp_log
               WHERE tenant_id = @TenantId AND phone = @Phone AND purpose = 'RESET_PIN' AND verified_at IS NULL
               ORDER BY sent_at DESC LIMIT 1",
             new { cmd.TenantId, cmd.Phone });
 
         if (otpLog.id == null || otpLog.expires_at < DateTime.UtcNow) throw new OtpExpiredException();
-        if (!_hasher.Verify(cmd.Otp, otpLog.otp_hash)) throw new OtpInvalidException();
+
+        if (!_hasher.Verify(cmd.Otp, otpLog.otp_hash))
+        {
+            var attempts = otpLog.attempts + 1;
+            await conn.ExecuteAsync(
+                "UPDATE diab_his_pat_portal_otp_log SET attempts = @A WHERE id = @Id",
+                new { A = attempts, Id = otpLog.id });
+            if (attempts >= 5)
+            {
+                await conn.ExecuteAsync(
+                    @"UPDATE diab_his_pat_portal_accounts SET locked_until = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)
+                      WHERE tenant_id = @TenantId AND phone = @Phone",
+                    new { cmd.TenantId, cmd.Phone });
+                throw new PortalAccountLockedException();
+            }
+            throw new OtpInvalidException();
+        }
 
         await conn.ExecuteAsync(
             "UPDATE diab_his_pat_portal_otp_log SET verified_at = UTC_TIMESTAMP() WHERE id = @Id",
             new { Id = otpLog.id });
-
-        var acc = await conn.QueryFirstOrDefaultAsync<(string patient_id, string _)>(
-            "SELECT patient_id, '' FROM diab_his_pat_portal_accounts WHERE tenant_id = @TenantId AND phone = @Phone",
-            new { cmd.TenantId, cmd.Phone });
-        if (acc.patient_id == null) throw new PortalPhoneNotRegisteredException();
 
         await conn.ExecuteAsync(
             @"UPDATE diab_his_pat_portal_accounts

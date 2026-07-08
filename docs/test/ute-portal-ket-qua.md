@@ -50,6 +50,18 @@
 
 > Sau fix D-PORTAL-01/02: chạy lại evidence các màn liên quan → **CONSOLE_ERRORS: none**. Ghi chú: 1 request **400** trong đợt đầu là **case âm cố ý** (sai PIN — case No.15), đúng kỳ vọng.
 
+## 2b. Defect THIẾT KẾ (đối chiếu 3 tầng trong UTC) — dev đã fix + re-verify
+
+Tài liệu [utc-portal-benh-nhan.md](utc-portal-benh-nhan.md) phát hiện 12 GAP qua đối chiếu FE/BE/DB. Đã fix 3 GAP mức Cao/TB-Cao (bảo mật + đúng đắn), verify runtime:
+
+| GAP | Mức | Mô tả | Fix | Verify |
+|---|---|---|---|---|
+| **GAP-6** | Cao | Reset-PIN OTP **không đếm lần sai / không khoá** → brute-force OTP 6 số | Thêm đếm `attempts` + khoá tài khoản 15' sau 5 lần sai (giống login OTP) | Compile + logic (mirror login lockout đã kiểm chứng) |
+| **GAP-7** | Cao | Đặt lịch **không chặn thời điểm quá khứ** | Chặn `appointment_at <= now` → 400 `APPOINTMENT_IN_PAST` | ✅ Runtime: quá khứ → **400 IN_PAST** |
+| **GAP-9** | TB-Cao | `doctor_id` null → **bỏ qua toàn bộ** validate slot/lịch/trùng | Bắt buộc chọn bác sĩ → 400 `APPOINTMENT_DOCTOR_REQUIRED` | ✅ Runtime: thiếu BS → **400 DOCTOR_REQUIRED**; happy (tương lai+BS+đúng slot) → **201** |
+
+Còn lại (GAP-1..5, 8, 10..12 mức TB-Thấp: FE label/format validate, `DepartmentId` field chết, map frequency thiếu buổi…) — ghi nhận trong UTC để xử lý đợt sau, không chặn.
+
 ---
 
 ## 3. Evidence (ute-shots/portal/)

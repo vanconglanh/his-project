@@ -311,6 +311,14 @@ public class CreatePortalAppointmentHandler : IRequestHandler<CreatePortalAppoin
     {
         using var conn = _db.CreateConnection();
 
+        // GAP-7 fix: khong cho dat lich trong qua khu (buffer 1 phut chong lech nho)
+        if (cmd.Request.AppointmentAt <= DateTime.UtcNow.AddMinutes(-1))
+            throw new AppointmentInPastException();
+
+        // GAP-9 fix: bat buoc chon bac si — neu null se bo qua toan bo kiem tra slot/lich lam viec
+        if (!cmd.Request.DoctorId.HasValue)
+            throw new AppointmentDoctorRequiredException();
+
         if (cmd.Request.DoctorId.HasValue)
         {
             var doctorRef = cmd.Request.DoctorId.Value.ToString();
@@ -415,3 +423,5 @@ public class CancelPortalAppointmentHandler : IRequestHandler<CancelPortalAppoin
 
 public class AppointmentNotFoundException : Exception { public AppointmentNotFoundException() : base("APPOINTMENT_NOT_FOUND") { } }
 public class AppointmentCancelTooLateException : Exception { public AppointmentCancelTooLateException() : base("APPOINTMENT_CANCEL_TOO_LATE") { } }
+public class AppointmentInPastException : Exception { public AppointmentInPastException() : base("APPOINTMENT_IN_PAST") { } }
+public class AppointmentDoctorRequiredException : Exception { public AppointmentDoctorRequiredException() : base("APPOINTMENT_DOCTOR_REQUIRED") { } }

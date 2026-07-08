@@ -253,7 +253,15 @@ public class PatientPortalController : ControllerBase
         }
         catch (SlotTakenException)
         {
-            return Conflict(new { error = new { code = "APPOINTMENT_SLOT_TAKEN", message = "Khung gio da duoc dat" } });
+            return Conflict(new { error = new { code = "APPOINTMENT_SLOT_TAKEN", message = "Khung giờ đã được đặt hoặc ngoài lịch làm việc" } });
+        }
+        catch (AppointmentInPastException)
+        {
+            return BadRequest(new { error = new { code = "APPOINTMENT_IN_PAST", message = "Không thể đặt lịch ở thời điểm trong quá khứ" } });
+        }
+        catch (AppointmentDoctorRequiredException)
+        {
+            return BadRequest(new { error = new { code = "APPOINTMENT_DOCTOR_REQUIRED", message = "Vui lòng chọn bác sĩ" } });
         }
     }
 
