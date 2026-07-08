@@ -12,11 +12,17 @@ App bệnh nhân là **container riêng**, phục vụ mọi phòng khám qua **
 
 ```bash
 docker build \
-  --build-arg NEXT_PUBLIC_API_BASE_URL=https://his.diab.com.vn \
+  --build-arg NEXT_PUBLIC_API_BASE_URL= \
   -t prodiab-portal ./portal-client
 ```
 
-`NEXT_PUBLIC_API_BASE_URL` bake lúc build → trỏ về domain công khai (nginx route `/api` về backend).
+> **QUAN TRỌNG (đã xác minh khi test E2E):** để trống `NEXT_PUBLIC_API_BASE_URL` → portal gọi API
+> **tương đối** (`/api/portal/v1/...`) tức **cùng origin với subdomain đang truy cập**. Nhờ vậy:
+> (1) không dính CORS; (2) nginx chuyển tiếp `Host: phongkham-a.diab.com.vn` xuống backend để
+> `ResolvePortalTenantQuery` xác định đúng phòng khám. **KHÔNG** trỏ sang `his.diab.com.vn` (khác host
+> → mất subdomain → sai tenant + phải mở CORS). Backend có `CorsHardeningMiddleware` (whitelist
+> `CorsHardening:AllowedOrigins`) — same-origin nên không cần thêm gì; nếu bắt buộc cross-origin thì
+> phải thêm mọi `https://*.diab.com.vn` vào whitelist đó VÀ vào policy CORS.
 
 ## 2. Service trong docker-compose (thêm cạnh frontend/backend)
 
@@ -25,7 +31,7 @@ docker build \
     build:
       context: ./portal-client
       args:
-        NEXT_PUBLIC_API_BASE_URL: https://his.diab.com.vn
+        NEXT_PUBLIC_API_BASE_URL: ""   # rỗng = gọi API tương đối, cùng origin subdomain
     environment:
       NODE_ENV: production
     expose: ["3000"]
