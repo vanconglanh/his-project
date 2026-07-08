@@ -66,12 +66,18 @@ public class SearchIcd10QueryHandler : IRequestHandler<SearchIcd10Query, Result<
             }
             else
             {
-                // Try MATCH AGAINST, fallback to LIKE
+                // Yeu cau TAT CA cac tu khoa (AND) voi prefix match -> tranh khop mot manh chu
+                var words = q.Q.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                var boolTerm = string.Join(" ", words.Select(w => "+" + w + "*"));
+
                 where += " AND (MATCH(name_vi, name_en) AGAINST (@Term IN BOOLEAN MODE) OR code LIKE @Prefix OR name_vi LIKE @LikeTerm)";
-                p.Add("Term", q.Q + "*");
+                p.Add("Term", boolTerm);
                 p.Add("Prefix", q.Q + "%");
                 p.Add("LikeTerm", "%" + q.Q + "%");
-                orderClause = "ORDER BY is_billable DESC, code";
+                p.Add("Exact", q.Q);
+                // Relevance: khop ma chinh xac -> ma prefix -> ten chua nguyen cum -> ma ngan (3 ky tu) truoc
+                orderClause = @"ORDER BY (code = @Exact) DESC, (code LIKE @Prefix) DESC,
+                                (name_vi LIKE @LikeTerm) DESC, is_billable DESC, CHAR_LENGTH(code), code";
             }
         }
         else
