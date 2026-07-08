@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `cat_tenant_databases` (
     `server_port`           INT          NOT NULL DEFAULT 3306,
     `db_name`               VARCHAR(64)  NOT NULL COMMENT 'Ten database, vd prodiab_t_abc',
     `db_user`               VARCHAR(64)  NOT NULL COMMENT 'MySQL user rieng, GRANT chi tren db_name',
-    `db_password_encrypted` VARBINARY(512) NOT NULL COMMENT 'Mat khau ma hoa AES-256-GCM (IEncryptionService)',
+    `db_password_encrypted` VARCHAR(512) NOT NULL COMMENT 'Mat khau ma hoa AES-256-GCM (IEncryptionService.Encrypt -> string)',
     `schema_version`        VARCHAR(20)  NOT NULL DEFAULT '' COMMENT 'Migration moi nhat da apply cho DB nay',
     `updated_at`            DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`tenant_id`),
