@@ -61,7 +61,24 @@ public class ServiceUpsertRequestValidator : AbstractValidator<ServiceUpsertRequ
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
         RuleFor(x => x.VatRate).Must(r => ValidVatRates.Contains(r))
             .WithMessage("VatRate phai la 0, 5, 8 hoac 10");
+        RuleFor(x => x.BhytMaxAmount).GreaterThanOrEqualTo(0)
+            .When(x => x.BhytMaxAmount.HasValue)
+            .WithMessage("Muc BHYT toi da khong duoc am");
     }
+}
+
+// Command-level validators: noi ServiceUpsertRequestValidator vao Command de
+// ValidationBehavior (chay tren TRequest = Command) thuc su goi rule cua DTO long.
+public class CreateServiceCommandValidator : AbstractValidator<CreateServiceCommand>
+{
+    public CreateServiceCommandValidator()
+        => RuleFor(x => x.Request).NotNull().SetValidator(new ServiceUpsertRequestValidator());
+}
+
+public class UpdateServiceCommandValidator : AbstractValidator<UpdateServiceCommand>
+{
+    public UpdateServiceCommandValidator()
+        => RuleFor(x => x.Request).NotNull().SetValidator(new ServiceUpsertRequestValidator());
 }
 
 // ---- Handlers ----

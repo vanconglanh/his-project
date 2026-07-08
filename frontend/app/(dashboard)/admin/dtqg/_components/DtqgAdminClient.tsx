@@ -50,7 +50,11 @@ export function DtqgAdminClient() {
           <div className="flex flex-wrap gap-3 items-end">
             <div className="space-y-1">
               <Label className="text-xs">Trạng thái</Label>
-              <Select value={status} onValueChange={(v) => { setStatus(v as typeof status); setPage(1); }}>
+              <Select
+                items={{ "": "Tất cả", PENDING: "Đang chờ", SUBMITTED: "Đã gửi", ACCEPTED: "Chấp nhận", REJECTED: "Từ chối" }}
+                value={status}
+                onValueChange={(v) => { setStatus(v as typeof status); setPage(1); }}
+              >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Tất cả" />
                 </SelectTrigger>

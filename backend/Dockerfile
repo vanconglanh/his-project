@@ -17,8 +17,9 @@ RUN dotnet publish src/ProDiabHis.Api/ProDiabHis.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# curl cho healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# curl cho healthcheck; libfontconfig1/libfreetype6 cho SkiaSharp (QuestPDF sinh bao cao PDF)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl libfontconfig1 libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish ./

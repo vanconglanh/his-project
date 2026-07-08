@@ -169,7 +169,11 @@ export default function AccountNotificationsPage() {
                     name="sound_name"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select
+                        items={Object.fromEntries(SOUND_OPTIONS.map((o) => [o.value, o.label]))}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
                         <SelectTrigger className="flex-1">
                           <SelectValue />
                         </SelectTrigger>

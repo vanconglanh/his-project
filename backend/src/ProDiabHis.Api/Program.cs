@@ -1,4 +1,3 @@
-using FluentValidation;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -87,9 +86,8 @@ try
             };
         });
 
-    // FluentValidation
-    builder.Services.AddValidatorsFromAssemblyContaining<ProDiabHis.Application.Auth.LoginCommand>(
-        ServiceLifetime.Scoped);
+    // FluentValidation: da dang ky qua AddApplication() (DependencyInjection.cs) —
+    // KHONG dang ky lai o day de tranh validator chay 2 lan / loi trung lap.
 
     // CORS
     builder.Services.AddCors(opt =>
@@ -204,6 +202,16 @@ try
         "audit-anomaly-detection",
         j => j.ExecuteAsync(),
         "0 1 * * *");
+
+    // CDSS: phan tang nguy co benh nhan DTD (03:00) + recall tai kham chu dong (03:30)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.PatientRiskStratificationJob>(
+        "patient-risk-stratification",
+        j => j.ExecuteAsync(default),
+        "0 3 * * *");
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.ChronicCareRecallJob>(
+        "chronic-care-recall",
+        j => j.ExecuteAsync(default),
+        "30 3 * * *");
 
     // Minimal endpoint kiem tra nhanh
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();

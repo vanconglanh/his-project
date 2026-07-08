@@ -70,7 +70,7 @@ export function PharmacyTab() {
             {drugsLoading ? (
               <Skeleton className="h-80 w-full" />
             ) : (
-              <HorizontalBarChart data={drugChartData} valueLabel="Doanh thu" color="#8b5cf6" />
+              <HorizontalBarChart data={drugChartData} valueLabel="Doanh thu" color="var(--chart-4)" />
             )}
           </CardContent>
         </Card>
@@ -119,7 +119,7 @@ export function PharmacyTab() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertTriangle className="h-4 w-4 text-[color:var(--status-warning)]" />
               Thuốc sắp hết hạn
             </CardTitle>
           </CardHeader>
@@ -131,7 +131,7 @@ export function PharmacyTab() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Giá trị rủi ro</p>
-                <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums text-amber-600">{vnd(nearExpiry.total_value_at_risk)} ₫</p>
+                <p className="text-[length:var(--text-kpi)] leading-[var(--text-kpi--line-height)] font-bold tabular-nums text-[color:var(--status-warning)]">{vnd(nearExpiry.total_value_at_risk)} ₫</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">

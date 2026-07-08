@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using ProDiabHis.Api.Filters;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Reports;
+using ProDiabHis.Application.Reports.Engine;
 
 namespace ProDiabHis.Api.Controllers;
 
@@ -357,5 +358,121 @@ public class ReportsController : ControllerBase
     {
         var (content, contentType, fileName) = await _mediator.Send(new ExportReportCommand(request), ct);
         return File(content, contentType, fileName);
+    }
+
+    // ======== REPORT ENGINE (config-driven, 23 bao cao — docs/prd/reports-catalog-prd.md) ======== //
+
+    private static readonly string[] ReservedQueryKeys =
+        { "from", "to", "page", "page_size", "pageSize", "format" };
+
+    private IReadOnlyDictionary<string, string?> ExtractFilters()
+        => Request.Query
+            .Where(kv => !ReservedQueryKeys.Contains(kv.Key, StringComparer.OrdinalIgnoreCase))
+            .ToDictionary(kv => kv.Key, kv => kv.Value.Count > 0 ? (string?)kv.Value[0] : null);
+
+    /// <summary>Danh muc bao cao (dung cho FE render menu + man hinh xuat bao cao generic).</summary>
+    [HttpGet("catalog")]
+    [RequirePermission("report.read")]
+    public async Task<IActionResult> GetCatalog(CancellationToken ct)
+    {
+        var descriptors = await _mediator.Send(new GetReportCatalogQuery(), ct);
+
+        var data = descriptors
+            .OrderBy(d => d.Group).ThenBy(d => d.GroupOrder)
+            .Select(d => new
+            {
+                code = d.Code,
+                title = d.Title,
+                group = d.Group.ToString(),
+                group_order = d.GroupOrder,
+                icon = d.Icon,
+                orientation = d.Orientation.ToString(),
+                group_by_key = d.GroupByKey,
+                filters = d.Filters.Select(f => new
+                {
+                    key = f.Key,
+                    label = f.Label,
+                    type = f.Type.ToString(),
+                    options_source = f.OptionsSource,
+                    required = f.Required
+                })
+            });
+
+        return Ok(new { data });
+    }
+
+    /// <summary>Du lieu luoi cua 1 bao cao (Report Engine) — theo code + khoang ngay + filter rieng.</summary>
+    [HttpGet("{code}/data")]
+    [RequirePermission("report.read")]
+    public async Task<IActionResult> GetReportData(
+        string code,
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] int page = 1,
+        [FromQuery] int page_size = 100,
+        CancellationToken ct = default)
+    {
+        var filters = ExtractFilters();
+        var result = await _mediator.Send(new GetReportDataQuery(code, from, to, filters, page, page_size), ct);
+
+        return Ok(new
+        {
+            data = new
+            {
+                columns = result.Columns.Select(c => new
+                {
+                    key = c.Key,
+                    label = c.Label,
+                    type = c.Type.ToString(),
+                    align = c.Align.ToString(),
+                    width = c.Width,
+                    is_group_subtotal = c.IsGroupSubtotal
+                }),
+                groups = result.Groups?.Select(g => new
+                {
+                    key = g.Key,
+                    label = g.Label,
+                    count = g.Count,
+                    rows = g.Rows,
+                    subtotals = g.Subtotals
+                }),
+                rows = result.Rows,
+                totals = result.Totals,
+                kpis = result.Kpis.Select(k => new
+                {
+                    label = k.Label,
+                    tint = k.Tint,
+                    tint_token = ReportTintTokens.FromHex(k.Tint),
+                    value = k.Value,
+                    is_money = k.IsMoney
+                })
+            },
+            meta = new { page, page_size, total = result.TotalRows }
+        });
+    }
+
+    /// <summary>Xuat 1 bao cao (Report Engine) ra PDF hoac Excel.</summary>
+    [HttpGet("{code}/export")]
+    [RequirePermission("report.export")]
+    public async Task<IActionResult> ExportGenericReport(
+        string code,
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] string format = "pdf",
+        CancellationToken ct = default)
+    {
+        var filters = ExtractFilters();
+        var (bytes, contentType, fileName) = await _mediator.Send(
+            new ExportGenericReportQuery(code, from, to, filters, format), ct);
+        return File(bytes, contentType, fileName);
+    }
+
+    /// <summary>Danh sach tuy chon cho filter dropdown (collectors/counters/doctors/clinics/patients).</summary>
+    [HttpGet("options/{source}")]
+    [RequirePermission("report.read")]
+    public async Task<IActionResult> GetReportOptions(string source, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetReportOptionsQuery(source), ct);
+        return Ok(new { data = result.Select(o => new { value = o.Value, label = o.Label }) });
     }
 }

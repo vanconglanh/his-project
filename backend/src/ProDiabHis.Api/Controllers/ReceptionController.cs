@@ -1,9 +1,12 @@
+using Dapper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProDiabHis.Api.Filters;
 using ProDiabHis.Api.Services;
+using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Reception;
+using ProDiabHis.Application.Reports;
 
 namespace ProDiabHis.Api.Controllers;
 
@@ -14,11 +17,15 @@ public class ReceptionController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ITicketPdfService _pdfService;
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
 
-    public ReceptionController(IMediator mediator, ITicketPdfService pdfService)
+    public ReceptionController(IMediator mediator, ITicketPdfService pdfService, IDapperConnectionFactory db, ITenantProvider tenant)
     {
         _mediator = mediator;
         _pdfService = pdfService;
+        _db = db;
+        _tenant = tenant;
     }
 
     // POST /api/v1/reception/check-in
@@ -104,7 +111,17 @@ public class ReceptionController : ControllerBase
         if (!result.IsSuccess)
             return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
 
-        var pdfBytes = await _pdfService.GenerateTicketPdfAsync(result.Value!, ct);
+        LetterheadDto? letterhead;
+        using (var conn = (System.Data.IDbConnection)_db.CreateConnection())
+        {
+            letterhead = await conn.QueryFirstOrDefaultAsync<LetterheadDto>(
+                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                         slogan AS Slogan, website AS Website
+                  FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId = _tenant.TenantId });
+        }
+
+        var pdfBytes = await _pdfService.GenerateTicketPdfAsync(result.Value!, ct, letterhead);
         return File(pdfBytes, "application/pdf", $"ticket-{result.Value!.TicketNo}.pdf");
     }
 

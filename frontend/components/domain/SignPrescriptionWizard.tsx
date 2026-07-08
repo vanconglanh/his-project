@@ -120,7 +120,11 @@ export function SignPrescriptionWizard({ open, onClose, prescription }: Props) {
             <div className="space-y-4">
               <div className="space-y-1">
                 <Label>Chọn USB Token / Chứng thư số</Label>
-                <Select value={tokenSlot} onValueChange={(v) => setTokenSlot(v ?? "")}>
+                <Select
+                  items={Object.fromEntries(MOCK_TOKEN_SLOTS.map((s) => [s.id, s.label]))}
+                  value={tokenSlot}
+                  onValueChange={(v) => setTokenSlot(v ?? "")}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="-- Chọn token --" />
                   </SelectTrigger>

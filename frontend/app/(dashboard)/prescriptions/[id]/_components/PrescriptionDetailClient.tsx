@@ -7,11 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { PrescriptionItemTable } from "@/components/domain/PrescriptionItemTable";
 import { QrPrescription } from "@/components/domain/QrPrescription";
 import { DdiWarningPanel } from "@/components/domain/DdiWarningPanel";
 import { SignPrescriptionWizard } from "@/components/domain/SignPrescriptionWizard";
+import { CdssAlertBanner } from "@/components/domain/prescriptions/CdssAlertBanner";
 import { ArrowLeft, Printer, AlertTriangle, PenTool } from "lucide-react";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
@@ -44,6 +44,7 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
   const { data: prescription, isLoading } = usePrescription(prescriptionId);
   const { data: dtqgData } = useDtqgStatus(prescriptionId);
   const [signWizardOpen, setSignWizardOpen] = useState(false);
+  const [cdssBlocking, setCdssBlocking] = useState(false);
 
   if (isLoading) {
     return (
@@ -66,7 +67,7 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
     );
   }
 
-  const canSign = prescription.status === "DRAFT" && prescription.items.length > 0;
+  const canSign = prescription.status === "DRAFT" && prescription.items.length > 0 && !cdssBlocking;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -103,8 +104,8 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
             <Printer className="h-4 w-4 mr-2" />
             In đơn
           </Button>
-          {canSign && (
-            <Button onClick={() => setSignWizardOpen(true)}>
+          {prescription.status === "DRAFT" && prescription.items.length > 0 && (
+            <Button onClick={() => setSignWizardOpen(true)} disabled={!canSign}>
               <PenTool className="h-4 w-4 mr-2" />
               Ký số & gửi ĐTQG
             </Button>
@@ -139,6 +140,17 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
               </div>
             </CardContent>
           </Card>
+
+          {/* CDSS Alerts */}
+          {prescription.status === "DRAFT" && prescription.items.length > 0 && (
+            <CdssAlertBanner
+              items={prescription.items.map((it) => ({ drug_id: it.drug_id }))}
+              patientId={prescription.patient_id}
+              encounterId={prescription.encounter_id}
+              prescriptionId={prescription.id}
+              onBlockingChange={setCdssBlocking}
+            />
+          )}
 
           {/* DDI Warnings */}
           {prescription.ddi_warnings && prescription.ddi_warnings.length > 0 && (

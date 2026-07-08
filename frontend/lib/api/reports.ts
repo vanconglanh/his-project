@@ -1,6 +1,163 @@
 import apiClient from "./client";
 
-// ---- Types ----
+// ---- Report Engine (config-driven, /reports/catalog + /reports/{code}/*) ----
+// Nguồn chân lý: docs/api/reports-engine-contract.md
+
+export interface ReportFilterDescriptor {
+  key: string;
+  label: string;
+  /** "Select" | "Enum" | "MultiSelect" (mở rộng) — dùng string để không vỡ khi BE thêm loại mới */
+  type: string;
+  options_source?: string | null;
+  required?: boolean;
+}
+
+export type ReportOrientation = "Portrait" | "Landscape";
+
+export interface ReportCatalogItem {
+  code: string;
+  title: string;
+  group: string;
+  group_order: number;
+  icon?: string | null;
+  orientation: ReportOrientation;
+  group_by_key?: string | null;
+  filters: ReportFilterDescriptor[];
+}
+
+export type ReportColumnType = "Text" | "Money" | "Number" | "Date" | "DateTime" | "Enum";
+export type ReportColumnAlign = "Left" | "Right" | "Center";
+
+export interface ReportColumn {
+  key: string;
+  label: string;
+  type: ReportColumnType;
+  align: ReportColumnAlign;
+  width?: number;
+  is_group_subtotal?: boolean;
+}
+
+export type ReportCellValue = string | number | boolean | null | undefined;
+export type ReportRow = Record<string, ReportCellValue>;
+
+export interface ReportGroupData {
+  key: string;
+  label: string;
+  count: number;
+  rows: ReportRow[];
+  subtotals: Record<string, number>;
+}
+
+export type ReportKpiTintToken = "brand" | "done" | "warning" | "critical" | "insurance" | "neutral";
+
+export interface ReportKpi {
+  label: string;
+  tint?: string | null;
+  tint_token?: ReportKpiTintToken | null;
+  value: number;
+  is_money: boolean;
+}
+
+export interface ReportDataPayload {
+  columns: ReportColumn[];
+  groups: ReportGroupData[] | null;
+  rows: ReportRow[] | null;
+  totals: Record<string, number>;
+  kpis: ReportKpi[];
+}
+
+export interface ReportEngineMeta {
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface ReportDataResult {
+  data: ReportDataPayload;
+  meta: ReportEngineMeta;
+}
+
+export interface ReportOption {
+  value: string;
+  label: string;
+}
+
+export interface ReportDataQueryParams {
+  from: string;
+  to: string;
+  page?: number;
+  page_size?: number;
+  [extraFilterKey: string]: string | number | undefined;
+}
+
+export type ReportExportFormat = "pdf" | "excel";
+
+export interface ReportExportResult {
+  blob: Blob;
+  fileName: string;
+}
+
+/** GET /reports/catalog — danh mục toàn bộ báo cáo config-driven (sắp xếp theo group/group_order). */
+export async function getReportCatalog(): Promise<ReportCatalogItem[]> {
+  const { data } = await apiClient.get<{ data: ReportCatalogItem[] }>("/reports/catalog");
+  return data.data;
+}
+
+/** GET /reports/{code}/data — lấy dữ liệu lưới (group hoặc phẳng) theo khoảng ngày + filter riêng. */
+export async function getReportData(
+  code: string,
+  params: ReportDataQueryParams
+): Promise<ReportDataResult> {
+  const { data } = await apiClient.get<{ data: ReportDataPayload; meta: ReportEngineMeta }>(
+    `/reports/${code}/data`,
+    { params }
+  );
+  return { data: data.data, meta: data.meta };
+}
+
+/** GET /reports/options/{source} — danh sách lựa chọn cho filter dropdown (collectors, counters, ...). */
+export async function getReportOptions(source: string): Promise<ReportOption[]> {
+  const { data } = await apiClient.get<{ data: ReportOption[] }>(`/reports/options/${source}`);
+  return data.data;
+}
+
+function parseFileNameFromDisposition(disposition: string | undefined, fallback: string): string {
+  if (!disposition) return fallback;
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]);
+    } catch {
+      return utf8Match[1];
+    }
+  }
+  const plainMatch = /filename="?([^";]+)"?/i.exec(disposition);
+  return plainMatch?.[1] ?? fallback;
+}
+
+/**
+ * GET /reports/{code}/export — xuất PDF/Excel toàn bộ dữ liệu trong kỳ (không phân trang).
+ * Trả về Blob + tên file gợi ý (ưu tiên Content-Disposition, fallback code-from-to.ext).
+ */
+export async function exportReportEngine(
+  code: string,
+  params: Omit<ReportDataQueryParams, "page" | "page_size">,
+  format: ReportExportFormat
+): Promise<ReportExportResult> {
+  const res = await apiClient.get(`/reports/${code}/export`, {
+    params: { ...params, format },
+    responseType: "blob",
+  });
+  const contentType = format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: contentType });
+  const ext = format === "pdf" ? "pdf" : "xlsx";
+  const fallbackName = `${code}-${params.from}-${params.to}.${ext}`;
+  const disposition = res.headers?.["content-disposition"] as string | undefined;
+  const fileName = parseFileNameFromDisposition(disposition, fallbackName);
+  return { blob, fileName };
+}
+
+// ---- Types (dashboard cũ) ----
 
 export type ReportPeriod = "DAY" | "WEEK" | "MONTH" | "YEAR";
 

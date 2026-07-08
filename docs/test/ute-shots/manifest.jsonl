@@ -1,0 +1,49 @@
+{"file":"01-login.png","code":"LOGIN","view":"初期表示 · Đăng nhập hệ thống","expect":"Vào Dashboard thành công"}
+{"file":"02-bn-a01.png","code":"BN-A01","view":"初期表示 · Bệnh nhân — Danh sách","expect":"Hiển thị danh sách + ô tìm kiếm"}
+{"file":"03-bn-a02.png","code":"BN-A02","view":"初期表示 · Form bệnh nhân rỗng","expect":"Dropdown tiếng Việt + full-screen; default VN/SERVICE"}
+{"file":"04-bn-c01.png","code":"BN-C01","view":"入力チェック · Submit rỗng","expect":"Chặn + báo lỗi: Họ tên bắt buộc (min 2)"}
+{"file":"05-bn-b01.png","code":"BN-B01","view":"項目設定 · Điền đủ + chọn Giới tính","expect":"Nhận input + dropdown tiếng Việt"}
+{"file":"06-bn-e01.png","code":"BN-E01","view":"DB登録 · Submit hợp lệ","expect":"Thông báo tạo bệnh nhân thành công"}
+{"file":"07-bn-f01.png","code":"BN-F01","view":"登録後再表示 · Danh sách sau tạo","expect":"Bệnh nhân mới xuất hiện"}
+{"file":"08-ncc-a01.png","code":"NCC-A01","view":"初期表示 · Nhà cung cấp — Danh sách (READ)","expect":"Hiển thị danh sách + ô tìm kiếm/lọc"}
+{"file":"09-ncc-a02.png","code":"NCC-A02","view":"初期表示 · Form tạo rỗng","expect":"Đủ control, field rỗng, giá trị mặc định"}
+{"file":"10-ncc-c01.png","code":"NCC-C01","view":"入力チェック · Submit khi rỗng","expect":"Chặn submit + báo lỗi: Mã + Tên NCC bắt buộc"}
+{"file":"11-ncc-b01.png","code":"NCC-B01","view":"項目設定 · Điền đủ input","expect":"Nhận đủ dữ liệu (text + dropdown/checkbox)"}
+{"file":"12-ncc-e01.png","code":"NCC-E01","view":"DB登録 · Submit hợp lệ","expect":"Thông báo thành công / dialog đóng"}
+{"file":"13-ncc-f01.png","code":"NCC-F01","view":"登録後再表示 · Danh sách sau tạo","expect":"Bản ghi mới xuất hiện trong danh sách"}
+{"file":"14-thu-a01.png","code":"THU-A01","view":"初期表示 · Danh mục thuốc — Danh sách (READ)","expect":"Hiển thị danh sách + ô tìm kiếm/lọc"}
+{"file":"15-thu-a02.png","code":"THU-A02","view":"初期表示 · Form tạo rỗng","expect":"Đủ control, field rỗng, giá trị mặc định"}
+{"file":"16-thu-c01.png","code":"THU-C01","view":"入力チェック · Submit khi rỗng","expect":"Chặn submit + báo lỗi: Mã + Tên + Đơn vị + Dạng bắt buộc"}
+{"file":"17-thu-b01.png","code":"THU-B01","view":"項目設定 · Điền đủ input","expect":"Nhận đủ dữ liệu (text + dropdown/checkbox)"}
+{"file":"18-thu-e01.png","code":"THU-E01","view":"DB登録 · Submit hợp lệ","expect":"Thông báo thành công / dialog đóng"}
+{"file":"19-thu-f01.png","code":"THU-F01","view":"登録後再表示 · Danh sách sau tạo","expect":"Bản ghi mới xuất hiện trong danh sách"}
+{"file":"20-dv-a01.png","code":"DV-A01","view":"初期表示 · Dịch vụ — Danh sách (READ)","expect":"Hiển thị danh sách + ô tìm kiếm/lọc"}
+{"file":"21-dv-a02.png","code":"DV-A02","view":"初期表示 · Form tạo rỗng","expect":"Đủ control, field rỗng, giá trị mặc định"}
+{"file":"22-dv-c01.png","code":"DV-C01","view":"入力チェック · Submit khi rỗng","expect":"Chặn submit + báo lỗi: Mã + Tên dịch vụ bắt buộc"}
+{"file":"23-dv-b01.png","code":"DV-B01","view":"項目設定 · Điền đủ input","expect":"Nhận đủ dữ liệu (text + dropdown/checkbox)"}
+{"file":"24-dv-e01.png","code":"DV-E01","view":"DB登録 · Submit hợp lệ","expect":"Thông báo thành công / dialog đóng"}
+{"file":"25-dv-f01.png","code":"DV-F01","view":"登録後再表示 · Danh sách sau tạo","expect":"Bản ghi mới xuất hiện trong danh sách"}
+{"file":"26-vt-a01.png","code":"VT-A01","view":"初期表示 · Vai trò — Danh sách (READ)","expect":"Hiển thị danh sách + ô tìm kiếm/lọc"}
+{"file":"27-vt-a02.png","code":"VT-A02","view":"初期表示 · Form tạo rỗng","expect":"Đủ control, field rỗng, giá trị mặc định"}
+{"file":"28-vt-c01.png","code":"VT-C01","view":"入力チェック · Submit khi rỗng","expect":"Chặn submit + báo lỗi: Mã + Tên + ≥1 quyền bắt buộc"}
+{"file":"29-vt-b01.png","code":"VT-B01","view":"項目設定 · Điền đủ input","expect":"Nhận đủ dữ liệu (text + dropdown/checkbox)"}
+{"file":"30-vt-e01.png","code":"VT-E01","view":"DB登録 · Submit hợp lệ","expect":"Thông báo thành công / dialog đóng"}
+{"file":"31-vt-f01.png","code":"VT-F01","view":"登録後再表示 · Danh sách sau tạo","expect":"Bản ghi mới xuất hiện trong danh sách"}
+{"file":"32-api-a01.png","code":"API-A01","view":"初期表示 · API Partner — Danh sách (READ)","expect":"Hiển thị danh sách + ô tìm kiếm/lọc"}
+{"file":"33-api-a02.png","code":"API-A02","view":"初期表示 · Form tạo rỗng","expect":"Đủ control, field rỗng, giá trị mặc định"}
+{"file":"34-api-c01.png","code":"API-C01","view":"入力チェック · Submit khi rỗng","expect":"Chặn submit + báo lỗi: Tên + ≥1 scope bắt buộc"}
+{"file":"35-api-b01.png","code":"API-B01","view":"項目設定 · Điền đủ input","expect":"Nhận đủ dữ liệu (text + dropdown/checkbox)"}
+{"file":"36-api-e01.png","code":"API-E01","view":"DB登録 · Submit hợp lệ","expect":"Thông báo thành công / dialog đóng"}
+{"file":"37-api-f01.png","code":"API-F01","view":"登録後再表示 · Danh sách sau tạo","expect":"Bản ghi mới xuất hiện trong danh sách"}
+{"file":"38-pk-a01.png","code":"PK-A01","view":"初期表示 · Phòng khám (Tenant) — Danh sách (READ)","expect":"Hiển thị danh sách + ô tìm kiếm/lọc"}
+{"file":"39-pk-a02.png","code":"PK-A02","view":"初期表示 · Form tạo rỗng","expect":"Đủ control, field rỗng, giá trị mặc định"}
+{"file":"40-pk-c01.png","code":"PK-C01","view":"入力チェック · Submit khi rỗng","expect":"Chặn submit + báo lỗi: Mã + Subdomain + Tên + Email + Admin bắt buộc"}
+{"file":"41-pk-b01.png","code":"PK-B01","view":"項目設定 · Điền đủ input","expect":"Nhận đủ dữ liệu (text + dropdown/checkbox)"}
+{"file":"42-pk-e01.png","code":"PK-E01","view":"DB登録 · Submit hợp lệ","expect":"Thông báo thành công / dialog đóng"}
+{"file":"43-pk-f01.png","code":"PK-F01","view":"登録後再表示 · Danh sách sau tạo","expect":"Bản ghi mới xuất hiện trong danh sách"}
+{"file":"44-nd-a01.png","code":"ND-A01","view":"初期表示 · Người dùng — Danh sách (READ)","expect":"Hiển thị danh sách + ô tìm kiếm/lọc"}
+{"file":"45-nd-a02.png","code":"ND-A02","view":"初期表示 · Form tạo rỗng","expect":"Đủ control, field rỗng, giá trị mặc định"}
+{"file":"46-nd-c01.png","code":"ND-C01","view":"入力チェック · Submit khi rỗng","expect":"Chặn submit + báo lỗi: Email + Tên + ≥1 vai trò bắt buộc"}
+{"file":"47-nd-b01.png","code":"ND-B01","view":"項目設定 · Điền đủ input","expect":"Nhận đủ dữ liệu (text + dropdown/checkbox)"}
+{"file":"48-nd-e01.png","code":"ND-E01","view":"DB登録 · Submit hợp lệ","expect":"Thông báo thành công / dialog đóng"}
+{"file":"49-nd-f01.png","code":"ND-F01","view":"登録後再表示 · Danh sách sau tạo","expect":"Bản ghi mới xuất hiện trong danh sách"}

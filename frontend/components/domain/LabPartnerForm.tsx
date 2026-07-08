@@ -97,6 +97,7 @@ export function LabPartnerForm({ existing, onSubmit, onCancel, isSubmitting }: L
         <div className="space-y-1.5">
           <Label htmlFor="lp-transport">Giao thức *</Label>
           <Select
+            items={{ REST: "REST", HL7_MLLP: "HL7 MLLP" }}
             defaultValue={form.getValues("transport")}
             onValueChange={(v) => form.setValue("transport", v as "REST" | "HL7_MLLP")}
           >
@@ -113,6 +114,7 @@ export function LabPartnerForm({ existing, onSubmit, onCancel, isSubmitting }: L
         <div className="space-y-1.5">
           <Label htmlFor="lp-auth">Kiểu xác thực *</Label>
           <Select
+            items={{ NONE: "Không có", API_KEY: "API Key", BEARER: "Bearer Token" }}
             defaultValue={form.getValues("auth_type")}
             onValueChange={(v) => form.setValue("auth_type", v as "NONE" | "API_KEY" | "BEARER")}
           >

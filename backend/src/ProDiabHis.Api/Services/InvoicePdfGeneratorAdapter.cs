@@ -1,4 +1,5 @@
 using ProDiabHis.Application.Billing;
+using ProDiabHis.Application.Reports;
 
 namespace ProDiabHis.Api.Services;
 
@@ -16,8 +17,9 @@ public class InvoicePdfGeneratorAdapter : IInvoicePdfGenerator
         BillingResponse billing,
         string copyLabel,
         bool reprint,
-        CancellationToken ct)
-        => _svc.GenerateInvoicePdfAsync(billing, new PrintBillingOptions(copyLabel, reprint), ct);
+        CancellationToken ct,
+        LetterheadDto? letterhead = null)
+        => _svc.GenerateInvoicePdfAsync(billing, new PrintBillingOptions(copyLabel, reprint), ct, letterhead);
 }
 
 /// <summary>
@@ -47,7 +49,8 @@ public class ReceiptPdfGeneratorAdapter : IReceiptPdfGenerator
             data.Amount,
             data.Reference,
             data.CashierName,
-            data.Lines.Select(l => new ReceiptLineItem(l.Name, l.Quantity, l.UnitPrice, l.LineTotal)).ToList());
+            data.Lines.Select(l => new ReceiptLineItem(l.Name, l.Quantity, l.UnitPrice, l.LineTotal)).ToList(),
+            data.Letterhead);
 
         return _svc.GenerateReceiptPdfAsync(receiptData, reprint, ct);
     }

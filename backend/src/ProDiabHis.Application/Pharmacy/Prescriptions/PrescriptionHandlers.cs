@@ -2,6 +2,7 @@ using System.Data;
 using Dapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using ProDiabHis.Application.Cdss;
 using ProDiabHis.Application.Common;
 
 namespace ProDiabHis.Application.Pharmacy.Prescriptions;
@@ -41,6 +42,13 @@ public record CheckDdiQuery(Guid PrescriptionId) : IRequest<Result<DdiCheckRespo
 public record GetPrescriptionQrQuery(Guid Id) : IRequest<Result<byte[]>>;
 
 public record GetPrescriptionPdfQuery(Guid Id) : IRequest<Result<byte[]>>;
+
+/// <summary>
+/// Query rieng cho Patient Portal: giong GetPrescriptionPdfQuery nhung BAT BUOC loc them
+/// theo PatientId (tu JWT claim "patient_id" cua PortalBearer) de benh nhan KHONG xem duoc
+/// don thuoc cua benh nhan khac cung tenant.
+/// </summary>
+public record GetPortalPrescriptionPdfQuery(Guid PrescriptionId, Guid PatientId, int TenantId) : IRequest<Result<byte[]>>;
 
 public record GetPrintHistoryQuery(Guid PrescriptionId) : IRequest<Result<IReadOnlyList<PrintHistoryItem>>>;
 
@@ -427,18 +435,18 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
     private readonly IUsbTokenSigner _signer;
-    private readonly IDdiChecker _ddiChecker;
+    private readonly ICdssEngine _cdssEngine;
     private readonly IAuditService _audit;
     private readonly ILogger<SignPrescriptionHandler> _logger;
 
     public SignPrescriptionHandler(IDapperConnectionFactory db, ICurrentUser currentUser,
-        IUsbTokenSigner signer, IDdiChecker ddiChecker, IAuditService audit,
+        IUsbTokenSigner signer, ICdssEngine cdssEngine, IAuditService audit,
         ILogger<SignPrescriptionHandler> logger)
     {
         _db = db;
         _currentUser = currentUser;
         _signer = signer;
-        _ddiChecker = ddiChecker;
+        _cdssEngine = cdssEngine;
         _audit = audit;
         _logger = logger;
     }
@@ -470,21 +478,36 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
         if (!verifyResult.IsValid)
             return Result<PrescriptionResponse>.Failure("PRESCRIPTION_SIGNATURE_FAILED", $"Chu ky so khong hop le: {verifyResult.ErrorReason}");
 
-        // DDI check - block if CONTRAINDICATED
-        // Luu y: diab_his_pha_prescription_items.drug_id la GUID (CHAR(36), khop
-        // diab_his_pha_drugs.id) trong khi diab_his_pha_ddi_rules van dung ID so nguyen
-        // tham chieu catalog thuoc cu (pha_drug_master). Hai catalog nay khong con tuong
-        // thich (khac khoa chinh) nen chua co cach anh xa GUID -> ID so hop le; DDI-check
-        // tam thoi tra ve danh sach rong (khong crash) cho toi khi co migration hop nhat
-        // catalog thuoc. Xem ghi chu bao cao cua Thao (BUG DrugId type mismatch).
-        var drugIds = new List<int>();
+        // CDSS check - chan luong ky neu co canh bao interruptive chua duoc override
+        var presIdStr = pres.Id?.ToString() ?? cmd.Id.ToString();
+        var drugItems = (await conn.QueryAsync<(string DrugId, string? GenericName, string? AtcCode)>(
+            @"SELECT pi.drug_id AS DrugId, d.generic_name AS GenericName, d.atc_code AS AtcCode
+              FROM diab_his_pha_prescription_items pi
+              JOIN diab_his_pha_drugs d ON d.id = pi.drug_id
+              WHERE pi.prescription_id = @presId AND pi.tenant_id = @tenantId AND pi.deleted_at IS NULL",
+            new { presId = presIdStr, tenantId })).ToList();
 
-        var ddiWarnings = await _ddiChecker.CheckAsync(drugIds, ct);
-        if (ddiWarnings.Any(w => w.Severity == "CONTRAINDICATED"))
+        var cdssCtx = new CdssEvaluationContext(
+            tenantId,
+            Guid.TryParse((string?)pres.PatientId?.ToString(), out var patGuid) ? patGuid : null,
+            Guid.TryParse((string?)pres.EncounterId?.ToString(), out var encGuid) ? encGuid : null,
+            cmd.Id,
+            drugItems.Select(d => new PrescribedDrug(d.DrugId, d.GenericName, d.AtcCode)).ToList());
+
+        var cdssResult = await _cdssEngine.EvaluateAsync(cdssCtx, "SIGN", logEvents: true, ct);
+
+        if (cdssResult.HasInterruptive)
         {
-            _logger.LogWarning("Prescription {Id} sign blocked due to CONTRAINDICATED DDI", cmd.Id);
-            return Result<PrescriptionResponse>.Failure("PRESCRIPTION_DDI_BLOCKED",
-                "Don thuoc co tuong tac chong chi dinh (CONTRAINDICATED). Khong the ky so.");
+            var overrideCount = await conn.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM diab_his_cdss_alert_override_log WHERE prescription_id = @presId AND tenant_id = @tenantId",
+                new { presId = presIdStr, tenantId });
+
+            if (overrideCount == 0)
+            {
+                _logger.LogWarning("Prescription {Id} sign blocked due to interruptive CDSS alert", cmd.Id);
+                return Result<PrescriptionResponse>.Failure("PRESCRIPTION_CDSS_BLOCKED",
+                    "Đơn thuốc có cảnh báo nghiêm trọng chưa được xác nhận. Vui lòng xem lại hoặc nhập lý do bỏ qua.");
+            }
         }
 
         var signatureBytes = Convert.FromBase64String(cmd.Request.SignatureData);
@@ -588,33 +611,57 @@ public class CheckDdiHandler : IRequestHandler<CheckDdiQuery, Result<DdiCheckRes
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
-    private readonly IDdiChecker _ddiChecker;
+    private readonly ICdssEngine _cdssEngine;
 
-    public CheckDdiHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IDdiChecker ddiChecker)
+    public CheckDdiHandler(IDapperConnectionFactory db, ICurrentUser currentUser, ICdssEngine cdssEngine)
     {
         _db = db;
         _currentUser = currentUser;
-        _ddiChecker = ddiChecker;
+        _cdssEngine = cdssEngine;
     }
 
     public async Task<Result<DdiCheckResponse>> Handle(CheckDdiQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
+        var presIdStr = q.PrescriptionId.ToString();
 
-        var presId = await conn.ExecuteScalarAsync<int?>(
-            "SELECT id FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { id = q.PrescriptionId.ToString(), tenantId });
+        var pres = await conn.QueryFirstOrDefaultAsync<(string? PatientId, string? EncounterId)?>(
+            "SELECT patient_id AS PatientId, encounter_id AS EncounterId FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+            new { id = presIdStr, tenantId });
 
-        if (presId == null)
+        if (pres is null)
             return Result<DdiCheckResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
 
-        var drugIds = (await conn.QueryAsync<int>(
-            "SELECT drug_id FROM diab_his_pha_prescription_items WHERE prescription_id = @presId AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { presId, tenantId })).ToList();
+        var drugItems = (await conn.QueryAsync<(string DrugId, string? GenericName, string? AtcCode)>(
+            @"SELECT pi.drug_id AS DrugId, d.generic_name AS GenericName, d.atc_code AS AtcCode
+              FROM diab_his_pha_prescription_items pi
+              JOIN diab_his_pha_drugs d ON d.id = pi.drug_id
+              WHERE pi.prescription_id = @presId AND pi.tenant_id = @tenantId AND pi.deleted_at IS NULL",
+            new { presId = presIdStr, tenantId })).ToList();
 
-        var warnings = await _ddiChecker.CheckAsync(drugIds, ct);
-        var hasContraindicated = warnings.Any(w => w.Severity == "CONTRAINDICATED");
+        var cdssCtx = new CdssEvaluationContext(
+            tenantId,
+            Guid.TryParse(pres.Value.PatientId, out var patGuid) ? patGuid : null,
+            Guid.TryParse(pres.Value.EncounterId, out var encGuid) ? encGuid : null,
+            q.PrescriptionId,
+            drugItems.Select(d => new PrescribedDrug(d.DrugId, d.GenericName, d.AtcCode)).ToList());
+
+        var cdssResult = await _cdssEngine.EvaluateAsync(cdssCtx, "CHECK", logEvents: true, ct);
+
+        var warnings = cdssResult.Alerts
+            .Where(a => a.RuleType == "DRUG_DRUG")
+            .Select(a =>
+            {
+                var pairText = a.Title.Replace("Tương tác thuốc: ", "");
+                var parts = pairText.Split(" + ", 2);
+                var ingredientA = parts.Length > 0 ? parts[0] : pairText;
+                var ingredientB = parts.Length > 1 ? parts[1] : "";
+                return new DdiWarning(0, ingredientA, 0, ingredientB, a.Severity, a.Detail, "");
+            })
+            .ToList();
+
+        var hasContraindicated = cdssResult.Alerts.Any(a => a.Severity == "CONTRAINDICATED");
 
         return Result<DdiCheckResponse>.Success(new DdiCheckResponse(q.PrescriptionId, warnings, hasContraindicated));
     }
@@ -654,41 +701,239 @@ public class GetPrescriptionPdfHandler : IRequestHandler<GetPrescriptionPdfQuery
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IPrescriptionPdfBuilder _pdfBuilder;
 
-    public GetPrescriptionPdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser)
+    public GetPrescriptionPdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IPrescriptionPdfBuilder pdfBuilder)
     {
         _db = db;
         _currentUser = currentUser;
+        _pdfBuilder = pdfBuilder;
     }
 
     public async Task<Result<byte[]>> Handle(GetPrescriptionPdfQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
+        var presId = q.Id.ToString();
 
-        var exists = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(1) FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { id = q.Id.ToString(), tenantId });
+        // Header don thuoc + benh nhan + bac si + chan doan tu encounter
+        var pres = await conn.QueryFirstOrDefaultAsync<PrescriptionPdfHeaderRow>(
+            @"SELECT p.id as PrescriptionId, p.prescription_no as Code, p.created_at as PrescribedAt, p.note as Note,
+                     p.diagnosis_icd10 as DiagnosisCode,
+                     pat.full_name as PatientFullName, pat.gender as PatientGender,
+                     pat.date_of_birth as PatientDateOfBirth, pat.street as PatientAddress,
+                     doc.full_name as DoctorFullName
+              FROM diab_his_pha_prescriptions p
+              LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id AND pat.tenant_id = p.tenant_id
+              LEFT JOIN diab_his_sec_users doc ON doc.id = p.doctor_id
+              WHERE p.id = @presId AND p.tenant_id = @tenantId AND p.deleted_at IS NULL",
+            new { presId, tenantId });
 
-        if (exists == 0)
+        if (pres == null)
             return Result<byte[]>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
+
+        // Ten chan doan (neu co) tu bang diagnoses khop ma ICD-10 chinh cua don thuoc (qua encounter)
+        string? diagnosisName = null;
+        if (!string.IsNullOrWhiteSpace(pres.DiagnosisCode))
+        {
+            diagnosisName = await conn.ExecuteScalarAsync<string>(
+                @"SELECT d.name FROM diab_his_enc_diagnoses d
+                  JOIN diab_his_pha_prescriptions p ON p.encounter_id = d.encounter_id AND p.tenant_id = d.tenant_id
+                  WHERE p.id = @presId AND p.tenant_id = @tenantId AND d.icd10_code = @code AND d.deleted_at IS NULL
+                  LIMIT 1",
+                new { presId, tenantId, code = pres.DiagnosisCode });
+        }
+
+        // Danh sach thuoc trong don
+        var itemRows = await conn.QueryAsync<PrescriptionPdfItemRow>(
+            @"SELECT d.name as DrugName, d.strength as Strength, d.unit as Unit,
+                     i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
+                     i.duration_days as DurationDays, i.quantity as Quantity, i.instructions as Instructions
+              FROM diab_his_pha_prescription_items i
+              JOIN diab_his_pha_drugs d ON d.id = i.drug_id
+              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL
+              ORDER BY i.created_at",
+            new { presId, tenantId });
+
+        // Letterhead phong kham (giong ExportReportHandler)
+        var lh = await conn.QueryFirstOrDefaultAsync<PrescriptionPdfLetterheadRow>(
+            @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName,
+                     address AS Address, phone AS Phone, email AS Email, email_support AS EmailSupport,
+                     slogan AS Slogan, website AS Website
+              FROM diab_his_sys_tenants
+              WHERE id = @tenantId",
+            new { tenantId });
+
+        byte[]? logoBytes = null; // Logo tenant tuy chinh khong duoc fetch qua HTTP o day; PrescriptionPdfBuilder fallback sang logo bundled
+
+        var items = itemRows.Select((r, idx) => new PrescriptionPdfItem(
+            idx + 1, r.DrugName, r.Strength, r.Unit, r.Quantity, r.Dosage, r.Frequency, r.Route, r.DurationDays, r.Instructions)).ToList();
+
+        var pdfData = new PrescriptionPdfData(
+            PrescriptionCode: pres.Code ?? presId,
+            PrescribedAt: pres.PrescribedAt,
+            Note: pres.Note,
+            ClinicName: lh?.ClinicName ?? "Pro-Diab HIS",
+            ClinicAddress: lh?.Address,
+            ClinicPhone: lh?.Phone,
+            CskcbCode: lh?.CskcbCode,
+            ClinicLogo: logoBytes,
+            PatientFullName: pres.PatientFullName ?? "",
+            PatientGender: pres.PatientGender,
+            PatientDateOfBirth: pres.PatientDateOfBirth.HasValue ? DateOnly.FromDateTime(pres.PatientDateOfBirth.Value) : null,
+            PatientAddress: pres.PatientAddress,
+            DiagnosisCode: pres.DiagnosisCode,
+            DiagnosisName: diagnosisName,
+            DoctorFullName: pres.DoctorFullName,
+            Items: items,
+            ClinicCompanyName: lh?.CompanyName,
+            ClinicSlogan: lh?.Slogan,
+            ClinicWebsite: lh?.Website,
+            ClinicEmail: lh?.EmailSupport ?? lh?.Email);
+
+        var pdf = _pdfBuilder.Build(pdfData);
 
         // Record print event
         await conn.ExecuteAsync(
             "INSERT INTO diab_his_pha_prescription_print_history (id, tenant_id, prescription_id, printed_at) VALUES (UUID(), @tenantId, @presId, NOW())",
-            new { tenantId, presId = q.Id.ToString() });
+            new { tenantId, presId });
 
-        // Generate simple PDF placeholder (QuestPDF integration)
-        var pdf = GeneratePrescriptionPdf(q.Id);
         return Result<byte[]>.Success(pdf);
     }
+}
 
-    private static byte[] GeneratePrescriptionPdf(Guid prescriptionId)
+/// <summary>Portal: xuat PDF don thuoc, chi cho phep benh nhan xem don thuoc CUA CHINH MINH.</summary>
+public class GetPortalPrescriptionPdfHandler : IRequestHandler<GetPortalPrescriptionPdfQuery, Result<byte[]>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly IPrescriptionPdfBuilder _pdfBuilder;
+
+    public GetPortalPrescriptionPdfHandler(IDapperConnectionFactory db, IPrescriptionPdfBuilder pdfBuilder)
     {
-        // Minimal valid PDF stub - PDF generation via IPdfService in Infrastructure
-        var content = $"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 420 595]/Parent 2 0 R/Resources<<>>/Contents 4 0 R>>endobj\n4 0 obj<</Length 44>>stream\nBT /F1 12 Tf 50 500 Td (DON THUOC {prescriptionId}) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000266 00000 n\ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n360\n%%EOF";
-        return System.Text.Encoding.ASCII.GetBytes(content);
+        _db = db;
+        _pdfBuilder = pdfBuilder;
     }
+
+    public async Task<Result<byte[]>> Handle(GetPortalPrescriptionPdfQuery q, CancellationToken ct)
+    {
+        using var conn = ((IDbConnection)_db.CreateConnection());
+        var tenantId = q.TenantId;
+        var presId = q.PrescriptionId.ToString();
+        var patientId = q.PatientId.ToString();
+
+        // Header don thuoc + benh nhan + bac si + chan doan tu encounter — BAT BUOC p.patient_id = @patientId
+        var pres = await conn.QueryFirstOrDefaultAsync<PrescriptionPdfHeaderRow>(
+            @"SELECT p.id as PrescriptionId, p.prescription_no as Code, p.created_at as PrescribedAt, p.note as Note,
+                     p.diagnosis_icd10 as DiagnosisCode,
+                     pat.full_name as PatientFullName, pat.gender as PatientGender,
+                     pat.date_of_birth as PatientDateOfBirth, pat.street as PatientAddress,
+                     doc.full_name as DoctorFullName
+              FROM diab_his_pha_prescriptions p
+              LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id AND pat.tenant_id = p.tenant_id
+              LEFT JOIN diab_his_sec_users doc ON doc.id = p.doctor_id
+              WHERE p.id = @presId AND p.tenant_id = @tenantId AND p.patient_id = @patientId AND p.deleted_at IS NULL",
+            new { presId, tenantId, patientId });
+
+        if (pres == null)
+            return Result<byte[]>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
+
+        string? diagnosisName = null;
+        if (!string.IsNullOrWhiteSpace(pres.DiagnosisCode))
+        {
+            diagnosisName = await conn.ExecuteScalarAsync<string>(
+                @"SELECT d.name FROM diab_his_enc_diagnoses d
+                  JOIN diab_his_pha_prescriptions p ON p.encounter_id = d.encounter_id AND p.tenant_id = d.tenant_id
+                  WHERE p.id = @presId AND p.tenant_id = @tenantId AND d.icd10_code = @code AND d.deleted_at IS NULL
+                  LIMIT 1",
+                new { presId, tenantId, code = pres.DiagnosisCode });
+        }
+
+        var itemRows = await conn.QueryAsync<PrescriptionPdfItemRow>(
+            @"SELECT d.name as DrugName, d.strength as Strength, d.unit as Unit,
+                     i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
+                     i.duration_days as DurationDays, i.quantity as Quantity, i.instructions as Instructions
+              FROM diab_his_pha_prescription_items i
+              JOIN diab_his_pha_drugs d ON d.id = i.drug_id
+              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL
+              ORDER BY i.created_at",
+            new { presId, tenantId });
+
+        var lh = await conn.QueryFirstOrDefaultAsync<PrescriptionPdfLetterheadRow>(
+            @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName,
+                     address AS Address, phone AS Phone, email AS Email, email_support AS EmailSupport,
+                     slogan AS Slogan, website AS Website
+              FROM diab_his_sys_tenants
+              WHERE id = @tenantId",
+            new { tenantId });
+
+        var items = itemRows.Select((r, idx) => new PrescriptionPdfItem(
+            idx + 1, r.DrugName, r.Strength, r.Unit, r.Quantity, r.Dosage, r.Frequency, r.Route, r.DurationDays, r.Instructions)).ToList();
+
+        var pdfData = new PrescriptionPdfData(
+            PrescriptionCode: pres.Code ?? presId,
+            PrescribedAt: pres.PrescribedAt,
+            Note: pres.Note,
+            ClinicName: lh?.ClinicName ?? "Pro-Diab HIS",
+            ClinicAddress: lh?.Address,
+            ClinicPhone: lh?.Phone,
+            CskcbCode: lh?.CskcbCode,
+            ClinicLogo: null,
+            PatientFullName: pres.PatientFullName ?? "",
+            PatientGender: pres.PatientGender,
+            PatientDateOfBirth: pres.PatientDateOfBirth.HasValue ? DateOnly.FromDateTime(pres.PatientDateOfBirth.Value) : null,
+            PatientAddress: pres.PatientAddress,
+            DiagnosisCode: pres.DiagnosisCode,
+            DiagnosisName: diagnosisName,
+            DoctorFullName: pres.DoctorFullName,
+            Items: items,
+            ClinicCompanyName: lh?.CompanyName,
+            ClinicSlogan: lh?.Slogan,
+            ClinicWebsite: lh?.Website,
+            ClinicEmail: lh?.EmailSupport ?? lh?.Email);
+
+        var pdf = _pdfBuilder.Build(pdfData);
+        return Result<byte[]>.Success(pdf);
+    }
+}
+
+internal class PrescriptionPdfHeaderRow
+{
+    public string? PrescriptionId { get; set; }
+    public string? Code { get; set; }
+    public DateTime PrescribedAt { get; set; }
+    public string? Note { get; set; }
+    public string? PatientFullName { get; set; }
+    public string? PatientGender { get; set; }
+    public DateTime? PatientDateOfBirth { get; set; }
+    public string? PatientAddress { get; set; }
+    public string? DoctorFullName { get; set; }
+    public string? DiagnosisCode { get; set; }
+}
+
+internal class PrescriptionPdfItemRow
+{
+    public string DrugName { get; set; } = "";
+    public string? Strength { get; set; }
+    public string? Unit { get; set; }
+    public string Dosage { get; set; } = "";
+    public string Frequency { get; set; } = "";
+    public string Route { get; set; } = "ORAL";
+    public int DurationDays { get; set; }
+    public decimal Quantity { get; set; }
+    public string? Instructions { get; set; }
+}
+
+internal class PrescriptionPdfLetterheadRow
+{
+    public string? ClinicName { get; set; }
+    public string? CskcbCode { get; set; }
+    public string? CompanyName { get; set; }
+    public string? Address { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? EmailSupport { get; set; }
+    public string? Slogan { get; set; }
+    public string? Website { get; set; }
 }
 
 public class GetPrintHistoryHandler : IRequestHandler<GetPrintHistoryQuery, Result<IReadOnlyList<PrintHistoryItem>>>

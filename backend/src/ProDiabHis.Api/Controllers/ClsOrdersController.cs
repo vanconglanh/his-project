@@ -96,6 +96,34 @@ public class ClsOrdersController : ControllerBase
         return NoContent();
     }
 
+    // GET /api/v1/encounters/{encounterId}/lab-orders/pdf
+    [HttpGet("api/v1/encounters/{encounterId:guid}/lab-orders/pdf")]
+    [RequirePermission("lab_order.read")]
+    public async Task<IActionResult> LabOrdersPdf(Guid encounterId, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetLabOrdersPdfQuery(encounterId), ct);
+        if (!result.IsSuccess)
+        {
+            var code = result.ErrorCode == "ENCOUNTER_NOT_FOUND" || result.ErrorCode == "LAB_ORDER_EMPTY" ? 404 : 400;
+            return StatusCode(code, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return File(result.Value!, "application/pdf", $"phieu-chi-dinh-xn-{encounterId:N}.pdf");
+    }
+
+    // GET /api/v1/encounters/{encounterId}/rad-orders/pdf
+    [HttpGet("api/v1/encounters/{encounterId:guid}/rad-orders/pdf")]
+    [RequirePermission("rad_order.read")]
+    public async Task<IActionResult> RadOrdersPdf(Guid encounterId, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetRadOrdersPdfQuery(encounterId), ct);
+        if (!result.IsSuccess)
+        {
+            var code = result.ErrorCode == "ENCOUNTER_NOT_FOUND" || result.ErrorCode == "RAD_ORDER_EMPTY" ? 404 : 400;
+            return StatusCode(code, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return File(result.Value!, "application/pdf", $"phieu-chi-dinh-cdha-{encounterId:N}.pdf");
+    }
+
     // GET /api/v1/cls-catalog/tests
     [HttpGet("api/v1/cls-catalog/tests")]
     [RequirePermission("lab_order.read")]

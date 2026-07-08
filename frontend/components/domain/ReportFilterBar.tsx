@@ -64,7 +64,17 @@ export function ReportFilterBar({ onRangeChange, onExport, showExport = true }: 
     <div className="flex flex-wrap items-end gap-3">
       <div className="flex flex-col gap-1">
         <Label className="text-xs">Khoảng thời gian</Label>
-        <Select value={preset} onValueChange={handlePresetChange}>
+        <Select
+          items={{
+            "7d": "7 ngày qua",
+            "30d": "30 ngày qua",
+            thisMonth: "Tháng này",
+            lastMonth: "Tháng trước",
+            custom: "Tùy chọn",
+          }}
+          value={preset}
+          onValueChange={handlePresetChange}
+        >
           <SelectTrigger className="w-40 h-9">
             <SelectValue />
           </SelectTrigger>

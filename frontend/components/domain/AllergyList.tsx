@@ -96,6 +96,7 @@ export function AllergyList({ patientId }: AllergyListProps) {
             <div className="space-y-1">
               <Label htmlFor="severity">Mức độ *</Label>
               <Select
+                items={Object.fromEntries(Object.entries(severityConfig).map(([k, v]) => [k, v.label]))}
                 value={watch("severity")}
                 onValueChange={(v) => setValue("severity", v as AllergySeverity)}
               >

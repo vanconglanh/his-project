@@ -82,6 +82,7 @@
   "Nav": {
     "overview": "Tổng quan",
     "reception": "Tiếp đón",
+    "appointments": "Lịch hẹn",
     "patients": "Bệnh nhân",
     "encounters": "Khám bệnh",
     "prescriptions": "Kê đơn",
@@ -109,7 +110,9 @@
     "services": "Dịch vụ",
     "einvoice": "HĐĐT",
     "apiPartners": "API Partners",
-    "notificationsConfig": "Cấu hình thông báo"
+    "notificationsConfig": "Cấu hình thông báo",
+    "riskList": "Danh sách nguy cơ ĐTĐ",
+    "recall": "Nhắc tái khám"
   },
   "ApiPartner": {
     "title": "API Partners",

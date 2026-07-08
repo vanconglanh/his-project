@@ -131,7 +131,7 @@ export default function ReportPrintClient({ paramsPromise, searchParamsPromise }
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 print:h-auto print:bg-white">
+    <div className="flex flex-col h-screen bg-muted print:h-auto print:bg-white">
       <PrintToolbar
         objectUrl={objectUrl}
         fileName={`${reportCode || `bao-cao-${reportType}`}.pdf`}

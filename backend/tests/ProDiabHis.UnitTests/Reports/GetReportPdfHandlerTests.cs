@@ -47,7 +47,9 @@ public class GetReportPdfHandlerTests
         await act.Should().ThrowAsync<Exception>();
 
         // Assert — _codeGen.NextAsync KHONG duoc goi
-        await _codeGen.DidNotReceiveWithAnyArgs().NextAsync(default, default, default);
+        // Chi dinh ro overload (ReportType) vi IReportCodeGenerator co them overload(string typeCode)
+        // cho Report Engine config-driven — tranh CS0121 ambiguous call.
+        await _codeGen.DidNotReceiveWithAnyArgs().NextAsync(default(int), default(ReportType), default(DateOnly));
     }
 
     [Fact]

@@ -30,6 +30,14 @@ public record ExportRadResultPdfQuery(Guid Id)
 // ═══════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════
+// Bug tien nhiem #2: cac handler duoi day truoc kia tro toi bang khong ton tai
+// "cli_rad_results". Bang that la diab_his_rad_results, FK "order_id" ->
+// diab_his_rad_orders.id (xem constraint fk_rad_results_order trong DB).
+// patient_id/encounter_id/modality KHONG luu trung lap tren diab_his_rad_results
+// ma duoc JOIN qua diab_his_rad_orders (encounter_id, modality) roi
+// diab_his_enc_encounters (patient_id) — tranh du thua du lieu.
+// Cac cot conclusion/status/verified_at/verified_by/dicom_count duoc bo sung
+// boi migration 9037_rad_results_add_workflow_columns.sql.
 file static class Mapper
 {
     private static Guid ParseGuidSafe(object? v) =>
@@ -49,12 +57,38 @@ file static class Mapper
         (string?)r.recommendations,
         r.performed_at is null ? DateTime.MinValue : (DateTime)r.performed_at,
         string.IsNullOrEmpty((string?)r.performed_by) ? null : ParseGuidSafe(r.performed_by) is Guid pb && pb != Guid.Empty ? pb : (Guid?)null,
-        r.status is null ? "PRELIMINARY" : (string)r.status,
+        r.status is null ? "DRAFT" : (string)r.status,
         r.verified_at is DateTime va ? va : (DateTime?)null,
         string.IsNullOrEmpty((string?)r.verified_by) ? null : ParseGuidSafe(r.verified_by) is Guid vb && vb != Guid.Empty ? vb : (Guid?)null,
         r.dicom_count is null ? 0 : (int)r.dicom_count,
         signedPdfUrl ?? (string?)r.signed_pdf_path,
         r.created_at is DateTime ca ? ca : DateTime.MinValue);
+
+    // Cau truc SELECT dung chung cho List/Create/Update/Verify — alias ve dung
+    // ten field ma Map() phia tren doc.
+    public const string SelectCols = @"
+        rr.id, rr.tenant_id, rr.deleted_at,
+        rr.order_id       AS rad_order_id,
+        enc.patient_id    AS patient_id,
+        ro.encounter_id   AS encounter_id,
+        ro.modality       AS modality,
+        rr.description    AS findings,
+        rr.impression     AS impression,
+        rr.conclusion     AS conclusion,
+        rr.recommendation AS recommendations,
+        rr.performed_at   AS performed_at,
+        rr.performed_by   AS performed_by,
+        rr.status         AS status,
+        rr.verified_at    AS verified_at,
+        rr.verified_by    AS verified_by,
+        rr.dicom_count    AS dicom_count,
+        rr.result_pdf_path AS signed_pdf_path,
+        rr.created_at     AS created_at";
+
+    public const string FromJoin = @"
+        FROM diab_his_rad_results rr
+        JOIN diab_his_rad_orders ro ON ro.id = rr.order_id
+        LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id";
 }
 
 // ═══════════════════════════════════════════════
@@ -73,46 +107,26 @@ public class ListRadResultsQueryHandler
         ListRadResultsQuery q, CancellationToken ct)
     {
         using var conn = _db.CreateConnection();
-        var where = "WHERE tenant_id=@TId AND deleted_at IS NULL";
+        var where = "WHERE rr.tenant_id=@TId AND rr.deleted_at IS NULL";
         var p = new DynamicParameters();
         p.Add("TId", _tenant.TenantId);
 
-        if (q.PatientId.HasValue)  { where += " AND patient_id=@PId";   p.Add("PId", q.PatientId.Value.ToString()); }
-        if (q.EncounterId.HasValue){ where += " AND encounter_id=@EId";  p.Add("EId", q.EncounterId.Value.ToString()); }
-        if (q.RadOrderId.HasValue) { where += " AND rad_order_id=@RId";  p.Add("RId", q.RadOrderId.Value.ToString()); }
-        if (!string.IsNullOrEmpty(q.Status)) { where += " AND status=@St"; p.Add("St", q.Status); }
+        if (q.PatientId.HasValue)  { where += " AND enc.patient_id=@PId"; p.Add("PId", q.PatientId.Value.ToString()); }
+        if (q.EncounterId.HasValue){ where += " AND ro.encounter_id=@EId"; p.Add("EId", q.EncounterId.Value.ToString()); }
+        if (q.RadOrderId.HasValue) { where += " AND rr.order_id=@RId";     p.Add("RId", q.RadOrderId.Value.ToString()); }
+        if (!string.IsNullOrEmpty(q.Status)) { where += " AND rr.status=@St"; p.Add("St", q.Status); }
 
         var offset = (q.Page - 1) * q.PageSize;
         p.Add("Limit", q.PageSize); p.Add("Offset", offset);
 
         var total = await conn.ExecuteScalarAsync<int>(
-            $"SELECT COUNT(*) FROM cli_rad_results {where}", p);
+            $"SELECT COUNT(*) {Mapper.FromJoin} {where}", p);
 
-        // cli_rad_results dung UPPERCASE column names — alias ve lowercase cho Mapper
-        const string selectCols = @"
-            id, tenant_id, deleted_at,
-            RAD_ORDER_ID    AS rad_order_id,
-            PATIENT_ID      AS patient_id,
-            NULL            AS encounter_id,
-            NULL            AS modality,
-            FINDINGS        AS findings,
-            IMPRESSION      AS impression,
-            IMPRESSION      AS conclusion,
-            RECOMMENDATIONS AS recommendations,
-            REPORT_DATE     AS performed_at,
-            CAST(REPORTED_BY AS CHAR(36)) AS performed_by,
-            COALESCE(RESULT_STATUS,'PRELIMINARY') AS status,
-            VERIFICATION_DATE AS verified_at,
-            CAST(VERIFIED_BY AS CHAR(36)) AS verified_by,
-            0               AS dicom_count,
-            NULL            AS signed_pdf_path,
-            CREATED_AT      AS created_at";
         var rows = await conn.QueryAsync<dynamic>(
-            $"SELECT {selectCols} FROM cli_rad_results {where} ORDER BY REPORT_DATE DESC LIMIT @Limit OFFSET @Offset", p);
+            $"SELECT {Mapper.SelectCols} {Mapper.FromJoin} {where} ORDER BY rr.performed_at DESC LIMIT @Limit OFFSET @Offset", p);
 
         List<RadResultResponse> items = rows.Select(r => (RadResultResponse)Mapper.Map(r)).ToList();
-        return Result<(IReadOnlyList<RadResultResponse>, int)>.Success(
-            (items, total));
+        return Result<(IReadOnlyList<RadResultResponse>, int)>.Success((items, total));
     }
 }
 
@@ -137,9 +151,9 @@ public class CreateRadResultCommandHandler
         var req = cmd.Req;
 
         var order = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT ro.id, ro.encounter_id, ro.modality, v.patient_id
-              FROM diab_his_cli_rad_orders ro
-              JOIN cli_visits v ON v.id = ro.encounter_id
+            @"SELECT ro.id, ro.encounter_id, ro.modality, enc.patient_id
+              FROM diab_his_rad_orders ro
+              LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id
               WHERE ro.id=@Id AND ro.tenant_id=@TId AND ro.deleted_at IS NULL",
             new { Id = req.RadOrderId.ToString(), TId = _tenant.TenantId });
 
@@ -151,21 +165,18 @@ public class CreateRadResultCommandHandler
         var userId = _user.UserId?.ToString();
 
         await conn.ExecuteAsync(@"
-            INSERT INTO cli_rad_results
-                (id, tenant_id, rad_order_id, patient_id, encounter_id, modality,
-                 findings, impression, conclusion, recommendations,
+            INSERT INTO diab_his_rad_results
+                (id, tenant_id, order_id, description, impression, conclusion, recommendation,
                  performed_at, performed_by, status, dicom_count,
                  created_at, created_by, updated_at)
             VALUES
-                (@Id, @TId, @OId, @PatId, @EId, @Mod,
-                 @Findings, @Impression, @Conclusion, @Recs,
+                (@Id, @TId, @OId, @Findings, @Impression, @Conclusion, @Recs,
                  @PerAt, @UserId, 'DRAFT', 0,
                  @Now, @UserId, @Now)",
             new
             {
                 Id = id, TId = _tenant.TenantId,
-                OId = req.RadOrderId.ToString(), PatId = (string)order.patient_id,
-                EId = (string)order.encounter_id, Mod = (string)order.modality,
+                OId = req.RadOrderId.ToString(),
                 Findings = req.Findings, Impression = req.Impression,
                 Conclusion = req.Conclusion, Recs = req.Recommendations,
                 PerAt = req.PerformedAt, UserId = userId, Now = now
@@ -174,7 +185,7 @@ public class CreateRadResultCommandHandler
         await _audit.LogAsync("CREATE", "RadResult", id, new { req.RadOrderId }, ct);
 
         var row = await conn.QueryFirstAsync<dynamic>(
-            "SELECT * FROM cli_rad_results WHERE id=@Id", new { Id = id });
+            $"SELECT {Mapper.SelectCols} {Mapper.FromJoin} WHERE rr.id=@Id", new { Id = id });
         return Result<RadResultResponse>.Success(Mapper.Map(row));
     }
 }
@@ -198,7 +209,7 @@ public class UpdateRadResultCommandHandler
     {
         using var conn = _db.CreateConnection();
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, status FROM cli_rad_results WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id, status FROM diab_his_rad_results WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.Id.ToString(), TId = _tenant.TenantId });
 
         if (row is null)
@@ -208,11 +219,11 @@ public class UpdateRadResultCommandHandler
         var newStatus = (string)row.status == RadResultStatus.Verified ? RadResultStatus.Amended : (string)row.status;
 
         await conn.ExecuteAsync(@"
-            UPDATE cli_rad_results SET
-                findings        = COALESCE(@Findings, findings),
+            UPDATE diab_his_rad_results SET
+                description     = COALESCE(@Findings, description),
                 impression      = COALESCE(@Impression, impression),
                 conclusion      = COALESCE(@Conclusion, conclusion),
-                recommendations = COALESCE(@Recs, recommendations),
+                recommendation  = COALESCE(@Recs, recommendation),
                 status          = @Status,
                 updated_at      = @Now,
                 updated_by      = @UserId
@@ -250,8 +261,28 @@ public class VerifyRadResultCommandHandler
     public async Task<Result<string>> Handle(VerifyRadResultCommand cmd, CancellationToken ct)
     {
         using var conn = _db.CreateConnection();
+
+        // Row day du (giong ExportRadResultPdfQueryHandler) de _pdfExporter co du thong tin
+        // benh nhan/bac si/phong kham can thiet khi build PDF ky so.
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM cli_rad_results WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            @"SELECT rr.id, rr.tenant_id, rr.order_id, rr.impression, rr.description, rr.recommendation,
+                     rr.performed_at, rr.performed_by,
+                     ro.modality, ro.body_part, ro.contrast, ro.procedure_name, ro.encounter_id,
+                     enc.patient_id, enc.doctor_id,
+                     pat.code AS patient_code, pat.full_name AS patient_full_name, pat.gender AS patient_gender,
+                     pat.date_of_birth AS patient_dob, pat.street AS patient_address,
+                     doc.full_name AS doctor_full_name,
+                     t.name AS clinic_name, t.cskcb_code AS cskcb_code, t.company_name AS company_name,
+                     t.address AS clinic_address, t.phone AS clinic_phone, t.email AS clinic_email,
+                     t.email_support AS clinic_email_support, t.logo_url AS clinic_logo_url,
+                     t.slogan AS clinic_slogan, t.website AS clinic_website
+              FROM diab_his_rad_results rr
+              JOIN diab_his_rad_orders ro ON ro.id = rr.order_id
+              LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id
+              LEFT JOIN diab_his_pat_patients pat ON pat.id = enc.patient_id AND pat.tenant_id = rr.tenant_id
+              LEFT JOIN diab_his_sec_users doc ON doc.id = enc.doctor_id
+              LEFT JOIN diab_his_sys_tenants t ON t.id = rr.tenant_id
+              WHERE rr.id=@Id AND rr.tenant_id=@TId AND rr.deleted_at IS NULL",
             new { Id = cmd.Id.ToString(), TId = _tenant.TenantId });
 
         if (row is null)
@@ -270,9 +301,9 @@ public class VerifyRadResultCommandHandler
         var userId = _user.UserId?.ToString();
 
         await conn.ExecuteAsync(@"
-            UPDATE cli_rad_results SET
+            UPDATE diab_his_rad_results SET
                 status='VERIFIED', verified_at=@Now, verified_by=@UserId,
-                signed_pdf_path=@PdfPath, updated_at=@Now
+                result_pdf_path=@PdfPath, updated_at=@Now
             WHERE id=@Id",
             new { Now = now, UserId = userId, PdfPath = pdfPath, Id = cmd.Id.ToString() });
 
@@ -298,7 +329,7 @@ public class UploadDicomCommandHandler
     {
         using var conn = _db.CreateConnection();
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, dicom_count FROM cli_rad_results WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id, dicom_count FROM diab_his_rad_results WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.RadResultId.ToString(), TId = _tenant.TenantId });
 
         if (row is null)
@@ -325,7 +356,7 @@ public class UploadDicomCommandHandler
 
         var newCount = (int)(row.dicom_count ?? 0) + uploadedCount;
         await conn.ExecuteAsync(
-            "UPDATE cli_rad_results SET dicom_count=@Count, updated_at=@Now WHERE id=@Id",
+            "UPDATE diab_his_rad_results SET dicom_count=@Count, updated_at=@Now WHERE id=@Id",
             new { Count = newCount, Now = DateTime.UtcNow, Id = cmd.RadResultId.ToString() });
 
         return Result<(int, long)>.Success((uploadedCount, totalSize));
@@ -349,8 +380,26 @@ public class ExportRadResultPdfQueryHandler
     public async Task<Result<byte[]>> Handle(ExportRadResultPdfQuery q, CancellationToken ct)
     {
         using var conn = _db.CreateConnection();
+
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM cli_rad_results WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            @"SELECT rr.id, rr.tenant_id, rr.order_id, rr.impression, rr.description, rr.recommendation,
+                     rr.performed_at, rr.performed_by,
+                     ro.modality, ro.body_part, ro.contrast, ro.procedure_name, ro.encounter_id,
+                     enc.patient_id, enc.doctor_id,
+                     pat.code AS patient_code, pat.full_name AS patient_full_name, pat.gender AS patient_gender,
+                     pat.date_of_birth AS patient_dob, pat.street AS patient_address,
+                     doc.full_name AS doctor_full_name,
+                     t.name AS clinic_name, t.cskcb_code AS cskcb_code, t.company_name AS company_name,
+                     t.address AS clinic_address, t.phone AS clinic_phone, t.email AS clinic_email,
+                     t.email_support AS clinic_email_support, t.logo_url AS clinic_logo_url,
+                     t.slogan AS clinic_slogan, t.website AS clinic_website
+              FROM diab_his_rad_results rr
+              JOIN diab_his_rad_orders ro ON ro.id = rr.order_id
+              LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id
+              LEFT JOIN diab_his_pat_patients pat ON pat.id = enc.patient_id AND pat.tenant_id = rr.tenant_id
+              LEFT JOIN diab_his_sec_users doc ON doc.id = enc.doctor_id
+              LEFT JOIN diab_his_sys_tenants t ON t.id = rr.tenant_id
+              WHERE rr.id=@Id AND rr.tenant_id=@TId AND rr.deleted_at IS NULL",
             new { Id = q.Id.ToString(), TId = _tenant.TenantId });
 
         if (row is null)

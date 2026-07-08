@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Application.Reports;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Billing;
@@ -38,7 +39,7 @@ public record PrintReceiptCommand(Guid PaymentId, PrintReceiptRequest Request)
 /// </summary>
 public interface IInvoicePdfGenerator
 {
-    Task<byte[]> GenerateAsync(BillingResponse billing, string copyLabel, bool reprint, CancellationToken ct);
+    Task<byte[]> GenerateAsync(BillingResponse billing, string copyLabel, bool reprint, CancellationToken ct, LetterheadDto? letterhead = null);
 }
 
 /// <summary>
@@ -63,7 +64,8 @@ public record ReceiptPrintData(
     decimal Amount,
     string? Reference,
     string? CashierName,
-    List<ReceiptLineDto> Lines);
+    List<ReceiptLineDto> Lines,
+    LetterheadDto? Letterhead = null);
 
 public record ReceiptLineDto(string Name, decimal Quantity, decimal UnitPrice, decimal LineTotal);
 
@@ -129,7 +131,17 @@ public class PrintBillingHandler : IRequestHandler<PrintBillingCommand, Result<P
 
         var dto = BillingMapper.ToDto(billing, patient);
 
-        var pdfBytes = await _pdfGen.GenerateAsync(dto, cmd.Request.CopyLabel, cmd.Request.Reprint, ct);
+        LetterheadDto? letterhead = null;
+        using (var conn = _dapper.CreateConnection())
+        {
+            letterhead = await conn.QueryFirstOrDefaultAsync<LetterheadDto>(
+                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                         slogan AS Slogan, website AS Website
+                  FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
+        }
+
+        var pdfBytes = await _pdfGen.GenerateAsync(dto, cmd.Request.CopyLabel, cmd.Request.Reprint, ct, letterhead);
 
         // Archive vao MinIO (best-effort — khong throw neu MinIO chua san)
         var archivedUrl = string.Empty;
@@ -211,6 +223,7 @@ public class PrintReceiptHandler : IRequestHandler<PrintReceiptCommand, Result<P
         string? tenantAddress = null;
         string? tenantCskcbCode = null;
         string? cashierName = null;
+        LetterheadDto? letterhead = null;
         var lines = new List<ReceiptLineDto>();
 
         using (var conn = _dapper.CreateConnection())
@@ -265,6 +278,12 @@ public class PrintReceiptHandler : IRequestHandler<PrintReceiptCommand, Result<P
                 tenantCskcbCode = (string?)tenantRow.cskcb_code;
             }
 
+            letterhead = await conn.QueryFirstOrDefaultAsync<LetterheadDto>(
+                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                         slogan AS Slogan, website AS Website
+                  FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
+
             // Cashier
             if (payment.PaidBy.HasValue)
             {
@@ -288,7 +307,8 @@ public class PrintReceiptHandler : IRequestHandler<PrintReceiptCommand, Result<P
             payment.Amount,
             payment.Reference,
             cashierName,
-            lines);
+            lines,
+            letterhead);
 
         var pdfBytes = await _pdfGen.GenerateAsync(data, cmd.Request.Reprint, ct);
 

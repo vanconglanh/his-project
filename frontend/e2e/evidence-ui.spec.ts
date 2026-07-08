@@ -40,7 +40,7 @@ async function shot(page: Page, section: string, caption: string, focusSel?: str
     document.querySelectorAll(".__ev").forEach((e) => e.remove());
     const cap = document.createElement("div"); cap.className = "__ev";
     cap.innerHTML = `<b style="opacity:.85">${section}</b>&nbsp;·&nbsp;${caption}`;
-    Object.assign(cap.style, { position: "absolute", top: "0", left: "0", right: "0", zIndex: "2147483647", background: "#0B6E5D", color: "#fff", font: "600 15px system-ui,Segoe UI,sans-serif", padding: "10px 16px", textAlign: "center" });
+    Object.assign(cap.style, { position: "absolute", top: "0", left: "0", right: "0", zIndex: "2147483647", background: "#01645A", color: "#fff", font: "600 15px system-ui,Segoe UI,sans-serif", padding: "10px 16px", textAlign: "center" });
     document.body.appendChild(cap);
     let el: HTMLElement | null = null;
     if (focusSel) { try { el = document.querySelector(focusSel as string) as HTMLElement | null; } catch { el = null; } }

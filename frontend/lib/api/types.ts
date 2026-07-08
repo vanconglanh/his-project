@@ -826,3 +826,214 @@ export interface AuditLogResponse {
   details?: Record<string, unknown>;
   created_at: string;
 }
+
+// ─── CDSS ─────────────────────────────────────────────────────────────────────
+
+export type CdssSeverity = "CONTRAINDICATED" | "MAJOR" | "MODERATE" | "MINOR";
+
+export interface CdssDrugInput {
+  drug_id?: string;
+  ingredient?: string;
+  atc_code?: string;
+}
+
+export interface CdssCheckRequest {
+  patient_id?: string;
+  encounter_id?: string;
+  prescription_id?: string;
+  items: CdssDrugInput[];
+}
+
+export interface CdssAlertResponse {
+  rule_type: string;
+  rule_code?: string;
+  severity: CdssSeverity;
+  is_interruptive: boolean;
+  title: string;
+  detail: string;
+  management?: string;
+  drug_refs: string[];
+}
+
+export interface CdssCheckResponse {
+  alerts: CdssAlertResponse[];
+  has_interruptive: boolean;
+}
+
+export interface CdssOverrideRequest {
+  prescription_id?: string;
+  encounter_id?: string;
+  rule_type: string;
+  rule_code?: string;
+  severity: CdssSeverity;
+  override_reason: string;
+  reason_code?: string;
+}
+
+export interface CdssOverrideResponse {
+  id: string;
+}
+
+// ─── Dashboard xu hướng ĐTĐ ───────────────────────────────────────────────────
+
+export type DiabetesTargetParam =
+  | "HBA1C"
+  | "BP_SYS"
+  | "BP_DIA"
+  | "LDL"
+  | "EGFR"
+  | string;
+
+export interface DiabetesTrendPoint {
+  assessed_at: string;
+  hba1c?: number | null;
+  fasting_glucose?: number | null;
+  egfr?: number | null;
+  bp_systolic?: number | null;
+  bp_diastolic?: number | null;
+  bmi?: number | null;
+}
+
+export interface CarePathwayTargetItem {
+  param: DiabetesTargetParam;
+  target_op: string;
+  target_value: number;
+  unit?: string | null;
+}
+
+export interface DiabetesTrajectoryResponse {
+  patient_id: string;
+  series: DiabetesTrendPoint[];
+  targets: CarePathwayTargetItem[];
+}
+
+export type DeteriorationSeverity = "HIGH" | "MEDIUM" | "LOW" | string;
+
+export interface DeteriorationFlag {
+  code: string;
+  message: string;
+  severity: DeteriorationSeverity;
+}
+
+export interface DeteriorationFlagsResponse {
+  patient_id: string;
+  flags: DeteriorationFlag[];
+}
+
+export type RiskLevel = "HIGH" | "MEDIUM" | "LOW";
+
+export interface RiskListItem {
+  patient_id: string;
+  patient_code: string;
+  patient_full_name: string;
+  phone?: string | null;
+  risk_level: RiskLevel;
+  risk_score: number;
+  latest_hba1c?: number | null;
+  latest_egfr?: number | null;
+  latest_bp_sys?: number | null;
+  latest_bp_dia?: number | null;
+  hba1c_trend?: string | null;
+  last_visit_at?: string | null;
+  computed_at: string;
+}
+
+export interface RiskListParams {
+  level?: RiskLevel | "ALL";
+  sort?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListMeta {
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface RiskListResponse {
+  data: RiskListItem[];
+  meta: ListMeta;
+}
+
+export interface CarePathwayTargetDto {
+  param: string;
+  target_op: string;
+  target_value: number;
+  unit?: string | null;
+  note?: string | null;
+}
+
+// ─── Recall / Nhắc tái khám ───────────────────────────────────────────────────
+
+export type RecallStatus = "PENDING" | "CONTACTED" | "SCHEDULED" | "DONE" | "DISMISSED";
+export type RecallPriority = "NORMAL" | "HIGH" | "URGENT" | string;
+
+export interface RecallItem {
+  id: string;
+  patient_id: string;
+  patient_code: string;
+  patient_full_name: string;
+  phone?: string | null;
+  recall_type: string;
+  due_date?: string | null;
+  priority: RecallPriority;
+  status: RecallStatus;
+  channel?: string | null;
+  note?: string | null;
+  contacted_at?: string | null;
+  created_at: string;
+}
+
+export interface RecallListParams {
+  status?: RecallStatus | "ALL";
+  dueBefore?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface RecallListResponse {
+  data: RecallItem[];
+  meta: ListMeta;
+}
+
+export interface UpdateRecallStatusRequest {
+  status: RecallStatus;
+  note?: string;
+  channel?: string;
+}
+
+export interface NotifyRecallRequest {
+  channel?: string;
+}
+
+export interface NotifyRecallResponse {
+  notified: boolean;
+  channel: string;
+}
+
+// ─── AI Suggestion ────────────────────────────────────────────────────────────
+
+export interface GuidelineRecommendation {
+  code: string;
+  text: string;
+  source: string;
+}
+
+export interface TreatmentSuggestionRequest {
+  encounter_id?: string;
+}
+
+export interface TreatmentSuggestionResponse {
+  log_id: string;
+  disclaimer_text: string;
+  body_text: string;
+  fallback_used: boolean;
+  rule_derived: GuidelineRecommendation[];
+}
+
+export type AiSuggestionStatus = "ACCEPTED" | "REJECTED" | "EDITED";
+
+export interface UpdateAiSuggestionStatusRequest {
+  status: AiSuggestionStatus;
+}

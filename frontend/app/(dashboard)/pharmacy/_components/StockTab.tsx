@@ -35,7 +35,11 @@ export function StockTab() {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
           <Label className="text-xs">Kho</Label>
-          <Select value={warehouseId} onValueChange={(v) => { const val = v ?? ""; setWarehouseId(val === "all" ? "" : val); setPage(1); }}>
+          <Select
+            items={{ all: "Tất cả kho", ...Object.fromEntries((warehouses ?? []).map((w) => [w.id, w.name])) }}
+            value={warehouseId}
+            onValueChange={(v) => { const val = v ?? ""; setWarehouseId(val === "all" ? "" : val); setPage(1); }}
+          >
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Tất cả kho" />
             </SelectTrigger>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -93,11 +94,17 @@ export default function PatientDetailPage() {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1.5 -ml-2">
           <ArrowLeft className="h-4 w-4" />
           Danh sách bệnh nhân
         </Button>
+        <Link href={`/patients/${id}/diabetes`}>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Activity className="h-4 w-4" />
+            Xu hướng ĐTĐ
+          </Button>
+        </Link>
       </div>
 
       {/* Reception note alert */}

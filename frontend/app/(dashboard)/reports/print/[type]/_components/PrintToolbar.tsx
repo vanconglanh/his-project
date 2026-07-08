@@ -31,8 +31,8 @@ export function PrintToolbar({
   onExportExcel,
 }: PrintToolbarProps) {
   return (
-    <div className="no-print sticky top-0 z-10 flex flex-wrap items-center gap-3 bg-white/95 backdrop-blur border-b border-gray-200 px-6 py-3 shadow-sm shrink-0">
-      <span className="text-sm text-gray-600 flex-1 min-w-[200px]">
+    <div className="no-print sticky top-0 z-10 flex flex-wrap items-center gap-3 bg-background/95 backdrop-blur border-b border-border px-6 py-3 shadow-sm shrink-0">
+      <span className="text-sm text-muted-foreground flex-1 min-w-[200px]">
         Xem trước báo cáo PDF — nhấn <strong>In báo cáo</strong> để in hoặc <strong>Tải PDF</strong> để tải về.
       </span>
 

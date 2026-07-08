@@ -253,6 +253,7 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
       <div className="space-y-1">
         <Label>Ưu tiên</Label>
         <Select
+          items={{ NORMAL: "Thông thường", PRIORITY: "Ưu tiên", EMERGENCY: "Khẩn cấp" }}
           value={watch("priority")}
           onValueChange={(v) => setValue("priority", v as TicketPriority)}
         >

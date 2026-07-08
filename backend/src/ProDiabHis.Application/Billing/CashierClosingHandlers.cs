@@ -5,9 +5,6 @@ using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Domain.Entities;
 using System.Text.Json;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 
 namespace ProDiabHis.Application.Billing;
 
@@ -281,43 +278,46 @@ public class ListShiftsHandler : IRequestHandler<ListShiftsQuery, Result<PagedRe
 public class ExportShiftPdfHandler : IRequestHandler<ExportShiftPdfQuery, Result<byte[]>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly IDapperConnectionFactory _dapper;
     private readonly ITenantProvider _tenant;
+    private readonly ICashierShiftReportPdfBuilder _builder;
 
-    public ExportShiftPdfHandler(IApplicationDbContext db, ITenantProvider tenant)
+    public ExportShiftPdfHandler(IApplicationDbContext db, IDapperConnectionFactory dapper, ITenantProvider tenant, ICashierShiftReportPdfBuilder builder)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _dapper = dapper; _tenant = tenant; _builder = builder;
     }
 
     public async Task<Result<byte[]>> Handle(ExportShiftPdfQuery query, CancellationToken ct)
     {
+        var tenantId = _tenant.TenantId;
         var shift = await _db.CashierShifts
-            .FirstOrDefaultAsync(s => s.Id == query.Id && s.TenantId == _tenant.TenantId, ct);
+            .FirstOrDefaultAsync(s => s.Id == query.Id && s.TenantId == tenantId, ct);
         if (shift == null) return Result<byte[]>.Failure("SHIFT_NOT_FOUND", "Khong tim thay ca thu ngan");
 
-        QuestPDF.Settings.License = LicenseType.Community;
-        var gross = shift.TotalCash + shift.TotalCard + shift.TotalTransfer + shift.TotalQr + shift.TotalOther;
-        var pdf = Document.Create(doc =>
+        string? cashierName = null;
+        Reports.LetterheadDto? lh;
+        using (var conn = _dapper.CreateConnection())
         {
-            doc.Page(page =>
-            {
-                page.Size(PageSizes.A4);
-                page.Margin(2, QuestPDF.Infrastructure.Unit.Centimetre);
-                page.Content().Column(col =>
-                {
-                    col.Item().Text($"BAO CAO CA THU NGAN: {shift.ShiftDate:dd/MM/yyyy}").FontSize(16).Bold();
-                    col.Item().Text($"Bat dau: {shift.ShiftStart:HH:mm}  |  Ket thuc: {shift.ShiftEnd?.ToString("HH:mm") ?? "-"}");
-                    col.Item().Text($"So du dau ca: {shift.OpeningBalance:N0} VND");
-                    col.Item().Text($"Tong thu tien mat: {shift.TotalCash:N0} VND");
-                    col.Item().Text($"Tong thu the: {shift.TotalCard:N0} VND");
-                    col.Item().Text($"Tong thu QR: {shift.TotalQr:N0} VND");
-                    col.Item().Text($"Tong hoan: {shift.TotalRefund:N0} VND");
-                    col.Item().Text($"Tong thu thuan: {gross - shift.TotalRefund:N0} VND");
-                    if (shift.Difference.HasValue)
-                        col.Item().Text($"Chenh lech: {shift.Difference:N0} VND");
-                });
-            });
-        }).GeneratePdf();
+            cashierName = await conn.QueryFirstOrDefaultAsync<string?>(
+                "SELECT full_name FROM diab_his_sec_users WHERE id = @id",
+                new { id = shift.CashierUserId.ToString() });
 
+            lh = await conn.QueryFirstOrDefaultAsync<Reports.LetterheadDto>(
+                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                         slogan AS Slogan, website AS Website
+                  FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
+        }
+        lh ??= new Reports.LetterheadDto("Pro-Diab HIS", null, null, null, null, null, null, null);
+
+        var data = new CashierShiftReportData(
+            lh, shift.Id, shift.ShiftDate, cashierName, shift.ShiftStart, shift.ShiftEnd, shift.Status,
+            shift.OpeningBalance, shift.ClosingBalance ?? 0,
+            shift.TotalCash, shift.TotalCard, shift.TotalTransfer, shift.TotalQr, shift.TotalOther,
+            shift.TotalRefund, shift.TotalVoid, shift.CountTransactions,
+            shift.ExpectedCash, shift.ActualCash, shift.Difference, shift.Note);
+
+        var pdf = _builder.Build(data);
         return Result<byte[]>.Success(pdf);
     }
 }

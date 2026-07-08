@@ -189,6 +189,7 @@ export function PrescriptionsPageClient() {
         </div>
 
         <Select
+          items={{ "": "Tất cả trạng thái", ...STATUS_LABELS }}
           value={status}
           onValueChange={(v) => { setStatus(v as PrescriptionStatus | ""); setPage(1); }}
         >

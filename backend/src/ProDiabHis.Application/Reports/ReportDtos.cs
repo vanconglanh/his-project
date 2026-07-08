@@ -135,7 +135,9 @@ public record LetterheadDto(
     string? Phone,
     string? Email,
     string? EmailSupport,
-    string? LogoUrl);
+    string? LogoUrl,
+    string? Slogan = null,
+    string? Website = null);
 
 /// <summary>Hang du lieu bao cao tai chinh (Financial).</summary>
 public record FinancialRowDto(

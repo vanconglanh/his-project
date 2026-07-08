@@ -64,7 +64,11 @@ export function RadOrderForm({ encounterId }: Props) {
             name="modality"
             control={control}
             render={({ field }) => (
-              <Select onValueChange={(v) => field.onChange(v ?? "")} value={field.value}>
+              <Select
+                items={Object.fromEntries(MODALITIES.map((m) => [m.value, m.label]))}
+                onValueChange={(v) => field.onChange(v ?? "")}
+                value={field.value}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn phương thức" />
                 </SelectTrigger>
@@ -93,7 +97,11 @@ export function RadOrderForm({ encounterId }: Props) {
             name="priority"
             control={control}
             render={({ field }) => (
-              <Select onValueChange={(v) => field.onChange(v ?? "")} value={field.value}>
+              <Select
+                items={{ NORMAL: "Thường", URGENT: "Khẩn", STAT: "Cấp cứu" }}
+                onValueChange={(v) => field.onChange(v ?? "")}
+                value={field.value}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NORMAL">Thường</SelectItem>

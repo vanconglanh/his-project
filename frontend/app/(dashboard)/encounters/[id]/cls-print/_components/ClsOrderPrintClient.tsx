@@ -4,12 +4,14 @@ import { useEncounter } from "@/lib/hooks/use-encounters";
 import { useLabOrders, useRadOrders } from "@/lib/hooks/use-cls-orders";
 import { useQuery } from "@tanstack/react-query";
 import { getClinicLetterhead } from "@/lib/api/tenant-letterhead";
+import { printLabOrdersPdf, printRadOrdersPdf } from "@/lib/api/cls-orders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Printer, ArrowLeft } from "lucide-react";
+import { Printer, ArrowLeft, FileText, ScanLine } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 // Nhãn hiển thị tiếng Việt cho các enum của chỉ định CLS
 const PRIORITY_LABELS: Record<string, string> = {
@@ -130,9 +132,35 @@ export default function ClsOrderPrintClient({ encounterId }: Props) {
             Quay lại
           </Button>
         </Link>
-        <Button size="sm" className="gap-2" onClick={() => window.print()}>
+        <Button
+          size="sm"
+          className="gap-2"
+          disabled={!labOrders || labOrders.length === 0}
+          onClick={() =>
+            printLabOrdersPdf(encounterId).catch(() =>
+              toast.error("In phiếu chỉ định xét nghiệm thất bại")
+            )
+          }
+        >
+          <FileText className="h-4 w-4" />
+          In phiếu chỉ định XN (PDF)
+        </Button>
+        <Button
+          size="sm"
+          className="gap-2"
+          disabled={!radOrders || radOrders.length === 0}
+          onClick={() =>
+            printRadOrdersPdf(encounterId).catch(() =>
+              toast.error("In phiếu chỉ định CĐHA thất bại")
+            )
+          }
+        >
+          <ScanLine className="h-4 w-4" />
+          In phiếu chỉ định CĐHA (PDF)
+        </Button>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => window.print()}>
           <Printer className="h-4 w-4" />
-          In phiếu chỉ định CLS
+          In gộp (HTML)
         </Button>
       </div>
 

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   UserPlus,
+  CalendarClock,
   Users,
   Stethoscope,
   ClipboardList,
@@ -24,6 +25,8 @@ import {
   Layers,
   Key,
   Bell,
+  ShieldAlert,
+  BellRing,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -49,6 +52,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "reception",
         icon: UserPlus,
         permissions: ["reception.read"],
+      },
+      {
+        href: "/appointments",
+        labelKey: "appointments",
+        icon: CalendarClock,
+        permissions: ["appointment.read"],
       },
       {
         href: "/patients",
@@ -85,6 +94,18 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "nurse",
         icon: Activity,
         permissions: ["nursing.read"],
+      },
+      {
+        href: "/diabetes/risk-list",
+        labelKey: "riskList",
+        icon: ShieldAlert,
+        permissions: ["risk.read"],
+      },
+      {
+        href: "/recall",
+        labelKey: "recall",
+        icon: BellRing,
+        permissions: ["recall.read"],
       },
     ],
   },

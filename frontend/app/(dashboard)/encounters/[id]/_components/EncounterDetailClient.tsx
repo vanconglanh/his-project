@@ -761,6 +761,7 @@ function DiagnosisTabContent({ diagnoses, isInProgress, isDone, onAddSingle, onD
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs" htmlFor={`diag-type-${index}`}>Loại</Label>
                     <Select
+                      items={{ PRIMARY: "Chính", SECONDARY: "Phụ" }}
                       value={row.type}
                       onValueChange={(v) => updateRow(index, "type", v as DiagnosisType)}
                     >

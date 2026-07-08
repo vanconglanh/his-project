@@ -130,6 +130,7 @@ export default function ApiPartnersPage() {
           className="max-w-xs"
         />
         <Select
+          items={{ ALL: "Tất cả", ACTIVE: "Hoạt động", DISABLED: "Tắt", EXPIRED: "Hết hạn" }}
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as ApiPartnerStatus | "ALL")}
         >

@@ -193,7 +193,20 @@ export default function UsersPage() {
             className="pl-9"
           />
         </div>
-        <Select value={roleFilter} onValueChange={(v) => { if (v) { setRoleFilter(v); setPage(1); } }}>
+        <Select
+          items={{
+            ALL: "Tất cả vai trò",
+            ADMIN: "Quản trị",
+            BACSI: "Bác sĩ",
+            DIEUDUONG: "Điều dưỡng",
+            LETAN: "Lễ tân",
+            DUOCSI: "Dược sĩ",
+            KETOAN: "Kế toán",
+            KYTHUATVIEN: "Kỹ thuật viên",
+          }}
+          value={roleFilter}
+          onValueChange={(v) => { if (v) { setRoleFilter(v); setPage(1); } }}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Vai trò" />
           </SelectTrigger>
@@ -208,7 +221,11 @@ export default function UsersPage() {
             <SelectItem value="KYTHUATVIEN">Kỹ thuật viên</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={(v) => { if (v) { setStatusFilter(v); setPage(1); } }}>
+        <Select
+          items={{ ALL: "Tất cả", PENDING: "Chờ kích hoạt", ACTIVE: "Hoạt động", LOCKED: "Bị khoá", DISABLED: "Vô hiệu" }}
+          value={statusFilter}
+          onValueChange={(v) => { if (v) { setStatusFilter(v); setPage(1); } }}
+        >
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>

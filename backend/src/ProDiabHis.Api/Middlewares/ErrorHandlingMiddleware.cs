@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using FluentValidation;
+using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Reports;
 
 namespace ProDiabHis.Api.Middlewares;
@@ -59,6 +60,13 @@ public class ErrorHandlingMiddleware
         {
             _logger.LogWarning("Report empty dataset: {Message}", ex.Message);
             ctx.Response.StatusCode = 422;
+            ctx.Response.ContentType = "application/json";
+            await WriteError(ctx, ex.ErrorCode, ex.Message);
+        }
+        catch (ConflictException ex)
+        {
+            _logger.LogWarning("Conflict: {Code} — {Message}", ex.ErrorCode, ex.Message);
+            ctx.Response.StatusCode = (int)HttpStatusCode.Conflict;
             ctx.Response.ContentType = "application/json";
             await WriteError(ctx, ex.ErrorCode, ex.Message);
         }

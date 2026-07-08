@@ -138,8 +138,18 @@ public class PatientPortalController : ControllerBase
 
     [HttpGet("me/prescriptions/{id:guid}/pdf")]
     [Authorize(AuthenticationSchemes = "PortalBearer")]
-    public IActionResult GetPrescriptionPdf(Guid id)
-        => File(Array.Empty<byte>(), "application/pdf", $"prescription_{id}.pdf");
+    public async Task<IActionResult> GetPrescriptionPdf(Guid id, CancellationToken cancellationToken)
+    {
+        // Ghi chu: PatientId/TenantId lay tu JWT claim cua PortalBearer (da hoat dong o cac
+        // endpoint /me, /me/encounters, /me/appointments). Query rieng cho portal
+        // (GetPortalPrescriptionPdfQuery) BAT BUOC loc them patient_id de benh nhan KHONG
+        // xem duoc don thuoc cua benh nhan khac cung tenant.
+        var result = await _mediator.Send(new Application.Pharmacy.Prescriptions.GetPortalPrescriptionPdfQuery(id, PatientId, TenantId), cancellationToken);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+
+        return File(result.Value!, "application/pdf", $"don-thuoc-{id}.pdf");
+    }
 
     // -------- Lab Results --------
     [HttpGet("me/lab-results")]
@@ -149,8 +159,14 @@ public class PatientPortalController : ControllerBase
 
     [HttpGet("me/lab-results/{id:guid}/pdf")]
     [Authorize(AuthenticationSchemes = "PortalBearer")]
-    public IActionResult GetLabResultPdf(Guid id)
-        => File(Array.Empty<byte>(), "application/pdf", $"lab_{id}.pdf");
+    public async Task<IActionResult> GetLabResultPdf(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.LabResults.GetPortalLabResultPdfQuery(id, PatientId, TenantId), cancellationToken);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+
+        return File(result.Value!, "application/pdf", $"ket-qua-xn-{id}.pdf");
+    }
 
     // -------- Appointments --------
     [HttpGet("me/appointments")]

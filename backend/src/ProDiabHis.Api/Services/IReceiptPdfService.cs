@@ -1,6 +1,6 @@
 namespace ProDiabHis.Api.Services;
 
-/// <summary>Tao PDF bien lai K80 (58mm x chieu cao dong) theo QuestPDF (ADR-0001)</summary>
+/// <summary>Tao PDF bien lai thu tien kho A5 theo QuestPDF (ADR-0001), dung chuan letterhead teal chung he thong</summary>
 public interface IReceiptPdfService
 {
     Task<byte[]> GenerateReceiptPdfAsync(ReceiptData receipt, bool reprint = false, CancellationToken ct = default);
@@ -19,6 +19,7 @@ public record ReceiptData(
     decimal Amount,
     string? Reference,
     string? CashierName,
-    List<ReceiptLineItem> Items);
+    List<ReceiptLineItem> Items,
+    ProDiabHis.Application.Reports.LetterheadDto? Letterhead = null);
 
 public record ReceiptLineItem(string Name, decimal Quantity, decimal UnitPrice, decimal LineTotal);

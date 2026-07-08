@@ -140,6 +140,13 @@ export function BhytReconcileTable({ exportId }: Props) {
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <Select
+          items={{
+            ALL: "Tất cả trạng thái",
+            APPROVED: "Được duyệt",
+            REJECTED: "Từ chối",
+            ADJUSTED: "Đã điều chỉnh",
+            DISPUTED: "Đang khiếu nại",
+          }}
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as ReconcileStatusFilter)}
         >

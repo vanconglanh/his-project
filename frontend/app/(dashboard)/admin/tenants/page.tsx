@@ -201,6 +201,7 @@ export default function TenantsPage() {
           />
         </div>
         <Select
+          items={{ ALL: "Tất cả", ACTIVE: "Hoạt động", SUSPENDED: "Tạm ngưng", TERMINATED: "Chấm dứt" }}
           value={statusFilter}
           onValueChange={(v) => {
             if (v) {

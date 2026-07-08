@@ -80,7 +80,11 @@ export function LabResultsTab() {
           aria-label="Tìm chỉ số xét nghiệm"
         />
 
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as LabResultStatus | "ALL")}>
+        <Select
+          items={{ ALL: "Tất cả trạng thái", DRAFT: "Nháp", VERIFIED: "Đã xác thực", AMENDED: "Đã sửa" }}
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v as LabResultStatus | "ALL")}
+        >
           <SelectTrigger className="w-40" aria-label="Lọc trạng thái">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
@@ -92,7 +96,19 @@ export function LabResultsTab() {
           </SelectContent>
         </Select>
 
-        <Select value={flagFilter} onValueChange={(v) => setFlagFilter(v as LabResultFlag | "ALL")}>
+        <Select
+          items={{
+            ALL: "Tất cả",
+            NORMAL: "Bình thường",
+            H: "Cao (H)",
+            L: "Thấp (L)",
+            HH: "Rất cao (HH)",
+            LL: "Rất thấp (LL)",
+            CRITICAL: "Nguy kịch",
+          }}
+          value={flagFilter}
+          onValueChange={(v) => setFlagFilter(v as LabResultFlag | "ALL")}
+        >
           <SelectTrigger className="w-40" aria-label="Lọc cờ bất thường">
             <SelectValue placeholder="Cờ" />
           </SelectTrigger>

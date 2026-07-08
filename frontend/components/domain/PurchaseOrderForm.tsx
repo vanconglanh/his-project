@@ -64,7 +64,10 @@ export function PurchaseOrderForm({ onSuccess, formId = "purchase-order-form", o
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>Nhà cung cấp</Label>
-          <Select onValueChange={(v) => setValue("supplier_id", String(v ?? ""))}>
+          <Select
+            items={Object.fromEntries((suppliersData?.data ?? []).map((s) => [s.id, s.name]))}
+            onValueChange={(v) => setValue("supplier_id", String(v ?? ""))}
+          >
             <SelectTrigger><SelectValue placeholder="-- Chọn NCC --" /></SelectTrigger>
             <SelectContent>
               {suppliersData?.data.map((s) => (
@@ -76,7 +79,10 @@ export function PurchaseOrderForm({ onSuccess, formId = "purchase-order-form", o
         </div>
         <div className="space-y-1">
           <Label>Kho nhập</Label>
-          <Select onValueChange={(v) => setValue("warehouse_id", String(v ?? ""))}>
+          <Select
+            items={Object.fromEntries((warehouses ?? []).map((w) => [w.id, w.name]))}
+            onValueChange={(v) => setValue("warehouse_id", String(v ?? ""))}
+          >
             <SelectTrigger><SelectValue placeholder="-- Chọn kho --" /></SelectTrigger>
             <SelectContent>
               {warehouses?.map((w) => (

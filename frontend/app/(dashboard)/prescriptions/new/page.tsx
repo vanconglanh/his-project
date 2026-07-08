@@ -221,6 +221,7 @@ export default function NewPrescriptionPage() {
                 name="doctor_id"
                 render={({ field }) => (
                   <Select
+                    items={Object.fromEntries(doctors.map((d) => [d.id, d.full_name]))}
                     value={field.value}
                     onValueChange={(v) => field.onChange(v)}
                   >

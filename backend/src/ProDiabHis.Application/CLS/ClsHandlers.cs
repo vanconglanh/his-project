@@ -99,7 +99,7 @@ public class CreateLabOrdersCommandHandler
     {
         using var conn = _db.CreateConnection();
         var enc = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id FROM cli_visits WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id FROM diab_his_enc_encounters WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.EncounterId.ToString(), TId = _tenant.TenantId });
         if (enc is null) return Result<IReadOnlyList<LabOrderResponse>>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
@@ -246,7 +246,7 @@ public class CreateRadOrdersCommandHandler
     {
         using var conn = _db.CreateConnection();
         var enc = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id FROM cli_visits WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id FROM diab_his_enc_encounters WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.EncounterId.ToString(), TId = _tenant.TenantId });
         if (enc is null) return Result<IReadOnlyList<RadOrderResponse>>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 

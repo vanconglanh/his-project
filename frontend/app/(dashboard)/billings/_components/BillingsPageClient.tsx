@@ -72,7 +72,18 @@ export function BillingsPageClient() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-xs"
         />
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as BillingStatus | "")}>
+        <Select
+          items={{
+            "": "Tất cả",
+            DRAFT: "Nháp",
+            FINALIZED: "Đã xác nhận",
+            PARTIAL_PAID: "Thanh toán một phần",
+            PAID: "Đã thanh toán",
+            VOID: "Đã huỷ",
+          }}
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v as BillingStatus | "")}
+        >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="Tất cả trạng thái" />
           </SelectTrigger>
