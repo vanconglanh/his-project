@@ -401,11 +401,12 @@ public class AddDiagnosisCommandHandler : IRequestHandler<AddDiagnosisCommand, R
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IDapperConnectionFactory _dapper;
 
     public AddDiagnosisCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
+        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapper)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _dapper = dapper;
     }
 
     public async Task<Result<DiagnosisResponse>> Handle(AddDiagnosisCommand cmd, CancellationToken ct)
@@ -414,7 +415,17 @@ public class AddDiagnosisCommandHandler : IRequestHandler<AddDiagnosisCommand, R
         if (!encExists)
             return Result<DiagnosisResponse>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
-        var icdName = cmd.Request.Icd10Code; // fallback; ICD-10 lookup có thể bổ sung sau
+        // Tra ten benh tu tu dien ICD-10 (uu tien dict, fallback ref, cuoi cung dung ma)
+        using var conn = (IDbConnection)_dapper.CreateConnection();
+        var icdName = await conn.QueryFirstOrDefaultAsync<string?>(
+            @"SELECT name FROM (
+                  SELECT 1 AS pri, name_vi AS name FROM diab_his_dict_icd10 WHERE code = @code AND name_vi <> ''
+                  UNION ALL
+                  SELECT 2 AS pri, name_vi AS name FROM diab_his_ref_icd10  WHERE code = @code AND name_vi <> ''
+              ) t ORDER BY pri LIMIT 1",
+            new { code = cmd.Request.Icd10Code });
+        if (string.IsNullOrWhiteSpace(icdName))
+            icdName = cmd.Request.Icd10Code;
         var now = DateTime.UtcNow;
         var diagnosis = new EncounterDiagnosis
         {
