@@ -19,6 +19,7 @@ import { EmrEditor } from "@/components/domain/EmrEditor";
 import { EmrTemplateSelector } from "@/components/domain/EmrTemplateSelector";
 import { EmrSignDialog } from "@/components/domain/EmrSignDialog";
 import { Icd10Picker } from "@/components/domain/Icd10Picker";
+import { getIcd10, searchIcd10 } from "@/lib/api/icd10";
 import { DiagnosesList } from "@/components/domain/DiagnosesList";
 import { DiabetesAssessmentForm } from "@/components/domain/DiabetesAssessmentForm";
 import { DiabetesTrendChart } from "@/components/domain/DiabetesTrendChart";
@@ -704,6 +705,31 @@ function DiagnosisTabContent({ diagnoses, isInProgress, isDone, onAddSingle, onD
     setRows((prev) => prev.map((r, i) => i === index ? { ...r, [key]: value } : r));
   };
 
+  // Tự điền tên bệnh khi rời ô mã ICD-10 (nếu chưa nhập tên)
+  const lookupName = async (index: number, rawCode: string) => {
+    const code = rawCode.trim().toUpperCase();
+    if (!code) return;
+    if (code !== rawCode) updateRow(index, "icd10_code", code);
+    try {
+      let item: Icd10Response | undefined;
+      try {
+        item = await getIcd10(code);
+      } catch {
+        item = (await searchIcd10({ q: code, type: "code", limit: 1 }))
+          .find((r) => r.code.toUpperCase() === code);
+      }
+      if (item?.name_vi) {
+        setRows((prev) => prev.map((r, i) =>
+          i === index && r.icd10_code.trim().toUpperCase() === code && !r.icd10_name.trim()
+            ? { ...r, icd10_name: item!.name_vi }
+            : r
+        ));
+      }
+    } catch {
+      // Ma khong co trong danh muc — de nguyen cho user tu nhap ten
+    }
+  };
+
   const handleBulkSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     rows.filter((r) => r.icd10_code.trim()).forEach((row) => {
@@ -745,6 +771,7 @@ function DiagnosisTabContent({ diagnoses, isInProgress, isDone, onAddSingle, onD
                       placeholder="VD: E11, I10..."
                       value={row.icd10_code}
                       onChange={(e) => updateRow(index, "icd10_code", e.target.value)}
+                      onBlur={(e) => lookupName(index, e.target.value)}
                       className="min-h-[44px] text-sm"
                     />
                   </div>

@@ -133,7 +133,8 @@ public class GetIcd10ByCodeQueryHandler : IRequestHandler<GetIcd10ByCodeQuery, R
 
         return Result<Icd10Response>.Success(new Icd10Response(
             (string)row.code, (string)row.name_vi, (string?)row.name_en,
-            (string?)row.category, (string?)row.parent_code, (bool)((sbyte)row.is_billable == 1)));
+            (string?)row.category, (string?)row.parent_code,
+            row.is_billable is bool b ? b : (sbyte)row.is_billable == 1));
     }
 }
 
