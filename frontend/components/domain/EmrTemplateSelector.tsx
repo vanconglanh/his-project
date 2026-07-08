@@ -9,6 +9,7 @@ import { FileText, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -37,7 +38,7 @@ export function EmrTemplateSelector({ onSelect }: Props) {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="start">
         {systemTemplates.length > 0 && (
-          <>
+          <DropdownMenuGroup>
             <DropdownMenuLabel>Mẫu hệ thống</DropdownMenuLabel>
             {systemTemplates.map((t) => (
               <DropdownMenuItem key={t.id} onClick={() => onSelect(t)} className="gap-2">
@@ -46,18 +47,20 @@ export function EmrTemplateSelector({ onSelect }: Props) {
                 <Badge variant="outline" className="text-xs">{t.speciality}</Badge>
               </DropdownMenuItem>
             ))}
-          </>
+          </DropdownMenuGroup>
         )}
         {customTemplates.length > 0 && (
           <>
             {systemTemplates.length > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuLabel>Mẫu tùy chỉnh</DropdownMenuLabel>
-            {customTemplates.map((t) => (
-              <DropdownMenuItem key={t.id} onClick={() => onSelect(t)} className="gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span>{t.name}</span>
-              </DropdownMenuItem>
-            ))}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Mẫu tùy chỉnh</DropdownMenuLabel>
+              {customTemplates.map((t) => (
+                <DropdownMenuItem key={t.id} onClick={() => onSelect(t)} className="gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span>{t.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
           </>
         )}
         {(!templates || templates.length === 0) && !isLoading && (
