@@ -25,8 +25,16 @@ public class PatientPortalController : ControllerBase
     private Guid PatientId => Guid.Parse(User.FindFirst("patient_id")!.Value);
     private int TenantId => int.Parse(User.FindFirst("tenant_id")!.Value);
 
-    // Tenant cua request an danh (login/activate) do TenantScopeMiddleware set tu Host header.
-    private int AnonymousTenantId => _tenant.TenantId;
+    // Tenant cua request an danh (login/activate): resolve tu subdomain -> diab_his_sys_tenants
+    // (kien truc 1 DB dung chung). Dev cho phep override qua header X-Portal-Subdomain hoac ?clinic=.
+    private async Task<int> ResolveTenantIdAsync(CancellationToken ct)
+    {
+        var host = Request.Host.Host;
+        string? overrideSub = Request.Headers.TryGetValue("X-Portal-Subdomain", out var h) ? h.ToString() : null;
+        if (string.IsNullOrWhiteSpace(overrideSub) && Request.Query.TryGetValue("clinic", out var c))
+            overrideSub = c.ToString();
+        return await _mediator.Send(new ResolvePortalTenantQuery(host, overrideSub), ct);
+    }
 
     private IActionResult ErrTenantUnresolved()
         => StatusCode(400, new { error = new { code = "PORTAL_TENANT_UNRESOLVED", message = "Không xác định được phòng khám từ tên miền" } });
@@ -36,8 +44,9 @@ public class PatientPortalController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> TenantInfo(CancellationToken cancellationToken)
     {
-        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
-        var info = await _mediator.Send(new GetPortalTenantInfoQuery(AnonymousTenantId), cancellationToken);
+        var tenantId = await ResolveTenantIdAsync(cancellationToken);
+        if (tenantId <= 0) return ErrTenantUnresolved();
+        var info = await _mediator.Send(new GetPortalTenantInfoQuery(tenantId), cancellationToken);
         return Ok(new { data = info });
     }
 
@@ -46,11 +55,12 @@ public class PatientPortalController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Activate([FromBody] PortalActivateRequest request, CancellationToken cancellationToken)
     {
-        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
+        var tenantId = await ResolveTenantIdAsync(cancellationToken);
+        if (tenantId <= 0) return ErrTenantUnresolved();
         try
         {
             var result = await _mediator.Send(
-                new PortalActivateCommand(request.Phone, request.ActivationCode, request.Pin, AnonymousTenantId), cancellationToken);
+                new PortalActivateCommand(request.Phone, request.ActivationCode, request.Pin, tenantId), cancellationToken);
             return Ok(new { data = result });
         }
         catch (PortalActivationInvalidException)
@@ -67,11 +77,12 @@ public class PatientPortalController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> LoginPin([FromBody] PortalPinLoginRequest request, CancellationToken cancellationToken)
     {
-        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
+        var tenantId = await ResolveTenantIdAsync(cancellationToken);
+        if (tenantId <= 0) return ErrTenantUnresolved();
         try
         {
             var result = await _mediator.Send(
-                new PortalPinLoginCommand(request.Phone, request.Pin, AnonymousTenantId), cancellationToken);
+                new PortalPinLoginCommand(request.Phone, request.Pin, tenantId), cancellationToken);
             return Ok(new { data = result });
         }
         catch (PortalPhoneNotRegisteredException)
@@ -96,8 +107,9 @@ public class PatientPortalController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ForgotPin([FromBody] PortalForgotPinRequest request, CancellationToken cancellationToken)
     {
-        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
-        await _mediator.Send(new PortalForgotPinCommand(request.Phone, AnonymousTenantId), cancellationToken);
+        var tenantId = await ResolveTenantIdAsync(cancellationToken);
+        if (tenantId <= 0) return ErrTenantUnresolved();
+        await _mediator.Send(new PortalForgotPinCommand(request.Phone, tenantId), cancellationToken);
         // Luon tra 202 (khong tiet lo SDT/email co ton tai)
         return Accepted(new { data = new { message = "Nếu số điện thoại có đăng ký email, mã xác nhận đã được gửi." } });
     }
@@ -106,11 +118,12 @@ public class PatientPortalController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ResetPin([FromBody] PortalResetPinRequest request, CancellationToken cancellationToken)
     {
-        if (AnonymousTenantId <= 0) return ErrTenantUnresolved();
+        var tenantId = await ResolveTenantIdAsync(cancellationToken);
+        if (tenantId <= 0) return ErrTenantUnresolved();
         try
         {
             var result = await _mediator.Send(
-                new PortalResetPinCommand(request.Phone, request.Otp, request.NewPin, AnonymousTenantId), cancellationToken);
+                new PortalResetPinCommand(request.Phone, request.Otp, request.NewPin, tenantId), cancellationToken);
             return Ok(new { data = result });
         }
         catch (OtpInvalidException)
