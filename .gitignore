@@ -74,3 +74,6 @@ build/
 .claude/local/
 .claude/cache/
 .local-storage/
+
+# Bo deploy sinh tu dong per-clinic (chua SECRET) — khong commit
+deploy/deployments/
