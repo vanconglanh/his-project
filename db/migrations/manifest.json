@@ -1,0 +1,17 @@
+{
+  "$comment": "Manifest cho ProDiabHis.MigrationRunner. Bo schema clean-slate (Direction B, ADR 0007) cho MOI tenant DB moi.",
+  "tenantSchema": {
+    "directory": ".",
+    "include": "9*.sql",
+    "comment": "Ap dung theo thu tu ten file (lexicographic). Loai cac seed demo/test (tenant row do provisioner chen).",
+    "excludeForTenant": [
+      "9008_seed_demo.sql",
+      "9020_seed_rich_demo.sql"
+    ]
+  },
+  "catalog": {
+    "directory": "../catalog",
+    "include": "*.sql",
+    "comment": "Schema control plane (prodiab_catalog). Idempotent (CREATE TABLE IF NOT EXISTS)."
+  }
+}
