@@ -219,6 +219,15 @@ public class PatientPortalController : ControllerBase
         return Ok(new { data = result });
     }
 
+    // -------- Health trends (xu huong suc khoe cho Trang chu) --------
+    [HttpGet("me/health-trends")]
+    [Authorize(AuthenticationSchemes = "PortalBearer")]
+    public async Task<IActionResult> GetHealthTrends(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new Application.PublicApi.GetPortalHealthTrendsQuery(PatientId, TenantId), cancellationToken);
+        return Ok(new { data = result });
+    }
+
     [HttpGet("me/lab-results/{id:guid}/pdf")]
     [Authorize(AuthenticationSchemes = "PortalBearer")]
     public async Task<IActionResult> GetLabResultPdf(Guid id, CancellationToken cancellationToken)

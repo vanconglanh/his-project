@@ -8,6 +8,7 @@ import type {
   DoctorOption,
   EncounterDetail,
   EncounterListItem,
+  HealthTrendMetric,
   LabResultListItem,
   MeProfile,
   MedReminder,
@@ -215,5 +216,12 @@ export function useSavePushSubscription() {
   return useMutation({
     mutationFn: (payload: { endpoint: string; p256dh: string; auth: string }) =>
       api.post<void>("/me/push-subscriptions", payload),
+  });
+}
+
+export function useHealthTrends() {
+  return useQuery({
+    queryKey: ["health-trends"],
+    queryFn: () => api.get<HealthTrendMetric[]>("/me/health-trends"),
   });
 }

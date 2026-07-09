@@ -137,3 +137,18 @@ export interface NotificationPreferences {
   push: boolean;
   email: boolean;
 }
+
+export interface HealthTrendPoint {
+  date: string;
+  value: number;
+}
+
+export interface HealthTrendMetric {
+  testCode: string;
+  testName: string;
+  unit: string | null;
+  latestValue: number;
+  latestFlag: string | null;
+  latestDate: string;
+  series: HealthTrendPoint[];
+}
