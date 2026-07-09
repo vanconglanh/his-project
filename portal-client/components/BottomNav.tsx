@@ -31,12 +31,19 @@ export function BottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-16 flex-col items-center justify-center gap-1 text-sm font-medium",
-                  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500 focus-visible:ring-inset",
-                  active ? "text-blue-600" : "text-slate-500",
+                  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600 focus-visible:ring-inset",
+                  active ? "text-[#01645A]" : "text-slate-500",
                 )}
               >
-                <Icon className="h-7 w-7" />
-                <span>{label}</span>
+                <span
+                  className={cn(
+                    "flex h-11 w-11 items-center justify-center rounded-full transition-colors",
+                    active ? "bg-[#01645A] text-white shadow-md" : "",
+                  )}
+                >
+                  <Icon className="h-6 w-6" />
+                </span>
+                <span className={cn(active && "font-semibold")}>{label}</span>
               </Link>
             </li>
           );

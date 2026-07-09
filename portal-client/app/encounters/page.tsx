@@ -29,7 +29,7 @@ export default function EncountersPage() {
           <Link
             key={e.id}
             href={`/encounters/${e.id}`}
-            className="block rounded-2xl border-2 border-slate-200 bg-white p-4 hover:border-blue-400 hover:bg-blue-50"
+            className="block rounded-2xl border-2 border-slate-200 bg-white p-4 hover:border-teal-500 hover:bg-teal-50"
           >
             <div className="mb-1 flex items-center justify-between">
               <span className="text-lg font-semibold text-slate-900">{formatDate(e.visitedAt)}</span>

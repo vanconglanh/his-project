@@ -2,11 +2,10 @@
 
 import { BigCard } from "@/components/BigCard";
 import { CalendarIcon, FileTextIcon, FlaskIcon, QueueIcon } from "@/components/icons";
-import { useAppointments, useMe, useQueueInfo } from "@/lib/hooks";
+import { useAppointments, useQueueInfo } from "@/lib/hooks";
 import { formatDateTime } from "@/lib/utils";
 
 export default function HomePage() {
-  const { data: me } = useMe();
   const { data: queue } = useQueueInfo();
   const { data: appointments } = useAppointments();
 
@@ -16,15 +15,10 @@ export default function HomePage() {
 
   return (
     <div className="p-4">
-      <header className="mb-5 pt-4">
-        <p className="text-base text-slate-500">Xin chào,</p>
-        <h1 className="text-slate-900">{me?.fullName ?? "Bệnh nhân"}</h1>
-      </header>
-
       {upcoming && (
-        <div className="mb-5 rounded-2xl border-2 border-blue-200 bg-blue-50 p-4">
-          <p className="text-base font-semibold text-blue-800">Lịch hẹn sắp tới</p>
-          <p className="mt-1 text-lg text-blue-900">
+        <div className="mb-5 rounded-2xl border-2 border-teal-300 bg-teal-50 p-4">
+          <p className="text-base font-semibold text-teal-900">Lịch hẹn sắp tới</p>
+          <p className="mt-1 text-lg text-teal-900">
             {formatDateTime(upcoming.appointmentAt)} — {upcoming.doctorName}
           </p>
         </div>

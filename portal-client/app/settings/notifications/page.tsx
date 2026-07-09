@@ -107,7 +107,7 @@ export default function NotificationSettingsPage() {
                 onChange={(e) => handleTogglePush(e.target.checked)}
                 aria-label="Bật/tắt thông báo đẩy"
               />
-              <span className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-blue-600" />
+              <span className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-teal-700" />
               <span className="absolute left-1 h-6 w-6 rounded-full bg-white transition-transform peer-checked:translate-x-6" />
             </label>
           </div>
@@ -125,7 +125,7 @@ export default function NotificationSettingsPage() {
                 onChange={(e) => handleToggleEmail(e.target.checked)}
                 aria-label="Bật/tắt thông báo email"
               />
-              <span className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-blue-600" />
+              <span className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-teal-700" />
               <span className="absolute left-1 h-6 w-6 rounded-full bg-white transition-transform peer-checked:translate-x-6" />
             </label>
           </div>
@@ -153,7 +153,7 @@ export default function NotificationSettingsPage() {
               type="button"
               onClick={handleEnableBrowserPush}
               disabled={enablingPush || pushEnabledLocal}
-              className="min-h-14 rounded-2xl bg-blue-600 px-4 text-lg font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="min-h-14 rounded-2xl bg-teal-700 px-4 text-lg font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
             >
               {pushEnabledLocal
                 ? "Đã bật thông báo trên thiết bị này"

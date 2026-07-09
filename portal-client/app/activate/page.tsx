@@ -59,7 +59,7 @@ export default function ActivatePage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="09xxxxxxxx"
-              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-blue-500"
+              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-teal-600"
               aria-label="Số điện thoại"
             />
           </label>
@@ -69,7 +69,7 @@ export default function ActivatePage() {
               value={activationCode}
               onChange={(e) => setActivationCode(e.target.value)}
               placeholder="Mã do phòng khám cung cấp"
-              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-blue-500"
+              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-teal-600"
               aria-label="Mã kích hoạt"
             />
           </label>
@@ -81,7 +81,7 @@ export default function ActivatePage() {
           </BigButton>
           <Link
             href="/login"
-            className="text-center text-base font-semibold text-blue-600 underline-offset-4 hover:underline"
+            className="text-center text-base font-semibold text-teal-700 underline-offset-4 hover:underline"
           >
             Đã có tài khoản? Đăng nhập
           </Link>

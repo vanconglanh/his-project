@@ -36,7 +36,7 @@ export function NumPad({ value, onChange, maxLength = 6, label }: NumPadProps) {
             key={i}
             className={cn(
               "flex h-12 w-10 items-center justify-center rounded-xl border-2 text-2xl font-bold",
-              value.length > i ? "border-blue-600 bg-blue-50" : "border-slate-300 bg-white",
+              value.length > i ? "border-teal-700 bg-teal-50" : "border-slate-300 bg-white",
             )}
           >
             {value[i] ? "•" : ""}
@@ -52,7 +52,7 @@ export function NumPad({ value, onChange, maxLength = 6, label }: NumPadProps) {
                 type="button"
                 onClick={() => handleKey(key)}
                 aria-label="Xóa số"
-                className="min-h-14 rounded-2xl bg-slate-100 text-lg font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500"
+                className="min-h-14 rounded-2xl bg-slate-100 text-lg font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600"
               >
                 Xóa
               </button>
@@ -67,7 +67,7 @@ export function NumPad({ value, onChange, maxLength = 6, label }: NumPadProps) {
               type="button"
               onClick={() => handleKey(key)}
               aria-label={`Số ${key}`}
-              className="min-h-14 rounded-2xl bg-white text-2xl font-bold text-slate-900 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500"
+              className="min-h-14 rounded-2xl bg-white text-2xl font-bold text-slate-900 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600"
             >
               {key}
             </button>
