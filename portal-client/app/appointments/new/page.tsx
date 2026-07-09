@@ -86,7 +86,7 @@ export default function NewAppointmentPage() {
                 setDoctorName(d.fullName);
                 setStep(2);
               }}
-              className="min-h-14 rounded-2xl border-2 border-slate-200 bg-white px-4 text-left text-lg font-semibold text-slate-900 hover:border-blue-400 hover:bg-blue-50"
+              className="min-h-14 rounded-2xl border-2 border-slate-200 bg-white px-4 text-left text-lg font-semibold text-slate-900 hover:border-teal-500 hover:bg-teal-50"
             >
               {d.fullName}
             </button>
@@ -127,8 +127,8 @@ export default function NewAppointmentPage() {
                 className={cn(
                   "min-h-14 rounded-2xl border-2 text-base font-semibold",
                   !s.available && "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300",
-                  s.available && slotAt === s.slotAt && "border-blue-600 bg-blue-600 text-white",
-                  s.available && slotAt !== s.slotAt && "border-slate-200 bg-white text-slate-900 hover:border-blue-400",
+                  s.available && slotAt === s.slotAt && "border-teal-700 bg-teal-700 text-white",
+                  s.available && slotAt !== s.slotAt && "border-slate-200 bg-white text-slate-900 hover:border-teal-500",
                 )}
               >
                 {new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(

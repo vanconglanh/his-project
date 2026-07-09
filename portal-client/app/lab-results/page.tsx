@@ -58,7 +58,7 @@ export default function LabResultsPage() {
               type="button"
               onClick={() => handleDownload(r.id, r.testName)}
               disabled={downloadPdf.isPending}
-              className="min-h-11 rounded-xl border-2 border-blue-600 px-4 text-base font-semibold text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+              className="min-h-11 rounded-xl border-2 border-teal-700 px-4 text-base font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50"
             >
               Tải PDF kết quả
             </button>

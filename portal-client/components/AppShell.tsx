@@ -2,18 +2,20 @@
 
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
+import { Header } from "@/components/Header";
 
-const NO_NAV_PREFIXES = ["/login", "/activate"];
+const NO_CHROME_PREFIXES = ["/login", "/activate"];
 
-/** Bọc nội dung trang + hiển thị bottom-nav, trừ màn hình đăng nhập/kích hoạt */
+/** Bọc nội dung trang + header thương hiệu + bottom-nav, trừ màn đăng nhập/kích hoạt */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hideNav = NO_NAV_PREFIXES.some((p) => pathname.startsWith(p));
+  const hideChrome = NO_CHROME_PREFIXES.some((p) => pathname.startsWith(p));
 
   return (
     <div className="mx-auto min-h-screen max-w-lg pb-24">
+      {!hideChrome && <Header />}
       {children}
-      {!hideNav && <BottomNav />}
+      {!hideChrome && <BottomNav />}
     </div>
   );
 }

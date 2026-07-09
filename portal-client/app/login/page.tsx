@@ -105,7 +105,7 @@ function LoginContent() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="09xxxxxxxx"
-              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-blue-500"
+              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-teal-600"
               aria-label="Số điện thoại"
             />
           </label>
@@ -126,11 +126,11 @@ function LoginContent() {
                 setError(null);
                 setStep("forgot");
               }}
-              className="font-semibold text-blue-600 underline-offset-4 hover:underline"
+              className="font-semibold text-teal-700 underline-offset-4 hover:underline"
             >
               Quên mã PIN?
             </button>
-            <Link href="/activate" className="font-semibold text-blue-600 underline-offset-4 hover:underline">
+            <Link href="/activate" className="font-semibold text-teal-700 underline-offset-4 hover:underline">
               Kích hoạt tài khoản mới
             </Link>
           </div>
@@ -147,7 +147,7 @@ function LoginContent() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="09xxxxxxxx"
-              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-blue-500"
+              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-teal-600"
               aria-label="Số điện thoại"
             />
           </label>
@@ -169,7 +169,7 @@ function LoginContent() {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               placeholder="Nhập mã đã gửi qua SMS"
-              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-blue-500"
+              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-teal-600"
               aria-label="Mã xác nhận"
             />
           </label>

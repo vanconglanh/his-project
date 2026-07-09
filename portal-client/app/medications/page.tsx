@@ -67,7 +67,7 @@ export default function MedicationsPage() {
           type="button"
           onClick={handleEnableFromLatest}
           disabled={enableFromPrescription.isPending}
-          className="mb-5 min-h-14 w-full rounded-2xl bg-blue-600 px-4 text-lg font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          className="mb-5 min-h-14 w-full rounded-2xl bg-teal-700 px-4 text-lg font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
         >
           {enableFromPrescription.isPending
             ? "Đang bật nhắc..."
@@ -111,7 +111,7 @@ export default function MedicationsPage() {
                         onChange={(e) => handleToggle(r.id, e.target.checked)}
                         aria-label={`Bật/tắt nhắc uống ${r.drugName}`}
                       />
-                      <span className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-blue-600" />
+                      <span className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-teal-700" />
                       <span className="absolute left-1 h-6 w-6 rounded-full bg-white transition-transform peer-checked:translate-x-6" />
                     </label>
                   </div>

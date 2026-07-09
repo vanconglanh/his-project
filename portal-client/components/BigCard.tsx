@@ -18,8 +18,8 @@ export function BigCard({ href, icon, title, subtitle, badge, className, onClick
     <div
       className={cn(
         "relative flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-white p-4 text-center shadow-sm transition-colors",
-        "hover:border-blue-400 hover:bg-blue-50",
-        "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+        "hover:border-teal-500 hover:bg-teal-50",
+        "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600 focus-visible:ring-offset-2",
         className,
       )}
     >
@@ -28,7 +28,7 @@ export function BigCard({ href, icon, title, subtitle, badge, className, onClick
           {badge}
         </span>
       )}
-      <div className="text-blue-600" aria-hidden="true">
+      <div className="text-teal-700" aria-hidden="true">
         {icon}
       </div>
       <span className="text-lg font-semibold text-slate-900">{title}</span>

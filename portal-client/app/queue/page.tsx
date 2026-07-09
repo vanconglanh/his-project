@@ -30,9 +30,9 @@ export default function QueuePage() {
             </div>
           )}
 
-          <div className="rounded-3xl border-2 border-blue-200 bg-white p-6 text-center shadow-sm">
+          <div className="rounded-3xl border-2 border-teal-300 bg-white p-6 text-center shadow-sm">
             <p className="text-lg text-slate-500">Số thứ tự của bạn</p>
-            <p className="my-2 text-[64px] font-extrabold leading-none text-blue-600">
+            <p className="my-2 text-[64px] font-extrabold leading-none text-teal-700">
               {queue.ticketNo}
             </p>
             <p className="text-lg text-slate-600">Phòng: {queue.roomName}</p>
