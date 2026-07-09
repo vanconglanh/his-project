@@ -105,7 +105,7 @@ function LoginContent() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="09xxxxxxxx"
-              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-teal-600"
+              className="min-h-14 rounded-full border border-slate-300 bg-white px-5 text-lg shadow-[0_2px_8px_rgba(15,23,42,0.04)] focus-visible:border-[#01645A] focus-visible:ring-2 focus-visible:ring-teal-100"
               aria-label="Số điện thoại"
             />
           </label>
@@ -147,7 +147,7 @@ function LoginContent() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="09xxxxxxxx"
-              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-teal-600"
+              className="min-h-14 rounded-full border border-slate-300 bg-white px-5 text-lg shadow-[0_2px_8px_rgba(15,23,42,0.04)] focus-visible:border-[#01645A] focus-visible:ring-2 focus-visible:ring-teal-100"
               aria-label="Số điện thoại"
             />
           </label>
@@ -169,7 +169,7 @@ function LoginContent() {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               placeholder="Nhập mã đã gửi qua SMS"
-              className="min-h-14 rounded-2xl border-2 border-slate-300 px-4 text-lg focus-visible:border-teal-600"
+              className="min-h-14 rounded-full border border-slate-300 bg-white px-5 text-lg shadow-[0_2px_8px_rgba(15,23,42,0.04)] focus-visible:border-[#01645A] focus-visible:ring-2 focus-visible:ring-teal-100"
               aria-label="Mã xác nhận"
             />
           </label>

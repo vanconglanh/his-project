@@ -86,7 +86,7 @@ export default function NewAppointmentPage() {
                 setDoctorName(d.fullName);
                 setStep(2);
               }}
-              className="min-h-14 rounded-2xl border-2 border-slate-200 bg-white px-4 text-left text-lg font-semibold text-slate-900 hover:border-teal-500 hover:bg-teal-50"
+              className="min-h-14 rounded-2xl border border-[var(--border-soft)] bg-white px-4 text-left text-lg font-semibold text-slate-900 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]"
             >
               {d.fullName}
             </button>
@@ -147,7 +147,7 @@ export default function NewAppointmentPage() {
       {step === 3 && (
         <div className="flex flex-col gap-4">
           <h2 className="text-slate-800">Xác nhận thông tin</h2>
-          <div className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
             <p className="mb-1 text-lg font-semibold text-slate-900">{doctorName}</p>
             <p className="text-base text-slate-600">
               {formatDate(slotAt)}{" "}

@@ -30,7 +30,7 @@ export default function QueuePage() {
             </div>
           )}
 
-          <div className="rounded-3xl border-2 border-teal-300 bg-white p-6 text-center shadow-sm">
+          <div className="rounded-3xl border border-teal-200 bg-white p-6 text-center shadow-[0_6px_20px_rgba(1,100,90,0.1)]">
             <p className="text-lg text-slate-500">Số thứ tự của bạn</p>
             <p className="my-2 text-[64px] font-extrabold leading-none text-teal-700">
               {queue.ticketNo}
@@ -39,11 +39,11 @@ export default function QueuePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 text-center">
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 text-center shadow-[var(--shadow-card)]">
               <p className="text-base text-slate-500">Đang gọi số</p>
               <p className="text-3xl font-bold text-slate-900">{queue.currentCalledNo}</p>
             </div>
-            <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 text-center">
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 text-center shadow-[var(--shadow-card)]">
               <p className="text-base text-slate-500">Còn</p>
               <p className="text-3xl font-bold text-slate-900">{queue.waitingAhead} người</p>
             </div>

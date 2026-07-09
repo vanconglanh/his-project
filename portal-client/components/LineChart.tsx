@@ -42,7 +42,7 @@ export function LineChart({
   }
 
   const W = 340, H = 240;
-  const padL = 44, padR = 12, padT = 12, padB = 28;
+  const padL = 48, padR = 12, padT = 18, padB = 28;
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
 
@@ -74,8 +74,8 @@ export function LineChart({
       {/* Lưới ngang + mốc trục Y */}
       {ticks.map((t) => (
         <g key={t}>
-          <line x1={padL} y1={y(t)} x2={W - padR} y2={y(t)} stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3 3" />
-          <text x={padL - 6} y={y(t) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
+          <line x1={padL} y1={y(t)} x2={W - padR} y2={y(t)} stroke="#eef2f0" strokeWidth="1" strokeDasharray="3 3" />
+          <text x={padL - 6} y={y(t) + 4} textAnchor="end" fontSize="12" fill="#7c8b87">
             {t}
           </text>
         </g>
@@ -83,7 +83,7 @@ export function LineChart({
       {/* Nhãn ngày trục X */}
       {points.map((p, i) =>
         labelIdx.has(i) ? (
-          <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="#94a3b8">
+          <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="12" fill="#7c8b87">
             {fmtDay(p.date)}
           </text>
         ) : null,
@@ -100,7 +100,7 @@ export function LineChart({
         <circle key={i} cx={x(i)} cy={y(p.value)} r={i === points.length - 1 ? 4 : 2.5} fill={color} />
       ))}
       {unit && (
-        <text x={padL - 6} y={padT - 2} textAnchor="end" fontSize="9" fill="#cbd5e1">
+        <text x={padL - 6} y={padT - 4} textAnchor="end" fontSize="11" fill="#94a3b8">
           {unit}
         </text>
       )}

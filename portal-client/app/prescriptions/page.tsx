@@ -48,7 +48,7 @@ export default function PrescriptionsPage() {
 
       <div className="flex flex-col gap-3">
         {prescriptions?.map((p, idx) => (
-          <div key={`${p.id}-${idx}`} className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+          <div key={`${p.id}-${idx}`} className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-lg font-semibold text-slate-900">{formatDate(p.issuedAt)}</span>
               <span className="text-sm text-slate-500">{p.prescriptionCode}</span>

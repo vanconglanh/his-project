@@ -67,7 +67,7 @@ export function NumPad({ value, onChange, maxLength = 6, label }: NumPadProps) {
               type="button"
               onClick={() => handleKey(key)}
               aria-label={`Số ${key}`}
-              className="min-h-14 rounded-2xl bg-white text-2xl font-bold text-slate-900 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600"
+              className="min-h-14 rounded-2xl bg-white text-2xl font-bold text-slate-900 shadow-[0_2px_8px_rgba(1,100,90,0.06)] ring-1 ring-[var(--border-soft)] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600"
             >
               {key}
             </button>

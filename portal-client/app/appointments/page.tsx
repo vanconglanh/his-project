@@ -7,15 +7,22 @@ import { CalendarIcon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, ErrorBlock, LoadingBlock } from "@/components/StateViews";
 import { ApiRequestError } from "@/lib/api";
+import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { useAppointments, useCancelAppointmentMutation } from "@/lib/hooks";
 import { formatDateTime } from "@/lib/utils";
 
-const STATUS_LABEL: Record<string, string> = {
-  scheduled: "Đã đặt",
-  confirmed: "Đã xác nhận",
-  done: "Đã khám",
-  cancelled: "Đã hủy",
+/** Map trạng thái lịch hẹn (API trả UPPERCASE) → nhãn tiếng Việt + tone badge */
+const STATUS_META: Record<string, { label: string; tone: BadgeTone }> = {
+  PENDING: { label: "Chờ xác nhận", tone: "pending" },
+  SCHEDULED: { label: "Đã đặt", tone: "pending" },
+  CONFIRMED: { label: "Đã xác nhận", tone: "confirmed" },
+  DONE: { label: "Đã khám", tone: "done" },
+  CANCELLED: { label: "Đã hủy", tone: "cancelled" },
 };
+
+function statusMeta(status: string | null | undefined): { label: string; tone: BadgeTone } {
+  return STATUS_META[(status ?? "").toUpperCase()] ?? { label: status ?? "—", tone: "done" };
+}
 
 export default function AppointmentsPage() {
   const { data: appointments, isLoading, isError, refetch } = useAppointments();
@@ -64,18 +71,19 @@ export default function AppointmentsPage() {
       )}
 
       <div className="flex flex-col gap-3">
-        {appointments?.map((a, idx) => (
-          <div key={`${a.id}-${idx}`} className="rounded-2xl border-2 border-slate-200 bg-white p-4">
-            <div className="mb-1 flex items-center justify-between">
+        {appointments?.map((a, idx) => {
+          const meta = statusMeta(a.status);
+          const s = (a.status ?? "").toUpperCase();
+          return (
+          <div key={`${a.id}-${idx}`} className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
+            <div className="mb-1 flex items-center justify-between gap-2">
               <span className="text-lg font-semibold text-slate-900">
                 {formatDateTime(a.appointmentAt)}
               </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
-                {STATUS_LABEL[a.status] ?? a.status}
-              </span>
+              <StatusBadge tone={meta.tone} label={meta.label} />
             </div>
             <p className="mb-3 text-base text-slate-600">{a.doctorName}</p>
-            {a.status !== "cancelled" && a.status !== "done" && (
+            {s !== "CANCELLED" && s !== "DONE" && (
               <button
                 type="button"
                 onClick={() => setCancelTarget(a.id)}
@@ -85,7 +93,8 @@ export default function AppointmentsPage() {
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <ConfirmDialog

@@ -99,9 +99,9 @@ export default function HealthPage() {
               type="button"
               disabled={!metric}
               onClick={() => metric && setSelCode(metric.testCode)}
-              className={`rounded-2xl border-2 bg-white p-4 text-left shadow-sm transition-colors ${
-                active ? "border-[#01645A]" : "border-slate-100"
-              } ${!metric ? "opacity-70" : "hover:border-teal-400"}`}
+              className={`rounded-2xl border bg-white p-4 text-left shadow-[0_4px_16px_rgba(1,100,90,0.06)] transition-all ${
+                active ? "border-[#01645A] shadow-[0_6px_18px_rgba(1,100,90,0.14)]" : "border-[var(--border-soft)]"
+              } ${!metric ? "opacity-70" : "hover:shadow-[0_6px_18px_rgba(1,100,90,0.1)]"}`}
             >
               <p className="text-sm font-medium text-slate-500" style={{ color: metric ? cfg.color : undefined }}>
                 {cfg.name}
@@ -116,7 +116,7 @@ export default function HealthPage() {
                     </span>
                   </div>
                   {st && (
-                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${st.cls}`}>
+                    <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-sm font-semibold ${st.cls}`}>
                       {st.label}
                     </span>
                   )}
@@ -139,21 +139,21 @@ export default function HealthPage() {
               <button
                 type="button"
                 onClick={() => setRange("30")}
-                className={`rounded-full px-3 py-1 font-medium ${range === "30" ? "bg-white text-[#01645A] shadow-sm" : "text-slate-500"}`}
+                className={`rounded-full px-3 py-1 font-medium ${range === "30" ? "bg-white text-[#01645A] shadow-[0_2px_8px_rgba(1,100,90,0.12)]" : "text-slate-500"}`}
               >
                 30 ngày
               </button>
               <button
                 type="button"
                 onClick={() => setRange("all")}
-                className={`rounded-full px-3 py-1 font-medium ${range === "all" ? "bg-white text-[#01645A] shadow-sm" : "text-slate-500"}`}
+                className={`rounded-full px-3 py-1 font-medium ${range === "all" ? "bg-white text-[#01645A] shadow-[0_2px_8px_rgba(1,100,90,0.12)]" : "text-slate-500"}`}
               >
                 Tất cả
               </button>
             </div>
           </div>
 
-          <div className="rounded-2xl border-2 border-slate-100 bg-white p-3 shadow-sm">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-3 shadow-[var(--shadow-card)]">
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-600">
               <span className="inline-block h-3 w-3 rounded-full" style={{ background: selColor }} />
               {selected.testName}
@@ -163,21 +163,21 @@ export default function HealthPage() {
 
           {summary && (
             <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-2xl bg-white p-3 shadow-sm">
+              <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-3 shadow-[var(--shadow-card)]">
                 <p className="text-xs text-slate-500">Lần trước</p>
                 <p className="mt-1 text-lg font-bold text-slate-900">
                   {summary.prev ? `${summary.prev.value}` : "—"}
                 </p>
                 {summary.prev && <p className="text-xs text-slate-400">{fmtDate(summary.prev.date)}</p>}
               </div>
-              <div className="rounded-2xl bg-white p-3 shadow-sm">
+              <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-3 shadow-[var(--shadow-card)]">
                 <p className="text-xs text-slate-500">Gần nhất</p>
                 <p className="mt-1 text-lg font-bold text-slate-900">{summary.latest.value}</p>
                 <div className="text-xs">
                   <Delta curr={summary.latest.value} prev={summary.prev?.value ?? null} />
                 </div>
               </div>
-              <div className="rounded-2xl bg-white p-3 shadow-sm">
+              <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-3 shadow-[var(--shadow-card)]">
                 <p className="text-xs text-slate-500">Trung bình</p>
                 <p className="mt-1 text-lg font-bold text-slate-900">{summary.avg.toFixed(1)}</p>
                 <p className="text-xs text-slate-400">{selected.unit}</p>
@@ -186,7 +186,7 @@ export default function HealthPage() {
           )}
         </section>
       ) : (
-        <p className="rounded-2xl border-2 border-dashed border-slate-200 p-6 text-center text-base text-slate-400">
+        <p className="rounded-2xl border-2 border-dashed border-[var(--border-soft)] bg-white/60 p-6 text-center text-base text-slate-400">
           Chưa có chỉ số nào để hiển thị. Kết quả xét nghiệm sẽ hiện tại đây sau khi khám.
         </p>
       )}

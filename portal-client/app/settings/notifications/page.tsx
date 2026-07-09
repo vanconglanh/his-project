@@ -94,7 +94,7 @@ export default function NotificationSettingsPage() {
 
       {prefs && (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between rounded-2xl border-2 border-slate-200 bg-white p-4">
+          <div className="flex items-center justify-between rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
             <div>
               <p className="text-lg font-semibold text-slate-900">Thông báo đẩy (push)</p>
               <p className="text-base text-slate-500">Nhắc lịch hẹn, số thứ tự, uống thuốc</p>
@@ -112,7 +112,7 @@ export default function NotificationSettingsPage() {
             </label>
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl border-2 border-slate-200 bg-white p-4">
+          <div className="flex items-center justify-between rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
             <div>
               <p className="text-lg font-semibold text-slate-900">Thông báo email</p>
               <p className="text-base text-slate-500">Gửi thông báo qua email</p>

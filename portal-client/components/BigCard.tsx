@@ -17,8 +17,8 @@ export function BigCard({ href, icon, title, subtitle, badge, className, onClick
   const content = (
     <div
       className={cn(
-        "relative flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-white p-4 text-center shadow-sm transition-colors",
-        "hover:border-teal-500 hover:bg-teal-50",
+        "relative flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--border-soft)] bg-white p-4 text-center shadow-[var(--shadow-card)] transition-all",
+        "hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] active:translate-y-0",
         "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600 focus-visible:ring-offset-2",
         className,
       )}
@@ -28,7 +28,7 @@ export function BigCard({ href, icon, title, subtitle, badge, className, onClick
           {badge}
         </span>
       )}
-      <div className="text-teal-700" aria-hidden="true">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-50 text-teal-700" aria-hidden="true">
         {icon}
       </div>
       <span className="text-lg font-semibold text-slate-900">{title}</span>

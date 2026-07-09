@@ -3,9 +3,14 @@
 /* ── Design tokens: thương hiệu diaB, thân thiện người lớn tuổi ── */
 :root {
   --brand: #01645A;
+  --brand-hover: #0a8578;
+  --brand-tint: #e3f4f0; /* nền tròn cho icon/badge, nổi trên card trắng */
   --background: #eef6f4; /* nền mint mềm giống app diaB */
   --foreground: #0f172a;
   --font-size-base: 18px;
+  --border-soft: #e6efec; /* viền card ấm hơn slate, hợp tông mint */
+  --shadow-card: 0 4px 16px rgba(1, 100, 90, 0.08); /* bóng đổ mềm tint brand */
+  --shadow-card-hover: 0 8px 24px rgba(1, 100, 90, 0.12);
 }
 
 html {

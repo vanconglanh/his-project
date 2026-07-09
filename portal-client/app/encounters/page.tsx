@@ -3,8 +3,18 @@
 import Link from "next/link";
 import { FileTextIcon } from "@/components/icons";
 import { EmptyState, ErrorBlock, LoadingBlock } from "@/components/StateViews";
+import { StatusBadge, type BadgeTone } from "@/components/StatusBadge";
 import { useEncounters } from "@/lib/hooks";
 import { formatDate } from "@/lib/utils";
+
+/** Trạng thái lượt khám (API trả UPPERCASE) → nhãn tiếng Việt */
+function encounterStatus(status: string | null | undefined): { label: string; tone: BadgeTone } {
+  const s = (status ?? "").toUpperCase();
+  if (["FINISHED", "COMPLETED", "DONE", "CLOSED"].includes(s)) return { label: "Đã khám", tone: "done" };
+  if (["IN_PROGRESS", "OPEN", "EXAMINING"].includes(s)) return { label: "Đang khám", tone: "confirmed" };
+  if (["CANCELLED", "CANCELED"].includes(s)) return { label: "Đã hủy", tone: "cancelled" };
+  return { label: status ?? "—", tone: "done" };
+}
 
 export default function EncountersPage() {
   const { data: encounters, isLoading, isError, refetch } = useEncounters();
@@ -29,13 +39,14 @@ export default function EncountersPage() {
           <Link
             key={e.id}
             href={`/encounters/${e.id}`}
-            className="block rounded-2xl border-2 border-slate-200 bg-white p-4 hover:border-teal-500 hover:bg-teal-50"
+            className="block rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]"
           >
             <div className="mb-1 flex items-center justify-between">
               <span className="text-lg font-semibold text-slate-900">{formatDate(e.visitedAt)}</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
-                {e.status}
-              </span>
+              {(() => {
+                const st = encounterStatus(e.status);
+                return <StatusBadge tone={st.tone} label={st.label} />;
+              })()}
             </div>
             <p className="text-base text-slate-600">{e.doctorName}</p>
             <p className="text-base text-slate-600">Lý do khám: {e.chiefComplaint}</p>

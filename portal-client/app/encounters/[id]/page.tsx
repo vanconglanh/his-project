@@ -33,7 +33,7 @@ export default function EncounterDetailPage() {
 
       {encounter && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
             <p className="text-lg font-semibold text-slate-900">
               {formatDateTime(encounter.visitedAt)}
             </p>
@@ -44,7 +44,7 @@ export default function EncounterDetailPage() {
           </div>
 
           {encounter.diagnosis.length > 0 && (
-            <div className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
               <h2 className="mb-2 text-slate-800">Chẩn đoán</h2>
               <ul className="list-disc pl-5 text-base text-slate-700">
                 {encounter.diagnosis.map((d) => (
@@ -57,7 +57,7 @@ export default function EncounterDetailPage() {
           )}
 
           {encounter.conclusion && (
-            <div className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
               <h2 className="mb-2 text-slate-800">Kết luận</h2>
               <p className="text-base text-slate-700">{encounter.conclusion}</p>
             </div>
@@ -71,7 +71,7 @@ export default function EncounterDetailPage() {
           )}
 
           {encounter.prescriptionItems.length > 0 && (
-            <div className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+            <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-slate-800">Đơn thuốc</h2>
               </div>

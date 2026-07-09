@@ -10,17 +10,25 @@ export default function HomePage() {
   const { data: appointments } = useAppointments();
 
   const upcoming = appointments
-    ?.filter((a) => a.status !== "cancelled" && a.status !== "done")
+    ?.filter((a) => {
+      const s = (a.status ?? "").toUpperCase();
+      return s !== "CANCELLED" && s !== "DONE";
+    })
     .sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())[0];
 
   return (
     <div className="p-4">
       {upcoming && (
-        <div className="mb-5 rounded-2xl border-2 border-teal-300 bg-teal-50 p-4">
-          <p className="text-base font-semibold text-teal-900">Lịch hẹn sắp tới</p>
-          <p className="mt-1 text-lg text-teal-900">
-            {formatDateTime(upcoming.appointmentAt)} — {upcoming.doctorName}
-          </p>
+        <div className="mb-5 flex items-start gap-3 rounded-2xl bg-teal-50 p-4 shadow-[0_2px_10px_rgba(1,100,90,0.06)]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-teal-700">
+            <CalendarIcon className="h-6 w-6" />
+          </span>
+          <div>
+            <p className="text-base font-semibold text-teal-900">Lịch hẹn sắp tới</p>
+            <p className="mt-0.5 text-lg font-medium text-teal-900">
+              {formatDateTime(upcoming.appointmentAt)} — {upcoming.doctorName}
+            </p>
+          </div>
         </div>
       )}
 

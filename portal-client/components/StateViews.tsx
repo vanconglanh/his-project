@@ -45,8 +45,8 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-500">
-      <div className="text-slate-300">{icon}</div>
+    <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border-soft)] bg-white/60 p-8 text-center text-slate-500">
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-teal-50 text-teal-300">{icon}</div>
       <p className="text-lg font-semibold text-slate-700">{title}</p>
       {description && <p className="text-base">{description}</p>}
       {action}

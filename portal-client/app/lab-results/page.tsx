@@ -3,8 +3,16 @@
 import { useState } from "react";
 import { FlaskIcon } from "@/components/icons";
 import { EmptyState, ErrorBlock, LoadingBlock } from "@/components/StateViews";
+import { StatusBadge } from "@/components/StatusBadge";
 import { useDownloadLabResultPdf, useLabResults } from "@/lib/hooks";
 import { formatDate } from "@/lib/utils";
+
+/** KQ XN chỉ hiển thị khi đã duyệt → nhãn tiếng Việt gọn */
+function labStatusLabel(status: string | null | undefined): string {
+  const s = (status ?? "").toUpperCase();
+  if (["VERIFIED", "APPROVED", "FINAL", "COMPLETED", "DONE"].includes(s)) return "Đã duyệt";
+  return status ?? "—";
+}
 
 export default function LabResultsPage() {
   const { data: results, isLoading, isError, refetch } = useLabResults();
@@ -45,12 +53,10 @@ export default function LabResultsPage() {
 
       <div className="flex flex-col gap-3">
         {results?.map((r) => (
-          <div key={r.id} className="rounded-2xl border-2 border-slate-200 bg-white p-4">
+          <div key={r.id} className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-lg font-semibold text-slate-900">{r.testName}</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
-                {r.status}
-              </span>
+              <StatusBadge tone="ok" label={labStatusLabel(r.status)} />
             </div>
             <p className="mb-2 text-base text-slate-600">Ngày: {formatDate(r.resultDate)}</p>
             {r.conclusion && <p className="mb-3 text-base text-slate-700">{r.conclusion}</p>}

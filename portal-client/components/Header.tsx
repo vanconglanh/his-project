@@ -15,7 +15,7 @@ export function Header() {
 
   return (
     <header
-      className="rounded-b-3xl bg-gradient-to-b from-[#0a8578] to-[#01645A] px-5 pb-5 text-white shadow-md"
+      className="rounded-b-[2rem] bg-gradient-to-b from-[#0a8578] to-[#01645A] px-5 pb-6 text-white shadow-[0_8px_20px_rgba(1,100,90,0.18)]"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 1rem)" }}
     >
       <div className="flex items-center gap-3">

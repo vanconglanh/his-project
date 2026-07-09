@@ -34,35 +34,35 @@ export default function ProfilePage() {
 
       {me && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border-2 border-slate-200 bg-white p-4">
-            <dl className="flex flex-col gap-3">
-              <div>
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]">
+            <dl className="divide-y divide-slate-100">
+              <div className="py-3 first:pt-0 last:pb-0">
                 <dt className="text-base text-slate-500">Họ và tên</dt>
-                <dd className="text-lg font-semibold text-slate-900">{me.fullName}</dd>
+                <dd className="mt-0.5 text-lg font-semibold text-slate-900">{me.fullName}</dd>
               </div>
-              <div>
+              <div className="py-3 first:pt-0 last:pb-0">
                 <dt className="text-base text-slate-500">Mã bệnh nhân</dt>
-                <dd className="text-lg font-semibold text-slate-900">{me.patientCode}</dd>
+                <dd className="mt-0.5 text-lg font-semibold text-slate-900">{me.patientCode}</dd>
               </div>
-              <div>
+              <div className="py-3 first:pt-0 last:pb-0">
                 <dt className="text-base text-slate-500">Ngày sinh</dt>
-                <dd className="text-lg text-slate-900">{formatDate(me.dob)}</dd>
+                <dd className="mt-0.5 text-lg text-slate-900">{formatDate(me.dob)}</dd>
               </div>
-              <div>
+              <div className="py-3 first:pt-0 last:pb-0">
                 <dt className="text-base text-slate-500">Giới tính</dt>
-                <dd className="text-lg text-slate-900">{me.gender}</dd>
+                <dd className="mt-0.5 text-lg text-slate-900">{me.gender}</dd>
               </div>
-              <div>
+              <div className="py-3 first:pt-0 last:pb-0">
                 <dt className="text-base text-slate-500">Số điện thoại</dt>
-                <dd className="text-lg text-slate-900">{me.phone}</dd>
+                <dd className="mt-0.5 text-lg text-slate-900">{me.phone}</dd>
               </div>
-              <div>
+              <div className="py-3 first:pt-0 last:pb-0">
                 <dt className="text-base text-slate-500">Địa chỉ</dt>
-                <dd className="text-lg text-slate-900">{me.address}</dd>
+                <dd className="mt-0.5 text-lg text-slate-900">{me.address}</dd>
               </div>
-              <div>
+              <div className="py-3 first:pt-0 last:pb-0">
                 <dt className="text-base text-slate-500">Số thẻ BHYT</dt>
-                <dd className="text-lg text-slate-900">{me.bhytNumber ?? "Chưa cập nhật"}</dd>
+                <dd className="mt-0.5 text-lg text-slate-900">{me.bhytNumber ?? "Chưa cập nhật"}</dd>
               </div>
             </dl>
           </div>

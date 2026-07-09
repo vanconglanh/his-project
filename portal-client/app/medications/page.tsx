@@ -95,7 +95,7 @@ export default function MedicationsPage() {
                 {grouped[slot].map((r) => (
                   <div
                     key={r.id}
-                    className="flex items-center justify-between rounded-2xl border-2 border-slate-200 bg-white p-4"
+                    className="flex items-center justify-between rounded-2xl border border-[var(--border-soft)] bg-white p-4 shadow-[var(--shadow-card)]"
                   >
                     <div>
                       <p className="text-lg font-semibold text-slate-900">{r.drugName}</p>
