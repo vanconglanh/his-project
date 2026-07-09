@@ -1,7 +1,16 @@
 "use client";
 
 import { BigCard } from "@/components/BigCard";
-import { CalendarIcon, FileTextIcon, FlaskIcon, QueueIcon } from "@/components/icons";
+import {
+  CalendarIcon,
+  CheckCircleIcon,
+  FileTextIcon,
+  FlaskIcon,
+  HeartPulseIcon,
+  PillIcon,
+  QueueIcon,
+  UserIcon,
+} from "@/components/icons";
 import { useAppointments, useQueueInfo } from "@/lib/hooks";
 import { formatDateTime } from "@/lib/utils";
 
@@ -32,7 +41,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <section aria-label="Chức năng chính" className="grid grid-cols-2 gap-4">
+      <section aria-label="Chức năng" className="grid grid-cols-2 gap-4">
         <BigCard
           href="/queue"
           icon={<QueueIcon className="h-9 w-9" />}
@@ -52,10 +61,34 @@ export default function HomePage() {
           subtitle="Xét nghiệm, CLS"
         />
         <BigCard
-          href="/me"
+          href="/prescriptions"
           icon={<FileTextIcon className="h-9 w-9" />}
+          title="Đơn thuốc"
+          subtitle="Toa thuốc của bạn"
+        />
+        <BigCard
+          href="/encounters"
+          icon={<CheckCircleIcon className="h-9 w-9" />}
+          title="Lịch sử khám"
+          subtitle="Các lần khám bệnh"
+        />
+        <BigCard
+          href="/medications"
+          icon={<PillIcon className="h-9 w-9" />}
+          title="Nhắc uống thuốc"
+          subtitle="Lịch uống thuốc"
+        />
+        <BigCard
+          href="/health"
+          icon={<HeartPulseIcon className="h-9 w-9" />}
+          title="Sức khoẻ"
+          subtitle="Chỉ số theo dõi"
+        />
+        <BigCard
+          href="/me"
+          icon={<UserIcon className="h-9 w-9" />}
           title="Hồ sơ"
-          subtitle="Thông tin cá nhân"
+          subtitle="Thông tin & cài đặt"
         />
       </section>
     </div>
