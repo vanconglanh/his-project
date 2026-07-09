@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* ── Design tokens: thân thiện người lớn tuổi ── */
+/* ── Design tokens: thương hiệu diaB, thân thiện người lớn tuổi ── */
 :root {
-  --background: #f8fafc;
+  --brand: #01645A;
+  --background: #eef6f4; /* nền mint mềm giống app diaB */
   --foreground: #0f172a;
   --font-size-base: 18px;
 }
@@ -28,10 +29,10 @@ h2 {
   font-weight: 700;
 }
 
-/* Focus ring rõ ràng cho mọi phần tử tương tác */
+/* Focus ring rõ ràng cho mọi phần tử tương tác (teal thương hiệu) */
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.6);
+  box-shadow: 0 0 0 3px rgba(1, 100, 90, 0.55);
 }
 
 /* Đảm bảo touch target tối thiểu 44px cho phần tử tương tác */
