@@ -1,6 +1,7 @@
 "use client";
 
 import { BigCard } from "@/components/BigCard";
+import { HealthTrends } from "@/components/HealthTrends";
 import { CalendarIcon, FileTextIcon, FlaskIcon, QueueIcon } from "@/components/icons";
 import { useAppointments, useQueueInfo } from "@/lib/hooks";
 import { formatDateTime } from "@/lib/utils";
@@ -23,6 +24,8 @@ export default function HomePage() {
           </p>
         </div>
       )}
+
+      <HealthTrends />
 
       <section aria-label="Chức năng chính" className="grid grid-cols-2 gap-4">
         <BigCard
