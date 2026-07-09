@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { HomeIcon, QueueIcon, CalendarIcon, UserIcon } from "@/components/icons";
+import { HomeIcon, QueueIcon, CalendarIcon, UserIcon, HeartPulseIcon } from "@/components/icons";
 
 const TABS = [
   { href: "/", label: "Trang chủ", Icon: HomeIcon },
   { href: "/queue", label: "Hàng đợi", Icon: QueueIcon },
+  { href: "/health", label: "Sức khoẻ", Icon: HeartPulseIcon },
   { href: "/appointments", label: "Đặt lịch", Icon: CalendarIcon },
   { href: "/me", label: "Hồ sơ", Icon: UserIcon },
 ];
@@ -21,7 +22,7 @@ export function BottomNav() {
       aria-label="Điều hướng chính"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="mx-auto grid max-w-lg grid-cols-4">
+      <ul className="mx-auto grid max-w-lg grid-cols-5">
         {TABS.map(({ href, label, Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (

@@ -60,14 +60,14 @@ public class GetPortalHealthTrendsHandler : IRequestHandler<GetPortalHealthTrend
                 (decimal)last.value_numeric,
                 (string?)last.flag,
                 (DateTime)last.performed_at,
-                pts.Count > 12 ? pts.Skip(pts.Count - 12).ToList() : pts));
+                // Giu toi da 60 diem gan nhat (du cho loc 30 ngay / Tat ca ben FE)
+                pts.Count > 60 ? pts.Skip(pts.Count - 60).ToList() : pts));
         }
 
-        // Chi so co nhieu diem (co xu huong) len truoc, roi theo moi nhat
+        // Tra tat ca chi so (FE map vao 7 o co dinh + hien "Chua co du lieu"), moi nhat len truoc
         return metrics
-            .OrderByDescending(m => m.Series.Count)
-            .ThenByDescending(m => m.LatestDate)
-            .Take(6)
+            .OrderByDescending(m => m.LatestDate)
+            .Take(20)
             .ToList();
     }
 }
