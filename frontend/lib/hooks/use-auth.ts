@@ -23,10 +23,12 @@ export function useAuth() {
       response.permissions ?? [],
       allRoles
     );
-    // Đồng bộ cookie để middleware Edge đọc được (BUG-002bis)
-    const maxAge = response.expiresIn ?? 86400;
-    const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-    document.cookie = `his-access-token=${response.accessToken}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
+    // Set httpOnly cookie qua Route Handler để tránh XSS đọc token (NEW-001)
+    await fetch("/api/auth/set-cookie", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken: response.accessToken, expiresIn: response.expiresIn }),
+    });
     return response;
   }
 
@@ -40,8 +42,8 @@ export function useAuth() {
       // ignore logout API errors
     } finally {
       clearAuth();
-      // Xóa cookie đồng bộ với middleware (BUG-002bis)
-      document.cookie = "his-access-token=; Path=/; Max-Age=0";
+      // Xóa httpOnly cookie qua Route Handler (NEW-001)
+      await fetch("/api/auth/clear-cookie", { method: "POST" });
       router.push("/login");
     }
   }

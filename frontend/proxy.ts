@@ -31,7 +31,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Kiểm tra cookie token (set bởi client sau login hoặc refresh)
+  // Chỉ check cookie tồn tại; verify signature/expiry ở API layer (backend trả 401 → 401 handler redirect). (NEW-002)
   const token = request.cookies.get(AUTH_COOKIE)?.value;
   if (!token) {
     const loginUrl = new URL("/login", request.url);
