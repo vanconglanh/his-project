@@ -14,9 +14,9 @@ import { NextRequest, NextResponse } from "next/server";
  */
 const AUTH_COOKIE = "his-access-token";
 
-const PUBLIC_PATHS = ["/login", "/api/auth"];
+const PUBLIC_PATHS = ["/login", "/session"];
 
-const BYPASS_PREFIXES = ["/_next/", "/favicon", "/icons/", "/manifest", "/api/auth"];
+const BYPASS_PREFIXES = ["/_next/", "/favicon", "/icons/", "/manifest", "/session/"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

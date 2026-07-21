@@ -24,7 +24,7 @@ export function useAuth() {
       allRoles
     );
     // Set httpOnly cookie qua Route Handler để tránh XSS đọc token (NEW-001)
-    await fetch("/api/auth/set-cookie", {
+    await fetch("/session/set-cookie", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ accessToken: response.accessToken, expiresIn: response.expiresIn }),
@@ -43,7 +43,7 @@ export function useAuth() {
     } finally {
       clearAuth();
       // Xóa httpOnly cookie qua Route Handler (NEW-001)
-      await fetch("/api/auth/clear-cookie", { method: "POST" });
+      await fetch("/session/clear-cookie", { method: "POST" });
       router.push("/login");
     }
   }
