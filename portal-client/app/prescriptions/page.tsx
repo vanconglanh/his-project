@@ -10,11 +10,14 @@ export default function PrescriptionsPage() {
   const { data: prescriptions, isLoading, isError, refetch } = usePrescriptions();
   const downloadPdf = useDownloadPrescriptionPdf();
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   function handleDownload(id: string, code: string) {
     setDownloadError(null);
+    setDownloadingId(id);
     downloadPdf.mutate(id, {
       onSuccess: (blob) => {
+        setDownloadingId(null);
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -22,7 +25,10 @@ export default function PrescriptionsPage() {
         a.click();
         URL.revokeObjectURL(url);
       },
-      onError: () => setDownloadError("Không tải được đơn thuốc, vui lòng thử lại"),
+      onError: () => {
+        setDownloadingId(null);
+        setDownloadError("Không tải được đơn thuốc, vui lòng thử lại");
+      },
     });
   }
 
@@ -64,7 +70,7 @@ export default function PrescriptionsPage() {
             <button
               type="button"
               onClick={() => handleDownload(p.id, p.prescriptionCode)}
-              disabled={downloadPdf.isPending}
+              disabled={downloadingId === p.id}
               className="min-h-11 rounded-xl border-2 border-teal-700 px-4 text-base font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50"
             >
               Tải PDF đơn thuốc

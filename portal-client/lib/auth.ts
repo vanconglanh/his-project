@@ -8,7 +8,8 @@ const COOKIE_MAX_AGE_DAYS = 30;
 export function setTokenCookie(token: string) {
   if (typeof document === "undefined") return;
   const maxAge = COOKIE_MAX_AGE_DAYS * 24 * 60 * 60;
-  document.cookie = `${TOKEN_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  document.cookie = `${TOKEN_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
 }
 
 export function clearTokenCookie() {

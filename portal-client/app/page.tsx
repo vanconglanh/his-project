@@ -19,7 +19,7 @@ import type { ReactNode } from "react";
 type Utility = { href: string; label: string; icon: ReactNode };
 
 export default function HomePage() {
-  const { data: queue } = useQueueInfo();
+  const { data: queue, isLoading: queueLoading } = useQueueInfo();
   const { data: appointments } = useAppointments();
 
   const upcoming = appointments
@@ -59,7 +59,7 @@ export default function HomePage() {
           href="/queue"
           icon={<QueueIcon className="h-9 w-9" />}
           title="Hàng đợi"
-          subtitle={queue ? `Số ${queue.ticketNo}` : "Chưa lấy số"}
+          subtitle={queueLoading ? "Đang tải..." : queue ? `Số ${queue.ticketNo}` : "Chưa lấy số"}
         />
         <BigCard
           href="/appointments"
