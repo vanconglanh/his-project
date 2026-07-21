@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { LineChart } from "@/components/LineChart";
 import { useHealthTrends } from "@/lib/hooks";
 import type { HealthTrendMetric } from "@/lib/types";
-import { LoadingBlock } from "@/components/StateViews";
+import { ErrorBlock, LoadingBlock } from "@/components/StateViews";
 
 /** 7 chỉ số cố định hiển thị trên dashboard (khớp app diaB). Khớp theo mã XN (test_code). */
 const METRIC_CONFIG: { codes: string[]; name: string; color: string }[] = [
@@ -44,7 +44,7 @@ function Delta({ curr, prev }: { curr: number; prev: number | null }) {
 }
 
 export default function HealthPage() {
-  const { data: metrics, isLoading } = useHealthTrends();
+  const { data: metrics, isLoading, isError, refetch } = useHealthTrends();
   const [selCode, setSelCode] = useState<string | null>(null);
   const [range, setRange] = useState<"30" | "all">("all");
 
@@ -82,6 +82,7 @@ export default function HealthPage() {
   }, [series]);
 
   if (isLoading) return <div className="p-4"><LoadingBlock label="Đang tải chỉ số sức khoẻ..." /></div>;
+  if (isError) return <div className="p-4"><ErrorBlock error={undefined} onRetry={() => refetch()} /></div>;
 
   return (
     <div className="p-4">

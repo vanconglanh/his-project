@@ -19,6 +19,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/";
+  const sessionExpired = searchParams.get("reason") === "session_expired";
 
   const [step, setStep] = useState<Step>("login");
   const [phone, setPhone] = useState("");
@@ -89,6 +90,12 @@ function LoginContent() {
         {step === "reset" && "Nhập mã xác nhận và đặt PIN mới"}
       </p>
 
+      {sessionExpired && (
+        <div className="mb-4 rounded-xl border-2 border-amber-200 bg-amber-50 p-3 text-center text-base font-medium text-amber-700">
+          Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 rounded-xl border-2 border-red-200 bg-red-50 p-3 text-center text-base font-medium text-red-700">
           {error}
@@ -103,7 +110,7 @@ function LoginContent() {
               type="tel"
               inputMode="numeric"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/[\s-]/g, ""))}
               placeholder="09xxxxxxxx"
               className="min-h-14 rounded-full border border-slate-300 bg-white px-5 text-lg shadow-[0_2px_8px_rgba(15,23,42,0.04)] focus-visible:border-[#01645A] focus-visible:ring-2 focus-visible:ring-teal-100"
               aria-label="Số điện thoại"
@@ -145,7 +152,7 @@ function LoginContent() {
               type="tel"
               inputMode="numeric"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/[\s-]/g, ""))}
               placeholder="09xxxxxxxx"
               className="min-h-14 rounded-full border border-slate-300 bg-white px-5 text-lg shadow-[0_2px_8px_rgba(15,23,42,0.04)] focus-visible:border-[#01645A] focus-visible:ring-2 focus-visible:ring-teal-100"
               aria-label="Số điện thoại"

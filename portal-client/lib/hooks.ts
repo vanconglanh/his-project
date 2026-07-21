@@ -191,6 +191,9 @@ export function useToggleReminder() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["med-reminders"] });
     },
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ["med-reminders"] });
+    },
   });
 }
 

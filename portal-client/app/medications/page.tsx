@@ -28,7 +28,9 @@ export default function MedicationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const grouped = groupBySlot(reminders ?? []);
-  const latestPrescription = prescriptions?.[0];
+  const latestPrescription = prescriptions
+    ?.slice()
+    .sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime())[0];
 
   function handleToggle(id: string, enabled: boolean) {
     setError(null);

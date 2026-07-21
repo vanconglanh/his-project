@@ -13,7 +13,9 @@ function encounterStatus(status: string | null | undefined): { label: string; to
   if (["FINISHED", "COMPLETED", "DONE", "CLOSED"].includes(s)) return { label: "Đã khám", tone: "done" };
   if (["IN_PROGRESS", "OPEN", "EXAMINING"].includes(s)) return { label: "Đang khám", tone: "confirmed" };
   if (["CANCELLED", "CANCELED"].includes(s)) return { label: "Đã hủy", tone: "cancelled" };
-  return { label: status ?? "—", tone: "done" };
+  if (["WAITING", "PENDING"].includes(s)) return { label: "Đang chờ", tone: "pending" };
+  if (s === "SCHEDULED") return { label: "Đã hẹn", tone: "pending" };
+  return { label: status ?? "—", tone: "pending" };
 }
 
 export default function EncountersPage() {
