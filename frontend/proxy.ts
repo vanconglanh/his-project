@@ -18,7 +18,7 @@ const PUBLIC_PATHS = ["/login", "/api/auth"];
 
 const BYPASS_PREFIXES = ["/_next/", "/favicon", "/icons/", "/manifest", "/api/auth"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Bỏ qua static assets và Next.js internals
