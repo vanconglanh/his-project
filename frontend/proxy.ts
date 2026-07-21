@@ -16,7 +16,7 @@ const AUTH_COOKIE = "his-access-token";
 
 const PUBLIC_PATHS = ["/login", "/session"];
 
-const BYPASS_PREFIXES = ["/_next/", "/favicon", "/icons/", "/manifest", "/session/"];
+const BYPASS_PREFIXES = ["/_next/", "/favicon", "/icons/", "/manifest", "/session/", "/brand/", "/images/", "/assets/"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
