@@ -55,9 +55,16 @@ public class JwtService : IJwtService
         if (isAdmin)
             claims.Add(new Claim("is_super_admin", "true"));
 
-        // Load permissions tu user_roles -> role_permissions
-        foreach (var perm in LoadPermissions(user.Id))
-            claims.Add(new Claim("permissions", perm));
+        // Load permissions tu user_roles -> role_permissions.
+        // Super admin da bypass moi permission check qua claim is_super_admin (xem RequirePermissionAttribute
+        // + frontend usePermissions) nen mang permissions la thua. KHONG nhoi permissions vao JWT cho admin:
+        // super admin co ~150 quyen -> token > 4KB -> vuot gioi han ~4096 bytes/cookie -> trinh duyet drop
+        // cookie his-access-token -> proxy.ts khong thay cookie -> redirect /login (login loop). (FIX login admin)
+        if (!isAdmin)
+        {
+            foreach (var perm in LoadPermissions(user.Id))
+                claims.Add(new Claim("permissions", perm));
+        }
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"] ?? "ProDiabHis",
