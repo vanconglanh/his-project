@@ -1,4 +1,4 @@
-import apiClient from "./client";
+import apiClient, { API_BASE_URL } from "./client";
 import type {
   ApiResponse,
   CheckInRequest,
@@ -65,8 +65,7 @@ export async function admitTicket(ticketId: string): Promise<AdmitTicketResult> 
 }
 
 export function getTicketPdfUrl(ticketId: string): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-  return `${base}/api/v1/reception/queue/${ticketId}/ticket-pdf`;
+  return `${API_BASE_URL}/api/v1/reception/queue/${ticketId}/ticket-pdf`;
 }
 
 export async function getRooms(): Promise<RoomResponse[]> {

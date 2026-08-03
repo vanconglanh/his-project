@@ -1,4 +1,4 @@
-import apiClient from "./client";
+import apiClient, { API_BASE_URL } from "./client";
 import type { ApiMeta } from "./types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -181,13 +181,11 @@ export async function submitBhyt(id: string): Promise<BhytExportResponse> {
 }
 
 export function getBhytXmlDownloadUrl(id: string, tableNo: number): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-  return `${base}/api/v1/bhyt/exports/${id}/xml/${tableNo}`;
+  return `${API_BASE_URL}/api/v1/bhyt/exports/${id}/xml/${tableNo}`;
 }
 
 export function getBhytAllXmlDownloadUrl(id: string): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-  return `${base}/api/v1/bhyt/exports/${id}/xml/all`;
+  return `${API_BASE_URL}/api/v1/bhyt/exports/${id}/xml/all`;
 }
 
 export async function listBhytExportItems(

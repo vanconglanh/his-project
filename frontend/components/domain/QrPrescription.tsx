@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Copy, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api/client";
 
 interface Props {
   prescriptionId: string;
@@ -16,7 +17,7 @@ interface Props {
 export function QrPrescription({ prescriptionId, maDonThuoc, qrImageUrl }: Props) {
   const [copied, setCopied] = useState(false);
 
-  const qrUrl = qrImageUrl ?? `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"}/api/v1/prescriptions/${prescriptionId}/qr`;
+  const qrUrl = qrImageUrl ?? `${API_BASE_URL}/api/v1/prescriptions/${prescriptionId}/qr`;
 
   async function copyCode() {
     if (!maDonThuoc) return;

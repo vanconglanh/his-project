@@ -1,8 +1,20 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import type { RefreshTokenResponse } from "./types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+// Base URL cho API.
+// - Neu NEXT_PUBLIC_API_BASE_URL duoc set tuong minh (khi non-empty) -> dung gia tri do.
+// - Nguoc lai o PRODUCTION -> "" (relative same-origin): browser goi thang /api/v1 tren cung
+//   domain dang phuc vu app (nginx proxy /api -> backend). Nho vay KHONG con phu thuoc build-arg
+//   NEXT_PUBLIC_API_BASE_URL / APP_PUBLIC_URL, va KHONG bao gio roi ve localhost:5000 khi build
+//   thieu bien (day la nguyen nhan su co login truoc day).
+// - O DEV (next dev) -> "http://localhost:5000" de goi backend .NET chay local.
+const _explicitApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+export const API_BASE_URL =
+  _explicitApiBase && _explicitApiBase.length > 0
+    ? _explicitApiBase
+    : process.env.NODE_ENV === "production"
+      ? ""
+      : "http://localhost:5000";
 
 export const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,
