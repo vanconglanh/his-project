@@ -222,6 +222,9 @@ public static class DependencyInjection
 
         // Sprint 8: Billing + Cashier + Payment services
         services.AddScoped<Application.Billing.IServiceExcelParser, Billing.ServiceExcelParserImpl>();
+        // G02 - gate thanh toan dot chi dinh CLS
+        services.AddScoped<ProDiabHis.Application.CLS.IClsPaymentGate, ProDiabHis.Infrastructure.CLS.ClsPaymentGateImpl>();
+
         services.AddScoped<IBillingCalculator, BillingCalculatorImpl>();
         services.AddScoped<IBhytCoPayCalculator, BhytCoPayCalculatorImpl>();
         services.AddScoped<ICashierShiftService, CashierShiftServiceImpl>();

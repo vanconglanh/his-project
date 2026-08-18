@@ -19,8 +19,18 @@ public class ClsOrdersController : ControllerBase
     [RequirePermission("lab_order.create")]
     public async Task<IActionResult> CreateLab(Guid encounterId, [FromBody] CreateLabOrdersBody body, CancellationToken ct)
     {
-        var result = await _mediator.Send(new CreateLabOrdersCommand(encounterId, body.Tests), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        var result = await _mediator.Send(new CreateLabOrdersCommand(encounterId, body.Tests, body.RoundId), ct);
+        if (!result.IsSuccess)
+        {
+            // G01: dot chi dinh khong hop le / da chot
+            var httpStatus = result.ErrorCode switch
+            {
+                "CLS_ROUND_NOT_FOUND" => 404,
+                "CLS_ROUND_LOCKED" => 409,
+                _ => 400
+            };
+            return StatusCode(httpStatus, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
         return StatusCode(201, new { data = result.Value });
     }
 
@@ -39,7 +49,15 @@ public class ClsOrdersController : ControllerBase
     public async Task<IActionResult> UpdateLab(Guid id, [FromBody] UpdateOrderStatusBody body, CancellationToken ct)
     {
         var result = await _mediator.Send(new UpdateLabOrderStatusCommand(id, body.Status, body.Note), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        if (!result.IsSuccess)
+        {
+            // G02: dot chi dinh chua thanh toan -> 402 Payment Required
+            var httpStatus = result.ErrorCode == "CLS_ORDER_UNPAID" ? 402 : 400;
+            return StatusCode(httpStatus, new
+            {
+                error = new { code = result.ErrorCode, message = result.ErrorMessage, details = result.ErrorDetails }
+            });
+        }
         return Ok();
     }
 
@@ -62,8 +80,18 @@ public class ClsOrdersController : ControllerBase
     [RequirePermission("rad_order.create")]
     public async Task<IActionResult> CreateRad(Guid encounterId, [FromBody] CreateRadOrdersBody body, CancellationToken ct)
     {
-        var result = await _mediator.Send(new CreateRadOrdersCommand(encounterId, body.Orders), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        var result = await _mediator.Send(new CreateRadOrdersCommand(encounterId, body.Orders, body.RoundId), ct);
+        if (!result.IsSuccess)
+        {
+            // G01: dot chi dinh khong hop le / da chot
+            var httpStatus = result.ErrorCode switch
+            {
+                "CLS_ROUND_NOT_FOUND" => 404,
+                "CLS_ROUND_LOCKED" => 409,
+                _ => 400
+            };
+            return StatusCode(httpStatus, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
         return StatusCode(201, new { data = result.Value });
     }
 
@@ -82,7 +110,15 @@ public class ClsOrdersController : ControllerBase
     public async Task<IActionResult> UpdateRad(Guid id, [FromBody] UpdateOrderStatusBody body, CancellationToken ct)
     {
         var result = await _mediator.Send(new UpdateRadOrderStatusCommand(id, body.Status, body.Note), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        if (!result.IsSuccess)
+        {
+            // G02: dot chi dinh chua thanh toan -> 402 Payment Required
+            var httpStatus = result.ErrorCode == "CLS_ORDER_UNPAID" ? 402 : 400;
+            return StatusCode(httpStatus, new
+            {
+                error = new { code = result.ErrorCode, message = result.ErrorMessage, details = result.ErrorDetails }
+            });
+        }
         return Ok();
     }
 
@@ -138,6 +174,6 @@ public class ClsOrdersController : ControllerBase
     }
 }
 
-public record CreateLabOrdersBody(IReadOnlyList<LabOrderRequest> Tests);
-public record CreateRadOrdersBody(IReadOnlyList<RadOrderRequest> Orders);
+public record CreateLabOrdersBody(IReadOnlyList<LabOrderRequest> Tests, Guid? RoundId = null);
+public record CreateRadOrdersBody(IReadOnlyList<RadOrderRequest> Orders, Guid? RoundId = null);
 public record UpdateOrderStatusBody(string Status, string? Note);

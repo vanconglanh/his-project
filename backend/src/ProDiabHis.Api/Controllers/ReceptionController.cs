@@ -113,6 +113,52 @@ public class ReceptionController : ControllerBase
         return Ok(new { data = result.Value });
     }
 
+    // POST /api/v1/reception/tickets/{id}/wait-cls
+    /// <summary>Chuyển vé sang "Chờ kết quả CLS" - nhả phòng cho bệnh nhân kế tiếp</summary>
+    [HttpPost("tickets/{ticketId:guid}/wait-cls")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> WaitCls(Guid ticketId, [FromBody] WaitClsTicketRequest? request,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new WaitClsTicketCommand(ticketId, request ?? new WaitClsTicketRequest(null, null)), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode switch
+            {
+                "TICKET_NOT_FOUND" => 404,
+                "TICKET_INVALID_TRANSITION" => 409,
+                _ => 422
+            };
+            return StatusCode(status, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return Ok(new { data = result.Value });
+    }
+
+    // POST /api/v1/reception/tickets/{id}/resume
+    /// <summary>Quay lại phòng khám sau khi có kết quả CLS (WAITING_CLS -> IN_PROGRESS)</summary>
+    [HttpPost("tickets/{ticketId:guid}/resume")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> ResumeTicket(Guid ticketId, [FromBody] ResumeTicketRequest? request,
+        [FromQuery] bool force = false, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ResumeTicketCommand(ticketId, request, force), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode switch
+            {
+                "TICKET_NOT_FOUND" or "ROOM_NOT_FOUND" => 404,
+                "TICKET_INVALID_TRANSITION" or "ROOM_CAPACITY_EXCEEDED" => 409,
+                _ => 422
+            };
+            return StatusCode(status, new
+            {
+                error = new { code = result.ErrorCode, message = result.ErrorMessage, details = result.ErrorDetails }
+            });
+        }
+        return Ok(new { data = result.Value });
+    }
+
     // PUT /api/v1/reception/queue/{ticketId}/skip
     [HttpPut("queue/{ticketId:guid}/skip")]
     [RequirePermission("reception.queue.manage")]

@@ -52,8 +52,9 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
             return Result<ReceptionTicketResponse>.Failure("RECEPTION_DUPLICATE_CHECKIN", "Bệnh nhân đã được tiếp đón hôm nay tại phòng này");
 
         // Check room capacity
+        // G01/G02: ve dang WAITING_CLS da NHA PHONG -> khong tinh vao suc chua phong
         var todayCount = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND room_id=@RoomId AND ticket_date=@Date AND status NOT IN ('CANCELLED') AND deleted_at IS NULL",
+            "SELECT COUNT(*) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND room_id=@RoomId AND ticket_date=@Date AND status NOT IN ('CANCELLED', 'WAITING_CLS') AND deleted_at IS NULL",
             new { TenantId = _tenant.TenantId, RoomId = req.RoomId.ToString(), Date = today });
         if (todayCount >= (int)room.max_per_day)
             return Result<ReceptionTicketResponse>.Failure("RECEPTION_ROOM_FULL", "Phòng khám đã đạt giới hạn lượt khám tối đa");

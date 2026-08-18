@@ -12,7 +12,8 @@ public record LabOrderRequest(
     string? Priority,
     DateTime? ScheduledFor,
     string? LabPartnerId,
-    string? Note);
+    string? Note,
+    Guid? RoundId = null);
 
 public record LabOrderResponse(
     Guid Id,
@@ -33,7 +34,8 @@ public record RadOrderRequest(
     bool Contrast,
     string ProcedureCode,
     string? Priority,
-    string? Note);
+    string? Note,
+    Guid? RoundId = null);
 
 public record RadOrderResponse(
     Guid Id,
@@ -59,7 +61,7 @@ public record ClsCatalogItem(
     decimal? BhytPrice);
 
 // ────────────── Commands ──────────────
-public record CreateLabOrdersCommand(Guid EncounterId, IReadOnlyList<LabOrderRequest> Tests)
+public record CreateLabOrdersCommand(Guid EncounterId, IReadOnlyList<LabOrderRequest> Tests, Guid? RoundId = null)
     : IRequest<Result<IReadOnlyList<LabOrderResponse>>>;
 
 public record ListLabOrdersQuery(Guid EncounterId) : IRequest<Result<IReadOnlyList<LabOrderResponse>>>;
@@ -68,7 +70,7 @@ public record UpdateLabOrderStatusCommand(Guid OrderId, string Status, string? N
 
 public record DeleteLabOrderCommand(Guid OrderId) : IRequest<Result<bool>>;
 
-public record CreateRadOrdersCommand(Guid EncounterId, IReadOnlyList<RadOrderRequest> Orders)
+public record CreateRadOrdersCommand(Guid EncounterId, IReadOnlyList<RadOrderRequest> Orders, Guid? RoundId = null)
     : IRequest<Result<IReadOnlyList<RadOrderResponse>>>;
 
 public record ListRadOrdersQuery(Guid EncounterId) : IRequest<Result<IReadOnlyList<RadOrderResponse>>>;
@@ -103,6 +105,16 @@ public class CreateLabOrdersCommandHandler
             new { Id = cmd.EncounterId.ToString(), TId = _tenant.TenantId });
         if (enc is null) return Result<IReadOnlyList<LabOrderResponse>>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
+        // G01: xac thuc dot chi dinh (roundId co the truyen o cap command hoac cap item)
+        var roundIds = cmd.Tests.Select(t => t.RoundId ?? cmd.RoundId)
+            .Where(x => x.HasValue).Select(x => x!.Value.ToString()).Distinct().ToList();
+        foreach (var rid in roundIds)
+        {
+            var check = await ValidateRoundAsync(conn, rid, cmd.EncounterId.ToString());
+            if (!check.IsSuccess)
+                return Result<IReadOnlyList<LabOrderResponse>>.Failure(check.ErrorCode!, check.ErrorMessage!, check.ErrorDetails);
+        }
+
         var results = new List<LabOrderResponse>();
         var now = DateTime.UtcNow;
         var userId = _user.UserId?.ToString();
@@ -121,16 +133,17 @@ public class CreateLabOrdersCommandHandler
 
             await conn.ExecuteAsync(@"
                 INSERT INTO diab_his_cli_lab_orders
-                    (id, tenant_id, encounter_id, test_code, test_name, sample_type,
+                    (id, tenant_id, encounter_id, round_id, test_code, test_name, sample_type,
                      priority, status, ordered_at, ordered_by, scheduled_for, lab_partner_id, note,
                      created_at, created_by, updated_at)
                 VALUES
-                    (@Id, @TId, @EId, @Code, @Name, @Sample,
+                    (@Id, @TId, @EId, @RId, @Code, @Name, @Sample,
                      @Priority, 'ordered', @Now, @UserId, @SchedFor, @LabPartner, @Note,
                      @Now, @UserId, @Now)",
                 new
                 {
                     Id = id, TId = _tenant.TenantId, EId = cmd.EncounterId.ToString(),
+                    RId = (test.RoundId ?? cmd.RoundId)?.ToString(),
                     Code = test.TestCode, Name = testName, Sample = sampleType,
                     Priority = priority, Now = now, UserId = userId,
                     SchedFor = test.ScheduledFor, LabPartner = test.LabPartnerId, Note = test.Note
@@ -141,8 +154,24 @@ public class CreateLabOrdersCommandHandler
                 string.IsNullOrEmpty(userId) ? null : Guid.Parse(userId), test.ScheduledFor, test.Note));
         }
 
+        // Cap nhat lai tong tien cua dot bi anh huong
+        foreach (var rid in roundIds)
+            await ClsRoundSql.RecalcTotalAsync(conn, _tenant.TenantId, rid);
+
         await _audit.LogAsync("CREATE", "LabOrders", cmd.EncounterId.ToString(), new { count = results.Count }, ct);
         return Result<IReadOnlyList<LabOrderResponse>>.Success(results.AsReadOnly());
+    }
+
+    private async Task<Result> ValidateRoundAsync(System.Data.IDbConnection conn, string roundId, string encounterId)
+    {
+        var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT id, encounter_id, status, payment_status FROM diab_his_cls_order_rounds
+              WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            new { Id = roundId, TId = _tenant.TenantId });
+
+        return ClsRoundGuard.ValidateForAddingOrder(
+            row is not null, row is null ? null : (string?)row.encounter_id, encounterId,
+            row is null ? null : (string?)row.status, row is null ? null : (string?)row.payment_status);
     }
 }
 
@@ -177,9 +206,10 @@ public class UpdateLabOrderStatusCommandHandler : IRequestHandler<UpdateLabOrder
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IClsPaymentGate _gate;
 
-    public UpdateLabOrderStatusCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant)
-    { _db = db; _tenant = tenant; }
+    public UpdateLabOrderStatusCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IClsPaymentGate gate)
+    { _db = db; _tenant = tenant; _gate = gate; }
 
     public async Task<Result<bool>> Handle(UpdateLabOrderStatusCommand cmd, CancellationToken ct)
     {
@@ -193,6 +223,14 @@ public class UpdateLabOrderStatusCommandHandler : IRequestHandler<UpdateLabOrder
         if (!LabOrderStatus.CanTransition((string)order.status, cmd.Status))
             return Result<bool>.Failure("LAB_ORDER_INVALID_TRANSITION",
                 $"Không thể chuyển từ {order.status} sang {cmd.Status}");
+
+        // G02 - gate thanh toan: chan thuc hien khi dot chi dinh con UNPAID (tru khi huy don)
+        if (cmd.Status != LabOrderStatus.Cancelled)
+        {
+            var gate = await _gate.EnsureRoundPayableAsync(cmd.OrderId, ClsOrderKind.Lab, ct);
+            if (!gate.IsSuccess)
+                return Result<bool>.Failure(gate.ErrorCode!, gate.ErrorMessage!, gate.ErrorDetails);
+        }
 
         await conn.ExecuteAsync("UPDATE diab_his_cli_lab_orders SET status=@Status, note=COALESCE(@Note, note), updated_at=@Now WHERE id=@Id",
             new { Id = cmd.OrderId.ToString(), Status = cmd.Status, Note = cmd.Note, Now = DateTime.UtcNow });
@@ -213,7 +251,7 @@ public class DeleteLabOrderCommandHandler : IRequestHandler<DeleteLabOrderComman
     {
         using var conn = _db.CreateConnection();
         var order = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, status FROM diab_his_cli_lab_orders WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id, status, round_id FROM diab_his_cli_lab_orders WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.OrderId.ToString(), TId = _tenant.TenantId });
 
         if (order is null) return Result<bool>.Failure("LAB_ORDER_NOT_FOUND", "Không tìm thấy chỉ định XN");
@@ -222,6 +260,10 @@ public class DeleteLabOrderCommandHandler : IRequestHandler<DeleteLabOrderComman
 
         await conn.ExecuteAsync("UPDATE diab_his_cli_lab_orders SET deleted_at=@Now WHERE id=@Id",
             new { Id = cmd.OrderId.ToString(), Now = DateTime.UtcNow });
+
+        var roundId = (string?)order.round_id;
+        if (!string.IsNullOrEmpty(roundId))
+            await ClsRoundSql.RecalcTotalAsync(conn, _tenant.TenantId, roundId);
 
         return Result<bool>.Success(true);
     }
@@ -250,6 +292,16 @@ public class CreateRadOrdersCommandHandler
             new { Id = cmd.EncounterId.ToString(), TId = _tenant.TenantId });
         if (enc is null) return Result<IReadOnlyList<RadOrderResponse>>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
+        // G01: xac thuc dot chi dinh (roundId co the truyen o cap command hoac cap item)
+        var roundIds = cmd.Orders.Select(o => o.RoundId ?? cmd.RoundId)
+            .Where(x => x.HasValue).Select(x => x!.Value.ToString()).Distinct().ToList();
+        foreach (var rid in roundIds)
+        {
+            var check = await ValidateRoundAsync(conn, rid, cmd.EncounterId.ToString());
+            if (!check.IsSuccess)
+                return Result<IReadOnlyList<RadOrderResponse>>.Failure(check.ErrorCode!, check.ErrorMessage!, check.ErrorDetails);
+        }
+
         var results = new List<RadOrderResponse>();
         var now = DateTime.UtcNow;
         var userId = _user.UserId?.ToString();
@@ -266,16 +318,17 @@ public class CreateRadOrdersCommandHandler
 
             await conn.ExecuteAsync(@"
                 INSERT INTO diab_his_cli_rad_orders
-                    (id, tenant_id, encounter_id, modality, body_part, contrast,
+                    (id, tenant_id, encounter_id, round_id, modality, body_part, contrast,
                      procedure_code, procedure_name, priority, status, ordered_at, ordered_by, note,
                      created_at, created_by, updated_at)
                 VALUES
-                    (@Id, @TId, @EId, @Mod, @Body, @Contrast,
+                    (@Id, @TId, @EId, @RId, @Mod, @Body, @Contrast,
                      @Code, @Name, @Priority, 'ordered', @Now, @UserId, @Note,
                      @Now, @UserId, @Now)",
                 new
                 {
                     Id = id, TId = _tenant.TenantId, EId = cmd.EncounterId.ToString(),
+                    RId = (order.RoundId ?? cmd.RoundId)?.ToString(),
                     Mod = order.Modality, Body = order.BodyPart, Contrast = order.Contrast ? 1 : 0,
                     Code = order.ProcedureCode, Name = procName, Priority = priority,
                     Now = now, UserId = userId, Note = order.Note
@@ -286,8 +339,23 @@ public class CreateRadOrdersCommandHandler
                 string.IsNullOrEmpty(userId) ? null : Guid.Parse(userId), order.Note));
         }
 
+        foreach (var rid in roundIds)
+            await ClsRoundSql.RecalcTotalAsync(conn, _tenant.TenantId, rid);
+
         await _audit.LogAsync("CREATE", "RadOrders", cmd.EncounterId.ToString(), new { count = results.Count }, ct);
         return Result<IReadOnlyList<RadOrderResponse>>.Success(results.AsReadOnly());
+    }
+
+    private async Task<Result> ValidateRoundAsync(System.Data.IDbConnection conn, string roundId, string encounterId)
+    {
+        var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT id, encounter_id, status, payment_status FROM diab_his_cls_order_rounds
+              WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            new { Id = roundId, TId = _tenant.TenantId });
+
+        return ClsRoundGuard.ValidateForAddingOrder(
+            row is not null, row is null ? null : (string?)row.encounter_id, encounterId,
+            row is null ? null : (string?)row.status, row is null ? null : (string?)row.payment_status);
     }
 }
 
@@ -323,9 +391,10 @@ public class UpdateRadOrderStatusCommandHandler : IRequestHandler<UpdateRadOrder
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IClsPaymentGate _gate;
 
-    public UpdateRadOrderStatusCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant)
-    { _db = db; _tenant = tenant; }
+    public UpdateRadOrderStatusCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IClsPaymentGate gate)
+    { _db = db; _tenant = tenant; _gate = gate; }
 
     public async Task<Result<bool>> Handle(UpdateRadOrderStatusCommand cmd, CancellationToken ct)
     {
@@ -339,6 +408,14 @@ public class UpdateRadOrderStatusCommandHandler : IRequestHandler<UpdateRadOrder
         if (!RadOrderStatus.CanTransition((string)order.status, cmd.Status))
             return Result<bool>.Failure("RAD_ORDER_INVALID_TRANSITION",
                 $"Không thể chuyển từ {order.status} sang {cmd.Status}");
+
+        // G02 - gate thanh toan: chan thuc hien khi dot chi dinh con UNPAID (tru khi huy don)
+        if (cmd.Status != RadOrderStatus.Cancelled)
+        {
+            var gate = await _gate.EnsureRoundPayableAsync(cmd.OrderId, ClsOrderKind.Rad, ct);
+            if (!gate.IsSuccess)
+                return Result<bool>.Failure(gate.ErrorCode!, gate.ErrorMessage!, gate.ErrorDetails);
+        }
 
         await conn.ExecuteAsync("UPDATE diab_his_cli_rad_orders SET status=@Status, note=COALESCE(@Note, note), updated_at=@Now WHERE id=@Id",
             new { Id = cmd.OrderId.ToString(), Status = cmd.Status, Note = cmd.Note, Now = DateTime.UtcNow });
@@ -359,7 +436,7 @@ public class DeleteRadOrderCommandHandler : IRequestHandler<DeleteRadOrderComman
     {
         using var conn = _db.CreateConnection();
         var order = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, status FROM diab_his_cli_rad_orders WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id, status, round_id FROM diab_his_cli_rad_orders WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.OrderId.ToString(), TId = _tenant.TenantId });
 
         if (order is null) return Result<bool>.Failure("RAD_ORDER_NOT_FOUND", "Không tìm thấy chỉ định CĐHA");
@@ -368,6 +445,10 @@ public class DeleteRadOrderCommandHandler : IRequestHandler<DeleteRadOrderComman
 
         await conn.ExecuteAsync("UPDATE diab_his_cli_rad_orders SET deleted_at=@Now WHERE id=@Id",
             new { Id = cmd.OrderId.ToString(), Now = DateTime.UtcNow });
+
+        var roundId = (string?)order.round_id;
+        if (!string.IsNullOrEmpty(roundId))
+            await ClsRoundSql.RecalcTotalAsync(conn, _tenant.TenantId, roundId);
 
         return Result<bool>.Success(true);
     }

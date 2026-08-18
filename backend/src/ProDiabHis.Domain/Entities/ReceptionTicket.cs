@@ -16,6 +16,10 @@ public class ReceptionTicket
     public string? Note { get; set; }
     public string? CancelReason { get; set; }
     public string? ServicePackagesJson { get; set; }
+    /// <summary>Phong da nha khi chuyen sang WAITING_CLS; dung de quay lai IN_PROGRESS</summary>
+    public Guid? ReleasedRoomId { get; set; }
+    /// <summary>Thoi diem chuyen sang cho ket qua CLS</summary>
+    public DateTime? WaitingClsAt { get; set; }
     public DateTime CheckedInAt { get; set; } = DateTime.UtcNow;
     public DateTime? CalledAt { get; set; }
     public DateTime? StartedAt { get; set; }
@@ -35,6 +39,8 @@ public static class TicketStatus
     public const string Done = "DONE";
     public const string Skipped = "SKIPPED";
     public const string Cancelled = "CANCELLED";
+    /// <summary>Cho ket qua CLS - benh nhan roi phong, phong duoc nha cho ca ke tiep</summary>
+    public const string WaitingCls = "WAITING_CLS";
 
     /// <summary>Kiem tra transition hop le theo state machine</summary>
     public static bool CanTransition(string current, string next)
@@ -49,6 +55,12 @@ public static class TicketStatus
             (Called, Skipped) => true,
             (InProgress, Done) => true,
             (InProgress, Cancelled) => true,
+            // G01/G02 - cho ket qua CLS (nha phong) va quay lai phong kham
+            (InProgress, WaitingCls) => true,
+            (WaitingCls, InProgress) => true,
+            (WaitingCls, Done) => true,
+            (WaitingCls, Skipped) => true,
+            (WaitingCls, Cancelled) => true,
             _ => false
         };
     }

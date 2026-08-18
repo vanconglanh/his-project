@@ -141,9 +141,11 @@ public class CreateRadResultCommandHandler
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
 
+    private readonly ProDiabHis.Application.CLS.IClsPaymentGate _gate;
+
     public CreateRadResultCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
-    { _db = db; _tenant = tenant; _user = user; _audit = audit; }
+        ICurrentUser user, IAuditService audit, ProDiabHis.Application.CLS.IClsPaymentGate gate)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; _gate = gate; }
 
     public async Task<Result<RadResultResponse>> Handle(CreateRadResultCommand cmd, CancellationToken ct)
     {
@@ -159,6 +161,11 @@ public class CreateRadResultCommandHandler
 
         if (order is null)
             return Result<RadResultResponse>.Failure("RAD_RESULT_NOT_FOUND", "Không tìm thấy chỉ định CĐHA");
+
+        // G02 - gate thanh toan: chan nhap ket qua khi dot chi dinh con UNPAID
+        var gate = await _gate.EnsureRoundPayableAsync(req.RadOrderId, ProDiabHis.Application.CLS.ClsOrderKind.Rad, ct);
+        if (!gate.IsSuccess)
+            return Result<RadResultResponse>.Failure(gate.ErrorCode!, gate.ErrorMessage!, gate.ErrorDetails);
 
         var id     = Guid.NewGuid().ToString();
         var now    = DateTime.UtcNow;

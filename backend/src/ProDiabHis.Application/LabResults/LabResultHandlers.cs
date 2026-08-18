@@ -130,10 +130,12 @@ public class CreateLabResultCommandHandler
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
     private readonly ILabResultFlagCalculator _flagCalc;
+    private readonly ProDiabHis.Application.CLS.IClsPaymentGate _gate;
 
     public CreateLabResultCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit, ILabResultFlagCalculator flagCalc)
-    { _db = db; _tenant = tenant; _user = user; _audit = audit; _flagCalc = flagCalc; }
+        ICurrentUser user, IAuditService audit, ILabResultFlagCalculator flagCalc,
+        ProDiabHis.Application.CLS.IClsPaymentGate gate)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; _flagCalc = flagCalc; _gate = gate; }
 
     public async Task<Result<LabResultResponse>> Handle(CreateLabResultCommand cmd, CancellationToken ct)
     {
@@ -145,6 +147,11 @@ public class CreateLabResultCommandHandler
 
         if (labOrder is null)
             return Result<LabResultResponse>.Failure("LAB_RESULT_NOT_FOUND", "Không tìm thấy chỉ định XN");
+
+        // G02 - gate thanh toan: chan nhap ket qua khi dot chi dinh con UNPAID
+        var gate = await _gate.EnsureRoundPayableAsync(labOrder.Id, ProDiabHis.Application.CLS.ClsOrderKind.Lab, ct);
+        if (!gate.IsSuccess)
+            return Result<LabResultResponse>.Failure(gate.ErrorCode!, gate.ErrorMessage!, gate.ErrorDetails);
 
         // Lookup encounter to get patient_id
         var encounter = await _db.Encounters

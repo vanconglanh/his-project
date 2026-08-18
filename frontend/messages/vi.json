@@ -596,6 +596,7 @@
       "WAITING": "Chờ",
       "CALLED": "Đã gọi",
       "IN_PROGRESS": "Đang khám",
+      "WAITING_CLS": "Chờ kết quả CLS",
       "DONE": "Hoàn thành",
       "SKIPPED": "Bỏ qua",
       "CANCELLED": "Đã huỷ"
