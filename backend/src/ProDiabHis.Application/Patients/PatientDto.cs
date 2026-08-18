@@ -58,7 +58,7 @@ public record AllergyResponse(
 
 public record InsuranceResponse(
     Guid Id,
-    int PatientId,
+    string PatientId,
     string Type,
     string? CardNo,
     DateOnly ValidFrom,

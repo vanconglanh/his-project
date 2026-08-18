@@ -346,7 +346,7 @@ public class AddInsuranceCommandHandler : IRequestHandler<AddInsuranceCommand, R
         {
             Id = Guid.NewGuid(),
             TenantId = _tenant.TenantId,
-            PatientId = 0,
+            PatientId = command.PatientId.ToString(),
             Type = req.Type,
             CardNoEnc = enc,
             CardNoMasked = masked,

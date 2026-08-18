@@ -101,7 +101,7 @@ public class InsuranceConfiguration : IEntityTypeConfiguration<Insurance>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
-        builder.Property(e => e.PatientId).HasColumnName("patient_id");
+        builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.Type).HasColumnName("type").HasMaxLength(20).HasDefaultValue("BHYT");
         builder.Property(e => e.CardNoEnc).HasColumnName("card_no_enc").HasMaxLength(500).IsRequired();
         builder.Property(e => e.CardNoMasked).HasColumnName("card_no_masked").HasMaxLength(30);
