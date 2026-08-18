@@ -49,6 +49,9 @@ public static class DependencyInjection
         // Tenant provider (Scoped — moi request 1 instance)
         services.AddScoped<ITenantProvider, TenantProvider>();
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<IPermissionChecker, PermissionChecker>();
+        // G03 — guard khoa benh an
+        services.AddScoped<IEncounterLockGuard, ProDiabHis.Infrastructure.Clinical.EncounterLockGuard>();
 
         // EF Core
         var connectionString = configuration.GetConnectionString("DefaultConnection")
@@ -185,6 +188,10 @@ public static class DependencyInjection
         services.AddScoped<IDdiChecker, DdiCheckerImpl>();
         services.AddScoped<IUsbTokenSigner, MockUsbTokenSigner>();
         services.AddScoped<IFefoStrategy, FefoStrategyImpl>();
+
+        // [G05] Dieu phoi kham — kiem tra lich truc bac si dich (canh bao, khong chan)
+        services.AddScoped<ProDiabHis.Application.Reception.Reassign.IDoctorDutyChecker,
+            ProDiabHis.Infrastructure.Scheduling.DoctorDutyChecker>();
         // Builder du lieu don_thuoc cho payload DTQG (doc canonical schema + giai ma the BHYT)
         services.AddScoped<IDtqgPrescriptionPayloadBuilder, DtqgPrescriptionPayloadBuilder>();
         // ĐTQG client: HTTP that (donthuocquocgia.vn) khi Dtqg:Enabled=true, mac dinh dung mock (dev/sandbox)

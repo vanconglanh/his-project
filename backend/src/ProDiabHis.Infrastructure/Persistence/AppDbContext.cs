@@ -39,6 +39,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     // Encounter
     public DbSet<Encounter> Encounters => Set<Encounter>();
     public DbSet<EncounterDiagnosis> EncounterDiagnoses => Set<EncounterDiagnosis>();
+    public DbSet<EncounterAddendum> EncounterAddenda => Set<EncounterAddendum>();
     public DbSet<VitalSigns> VitalSigns => Set<VitalSigns>();
     public DbSet<EmrContent> EmrContents => Set<EmrContent>();
     public DbSet<EmrVersion> EmrVersions => Set<EmrVersion>();
@@ -147,6 +148,10 @@ public class AppDbContext : DbContext, IApplicationDbContext
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<EncounterDiagnosis>()
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+
+        // G03 — ban dinh chinh benh an
+        modelBuilder.Entity<EncounterAddendum>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<VitalSigns>()

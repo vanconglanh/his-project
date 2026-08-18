@@ -20,6 +20,9 @@ public static class DependencyInjection
         // moi validator dang ky se KHONG bao gio duoc chay (dead-code).
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
+        // [G03] Chan moi command ghi len benh an da khoa (DONE/CANCELLED).
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Common.Behaviors.EncounterLockBehavior<,>));
+
         return services;
     }
 }

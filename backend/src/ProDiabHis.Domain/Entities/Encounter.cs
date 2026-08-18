@@ -16,6 +16,17 @@ public class Encounter : BaseEntity, ITenantScoped
     public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }
     public DateTime? AlertSentAt { get; set; }
+
+    // ── G03: khoa benh an sau khi ket thuc kham ──
+    /// <summary>Thoi diem benh an bi khoa (set khi dong ca / huy ca).</summary>
+    public DateTime? LockedAt { get; set; }
+    /// <summary>Nguoi thao tac lam khoa benh an.</summary>
+    public Guid? LockedBy { get; set; }
+    /// <summary>So lan da dinh chinh (denormalize de list nhanh).</summary>
+    public int AmendmentCount { get; set; }
+
+    /// <summary>Benh an da khoa (DONE hoac CANCELLED) — moi du lieu lam sang READ-ONLY.</summary>
+    public bool IsLocked => EncounterStatus.IsLockedStatus(Status);
 }
 
 public static class EncounterStatus
@@ -32,6 +43,10 @@ public static class EncounterStatus
         [Done]       = Array.Empty<string>(),
         [Cancelled]  = Array.Empty<string>()
     };
+
+    /// <summary>Trang thai terminal — benh an bi khoa, chi sua qua ADDENDUM.</summary>
+    public static bool IsLockedStatus(string? status)
+        => status == Done || status == Cancelled;
 
     public static bool CanTransition(string from, string to)
         => ValidTransitions.TryGetValue(from, out var allowed) && allowed.Contains(to);

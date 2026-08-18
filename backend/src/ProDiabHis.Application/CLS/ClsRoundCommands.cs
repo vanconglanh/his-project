@@ -5,7 +5,7 @@ namespace ProDiabHis.Application.CLS;
 
 // ── Commands ──
 public record CreateClsRoundCommand(Guid EncounterId, CreateClsRoundRequest Request)
-    : IRequest<Result<ClsRoundResponse>>;
+    : IRequest<Result<ClsRoundResponse>>, IEncounterScopedCommand;
 
 public record SubmitClsRoundCommand(Guid RoundId) : IRequest<Result<ClsRoundResponse>>;
 

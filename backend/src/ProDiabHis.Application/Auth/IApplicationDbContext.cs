@@ -28,6 +28,7 @@ public interface IApplicationDbContext
     // Encounter
     DbSet<Encounter> Encounters { get; }
     DbSet<EncounterDiagnosis> EncounterDiagnoses { get; }
+    DbSet<EncounterAddendum> EncounterAddenda { get; }
     DbSet<Domain.Entities.VitalSigns> VitalSigns { get; }
     DbSet<EmrContent> EmrContents { get; }
     DbSet<EmrVersion> EmrVersions { get; }

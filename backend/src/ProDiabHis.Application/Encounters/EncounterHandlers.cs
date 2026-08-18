@@ -312,12 +312,17 @@ public class CloseEncounterCommandHandler : IRequestHandler<CloseEncounterComman
         if (emrSigned == 0)
             return Result<bool>.Failure("EMR_NOT_SIGNED", "Bệnh án cần được ký số trước khi đóng lượt khám");
 
+        var closedAt = DateTime.UtcNow;
         enc.Status = EncounterStatus.Done;
-        enc.FinishedAt = DateTime.UtcNow;
+        enc.FinishedAt = closedAt;
         enc.UpdatedBy = _user.UserId;
+        // G03 — dong ca => KHOA benh an, moi sua doi ve sau phai qua ban dinh chinh (addendum).
+        enc.LockedAt = closedAt;
+        enc.LockedBy = _user.UserId;
 
         await _db.SaveChangesAsync(ct);
-        await _audit.LogAsync("CLOSE", "Encounter", enc.Id.ToString(), null, ct);
+        await _audit.LogAsync("CLOSE", "Encounter", enc.Id.ToString(),
+            new { lockedAt = closedAt, locked = true }, ct);
 
         // Dong luot kham -> ve hang doi chuyen sang "Xong".
         await QueueTicketSync.SyncStatusAsync(

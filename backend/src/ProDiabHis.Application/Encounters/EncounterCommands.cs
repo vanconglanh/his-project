@@ -32,7 +32,7 @@ public record UpdateEncounterRequest(
     string? ChiefComplaint);
 
 public record UpdateEncounterCommand(Guid EncounterId, UpdateEncounterRequest Request)
-    : IRequest<Result<EncounterResponse>>;
+    : IRequest<Result<EncounterResponse>>, IEncounterScopedCommand;
 
 // ── Start ──
 public record StartEncounterCommand(Guid EncounterId)
@@ -44,13 +44,13 @@ public record CloseEncounterCommand(Guid EncounterId)
 
 // ── Chief complaint ──
 public record UpdateChiefComplaintCommand(Guid EncounterId, string ChiefComplaint)
-    : IRequest<Result<bool>>;
+    : IRequest<Result<bool>>, IEncounterScopedCommand;
 
 // ── Diagnosis ──
 public record DiagnosisRequest(string Icd10Code, string Type, string? Note);
 
 public record AddDiagnosisCommand(Guid EncounterId, DiagnosisRequest Request)
-    : IRequest<Result<DiagnosisResponse>>;
+    : IRequest<Result<DiagnosisResponse>>, IEncounterScopedCommand;
 
 public record RemoveDiagnosisCommand(Guid EncounterId, Guid DiagnosisId)
-    : IRequest<Result<bool>>;
+    : IRequest<Result<bool>>, IEncounterScopedCommand;

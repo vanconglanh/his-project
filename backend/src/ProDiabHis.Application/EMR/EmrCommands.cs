@@ -12,13 +12,13 @@ public record EmrTemplateRequest(string Name, object ContentJson, string Special
 public record GetEmrQuery(Guid EncounterId) : IRequest<Result<EmrContentResponse?>>;
 
 public record SaveEmrDraftCommand(Guid EncounterId, EmrSaveRequest Request)
-    : IRequest<Result<EmrContentResponse>>;
+    : IRequest<Result<EmrContentResponse>>, IEncounterScopedCommand;
 
 public record SignEmrCommand(Guid EncounterId, SignEmrRequest Request)
-    : IRequest<Result<EmrContentResponse>>;
+    : IRequest<Result<EmrContentResponse>>, IEncounterScopedCommand;
 
 public record UnsignEmrCommand(Guid EncounterId, string Reason)
-    : IRequest<Result<bool>>;
+    : IRequest<Result<bool>>, IEncounterScopedCommand;
 
 public record ExportEmrPdfCommand(Guid EncounterId)
     : IRequest<Result<byte[]>>;

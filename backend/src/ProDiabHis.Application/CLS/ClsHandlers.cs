@@ -62,22 +62,30 @@ public record ClsCatalogItem(
 
 // ────────────── Commands ──────────────
 public record CreateLabOrdersCommand(Guid EncounterId, IReadOnlyList<LabOrderRequest> Tests, Guid? RoundId = null)
-    : IRequest<Result<IReadOnlyList<LabOrderResponse>>>;
+    : IRequest<Result<IReadOnlyList<LabOrderResponse>>>, IEncounterScopedCommand;
 
 public record ListLabOrdersQuery(Guid EncounterId) : IRequest<Result<IReadOnlyList<LabOrderResponse>>>;
 
 public record UpdateLabOrderStatusCommand(Guid OrderId, string Status, string? Note) : IRequest<Result<bool>>;
 
-public record DeleteLabOrderCommand(Guid OrderId) : IRequest<Result<bool>>;
+public record DeleteLabOrderCommand(Guid OrderId) : IRequest<Result<bool>>, IEncounterChildScopedCommand
+{
+    public Guid ChildId => OrderId;
+    public string ChildKind => EncounterChildKind.LabOrder;
+}
 
 public record CreateRadOrdersCommand(Guid EncounterId, IReadOnlyList<RadOrderRequest> Orders, Guid? RoundId = null)
-    : IRequest<Result<IReadOnlyList<RadOrderResponse>>>;
+    : IRequest<Result<IReadOnlyList<RadOrderResponse>>>, IEncounterScopedCommand;
 
 public record ListRadOrdersQuery(Guid EncounterId) : IRequest<Result<IReadOnlyList<RadOrderResponse>>>;
 
 public record UpdateRadOrderStatusCommand(Guid OrderId, string Status, string? Note) : IRequest<Result<bool>>;
 
-public record DeleteRadOrderCommand(Guid OrderId) : IRequest<Result<bool>>;
+public record DeleteRadOrderCommand(Guid OrderId) : IRequest<Result<bool>>, IEncounterChildScopedCommand
+{
+    public Guid ChildId => OrderId;
+    public string ChildKind => EncounterChildKind.RadOrder;
+}
 
 public record SearchClsCatalogQuery(string? Q, string? Kind, int Limit)
     : IRequest<Result<IReadOnlyList<ClsCatalogItem>>>;

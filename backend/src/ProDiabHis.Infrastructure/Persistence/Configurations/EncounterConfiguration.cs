@@ -22,6 +22,11 @@ public class EncounterConfiguration : IEntityTypeConfiguration<Encounter>
         builder.Property(e => e.StartedAt).HasColumnName("started_at");
         builder.Property(e => e.FinishedAt).HasColumnName("finished_at");
         builder.Property(e => e.AlertSentAt).HasColumnName("alert_sent_at");
+        // G03 — khoa benh an
+        builder.Property(e => e.LockedAt).HasColumnName("locked_at");
+        builder.Property(e => e.LockedBy).HasColumnName("locked_by").HasMaxLength(36);
+        builder.Property(e => e.AmendmentCount).HasColumnName("amendment_count").HasDefaultValue(0);
+        builder.Ignore(e => e.IsLocked);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
@@ -33,6 +38,7 @@ public class EncounterConfiguration : IEntityTypeConfiguration<Encounter>
         builder.HasIndex(e => new { e.TenantId, e.Status });
         builder.HasIndex(e => new { e.TenantId, e.DoctorId });
         builder.HasIndex(e => new { e.TenantId, e.CreatedAt });
+        builder.HasIndex(e => new { e.TenantId, e.LockedAt });
     }
 }
 

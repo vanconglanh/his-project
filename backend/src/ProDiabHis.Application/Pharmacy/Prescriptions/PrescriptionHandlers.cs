@@ -19,17 +19,37 @@ public record ListPrescriptionsQuery(
 public record GetPrescriptionQuery(Guid Id) : IRequest<Result<PrescriptionResponse>>;
 
 public record CreatePrescriptionCommand(PrescriptionCreateRequest Request)
-    : IRequest<Result<PrescriptionResponse>>;
+    : IRequest<Result<PrescriptionResponse>>, IEncounterScopedCommand
+{
+    public Guid EncounterId => Request.EncounterId;
+}
 
 public record UpdatePrescriptionCommand(Guid Id, PrescriptionUpdateRequest Request)
-    : IRequest<Result<PrescriptionResponse>>;
+    : IRequest<Result<PrescriptionResponse>>, IEncounterChildScopedCommand
+{
+    public Guid ChildId => Id;
+    public string ChildKind => EncounterChildKind.Prescription;
+}
 
-public record DeletePrescriptionCommand(Guid Id) : IRequest<Result<bool>>;
+public record DeletePrescriptionCommand(Guid Id) : IRequest<Result<bool>>, IEncounterChildScopedCommand
+{
+    public Guid ChildId => Id;
+    public string ChildKind => EncounterChildKind.Prescription;
+}
 
 public record AddPrescriptionItemsCommand(Guid PrescriptionId, IReadOnlyList<PrescriptionItemRequest> Items)
-    : IRequest<Result<IReadOnlyList<PrescriptionItemResponse>>>;
+    : IRequest<Result<IReadOnlyList<PrescriptionItemResponse>>>, IEncounterChildScopedCommand
+{
+    public Guid ChildId => PrescriptionId;
+    public string ChildKind => EncounterChildKind.Prescription;
+}
 
-public record RemovePrescriptionItemCommand(Guid PrescriptionId, Guid ItemId) : IRequest<Result<bool>>;
+public record RemovePrescriptionItemCommand(Guid PrescriptionId, Guid ItemId)
+    : IRequest<Result<bool>>, IEncounterChildScopedCommand
+{
+    public Guid ChildId => PrescriptionId;
+    public string ChildKind => EncounterChildKind.Prescription;
+}
 
 public record SignPrescriptionCommand(Guid Id, SignPrescriptionRequest Request)
     : IRequest<Result<PrescriptionResponse>>;
