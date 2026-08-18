@@ -2,7 +2,7 @@ using ProDiabHis.Domain.Common;
 
 namespace ProDiabHis.Domain.Entities;
 
-/// <summary>ICD-10 diagnosis linked to an encounter. Maps diab_his_cli_encounter_diagnoses</summary>
+/// <summary>ICD-10 diagnosis linked to an encounter. Maps diab_his_enc_diagnoses</summary>
 public class EncounterDiagnosis : BaseEntity, ITenantScoped
 {
     public int TenantId { get; set; }

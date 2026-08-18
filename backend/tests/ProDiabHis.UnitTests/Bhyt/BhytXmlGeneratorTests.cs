@@ -51,7 +51,7 @@ public class BhytXmlGeneratorTests
             SoNgayDtri: 1,
             KetQuaDtri: 1,
             MaBenh: "E11.9",
-            MaBenhPhu: null,
+            MaBenhKhac: null,
             LyDoVvien: "Kham benh dinh ky",
             ChanDoanRv: "Dai thao duong type 2",
             TThuoc: 150000m,
@@ -62,10 +62,48 @@ public class BhytXmlGeneratorTests
             TBncct: 0m);
 
         var json = JsonSerializer.Serialize(row);
-        // System.Text.Json dung PascalCase theo default (record property names)
-        json.Should().Contain("MaLienKet").And.Contain("MaBenh");
+        // QD 4750: truong chan doan phai xuat dung ten MA_BENH / MA_BENH_KHAC
+        json.Should().Contain("MaLienKet").And.Contain("MA_BENH");
+        json.Should().Contain("MA_BENH_KHAC");
         json.Should().Contain("E11.9");
         json.Should().Contain("PK001enc-001");
+    }
+
+    [Fact]
+    public void BhytTable1Row_ma_benh_khac_ghep_nhieu_ma_bang_dau_cham_phay()
+    {
+        // G06: MA_BENH = chan doan CHINH, MA_BENH_KHAC = cac chan doan kem theo noi bang ";"
+        var secondary = new[] { "I10", "E78.5" };
+
+        var row = new BhytTable1Row(
+            MaLienKet: "PK001enc-002",
+            MaBn: "BN002",
+            HoTen: "Tran Thi B",
+            NgaySinh: "1975-03-02",
+            GioiTinh: 2,
+            MaTheBhyt: "DN4050987654321",
+            MaDkbd: "04104",
+            GtTheTu: "2026-01-01",
+            GtTheDen: "2026-12-31",
+            MaLoaiKcb: 1,
+            NgayVao: new DateTime(2026, 5, 2, 8, 0, 0),
+            NgayRa: new DateTime(2026, 5, 2, 9, 0, 0),
+            SoNgayDtri: 1,
+            KetQuaDtri: 1,
+            MaBenh: "E11.9",
+            MaBenhKhac: string.Join(";", secondary),
+            LyDoVvien: "Kham benh dinh ky",
+            ChanDoanRv: "Dai thao duong type 2",
+            TThuoc: 0m, TVtyt: 0m, TTongchi: 0m,
+            TBhtt: 0m, TBntt: 0m, TBncct: 0m);
+
+        row.MaBenh.Should().Be("E11.9");
+        row.MaBenhKhac.Should().Be("I10;E78.5");
+        row.MaBenhKhac.Should().NotContain("E11.9", "chan doan chinh khong duoc lap lai o MA_BENH_KHAC");
+
+        var json = JsonSerializer.Serialize(row);
+        json.Should().Contain("\"MA_BENH\":\"E11.9\"");
+        json.Should().Contain("\"MA_BENH_KHAC\":\"I10;E78.5\"");
     }
 
     [Fact]

@@ -80,9 +80,34 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                   WHERE b.encounter_id = @eid AND b.tenant_id = @t AND b.deleted_at IS NULL",
                 new { eid = encId, t = tenantId }) ?? new { t_thuoc = 0m, t_vtyt = 0m, t_tongchi = 0m, t_bhtt = 0m, t_bntt = 0m, t_bncct = 0m };
 
-            var diagnosis = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT icd10_code FROM diab_his_encounter_diagnoses WHERE encounter_id=@eid AND is_primary=1 AND deleted_at IS NULL LIMIT 1",
-                new { eid = encId });
+            // QD 4750 - Bang 1: MA_BENH = chan doan CHINH, MA_BENH_KHAC = cac chan doan kem theo (ngan cach bang ";")
+            // Luu y: bang dung la diab_his_enc_diagnoses, phan biet chinh/phu bang cot `type`.
+            var diagRows = (await conn.QueryAsync<dynamic>(
+                @"SELECT icd10_code, type
+                  FROM diab_his_enc_diagnoses
+                  WHERE tenant_id = @t AND encounter_id = @eid AND deleted_at IS NULL
+                  ORDER BY (type = 'PRIMARY') DESC, created_at",
+                new { t = tenantId, eid = encId })).ToList();
+
+            var primaryCode = diagRows
+                .Where(d => string.Equals((string?)d.type, "PRIMARY", StringComparison.OrdinalIgnoreCase))
+                .Select(d => (string)d.icd10_code)
+                .FirstOrDefault();
+
+            var secondaryCodes = diagRows
+                .Where(d => !string.Equals((string?)d.type, "PRIMARY", StringComparison.OrdinalIgnoreCase))
+                .Select(d => (string)d.icd10_code)
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var maBenh = string.IsNullOrWhiteSpace(primaryCode) ? "Z00" : primaryCode!;
+            var maBenhKhac = secondaryCodes.Count > 0 ? string.Join(";", secondaryCodes) : null;
+
+            if (string.IsNullOrWhiteSpace(primaryCode))
+                _logger.LogWarning(
+                    "BhytXmlGenerator: encounter {EncId} khong co chan doan CHINH, MA_BENH fallback Z00 - nguy co xuat toan",
+                    encId);
 
             var table1Row = new BhytTable1Row(
                 MaLienKet: maLienKet,
@@ -99,8 +124,8 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                 NgayRa: enc.finished_at != null ? (DateTime)enc.finished_at : DateTime.UtcNow,
                 SoNgayDtri: 1,
                 KetQuaDtri: 1,
-                MaBenh: (string)(diagnosis?.icd10_code ?? "Z00"),
-                MaBenhPhu: null,
+                MaBenh: maBenh,
+                MaBenhKhac: maBenhKhac,
                 LyDoVvien: "Kham benh dinh ky",
                 ChanDoanRv: "",
                 TThuoc: (decimal)(billing?.t_thuoc ?? 0m),
@@ -196,7 +221,7 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                     NgayYl: cls.ngay_yl != null ? (DateTime)cls.ngay_yl : DateTime.UtcNow,
                     MaPhong: (string)(cls.ma_phong ?? ""),
                     MaBs: (string)(cls.ma_bs ?? ""),
-                    MaBenh: (string)(diagnosis?.icd10_code ?? "Z00"),
+                    MaBenh: maBenh,
                     NgayKq: (DateTime?)cls.ngay_kq);
 
                 items.Add(new BhytExportItemData(3, tbl3Idx++,

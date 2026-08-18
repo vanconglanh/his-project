@@ -296,10 +296,16 @@ public class CloseEncounterCommandHandler : IRequestHandler<CloseEncounterComman
 
         var encIdStr = enc.Id.ToString();
 
-        var diagCount = await _db.EncounterDiagnoses
+        var totalDiag = await _db.EncounterDiagnoses
+            .CountAsync(d => d.EncounterId == encIdStr, ct);
+        if (totalDiag == 0)
+            return Result<bool>.Failure("DIAGNOSIS_REQUIRED", "Chưa có chẩn đoán");
+
+        // G06 - XML 4210 (QD 4750) bat buoc MA_BENH duy nhat -> phai co DUNG 1 chan doan chinh
+        var primaryCount = await _db.EncounterDiagnoses
             .CountAsync(d => d.EncounterId == encIdStr && d.Type == DiagnosisType.Primary, ct);
-        if (diagCount == 0)
-            return Result<bool>.Failure("ENCOUNTER_MISSING_DIAGNOSIS", "Cần ít nhất 1 chẩn đoán ICD-10 CHÍNH trước khi đóng");
+        if (primaryCount != 1)
+            return Result<bool>.Failure("DIAGNOSIS_PRIMARY_REQUIRED", "Phải chọn đúng 1 chẩn đoán chính");
 
         var emrSigned = await _db.EmrContents
             .CountAsync(e => e.EncounterId == encIdStr && e.SignedAt != null, ct);
@@ -415,6 +421,36 @@ public class AddDiagnosisCommandHandler : IRequestHandler<AddDiagnosisCommand, R
         if (!encExists)
             return Result<DiagnosisResponse>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
+        // G06 - chuan hoa loai chan doan: chi chap nhan PRIMARY / SECONDARY
+        var diagType = (cmd.Request.Type ?? string.Empty).Trim().ToUpperInvariant();
+        if (diagType != DiagnosisType.Primary && diagType != DiagnosisType.Secondary)
+            return Result<DiagnosisResponse>.Failure("DIAGNOSIS_TYPE_INVALID",
+                "Loại chẩn đoán không hợp lệ (chỉ nhận PRIMARY hoặc SECONDARY)");
+
+        var encKey = cmd.EncounterId.ToString();
+
+        // Khong cho trung ma ICD-10 trong cung 1 luot kham
+        var dupCode = await _db.EncounterDiagnoses.AnyAsync(
+            d => d.EncounterId == encKey && d.Icd10Code == cmd.Request.Icd10Code, ct);
+        if (dupCode)
+            return Result<DiagnosisResponse>.Failure("DIAGNOSIS_DUPLICATED",
+                $"Mã ICD-10 {cmd.Request.Icd10Code} đã có trong lượt khám này");
+
+        // G06 - bat buoc DUNG 1 chan doan chinh: them mot PRIMARY moi thi ha cap PRIMARY cu thanh SECONDARY
+        List<EncounterDiagnosis> demoted = new();
+        if (diagType == DiagnosisType.Primary)
+        {
+            demoted = await _db.EncounterDiagnoses
+                .Where(d => d.EncounterId == encKey && d.Type == DiagnosisType.Primary)
+                .ToListAsync(ct);
+            foreach (var old in demoted)
+            {
+                old.Type = DiagnosisType.Secondary;
+                old.UpdatedAt = DateTime.UtcNow;
+                old.UpdatedBy = _user.UserId;
+            }
+        }
+
         // Tra ten benh tu tu dien ICD-10 (uu tien dict, fallback ref, cuoi cung dung ma)
         using var conn = (IDbConnection)_dapper.CreateConnection();
         var icdName = await conn.QueryFirstOrDefaultAsync<string?>(
@@ -434,7 +470,7 @@ public class AddDiagnosisCommandHandler : IRequestHandler<AddDiagnosisCommand, R
             EncounterId = cmd.EncounterId.ToString(),
             Icd10Code = cmd.Request.Icd10Code,
             Name = icdName,
-            Type = cmd.Request.Type,
+            Type = diagType,
             Note = cmd.Request.Note,
             CreatedAt = now,
             CreatedBy = _user.UserId,
@@ -444,7 +480,12 @@ public class AddDiagnosisCommandHandler : IRequestHandler<AddDiagnosisCommand, R
         _db.EncounterDiagnoses.Add(diagnosis);
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync("ADD_DIAGNOSIS", "Encounter", cmd.EncounterId.ToString(),
-            new { icd10Code = cmd.Request.Icd10Code }, ct);
+            new
+            {
+                icd10Code = cmd.Request.Icd10Code,
+                type = diagType,
+                demotedToSecondary = demoted.Select(d => d.Icd10Code).ToArray()
+            }, ct);
 
         return Result<DiagnosisResponse>.Success(new DiagnosisResponse(
             diagnosis.Id, diagnosis.Icd10Code, icdName, diagnosis.Type, diagnosis.Note, now));

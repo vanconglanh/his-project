@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
 
 namespace ProDiabHis.Application.Bhyt;
@@ -130,7 +131,10 @@ public record BhytTable1Row(
     int GioiTinh, string MaTheBhyt, string MaDkbd,
     string GtTheTu, string GtTheDen, int MaLoaiKcb,
     DateTime NgayVao, DateTime NgayRa, int SoNgayDtri,
-    int KetQuaDtri, string MaBenh, string? MaBenhPhu,
+    int KetQuaDtri,
+    // QD 4750: MA_BENH = chan doan CHINH, MA_BENH_KHAC = cac chan doan kem theo, ngan cach ";"
+    [property: JsonPropertyName("MA_BENH")] string MaBenh,
+    [property: JsonPropertyName("MA_BENH_KHAC")] string? MaBenhKhac,
     string LyDoVvien, string ChanDoanRv,
     decimal TThuoc, decimal TVtyt, decimal TTongchi,
     decimal TBhtt, decimal TBntt, decimal TBncct);
@@ -152,13 +156,14 @@ public record BhytTable3Row(
     decimal SoLuong, decimal DonGia, string? TtThau,
     decimal ThanhTien, decimal TBhtt, int MucHuong,
     DateTime NgayYl, string MaPhong, string MaBs,
-    string MaBenh, DateTime? NgayKq);
+    [property: JsonPropertyName("MA_BENH")] string MaBenh, DateTime? NgayKq);
 
 public record BhytTable4Row(
     string MaLienKet, string MaDichVu, string TenDichVu,
     string DonViTinh, decimal SoLuong, decimal DonGia,
     decimal ThanhTien, decimal TBhtt, int MucHuong,
-    DateTime NgayYl, string MaPhong, string MaBs, string MaBenh);
+    DateTime NgayYl, string MaPhong, string MaBs,
+    [property: JsonPropertyName("MA_BENH")] string MaBenh);
 
 public record BhytTable5Row(
     string MaLienKet, string MaChiPhi, string TenChiPhi,
