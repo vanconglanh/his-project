@@ -8,6 +8,7 @@ using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Encounters;
 using ProDiabHis.Application.PublicApi;
 using ProDiabHis.Application.Reception;
+using ProDiabHis.Application.Reception.Reassign;
 using ProDiabHis.Application.Reports;
 
 namespace ProDiabHis.Api.Controllers;
@@ -208,6 +209,46 @@ public class ReceptionController : ControllerBase
 
         var pdfBytes = await _pdfService.GenerateTicketPdfAsync(result.Value!, ct, letterhead);
         return File(pdfBytes, "application/pdf", $"ticket-{result.Value!.TicketNo}.pdf");
+    }
+
+    // PUT /api/v1/reception/tickets/{ticketId}/reassign
+    // PUT /api/v1/reception/queue/{ticketId}/reassign   (alias — dong bo voi cac endpoint queue hien co)
+    /// <summary>[G05] Điều phối lượt khám: đổi bác sĩ / đổi phòng, giữ nguyên mã lượt khám</summary>
+    [HttpPut("tickets/{ticketId:guid}/reassign")]
+    [HttpPut("queue/{ticketId:guid}/reassign")]
+    [RequirePermission("reception.ticket.reassign")]
+    public async Task<IActionResult> ReassignTicket(Guid ticketId, [FromBody] ReassignTicketRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ReassignTicketCommand(ticketId, request), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode switch
+            {
+                "TICKET_NOT_FOUND" or "ROOM_NOT_FOUND" or "DOCTOR_NOT_FOUND" => 404,
+                "TICKET_REASSIGN_FORBIDDEN" or "TICKET_REASSIGN_DOCTOR_FORBIDDEN" => 409,
+                "TICKET_REASSIGN_NOT_OWNER" => 403,
+                _ => 422
+            };
+            return StatusCode(status, new
+            {
+                error = new { code = result.ErrorCode, message = result.ErrorMessage, details = result.ErrorDetails }
+            });
+        }
+        return Ok(new { data = result.Value });
+    }
+
+    // GET /api/v1/reception/tickets/{ticketId}/reassignments
+    /// <summary>[G05] Lịch sử điều phối của một lượt khám</summary>
+    [HttpGet("tickets/{ticketId:guid}/reassignments")]
+    [HttpGet("queue/{ticketId:guid}/reassignments")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> GetTicketReassignments(Guid ticketId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ListTicketReassignmentsQuery(ticketId), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value, meta = new { total = result.Value!.Count } });
     }
 
     // GET /api/v1/reception/rooms

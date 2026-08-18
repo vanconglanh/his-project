@@ -198,9 +198,17 @@ public static class TicketTransitionHelper
         var startedAt = newStatus == TicketStatus.InProgress ? now : (DateTime?)null;
         var finishedAt = newStatus == TicketStatus.Done ? now : (DateTime?)null;
 
+        // [G05] Chot cong bac si: khi ve chuyen sang DONE, ghi mot lan finished_by_doctor_id
+        // = doctor_id tai thoi diem do -> moi ve quy ve dung 1 bac si, khong nhan doi thong ke.
         await conn.ExecuteAsync(
-            "UPDATE diab_his_rcp_queue_tickets SET status=@Status, note=COALESCE(@CancelReason, note), updated_at=@Now WHERE id=@Id",
-            new { Status = newStatus, CancelReason = cancelReason, Now = now, Id = ticketId.ToString() });
+            @"UPDATE diab_his_rcp_queue_tickets
+                 SET status=@Status,
+                     note=COALESCE(@CancelReason, note),
+                     finished_by_doctor_id = CASE WHEN @Status = 'DONE' AND finished_by_doctor_id IS NULL
+                                                  THEN doctor_id ELSE finished_by_doctor_id END,
+                     updated_at=@Now
+               WHERE id=@Id AND tenant_id=@TenantId",
+            new { Status = newStatus, CancelReason = cancelReason, Now = now, Id = ticketId.ToString(), TenantId = tenant.TenantId });
 
         // Fetch room name
         var roomName = await conn.ExecuteScalarAsync<string>(

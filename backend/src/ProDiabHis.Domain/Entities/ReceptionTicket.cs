@@ -29,6 +29,12 @@ public class ReceptionTicket
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public Guid? UpdatedBy { get; set; }
     public DateTime? DeletedAt { get; set; }
+
+    // ── G05: dieu phoi kham ──
+    /// <summary>So lan ve nay da bi dieu phoi (doi bac si / doi phong)</summary>
+    public int ReassignCount { get; set; }
+    /// <summary>Bac si ket thuc ca — chot cong, set 1 lan khi ve chuyen sang DONE</summary>
+    public Guid? FinishedByDoctorId { get; set; }
 }
 
 public static class TicketStatus
