@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -150,14 +150,14 @@ public class GetBillingHandler : IRequestHandler<GetBillingQuery, Result<Billing
     {
         using var conn = _dapper.CreateConnection();
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT full_name, dob, gender, phone FROM diab_his_pat_patients WHERE id = @id AND deleted_at IS NULL",
+            "SELECT full_name, dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND deleted_at IS NULL",
             new { id = patientId.ToString() });
         if (row == null) return null;
         return new PatientSummaryDto(
             (string)row.full_name,
             row.dob == null ? null : DateOnly.FromDateTime((DateTime)row.dob),
             (string?)row.gender,
-            (string?)row.phone,
+            PiiCrypto.Unprotect((string?)row.phone_enc),
             null);
     }
 }

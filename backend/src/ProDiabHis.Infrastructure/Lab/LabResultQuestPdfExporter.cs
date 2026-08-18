@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Reports;
 using ProDiabHis.Domain.Entities;
@@ -44,7 +44,7 @@ public class LabResultQuestPdfExporter : ILabResultPdfExporter
         {
             enc = await conn.QueryFirstOrDefaultAsync<dynamic>(
                 @"SELECT pat.code AS patient_code, pat.full_name AS patient_full_name, pat.gender AS patient_gender,
-                         pat.date_of_birth AS patient_dob, pat.street AS patient_address,
+                         pat.date_of_birth AS patient_dob, pat.street_enc AS patient_address,
                          doc.full_name AS doctor_full_name
                   FROM diab_his_enc_encounters e
                   LEFT JOIN diab_his_pat_patients pat ON pat.id = e.patient_id AND pat.tenant_id = e.tenant_id

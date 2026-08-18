@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProDiabHis.Api.Filters;
 using ProDiabHis.Application.Common;
@@ -6,6 +6,9 @@ using ProDiabHis.Application.Common;
 namespace ProDiabHis.Api.Controllers;
 
 public record RotateKeyRequest(string Purpose, int? TenantId = null);
+
+/// <summary>Yeu cau backfill ma hoa PII cho tenant hien tai</summary>
+public record PiiBackfillRequest(int BatchSize = 500, bool DryRun = false);
 
 /// <summary>Admin endpoints quan ly encryption key rotation</summary>
 [ApiController]
@@ -16,11 +19,44 @@ public class EncryptionAdminController : ControllerBase
 {
     private readonly IKeyRotationService _keyRotationService;
     private readonly IEncryptionKeyStore _keyStore;
+    private readonly IPiiBackfillService _piiBackfill;
+    private readonly ITenantProvider _tenant;
 
-    public EncryptionAdminController(IKeyRotationService keyRotationService, IEncryptionKeyStore keyStore)
+    public EncryptionAdminController(
+        IKeyRotationService keyRotationService,
+        IEncryptionKeyStore keyStore,
+        IPiiBackfillService piiBackfill,
+        ITenantProvider tenant)
     {
         _keyRotationService = keyRotationService;
         _keyStore = keyStore;
+        _piiBackfill = piiBackfill;
+        _tenant = tenant;
+    }
+
+    /// <summary>
+    /// Backfill ma hoa PII (SDT, dia chi, ghi chu) + sinh blind index cho du lieu cu.
+    /// Idempotent — chay lai nhieu lan an toan. Chi ap dung cho tenant cua nguoi goi.
+    /// </summary>
+    [HttpPost("pii-backfill")]
+    [RequirePermission("encryption.rotate")]
+    public async Task<IActionResult> PiiBackfill([FromBody] PiiBackfillRequest? request, CancellationToken ct)
+    {
+        var req = request ?? new PiiBackfillRequest();
+        var result = await _piiBackfill.RunAsync(_tenant.TenantId, req.BatchSize, req.DryRun, ct);
+
+        return Ok(new
+        {
+            data = new
+            {
+                patients_scanned = result.PatientsScanned,
+                patients_encrypted = result.PatientsEncrypted,
+                patients_blind_indexed = result.PatientsBlindIndexed,
+                insurances_blind_indexed = result.InsurancesBlindIndexed,
+                errors = result.Errors
+            },
+            meta = new { dry_run = req.DryRun }
+        });
     }
 
     /// <summary>Rotate encryption key cho purpose cu the</summary>

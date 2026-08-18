@@ -1,4 +1,4 @@
-using Hangfire;
+﻿using Hangfire;
 using Hangfire.MySql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -88,6 +88,11 @@ public static class DependencyInjection
 
         // Sprint 12: PII Masker
         services.AddSingleton<IPiiMasker, PiiMaskerImpl>();
+
+        // Hang muc 6: Ma hoa PII + blind index
+        services.AddSingleton<PiiProtector>();
+        services.AddSingleton<Application.Common.IPiiProtector>(sp => sp.GetRequiredService<PiiProtector>());
+        services.AddScoped<Application.Common.IPiiBackfillService, PiiBackfillService>();
 
         // Email
         services.AddScoped<IEmailSender, SmtpEmailSender>();

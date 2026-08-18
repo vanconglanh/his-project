@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -90,7 +90,9 @@ public class ReportScheduleDispatchJob
             {
                 var src = (IDictionary<string, object>)r;
                 var dict = new Dictionary<string, object?>(src.Count);
-                foreach (var kv in src) dict[kv.Key] = kv.Value;
+                // Hang muc 6: giai ma cot PII (*_enc) — pass-through voi gia tri khong ma hoa
+                foreach (var kv in src)
+                    dict[kv.Key] = kv.Value is string sv ? PiiCrypto.Unprotect(sv) : kv.Value;
                 return (IDictionary<string, object?>)dict;
             })
             .ToList();

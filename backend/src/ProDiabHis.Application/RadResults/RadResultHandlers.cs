@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using MediatR;
 using ProDiabHis.Application.Common;
 
@@ -277,7 +277,7 @@ public class VerifyRadResultCommandHandler
                      ro.modality, ro.body_part, ro.contrast, ro.procedure_name, ro.encounter_id,
                      enc.patient_id, enc.doctor_id,
                      pat.code AS patient_code, pat.full_name AS patient_full_name, pat.gender AS patient_gender,
-                     pat.date_of_birth AS patient_dob, pat.street AS patient_address,
+                     pat.date_of_birth AS patient_dob, pat.street_enc AS patient_address,
                      doc.full_name AS doctor_full_name,
                      t.name AS clinic_name, t.cskcb_code AS cskcb_code, t.company_name AS company_name,
                      t.address AS clinic_address, t.phone AS clinic_phone, t.email AS clinic_email,
@@ -394,7 +394,7 @@ public class ExportRadResultPdfQueryHandler
                      ro.modality, ro.body_part, ro.contrast, ro.procedure_name, ro.encounter_id,
                      enc.patient_id, enc.doctor_id,
                      pat.code AS patient_code, pat.full_name AS patient_full_name, pat.gender AS patient_gender,
-                     pat.date_of_birth AS patient_dob, pat.street AS patient_address,
+                     pat.date_of_birth AS patient_dob, pat.street_enc AS patient_address,
                      doc.full_name AS doctor_full_name,
                      t.name AS clinic_name, t.cskcb_code AS cskcb_code, t.company_name AS company_name,
                      t.address AS clinic_address, t.phone AS clinic_phone, t.email AS clinic_email,

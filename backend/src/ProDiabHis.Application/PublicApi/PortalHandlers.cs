@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using MediatR;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
@@ -198,7 +198,7 @@ public class GetPortalMeHandler : IRequestHandler<GetPortalMeQuery, PortalMeResp
         using var conn = _db.CreateConnection();
         var p = await conn.QueryFirstOrDefaultAsync<dynamic>(
             @"SELECT p.code AS patient_code, p.full_name, p.gender,
-                     p.date_of_birth AS dob, p.phone, p.street AS address,
+                     p.date_of_birth AS dob, p.phone_enc, p.street_enc AS address,
                      (SELECT i.card_no_masked FROM diab_his_pat_insurances i
                        WHERE i.patient_id = p.id AND i.type = 'BHYT' AND i.deleted_at IS NULL
                        ORDER BY i.valid_to DESC LIMIT 1) AS bhyt_number
@@ -211,7 +211,7 @@ public class GetPortalMeHandler : IRequestHandler<GetPortalMeQuery, PortalMeResp
         return new PortalMeResponse(
             (string)p.patient_code, (string)p.full_name, (string?)p.gender ?? "",
             p.dob != null ? DateOnly.FromDateTime((DateTime)p.dob) : default,
-            (string?)p.phone ?? "", (string?)p.address, (string?)p.bhyt_number);
+            PiiCrypto.Unprotect((string?)p.phone_enc) ?? "", PiiCrypto.Unprotect((string?)p.address), (string?)p.bhyt_number);
     }
 }
 

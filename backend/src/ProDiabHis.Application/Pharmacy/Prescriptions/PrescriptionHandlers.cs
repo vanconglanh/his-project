@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -741,7 +741,7 @@ public class GetPrescriptionPdfHandler : IRequestHandler<GetPrescriptionPdfQuery
             @"SELECT p.id as PrescriptionId, p.prescription_no as Code, p.created_at as PrescribedAt, p.note as Note,
                      p.diagnosis_icd10 as DiagnosisCode,
                      pat.full_name as PatientFullName, pat.gender as PatientGender,
-                     pat.date_of_birth as PatientDateOfBirth, pat.street as PatientAddress,
+                     pat.date_of_birth as PatientDateOfBirth, pat.street_enc as PatientAddress,
                      doc.full_name as DoctorFullName
               FROM diab_his_pha_prescriptions p
               LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id AND pat.tenant_id = p.tenant_id
@@ -801,7 +801,7 @@ public class GetPrescriptionPdfHandler : IRequestHandler<GetPrescriptionPdfQuery
             PatientFullName: pres.PatientFullName ?? "",
             PatientGender: pres.PatientGender,
             PatientDateOfBirth: pres.PatientDateOfBirth.HasValue ? DateOnly.FromDateTime(pres.PatientDateOfBirth.Value) : null,
-            PatientAddress: pres.PatientAddress,
+            PatientAddress: PiiCrypto.Unprotect(pres.PatientAddress),
             DiagnosisCode: pres.DiagnosisCode,
             DiagnosisName: diagnosisName,
             DoctorFullName: pres.DoctorFullName,
@@ -846,7 +846,7 @@ public class GetPortalPrescriptionPdfHandler : IRequestHandler<GetPortalPrescrip
             @"SELECT p.id as PrescriptionId, p.prescription_no as Code, p.created_at as PrescribedAt, p.note as Note,
                      p.diagnosis_icd10 as DiagnosisCode,
                      pat.full_name as PatientFullName, pat.gender as PatientGender,
-                     pat.date_of_birth as PatientDateOfBirth, pat.street as PatientAddress,
+                     pat.date_of_birth as PatientDateOfBirth, pat.street_enc as PatientAddress,
                      doc.full_name as DoctorFullName
               FROM diab_his_pha_prescriptions p
               LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id AND pat.tenant_id = p.tenant_id
@@ -901,7 +901,7 @@ public class GetPortalPrescriptionPdfHandler : IRequestHandler<GetPortalPrescrip
             PatientFullName: pres.PatientFullName ?? "",
             PatientGender: pres.PatientGender,
             PatientDateOfBirth: pres.PatientDateOfBirth.HasValue ? DateOnly.FromDateTime(pres.PatientDateOfBirth.Value) : null,
-            PatientAddress: pres.PatientAddress,
+            PatientAddress: PiiCrypto.Unprotect(pres.PatientAddress),
             DiagnosisCode: pres.DiagnosisCode,
             DiagnosisName: diagnosisName,
             DoctorFullName: pres.DoctorFullName,

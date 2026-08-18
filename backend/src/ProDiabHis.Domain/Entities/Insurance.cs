@@ -1,4 +1,4 @@
-namespace ProDiabHis.Domain.Entities;
+﻿namespace ProDiabHis.Domain.Entities;
 
 /// <summary>The BHYT / bao hiem. Map bang pat_insurance</summary>
 public class Insurance
@@ -9,6 +9,8 @@ public class Insurance
     public string Type { get; set; } = "BHYT";
     public string CardNoEnc { get; set; } = string.Empty;
     public string? CardNoMasked { get; set; }
+    /// <summary>Blind index HMAC-SHA256 cua so the (tra cuu exact-match)</summary>
+    public string? CardNoBidx { get; set; }
     public DateOnly ValidFrom { get; set; }
     public DateOnly ValidTo { get; set; }
     public string? HospitalCode { get; set; }

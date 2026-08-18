@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using ProDiabHis.Application.Reports.Engine;
 
 namespace ProDiabHis.Infrastructure.Reports;
@@ -847,7 +847,7 @@ public class ReportRegistry : IReportRegistry
                     pt.full_name                                  AS patientName,
                     TIMESTAMPDIFF(YEAR, pt.date_of_birth, COALESCE(e.started_at, e.created_at)) AS age,
                     CASE pt.gender WHEN 'MALE' THEN N'Nam' WHEN 'FEMALE' THEN N'Nữ' ELSE N'Khác' END AS gender,
-                    COALESCE(pt.street, N'Chưa ghi nhận')         AS address,
+                    COALESCE(pt.street_enc, N'Chưa ghi nhận')     AS address,
                     COALESCE(
                         (SELECT CONCAT(d.icd10_code, ' - ', d.name)
                            FROM diab_his_enc_diagnoses d

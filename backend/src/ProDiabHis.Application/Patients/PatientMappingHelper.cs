@@ -1,4 +1,4 @@
-namespace ProDiabHis.Application.Patients;
+﻿namespace ProDiabHis.Application.Patients;
 
 /// <summary>Helper map DB row → DTO</summary>
 public static class PatientMappingHelper
@@ -17,6 +17,13 @@ public static class PatientMappingHelper
         return plain[..5] + new string('*', plain.Length - 5);
     }
 
+    /// <summary>Mask so dien thoai: giu 2 dau + 3 cuoi</summary>
+    public static string? MaskPhone(string? plain)
+    {
+        if (string.IsNullOrEmpty(plain) || plain.Length <= 5) return plain;
+        return plain[..2] + new string('*', plain.Length - 5) + plain[^3..];
+    }
+
     /// <summary>Tinh tuoi tu ngay sinh</summary>
     public static int? CalcAge(DateOnly? dob)
     {
@@ -29,13 +36,15 @@ public static class PatientMappingHelper
 
     public static PatientResponse MapRow(dynamic row)
     {
+        // Hang muc 6: street/phone/reception_note luu o cot *_enc -> giai ma khi map
+        string? street = Common.PiiCrypto.Unprotect((string?)row.street_enc);
         var address = (row.province_code != null || row.district_code != null ||
-                       row.ward_code != null || row.street != null)
+                       row.ward_code != null || street != null)
             ? new AddressDto(
                 (string?)row.province_code,
                 (string?)row.district_code,
                 (string?)row.ward_code,
-                (string?)row.street)
+                street)
             : null;
 
         DateOnly? dob = row.date_of_birth is DateTime dt
@@ -55,13 +64,13 @@ public static class PatientMappingHelper
             DateOfBirth: dob,
             Age: CalcAge(dob),
             IdNumber: MaskIdNumber((string?)row.id_number_masked),
-            Phone: (string?)row.phone,
+            Phone: Common.PiiCrypto.Unprotect((string?)row.phone_enc),
             Email: (string?)row.email,
             Address: address,
             Occupation: (string?)row.occupation,
             Ethnicity: (string?)row.ethnicity,
             AvatarUrl: (string?)row.avatar_url,
-            ReceptionNote: (string?)row.reception_note,
+            ReceptionNote: Common.PiiCrypto.Unprotect((string?)row.reception_note_enc),
             BloodType: (string?)row.blood_type,
             AllergiesSummary: (string?)row.allergies_summary,
             BhytCardNo: (string?)row.bhyt_card_no_masked,

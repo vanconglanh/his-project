@@ -1,4 +1,4 @@
-using Hangfire;
+﻿using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -148,6 +148,12 @@ try
     });
 
     var app = builder.Build();
+
+    // Hang muc 6: kich hoat ambient PII protector (dung boi cac read-path Dapper raw SQL)
+    var piiProtector = app.Services.GetRequiredService<ProDiabHis.Application.Common.IPiiProtector>();
+    ProDiabHis.Application.Common.PiiCrypto.Configure(piiProtector);
+    if (piiProtector is ProDiabHis.Infrastructure.Security.PiiProtector pp && !pp.BlindIndexEnabled)
+        Log.Warning("PII: Encryption:BlindIndexKey chua cau hinh - tra cuu benh nhan theo SDT/CMND/so the BHYT se KHONG hoat dong");
 
     // Middleware pipeline
     // Sprint 12: Security headers (truoc tat ca)

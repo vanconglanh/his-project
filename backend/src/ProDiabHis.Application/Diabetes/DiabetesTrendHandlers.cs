@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using MediatR;
 using ProDiabHis.Application.Common;
@@ -158,7 +158,7 @@ public class GetRiskListQueryHandler : IRequestHandler<GetRiskListQuery, Result<
 
         var rows = await conn.QueryAsync<RiskListRow>(
             $@"SELECT rf.patient_id AS PatientId, pat.code AS PatientCode, pat.full_name AS PatientFullName,
-                      pat.phone AS Phone, rf.risk_level AS RiskLevel, rf.risk_score AS RiskScore,
+                      pat.phone_enc AS Phone, rf.risk_level AS RiskLevel, rf.risk_score AS RiskScore,
                       rf.latest_hba1c AS LatestHba1c, rf.latest_egfr AS LatestEgfr,
                       rf.latest_bp_sys AS LatestBpSys, rf.latest_bp_dia AS LatestBpDia,
                       rf.hba1c_trend AS Hba1cTrend, rf.last_visit_at AS LastVisitAt, rf.computed_at AS ComputedAt
@@ -169,7 +169,7 @@ public class GetRiskListQueryHandler : IRequestHandler<GetRiskListQuery, Result<
                LIMIT @limit OFFSET @offset", prm);
 
         var items = rows.Select(r => new RiskListItem(
-            Guid.Parse(r.PatientId), r.PatientCode, r.PatientFullName, r.Phone,
+            Guid.Parse(r.PatientId), r.PatientCode, r.PatientFullName, PiiCrypto.Unprotect(r.Phone),
             r.RiskLevel, r.RiskScore, r.LatestHba1c, r.LatestEgfr, r.LatestBpSys, r.LatestBpDia,
             r.Hba1cTrend, r.LastVisitAt, r.ComputedAt)).ToList();
 

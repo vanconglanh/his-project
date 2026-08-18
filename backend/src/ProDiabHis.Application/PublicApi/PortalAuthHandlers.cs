@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using MediatR;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
@@ -49,10 +49,12 @@ public class IssuePortalActivationHandler : IRequestHandler<IssuePortalActivatio
         using var conn = _db.CreateConnection();
 
         var patient = await conn.QueryFirstOrDefaultAsync<(string id, string? phone)>(
-            "SELECT id, phone FROM diab_his_pat_patients WHERE id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL",
+            "SELECT id, phone_enc AS phone FROM diab_his_pat_patients WHERE id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL",
             new { Id = cmd.PatientId.ToString(), cmd.TenantId });
         if (patient.id == null) throw new PatientNotFoundException();
-        if (string.IsNullOrWhiteSpace(patient.phone)) throw new PortalPhoneNotRegisteredException();
+        // Hang muc 6: phone luu ma hoa -> giai ma va CHUAN HOA lam khoa dang nhap portal
+        var patientPhone = PiiNormalizer.NormalizePhone(PiiCrypto.Unprotect(patient.phone));
+        if (string.IsNullOrWhiteSpace(patientPhone)) throw new PortalPhoneNotRegisteredException();
 
         // Ma 8 ky tu de doc: bo O/0/I/1 gay nham
         const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -63,7 +65,7 @@ public class IssuePortalActivationHandler : IRequestHandler<IssuePortalActivatio
         // Upsert theo (tenant_id, phone): tao tai khoan chua kich hoat neu chua co
         var existing = await conn.ExecuteScalarAsync<string?>(
             "SELECT id FROM diab_his_pat_portal_accounts WHERE tenant_id = @TenantId AND phone = @Phone",
-            new { cmd.TenantId, patient.phone });
+            new { cmd.TenantId, Phone = patientPhone });
 
         if (existing == null)
         {
@@ -71,7 +73,7 @@ public class IssuePortalActivationHandler : IRequestHandler<IssuePortalActivatio
                 @"INSERT INTO diab_his_pat_portal_accounts
                     (id, tenant_id, patient_id, phone, activation_code_hash, activation_expires_at, created_at, updated_at)
                   VALUES (@Id, @TenantId, @PatientId, @Phone, @CodeHash, @ExpiresAt, UTC_TIMESTAMP(), UTC_TIMESTAMP())",
-                new { Id = Guid.NewGuid().ToString(), cmd.TenantId, PatientId = patient.id, patient.phone, CodeHash = codeHash, ExpiresAt = expiresAt });
+                new { Id = Guid.NewGuid().ToString(), cmd.TenantId, PatientId = patient.id, Phone = patientPhone, CodeHash = codeHash, ExpiresAt = expiresAt });
         }
         else
         {
@@ -80,7 +82,7 @@ public class IssuePortalActivationHandler : IRequestHandler<IssuePortalActivatio
                   SET activation_code_hash = @CodeHash, activation_expires_at = @ExpiresAt,
                       failed_attempts = 0, locked_until = NULL, updated_at = UTC_TIMESTAMP()
                   WHERE tenant_id = @TenantId AND phone = @Phone",
-                new { CodeHash = codeHash, ExpiresAt = expiresAt, cmd.TenantId, patient.phone });
+                new { CodeHash = codeHash, ExpiresAt = expiresAt, cmd.TenantId, Phone = patientPhone });
         }
 
         return new PortalIssueActivationResponse(code, expiresAt);
@@ -111,7 +113,7 @@ public class PortalActivateHandler : IRequestHandler<PortalActivateCommand, Port
             @"SELECT patient_id, activation_code_hash, activation_expires_at
               FROM diab_his_pat_portal_accounts
               WHERE tenant_id = @TenantId AND phone = @Phone",
-            new { cmd.TenantId, cmd.Phone });
+            new { cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
 
         if (acc.patient_id == null || acc.activation_code_hash == null
             || acc.activation_expires_at == null || acc.activation_expires_at < DateTime.UtcNow
@@ -125,7 +127,7 @@ public class PortalActivateHandler : IRequestHandler<PortalActivateCommand, Port
                   activation_code_hash = NULL, activation_expires_at = NULL,
                   failed_attempts = 0, locked_until = NULL, updated_at = UTC_TIMESTAMP()
               WHERE tenant_id = @TenantId AND phone = @Phone",
-            new { PinHash = pinHash, cmd.TenantId, cmd.Phone });
+            new { PinHash = pinHash, cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
 
         return await IssueTokenAsync(conn, acc.patient_id, cmd.TenantId, _jwt);
     }
@@ -171,7 +173,7 @@ public class PortalPinLoginHandler : IRequestHandler<PortalPinLoginCommand, Port
             @"SELECT patient_id, pin_hash, failed_attempts, locked_until
               FROM diab_his_pat_portal_accounts
               WHERE tenant_id = @TenantId AND phone = @Phone",
-            new { cmd.TenantId, cmd.Phone });
+            new { cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
 
         if (acc.patient_id == null) throw new PortalPhoneNotRegisteredException();
         if (acc.locked_until.HasValue && acc.locked_until.Value > DateTime.UtcNow) throw new PortalAccountLockedException();
@@ -185,11 +187,11 @@ public class PortalPinLoginHandler : IRequestHandler<PortalPinLoginCommand, Port
                     @"UPDATE diab_his_pat_portal_accounts
                       SET failed_attempts = @A, locked_until = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)
                       WHERE tenant_id = @TenantId AND phone = @Phone",
-                    new { A = attempts, cmd.TenantId, cmd.Phone });
+                    new { A = attempts, cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
             else
                 await conn.ExecuteAsync(
                     "UPDATE diab_his_pat_portal_accounts SET failed_attempts = @A WHERE tenant_id = @TenantId AND phone = @Phone",
-                    new { A = attempts, cmd.TenantId, cmd.Phone });
+                    new { A = attempts, cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
 
             if (attempts >= 5) throw new PortalAccountLockedException();
             throw new PortalPinInvalidException();
@@ -197,7 +199,7 @@ public class PortalPinLoginHandler : IRequestHandler<PortalPinLoginCommand, Port
 
         await conn.ExecuteAsync(
             "UPDATE diab_his_pat_portal_accounts SET failed_attempts = 0, locked_until = NULL WHERE tenant_id = @TenantId AND phone = @Phone",
-            new { cmd.TenantId, cmd.Phone });
+            new { cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
 
         return await PortalActivateHandler.IssueTokenAsync(conn, acc.patient_id, cmd.TenantId, _jwt);
     }
@@ -226,7 +228,7 @@ public class PortalForgotPinHandler : IRequestHandler<PortalForgotPinCommand>
               FROM diab_his_pat_portal_accounts pa
               JOIN diab_his_pat_patients p ON p.id = pa.patient_id
               WHERE pa.tenant_id = @TenantId AND pa.phone = @Phone",
-            new { cmd.TenantId, cmd.Phone });
+            new { cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
 
         // Khong tiet lo SDT ton tai hay khong (chong do email) — im lang neu thieu account/email
         if (acc.patient_id == null || string.IsNullOrWhiteSpace(acc.email)) return;
@@ -235,7 +237,7 @@ public class PortalForgotPinHandler : IRequestHandler<PortalForgotPinCommand>
         await conn.ExecuteAsync(
             @"INSERT INTO diab_his_pat_portal_otp_log (id, tenant_id, phone, otp_hash, purpose, sent_at, expires_at, attempts)
               VALUES (@Id, @TenantId, @Phone, @Hash, 'RESET_PIN', UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL 10 MINUTE), 0)",
-            new { Id = Guid.NewGuid().ToString(), cmd.TenantId, cmd.Phone, Hash = _hasher.Hash(otp) });
+            new { Id = Guid.NewGuid().ToString(), cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone), Hash = _hasher.Hash(otp) });
 
         await _email.SendAsync(acc.email!, "Pro-Diab — Ma xac nhan dat lai ma PIN",
             $"<p>Ma xac nhan dat lai ma PIN cua ban la: <b style=\"font-size:20px\">{otp}</b></p>" +
@@ -265,7 +267,7 @@ public class PortalResetPinHandler : IRequestHandler<PortalResetPinCommand, Port
         // GAP-6 fix: chan brute-force OTP reset — check khoa + dem so lan sai + khoa 15' sau 5 lan
         var acc = await conn.QueryFirstOrDefaultAsync<(string patient_id, DateTime? locked_until)>(
             "SELECT patient_id, locked_until FROM diab_his_pat_portal_accounts WHERE tenant_id = @TenantId AND phone = @Phone",
-            new { cmd.TenantId, cmd.Phone });
+            new { cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
         if (acc.patient_id == null) throw new PortalPhoneNotRegisteredException();
         if (acc.locked_until.HasValue && acc.locked_until.Value > DateTime.UtcNow) throw new PortalAccountLockedException();
 
@@ -273,7 +275,7 @@ public class PortalResetPinHandler : IRequestHandler<PortalResetPinCommand, Port
             @"SELECT id, otp_hash, expires_at, attempts FROM diab_his_pat_portal_otp_log
               WHERE tenant_id = @TenantId AND phone = @Phone AND purpose = 'RESET_PIN' AND verified_at IS NULL
               ORDER BY sent_at DESC LIMIT 1",
-            new { cmd.TenantId, cmd.Phone });
+            new { cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
 
         if (otpLog.id == null || otpLog.expires_at < DateTime.UtcNow) throw new OtpExpiredException();
 
@@ -288,7 +290,7 @@ public class PortalResetPinHandler : IRequestHandler<PortalResetPinCommand, Port
                 await conn.ExecuteAsync(
                     @"UPDATE diab_his_pat_portal_accounts SET locked_until = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)
                       WHERE tenant_id = @TenantId AND phone = @Phone",
-                    new { cmd.TenantId, cmd.Phone });
+                    new { cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
                 throw new PortalAccountLockedException();
             }
             throw new OtpInvalidException();
@@ -302,7 +304,7 @@ public class PortalResetPinHandler : IRequestHandler<PortalResetPinCommand, Port
             @"UPDATE diab_his_pat_portal_accounts
               SET pin_hash = @PinHash, failed_attempts = 0, locked_until = NULL, updated_at = UTC_TIMESTAMP()
               WHERE tenant_id = @TenantId AND phone = @Phone",
-            new { PinHash = _hasher.Hash(cmd.NewPin), cmd.TenantId, cmd.Phone });
+            new { PinHash = _hasher.Hash(cmd.NewPin), cmd.TenantId, Phone = PiiNormalizer.NormalizePhone(cmd.Phone) });
 
         return await PortalActivateHandler.IssueTokenAsync(conn, acc.patient_id, cmd.TenantId, _jwt);
     }

@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using MediatR;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Reports;
@@ -45,7 +45,7 @@ public class GetAppointmentSlipPdfQueryHandler : IRequestHandler<GetAppointmentS
             @"SELECT a.id AS Id, a.appointment_at AS AppointmentAt, a.duration_minutes AS DurationMinutes,
                      a.status AS Status,
                      COALESCE(pat.full_name, a.patient_name_temp) AS PatientName,
-                     COALESCE(pat.phone, a.patient_phone) AS PatientPhone,
+                     COALESCE(pat.phone_enc, a.patient_phone) AS PatientPhone,
                      doc.full_name AS DoctorName,
                      a.department_id AS DepartmentId, a.note AS Note
               FROM diab_his_sch_appointments a
@@ -69,7 +69,7 @@ public class GetAppointmentSlipPdfQueryHandler : IRequestHandler<GetAppointmentS
         var data = new AppointmentSlipData(
             lh, row.Id, row.AppointmentAt, row.DurationMinutes, row.Status,
             string.IsNullOrWhiteSpace(row.PatientName) ? "—" : row.PatientName,
-            row.PatientPhone, row.DoctorName, row.DepartmentId, row.Note);
+            PiiCrypto.Unprotect(row.PatientPhone), row.DoctorName, row.DepartmentId, row.Note);
 
         var pdf = _builder.Build(data);
         return Result<byte[]>.Success(pdf);

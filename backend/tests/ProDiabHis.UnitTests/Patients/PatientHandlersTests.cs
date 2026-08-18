@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using ProDiabHis.Application.Common;
@@ -14,6 +14,7 @@ public class PatientHandlersTests
     private readonly FakeTenantProvider _tenant = new(1);
     private readonly ICurrentUser _currentUser;
     private readonly IEncryptionService _enc = new FakeEncryptionService();
+    private readonly IPiiProtector _pii = new FakePiiProtector();
     private readonly IAuditService _audit;
 
     public PatientHandlersTests()
@@ -96,7 +97,7 @@ public class PatientHandlersTests
     public async Task CreatePatient_ValidRequest_CreatesAndReturns()
     {
         using var db = TestDbContextFactory.Create(tenantId: 1);
-        var handler = new CreatePatientCommandHandler(db, _tenant, _currentUser, _enc, _audit);
+        var handler = new CreatePatientCommandHandler(db, _tenant, _currentUser, _enc, _pii, _audit);
 
         var req = new CreatePatientRequest(
             FullName: "Le Thi C",
@@ -128,7 +129,7 @@ public class PatientHandlersTests
     {
         // FluentValidation se xu ly o controller level, handler chi save
         using var db = TestDbContextFactory.Create(tenantId: 1);
-        var handler = new CreatePatientCommandHandler(db, _tenant, _currentUser, _enc, _audit);
+        var handler = new CreatePatientCommandHandler(db, _tenant, _currentUser, _enc, _pii, _audit);
 
         var req = new CreatePatientRequest(
             FullName: "Test",
@@ -184,11 +185,58 @@ public class PatientHandlersTests
         db.Patients.Add(new Patient { TenantId = 1, Code = "BNT01000002", FullName = "Tran Thi Beta" });
         await db.SaveChangesAsync();
 
-        var handler = new SearchPatientsQueryHandler(db);
+        var handler = new SearchPatientsQueryHandler(db, _pii);
         var result = await handler.Handle(new SearchPatientsQuery("alpha", 1, 20), CancellationToken.None);
 
         result.Items.Should().HaveCount(1);
         result.Items[0].FullName.Should().Contain("Alpha");
+    }
+
+    [Fact]
+    public async Task SearchPatients_TheoSoDienThoai_DungBlindIndex_ExactMatch()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        db.Patients.Add(new Patient
+        {
+            TenantId = 1, Code = "BNT01000001", FullName = "Nguyen Van Alpha",
+            Phone = "0912345678",
+            PhoneBidx = _pii.BlindIndex("0912345678", PiiField.Phone)
+        });
+        db.Patients.Add(new Patient
+        {
+            TenantId = 1, Code = "BNT01000002", FullName = "Tran Thi Beta",
+            Phone = "0987654321",
+            PhoneBidx = _pii.BlindIndex("0987654321", PiiField.Phone)
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new SearchPatientsQueryHandler(db, _pii);
+
+        // Nhap SDT chua chuan hoa van tim thay (blind index chuan hoa truoc khi bam)
+        var result = await handler.Handle(new SearchPatientsQuery("+84 912 345 678", 1, 20), CancellationToken.None);
+
+        result.Items.Should().HaveCount(1);
+        result.Items[0].Code.Should().Be("BNT01000001");
+    }
+
+    [Fact]
+    public async Task SearchPatients_TimMotPhanSoDienThoai_KhongConTraVeKetQua_DoiHanhVi()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        db.Patients.Add(new Patient
+        {
+            TenantId = 1, Code = "BNT01000001", FullName = "Nguyen Van Alpha",
+            Phone = "0912345678",
+            PhoneBidx = _pii.BlindIndex("0912345678", PiiField.Phone)
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new SearchPatientsQueryHandler(db, _pii);
+
+        // "345678" la MOT PHAN so dien thoai -> sau khi ma hoa khong the LIKE '%...%' nua
+        var result = await handler.Handle(new SearchPatientsQuery("345678", 1, 20), CancellationToken.None);
+
+        result.Items.Should().BeEmpty();
     }
 
     // ──────────────────────────────────────────
@@ -252,7 +300,7 @@ public class PatientHandlersTests
         db.Patients.Add(new Patient { Id = id, TenantId = 1, Code = "BNT01000001", FullName = "Test" });
         await db.SaveChangesAsync();
 
-        var handler = new AddInsuranceCommandHandler(db, _tenant, _currentUser, _enc);
+        var handler = new AddInsuranceCommandHandler(db, _tenant, _currentUser, _enc, _pii);
         var req = new InsuranceRequest("BHYT", "HC4010001234", new DateOnly(2020, 1, 1), new DateOnly(2020, 12, 31), null, null);
         var result = await handler.Handle(new AddInsuranceCommand(id, req), CancellationToken.None);
 

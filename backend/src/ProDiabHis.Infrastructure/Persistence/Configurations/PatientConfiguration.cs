@@ -1,11 +1,24 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using ProDiabHis.Application.Common;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Infrastructure.Persistence.Configurations;
 
 public class PatientConfiguration : IEntityTypeConfiguration<Patient>
 {
+    /// <summary>
+    /// Converter ma hoa PII: ghi -> ciphertext AES-256-GCM (tien to enc:v1:), doc -> plaintext.
+    /// Dung PiiCrypto (ambient) vi EF model duoc build 1 lan, khong the inject scoped service.
+    /// Khi chua cau hinh khoa -> pass-through (test/tooling van chay).
+    /// LUU Y: KHONG duoc dung cot da ma hoa trong menh de Where/Contains cua LINQ
+    /// (AES-GCM co nonce ngau nhien) — phai dung blind index.
+    /// </summary>
+    public static readonly ValueConverter<string?, string?> PiiConverter =
+        new(v => PiiCrypto.Protect(v), v => PiiCrypto.Unprotect(v));
+
+
     public void Configure(EntityTypeBuilder<Patient> builder)
     {
         builder.ToTable("diab_his_pat_patients");
@@ -18,17 +31,23 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.Property(e => e.DateOfBirth).HasColumnName("date_of_birth");
         builder.Property(e => e.IdNumberEnc).HasColumnName("id_number_enc").HasMaxLength(500);
         builder.Property(e => e.IdNumberMasked).HasColumnName("id_number_masked").HasMaxLength(20);
-        builder.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(30);
+        builder.Property(e => e.IdNumberBidx).HasColumnName("id_number_bidx").HasMaxLength(64);
+        builder.Property(e => e.Phone).HasColumnName("phone_enc").HasMaxLength(500)
+            .HasConversion(PiiConverter);
+        builder.Property(e => e.PhoneMasked).HasColumnName("phone_masked").HasMaxLength(30);
+        builder.Property(e => e.PhoneBidx).HasColumnName("phone_bidx").HasMaxLength(64);
         builder.Property(e => e.Email).HasColumnName("email").HasMaxLength(100);
         builder.Property(e => e.ProvinceCode).HasColumnName("province_code").HasMaxLength(10);
         builder.Property(e => e.DistrictCode).HasColumnName("district_code").HasMaxLength(10);
         builder.Property(e => e.WardCode).HasColumnName("ward_code").HasMaxLength(10);
-        builder.Property(e => e.Street).HasColumnName("street").HasMaxLength(255);
+        builder.Property(e => e.Street).HasColumnName("street_enc").HasMaxLength(1000)
+            .HasConversion(PiiConverter);
         builder.Property(e => e.Occupation).HasColumnName("occupation").HasMaxLength(100);
         builder.Property(e => e.Ethnicity).HasColumnName("ethnicity").HasMaxLength(50);
         builder.Property(e => e.BloodType).HasColumnName("blood_type").HasMaxLength(5);
         builder.Property(e => e.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(500);
-        builder.Property(e => e.ReceptionNote).HasColumnName("reception_note");
+        builder.Property(e => e.ReceptionNote).HasColumnName("reception_note_enc")
+            .HasConversion(PiiConverter);
         builder.Property(e => e.AllergiesSummary).HasColumnName("allergies_summary").HasMaxLength(500);
         builder.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("ACTIVE");
         builder.Property(e => e.IdCardIssuedDate).HasColumnName("id_card_issued_date");
@@ -47,7 +66,7 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.HasIndex(e => new { e.TenantId, e.Code }).IsUnique();
         builder.HasIndex(e => new { e.TenantId, e.Status });
         builder.HasIndex(e => new { e.TenantId, e.FullName });
-        builder.HasIndex(e => new { e.TenantId, e.Phone });
+        builder.HasIndex(e => new { e.TenantId, e.PhoneBidx });
     }
 }
 
@@ -86,6 +105,7 @@ public class InsuranceConfiguration : IEntityTypeConfiguration<Insurance>
         builder.Property(e => e.Type).HasColumnName("type").HasMaxLength(20).HasDefaultValue("BHYT");
         builder.Property(e => e.CardNoEnc).HasColumnName("card_no_enc").HasMaxLength(500).IsRequired();
         builder.Property(e => e.CardNoMasked).HasColumnName("card_no_masked").HasMaxLength(30);
+        builder.Property(e => e.CardNoBidx).HasColumnName("card_no_bidx").HasMaxLength(64);
         builder.Property(e => e.ValidFrom).HasColumnName("valid_from");
         builder.Property(e => e.ValidTo).HasColumnName("valid_to");
         builder.Property(e => e.HospitalCode).HasColumnName("hospital_code").HasMaxLength(20);

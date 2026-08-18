@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -62,7 +62,7 @@ public class RecallController : ControllerBase
         var tenantId = _currentUser.TenantId!.Value;
 
         var recall = await conn.QueryFirstOrDefaultAsync<(string PatientId, string? Phone)?>(
-            @"SELECT r.patient_id AS PatientId, pat.phone AS Phone
+            @"SELECT r.patient_id AS PatientId, pat.phone_enc AS Phone
               FROM diab_his_cli_followup_recall r
               JOIN diab_his_pat_patients pat ON pat.id = r.patient_id AND pat.tenant_id = r.tenant_id
               WHERE r.id = @id AND r.tenant_id = @tenantId AND r.deleted_at IS NULL",
@@ -71,13 +71,15 @@ public class RecallController : ControllerBase
         if (recall is null)
             return StatusCode(422, new { error = new { code = "RECALL_NOT_FOUND", message = "Không tìm thấy recall" } });
 
+        // Hang muc 6: phone luu ma hoa -> giai ma truoc khi gui SMS
+        var patientPhone = PiiCrypto.Unprotect(recall.Value.Phone);
         var channel = request?.Channel ?? "SMS";
 
-        if (string.Equals(channel, "SMS", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(recall.Value.Phone))
+        if (string.Equals(channel, "SMS", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(patientPhone))
         {
             try
             {
-                await _smsGateway.SendAsync(recall.Value.Phone!,
+                await _smsGateway.SendAsync(patientPhone!,
                     "Pro-Diab HIS: Da den han tai kham/xet nghiem HbA1c dinh ky. Vui long lien he phong kham de dat lich.", ct);
             }
             catch

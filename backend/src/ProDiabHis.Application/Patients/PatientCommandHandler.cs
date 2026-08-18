@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
@@ -12,12 +12,13 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _currentUser;
     private readonly IEncryptionService _enc;
+    private readonly IPiiProtector _pii;
     private readonly IAuditService _audit;
 
     public CreatePatientCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser currentUser, IEncryptionService enc, IAuditService audit)
+        ICurrentUser currentUser, IEncryptionService enc, IPiiProtector pii, IAuditService audit)
     {
-        _db = db; _tenant = tenant; _currentUser = currentUser; _enc = enc; _audit = audit;
+        _db = db; _tenant = tenant; _currentUser = currentUser; _enc = enc; _pii = pii; _audit = audit;
     }
 
     public async Task<Result<PatientResponse>> Handle(CreatePatientCommand command, CancellationToken cancellationToken)
@@ -44,11 +45,12 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
         if (codeExists)
             return Result<PatientResponse>.Failure("PATIENT_CODE_EXISTS", "Mã bệnh nhân đã tồn tại");
 
-        string? idNumEnc = null, idNumMasked = null;
+        string? idNumEnc = null, idNumMasked = null, idNumBidx = null;
         if (!string.IsNullOrEmpty(req.IdNumber))
         {
             idNumEnc = _enc.Encrypt(req.IdNumber);
             idNumMasked = PatientMappingHelper.MaskIdNumber(req.IdNumber);
+            idNumBidx = _pii.BlindIndex(req.IdNumber, PiiField.IdNumber);
         }
 
         var now = DateTime.UtcNow;
@@ -62,7 +64,10 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
             DateOfBirth = req.DateOfBirth,
             IdNumberEnc = idNumEnc,
             IdNumberMasked = idNumMasked,
+            IdNumberBidx = idNumBidx,
             Phone = req.Phone,
+            PhoneMasked = PatientMappingHelper.MaskPhone(req.Phone),
+            PhoneBidx = _pii.BlindIndex(req.Phone, PiiField.Phone),
             Email = req.Email,
             ProvinceCode = req.Address?.ProvinceCode,
             DistrictCode = req.Address?.DistrictCode,
@@ -98,10 +103,12 @@ public class UpdatePatientCommandHandler : IRequestHandler<UpdatePatientCommand,
     private readonly IEncryptionService _enc;
     private readonly IAuditService _audit;
 
+    private readonly IPiiProtector _pii;
+
     public UpdatePatientCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser currentUser, IEncryptionService enc, IAuditService audit)
+        ICurrentUser currentUser, IEncryptionService enc, IPiiProtector pii, IAuditService audit)
     {
-        _db = db; _currentUser = currentUser; _enc = enc; _audit = audit;
+        _db = db; _currentUser = currentUser; _enc = enc; _pii = pii; _audit = audit;
     }
 
     public async Task<Result<PatientResponse>> Handle(UpdatePatientCommand command, CancellationToken cancellationToken)
@@ -117,12 +124,15 @@ public class UpdatePatientCommandHandler : IRequestHandler<UpdatePatientCommand,
         {
             patient.IdNumberEnc = _enc.Encrypt(req.IdNumber);
             patient.IdNumberMasked = PatientMappingHelper.MaskIdNumber(req.IdNumber);
+            patient.IdNumberBidx = _pii.BlindIndex(req.IdNumber, PiiField.IdNumber);
         }
 
         patient.FullName = req.FullName;
         patient.Gender = req.Gender;
         patient.DateOfBirth = req.DateOfBirth;
         patient.Phone = req.Phone;
+        patient.PhoneMasked = PatientMappingHelper.MaskPhone(req.Phone);
+        patient.PhoneBidx = _pii.BlindIndex(req.Phone, PiiField.Phone);
         patient.Email = req.Email;
         patient.ProvinceCode = req.Address?.ProvinceCode;
         patient.DistrictCode = req.Address?.DistrictCode;
@@ -308,10 +318,12 @@ public class AddInsuranceCommandHandler : IRequestHandler<AddInsuranceCommand, R
     private readonly ICurrentUser _currentUser;
     private readonly IEncryptionService _enc;
 
+    private readonly IPiiProtector _pii;
+
     public AddInsuranceCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser currentUser, IEncryptionService enc)
+        ICurrentUser currentUser, IEncryptionService enc, IPiiProtector pii)
     {
-        _db = db; _tenant = tenant; _currentUser = currentUser; _enc = enc;
+        _db = db; _tenant = tenant; _currentUser = currentUser; _enc = enc; _pii = pii;
     }
 
     public async Task<Result<InsuranceResponse>> Handle(AddInsuranceCommand command, CancellationToken cancellationToken)
@@ -327,6 +339,7 @@ public class AddInsuranceCommandHandler : IRequestHandler<AddInsuranceCommand, R
 
         var enc = _enc.Encrypt(req.CardNo);
         var masked = PatientMappingHelper.MaskCardNo(req.CardNo);
+        var bidx = _pii.BlindIndex(req.CardNo, PiiField.InsuranceCardNo);
         var now = DateTime.UtcNow;
 
         var insurance = new Insurance
@@ -337,6 +350,7 @@ public class AddInsuranceCommandHandler : IRequestHandler<AddInsuranceCommand, R
             Type = req.Type,
             CardNoEnc = enc,
             CardNoMasked = masked,
+            CardNoBidx = bidx,
             ValidFrom = req.ValidFrom,
             ValidTo = req.ValidTo,
             HospitalCode = req.HospitalCode,
@@ -360,9 +374,11 @@ public class UpdateInsuranceCommandHandler : IRequestHandler<UpdateInsuranceComm
     private readonly IApplicationDbContext _db;
     private readonly IEncryptionService _enc;
 
-    public UpdateInsuranceCommandHandler(IApplicationDbContext db, IEncryptionService enc)
+    private readonly IPiiProtector _pii;
+
+    public UpdateInsuranceCommandHandler(IApplicationDbContext db, IEncryptionService enc, IPiiProtector pii)
     {
-        _db = db; _enc = enc;
+        _db = db; _enc = enc; _pii = pii;
     }
 
     public async Task<Result<InsuranceResponse>> Handle(UpdateInsuranceCommand command, CancellationToken cancellationToken)
@@ -376,6 +392,7 @@ public class UpdateInsuranceCommandHandler : IRequestHandler<UpdateInsuranceComm
         var req = command.Request;
         insurance.CardNoEnc = _enc.Encrypt(req.CardNo);
         insurance.CardNoMasked = PatientMappingHelper.MaskCardNo(req.CardNo);
+        insurance.CardNoBidx = _pii.BlindIndex(req.CardNo, PiiField.InsuranceCardNo);
         insurance.Type = req.Type;
         insurance.ValidFrom = req.ValidFrom;
         insurance.ValidTo = req.ValidTo;

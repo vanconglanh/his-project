@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Text.Json;
 using Dapper;
 using Microsoft.Extensions.Logging;
@@ -16,9 +16,30 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
     private readonly IDapperConnectionFactory _db;
     private readonly ILogger<BhytXmlGeneratorImpl> _logger;
 
-    public BhytXmlGeneratorImpl(IDapperConnectionFactory db, ILogger<BhytXmlGeneratorImpl> logger)
+    private readonly IEncryptionService _encryption;
+    private readonly IAuditService _audit;
+
+    public BhytXmlGeneratorImpl(IDapperConnectionFactory db, ILogger<BhytXmlGeneratorImpl> logger,
+        IEncryptionService encryption, IAuditService audit)
     {
-        _db = db; _logger = logger;
+        _db = db; _logger = logger; _encryption = encryption; _audit = audit;
+    }
+
+    /// <summary>Giai ma so the BHYT. Loi giai ma -> log ERROR va tra null (khong bao gio xuat ciphertext ra XML).</summary>
+    private string? DecryptCardNo(string? stored, string encounterId)
+    {
+        if (string.IsNullOrWhiteSpace(stored)) return null;
+        try
+        {
+            return PiiCrypto.Current is { } pii && pii.IsProtected(stored)
+                ? pii.Unprotect(stored)
+                : _encryption.Decrypt(stored);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "BhytXmlGenerator: giai ma so the BHYT that bai encounter={EncId}", encounterId);
+            return null;
+        }
     }
 
     public async Task<BhytXmlGenerateResult> GenerateAsync(
@@ -42,21 +63,29 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
         var encounters = (await conn.QueryAsync<dynamic>(
             @"SELECT e.id, e.patient_id, e.doctor_id, e.started_at, e.finished_at,
                      p.full_name, p.date_of_birth, p.gender,
-                     i.insurance_code as ma_the_bhyt, i.registered_hospital_code as ma_dkbd,
+                     i.card_no_enc as ma_the_bhyt_enc, i.hospital_code as ma_dkbd,
                      i.valid_from as gt_the_tu, i.valid_to as gt_the_den,
                      i.coverage_percent as muc_huong
               FROM diab_his_clinic_encounters e
-              JOIN diab_pat_patients p ON p.id = e.patient_id
-              LEFT JOIN diab_his_patient_insurances i ON i.patient_id = e.patient_id AND i.is_active = 1
+              JOIN diab_his_pat_patients p ON p.id = e.patient_id
+              LEFT JOIN diab_his_pat_insurances i
+                     ON i.patient_id = e.patient_id AND i.tenant_id = e.tenant_id
+                    AND i.type = 'BHYT' AND i.deleted_at IS NULL
               WHERE e.tenant_id = @t
                 AND e.started_at >= @df AND e.started_at < @dt
                 AND e.deleted_at IS NULL
-                AND i.insurance_code IS NOT NULL
+                AND i.card_no_enc IS NOT NULL
               ORDER BY e.started_at",
             new { t = tenantId, df = dateFrom, dt = dateTo })).ToList();
 
         if (encounters.Count == 0)
             return new BhytXmlGenerateResult(false, 0, 0, [], "BHYT_EXPORT_NO_ENCOUNTERS");
+
+        // Hang muc 6: xuat XML giam dinh = GIAI MA HANG LOAT so the BHYT -> bat buoc ghi audit.
+        // Chinh sach chong spam audit: chi ghi 1 ban ghi cho ca lo, khong ghi tung benh nhan.
+        await _audit.LogAsync("PII_BULK_DECRYPT", "BhytExport", exportId.ToString(),
+            AuditSeverity.WARN, false, null,
+            new { tenantId, periodMonth, encounterCount = encounters.Count, field = "insurance_card_no" }, ct);
 
         var items = new List<BhytExportItemData>();
         decimal totalRequested = 0;
@@ -115,7 +144,9 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                 HoTen: (string)(enc.full_name ?? ""),
                 NgaySinh: enc.date_of_birth != null ? ((DateTime)enc.date_of_birth).ToString("yyyy-MM-dd") : "",
                 GioiTinh: (string?)enc.gender == "FEMALE" ? 2 : 1,
-                MaTheBhyt: (string)(enc.ma_the_bhyt ?? ""),
+                // Hang muc 6: so the BHYT luu ma hoa AES-256-GCM -> BAT BUOC giai ma,
+                // neu khong file XML giam dinh se chua ciphertext.
+                MaTheBhyt: DecryptCardNo((string?)enc.ma_the_bhyt_enc, encId) ?? "",
                 MaDkbd: (string)(enc.ma_dkbd ?? ""),
                 GtTheTu: enc.gt_the_tu != null ? ((DateTime)enc.gt_the_tu).ToString("yyyy-MM-dd") : "",
                 GtTheDen: enc.gt_the_den != null ? ((DateTime)enc.gt_the_den).ToString("yyyy-MM-dd") : "",

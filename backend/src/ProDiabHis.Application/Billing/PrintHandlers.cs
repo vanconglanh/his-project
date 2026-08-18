@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
@@ -115,7 +115,7 @@ public class PrintBillingHandler : IRequestHandler<PrintBillingCommand, Result<P
         using (var conn = _dapper.CreateConnection())
         {
             var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT full_name, dob, gender, phone FROM diab_his_pat_patients WHERE id = @id AND deleted_at IS NULL",
+                "SELECT full_name, dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND deleted_at IS NULL",
                 new { id = billing.PatientId.ToString() });
 
             if (row != null)
@@ -124,7 +124,7 @@ public class PrintBillingHandler : IRequestHandler<PrintBillingCommand, Result<P
                     (string)row.full_name,
                     row.dob == null ? null : DateOnly.FromDateTime((DateTime)row.dob),
                     (string?)row.gender,
-                    (string?)row.phone,
+                    PiiCrypto.Unprotect((string?)row.phone_enc),
                     null);
             }
         }
@@ -253,7 +253,7 @@ public class PrintReceiptHandler : IRequestHandler<PrintReceiptCommand, Result<P
 
             // Benh nhan
             var patRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                @"SELECT p.full_name, p.phone, p.code
+                @"SELECT p.full_name, p.phone_enc, p.code
                   FROM diab_his_pat_patients p
                   JOIN diab_his_bil_billing b ON b.patient_id = p.id
                   WHERE b.id = @billingId AND b.tenant_id = @tenantId AND p.deleted_at IS NULL LIMIT 1",
@@ -263,7 +263,7 @@ public class PrintReceiptHandler : IRequestHandler<PrintReceiptCommand, Result<P
             {
                 patientName = (string?)patRow.full_name ?? "-";
                 patientCode = (string?)patRow.code;
-                phone = (string?)patRow.phone;
+                phone = PiiCrypto.Unprotect((string?)patRow.phone_enc);
             }
 
             // Tenant info

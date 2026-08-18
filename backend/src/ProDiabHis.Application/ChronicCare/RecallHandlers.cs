@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using MediatR;
 using ProDiabHis.Application.Common;
@@ -50,7 +50,7 @@ public class ListRecallQueryHandler : IRequestHandler<ListRecallQuery, Result<Pa
 
         var rows = await conn.QueryAsync<RecallRow>(
             $@"SELECT r.id AS Id, r.patient_id AS PatientId, pat.code AS PatientCode, pat.full_name AS PatientFullName,
-                      pat.phone AS Phone, r.recall_type AS RecallType, r.due_date AS DueDate,
+                      pat.phone_enc AS Phone, r.recall_type AS RecallType, r.due_date AS DueDate,
                       r.priority AS Priority, r.status AS Status, r.channel AS Channel, r.note AS Note,
                       r.contacted_at AS ContactedAt, r.created_at AS CreatedAt
                FROM diab_his_cli_followup_recall r
@@ -60,7 +60,7 @@ public class ListRecallQueryHandler : IRequestHandler<ListRecallQuery, Result<Pa
                LIMIT @limit OFFSET @offset", prm);
 
         var items = rows.Select(r => new RecallItem(
-            Guid.Parse(r.Id), Guid.Parse(r.PatientId), r.PatientCode, r.PatientFullName, r.Phone,
+            Guid.Parse(r.Id), Guid.Parse(r.PatientId), r.PatientCode, r.PatientFullName, PiiCrypto.Unprotect(r.Phone),
             r.RecallType, r.DueDate.HasValue ? DateOnly.FromDateTime(r.DueDate.Value) : null,
             r.Priority, r.Status, r.Channel, r.Note, r.ContactedAt, r.CreatedAt)).ToList();
 

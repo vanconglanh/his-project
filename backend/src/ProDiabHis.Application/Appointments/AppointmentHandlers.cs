@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using MediatR;
 using ProDiabHis.Application.Common;
 using System.Data;
@@ -336,14 +336,16 @@ public class ListPatientOptionsQueryHandler : IRequestHandler<ListPatientOptions
         var q = string.IsNullOrWhiteSpace(request.Q) ? "%" : $"%{request.Q}%";
 
         var sql = @"
-            SELECT id AS Value, full_name AS Label, phone AS Phone
+            SELECT id AS Value, full_name AS Label, phone_enc AS Phone
             FROM diab_his_pat_patients
             WHERE tenant_id = @tenantId AND deleted_at IS NULL
-              AND (full_name LIKE @q OR code LIKE @q OR phone LIKE @q)
+              AND (full_name LIKE @q OR code LIKE @q OR phone_bidx = @phoneBidx)
             ORDER BY full_name ASC
             LIMIT 20";
 
-        var rows = await conn.QueryAsync<PatientOptionDto>(sql, new { tenantId = _tenant.TenantId, q });
-        return rows.ToList();
+        // Hang muc 6: SDT da ma hoa -> tra cuu bang blind index (exact-match), khong con LIKE
+        var phoneBidx = PiiCrypto.BlindIndex(request.Q, PiiField.Phone);
+        var rows = await conn.QueryAsync<PatientOptionDto>(sql, new { tenantId = _tenant.TenantId, q, phoneBidx });
+        return rows.Select(r => r with { Phone = PiiCrypto.Unprotect(r.Phone) }).ToList();
     }
 }

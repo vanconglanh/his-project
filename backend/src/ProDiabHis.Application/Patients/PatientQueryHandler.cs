@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
@@ -40,18 +40,29 @@ public class ListPatientsQueryHandler : IRequestHandler<ListPatientsQuery, Paged
 public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, PagedResult<PatientResponse>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly IPiiProtector _pii;
 
-    public SearchPatientsQueryHandler(IApplicationDbContext db) => _db = db;
+    public SearchPatientsQueryHandler(IApplicationDbContext db, IPiiProtector pii)
+    {
+        _db = db; _pii = pii;
+    }
 
     public async Task<PagedResult<PatientResponse>> Handle(SearchPatientsQuery request, CancellationToken cancellationToken)
     {
         var q = request.Q.ToLower();
+
+        // Hang muc 6: phone/CMND da ma hoa AES-GCM (nonce ngau nhien) -> KHONG the LIKE tren ciphertext.
+        // Tra cuu chuyen sang blind index HMAC: chi con EXACT-MATCH (sau chuan hoa),
+        // khong con tim theo mot phan so dien thoai / CMND.
+        var phoneBidx = _pii.BlindIndex(request.Q, PiiField.Phone);
+        var idBidx = _pii.BlindIndex(request.Q, PiiField.IdNumber);
+
         var query = _db.Patients.AsNoTracking()
             .Where(p =>
                 p.FullName.ToLower().Contains(q) ||
                 p.Code.ToLower().Contains(q) ||
-                (p.Phone != null && p.Phone.Contains(q)) ||
-                (p.IdNumberMasked != null && p.IdNumberMasked.Contains(q)));
+                (phoneBidx != null && p.PhoneBidx == phoneBidx) ||
+                (idBidx != null && p.IdNumberBidx == idBidx));
 
         var total = await query.CountAsync(cancellationToken);
         var offset = (request.Page - 1) * request.PageSize;

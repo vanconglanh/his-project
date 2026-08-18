@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Reports;
@@ -15,12 +15,15 @@ public class GenericReportDataService : IGenericReportDataService
     private readonly IReportRegistry _registry;
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IAuditService _audit;
 
-    public GenericReportDataService(IReportRegistry registry, IDapperConnectionFactory db, ITenantProvider tenant)
+    public GenericReportDataService(IReportRegistry registry, IDapperConnectionFactory db,
+        ITenantProvider tenant, IAuditService audit)
     {
         _registry = registry;
         _db = db;
         _tenant = tenant;
+        _audit = audit;
     }
 
     public async Task<ReportDataResult> GetDataAsync(
@@ -56,10 +59,22 @@ public class GenericReportDataService : IGenericReportDataService
             {
                 var src = (IDictionary<string, object>)r;
                 var dict = new Dictionary<string, object?>(src.Count);
-                foreach (var kv in src) dict[kv.Key] = kv.Value;
+                // Hang muc 6: cot PII duoc SELECT o dang *_enc -> giai ma theo tien to marker.
+                // PiiCrypto.Unprotect la pass-through voi gia tri khong ma hoa nen an toan cho moi cot.
+                foreach (var kv in src)
+                    dict[kv.Key] = kv.Value is string sv ? PiiCrypto.Unprotect(sv) : kv.Value;
                 return (IDictionary<string, object?>)dict;
             })
             .ToList();
+
+        // Hang muc 6: neu bao cao co chua PII da ma hoa -> ghi 1 audit cho ca lo (khong ghi tung dong)
+        if (rawRows.Cast<IDictionary<string, object>>()
+                   .Any(r => r.Values.Any(v => v is string sv && PiiCrypto.Current?.IsProtected(sv) == true)))
+        {
+            await _audit.LogAsync("PII_BULK_DECRYPT", "Report", reportCode,
+                AuditSeverity.WARN, false, null,
+                new { tenantId = _tenant.TenantId, rowCount = rows.Count }, ct);
+        }
 
         var subtotalKeys = descriptor.Columns.Where(c => c.IsGroupSubtotal).Select(c => c.Key).ToList();
 
