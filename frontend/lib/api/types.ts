@@ -402,7 +402,14 @@ export interface ConsentResponse {
 
 // ─── Reception ────────────────────────────────────────────────────────────────
 
-export type TicketStatus = "WAITING" | "CALLED" | "IN_PROGRESS" | "DONE" | "SKIPPED" | "CANCELLED";
+export type TicketStatus =
+  | "WAITING"
+  | "CALLED"
+  | "IN_PROGRESS"
+  | "WAITING_CLS"
+  | "DONE"
+  | "SKIPPED"
+  | "CANCELLED";
 export type TicketPriority = "NORMAL" | "PRIORITY" | "EMERGENCY";
 
 export interface PatientSummary {

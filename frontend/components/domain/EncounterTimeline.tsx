@@ -24,14 +24,14 @@ const EVENT_CONFIG: Record<
   TimelineEvent["event_type"],
   { icon: React.ElementType; label: string; color: string }
 > = {
-  VITAL: { icon: Activity, label: "Sinh hiệu", color: "text-blue-500" },
-  LAB_ORDER: { icon: FlaskConical, label: "XN", color: "text-purple-500" },
-  RAD_ORDER: { icon: ImageIcon, label: "CĐHA", color: "text-indigo-500" },
-  PRESCRIPTION: { icon: Pill, label: "Đơn thuốc", color: "text-green-500" },
-  NOTE: { icon: MessageSquare, label: "Ghi chú", color: "text-gray-500" },
-  DIAGNOSIS: { icon: Stethoscope, label: "Chẩn đoán", color: "text-orange-500" },
-  EMR_SAVED: { icon: FileText, label: "Lưu BA", color: "text-cyan-500" },
-  EMR_SIGNED: { icon: PenTool, label: "Ký BA", color: "text-emerald-600" },
+  VITAL: { icon: Activity, label: "Sinh hiệu", color: "text-[color:var(--chart-2)]" },
+  LAB_ORDER: { icon: FlaskConical, label: "XN", color: "text-[color:var(--chart-4)]" },
+  RAD_ORDER: { icon: ImageIcon, label: "CĐHA", color: "text-[color:var(--chart-4)]" },
+  PRESCRIPTION: { icon: Pill, label: "Đơn thuốc", color: "text-[color:var(--status-done)]" },
+  NOTE: { icon: MessageSquare, label: "Ghi chú", color: "text-[color:var(--chart-6)]" },
+  DIAGNOSIS: { icon: Stethoscope, label: "Chẩn đoán", color: "text-[color:var(--chart-3)]" },
+  EMR_SAVED: { icon: FileText, label: "Lưu BA", color: "text-[color:var(--chart-1)]" },
+  EMR_SIGNED: { icon: PenTool, label: "Ký BA", color: "text-[color:var(--status-done)]" },
 };
 
 export function EncounterTimeline({ encounterId }: Props) {

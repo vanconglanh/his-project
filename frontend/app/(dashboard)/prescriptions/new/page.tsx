@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -53,6 +53,12 @@ const FORM_ID = "prescription-form";
 export default function NewPrescriptionPage() {
   const router = useRouter();
   const createPrescription = useCreatePrescription();
+
+  // [UI-G1] Kê đơn gắn lượt khám đã gom về màn khám 1-route-nhiều-tab
+  useEffect(() => {
+    const encounterId = new URLSearchParams(window.location.search).get("encounter_id");
+    if (encounterId) router.replace(`/encounters/${encounterId}?tab=prescription`);
+  }, [router]);
 
   // Patient search state
   const [patientSearch, setPatientSearch] = useState("");

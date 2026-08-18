@@ -13,11 +13,11 @@ export function EncounterAlertBanner({ hoursOpen, startedAt, className }: Props)
   return (
     <Alert
       className={cn(
-        "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400",
+        "border-[color:var(--status-critical)]/30 bg-[color:var(--status-critical)]/10 text-[color:var(--status-critical)]",
         className
       )}
     >
-      <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+      <AlertTriangle className="h-4 w-4 text-[color:var(--status-critical)]" />
       <AlertDescription className="text-sm font-medium">
         Cảnh báo TT 46/2018/TT-BYT: Lượt khám đã kéo dài{" "}
         <strong>{hoursOpen.toFixed(1)} giờ</strong> (bắt đầu{" "}

@@ -82,3 +82,68 @@ export async function listOver12hAlerts() {
   const res = await apiClient.get<ApiResponse<Over12hAlert[]>>("/encounters/alerts/over-12h");
   return res.data.data;
 }
+
+// ─── Khoá bệnh án & bản đính chính (G03) ─────────────────────────────────────
+
+export interface EncounterBhytWarning {
+  code: string;
+  message: string;
+}
+
+export interface EncounterLockState {
+  encounter_id: string;
+  status: string;
+  is_locked: boolean;
+  locked_at?: string | null;
+  locked_by_id?: string | null;
+  locked_by_name?: string | null;
+  finished_at?: string | null;
+  can_amend: boolean;
+  amendment_count: number;
+  bhyt_warning?: EncounterBhytWarning | null;
+}
+
+export interface EncounterAddendumResponse {
+  id: string;
+  encounter_id: string;
+  section: string;
+  operation: string;
+  target_table?: string | null;
+  target_id?: string | null;
+  content_before?: string | null;
+  content_after?: string | null;
+  reason: string;
+  created_at: string;
+  created_by: { user_id?: string | null; full_name?: string | null };
+  bhyt_resubmit_required: boolean;
+}
+
+export interface CreateAddendumRequest {
+  section: string;
+  operation?: string;
+  target_table?: string;
+  target_id?: string;
+  content_after?: unknown;
+  reason: string;
+  acknowledge_bhyt_resubmit?: boolean;
+}
+
+export async function getEncounterLockState(id: string) {
+  const res = await apiClient.get<ApiResponse<EncounterLockState>>(`/encounters/${id}/lock-state`);
+  return res.data.data;
+}
+
+export async function listEncounterAddenda(id: string) {
+  const res = await apiClient.get<{ data: EncounterAddendumResponse[]; meta: ApiMeta }>(
+    `/encounters/${id}/addenda`
+  );
+  return res.data.data ?? [];
+}
+
+export async function createEncounterAddendum(id: string, body: CreateAddendumRequest) {
+  const res = await apiClient.post<ApiResponse<EncounterAddendumResponse>>(
+    `/encounters/${id}/addenda`,
+    body
+  );
+  return res.data.data;
+}

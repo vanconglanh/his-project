@@ -45,8 +45,9 @@ export function LoginForm() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(loginSchema) as any,
     defaultValues: {
-      email: "",
-      password: "",
+      // TODO(REMOVE-BEFORE-PROD): prefill tai khoan test, xoa truoc khi release
+      email: "admin@prodiab.local",
+      password: "admin123",
       rememberMe: false,
     },
   });

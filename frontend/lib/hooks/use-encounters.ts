@@ -134,3 +134,50 @@ export function useDeleteDiagnosis(encounterId: string) {
     onError: () => toast.error("Xóa chẩn đoán thất bại"),
   });
 }
+
+// ─── Khoá bệnh án & bản đính chính (G03) ─────────────────────────────────────
+
+export const encounterLockKeys = {
+  lockState: (id: string) => ["encounters", "lock-state", id] as const,
+  addenda: (id: string) => ["encounters", "addenda", id] as const,
+};
+
+export function useEncounterLockState(id: string) {
+  return useQuery({
+    queryKey: encounterLockKeys.lockState(id),
+    queryFn: () => encountersApi.getEncounterLockState(id),
+    enabled: !!id,
+    staleTime: 30_000,
+    retry: 1,
+  });
+}
+
+export function useEncounterAddenda(id: string, enabled = true) {
+  return useQuery({
+    queryKey: encounterLockKeys.addenda(id),
+    queryFn: () => encountersApi.listEncounterAddenda(id),
+    enabled: !!id && enabled,
+    staleTime: 30_000,
+    retry: 1,
+  });
+}
+
+export function useCreateEncounterAddendum(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: encountersApi.CreateAddendumRequest) =>
+      encountersApi.createEncounterAddendum(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: encounterLockKeys.addenda(id) });
+      qc.invalidateQueries({ queryKey: encounterLockKeys.lockState(id) });
+      qc.invalidateQueries({ queryKey: encounterKeys.detail(id) });
+      toast.success("Đã tạo bản đính chính");
+    },
+    onError: (err: unknown) => {
+      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data
+        ?.error?.code;
+      if (code === "FORBIDDEN") toast.error("Bạn không có quyền tạo bản đính chính");
+      else toast.error("Tạo bản đính chính thất bại");
+    },
+  });
+}

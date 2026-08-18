@@ -11,8 +11,11 @@ import {
   admitTicket,
   getRooms,
   getReceptionStats,
+  reassignTicket,
+  waitClsTicket,
+  resumeTicket,
 } from "@/lib/api/reception";
-import type { QueueParams } from "@/lib/api/reception";
+import type { QueueParams, ReassignTicketRequest } from "@/lib/api/reception";
 import type { CheckInRequest } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/utils/errors";
 
@@ -108,5 +111,49 @@ export function useCancelTicket() {
       toast.success("Đã huỷ tiếp đón");
     },
     onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+// ─── [G05] Điều phối khám + chờ kết quả CLS ──────────────────────────────────
+
+export function useReassignTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ticketId, body }: { ticketId: string; body: ReassignTicketRequest }) =>
+      reassignTicket(ticketId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: receptionKeys.all });
+      qc.invalidateQueries({ queryKey: ["encounters"] });
+      toast.success("Đã chuyển bệnh nhân sang phòng mới");
+    },
+    onError: (e) => toast.error(getErrorMessage(e, "Chuyển phòng thất bại")),
+  });
+}
+
+export function useWaitClsTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ticketId, clsRoundId }: { ticketId: string; clsRoundId?: string | null }) =>
+      waitClsTicket(ticketId, { cls_round_id: clsRoundId ?? null }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: receptionKeys.all });
+      qc.invalidateQueries({ queryKey: ["encounters"] });
+      toast.success("Đã chuyển sang trạng thái chờ kết quả cận lâm sàng.");
+    },
+    onError: (e) => toast.error(getErrorMessage(e, "Không thể chuyển sang chờ kết quả CLS")),
+  });
+}
+
+export function useResumeTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ticketId, roomId }: { ticketId: string; roomId?: string | null }) =>
+      resumeTicket(ticketId, { room_id: roomId ?? null }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: receptionKeys.all });
+      qc.invalidateQueries({ queryKey: ["encounters"] });
+      toast.success("Đã tiếp tục ca khám");
+    },
+    onError: (e) => toast.error(getErrorMessage(e, "Không thể tiếp tục ca khám")),
   });
 }

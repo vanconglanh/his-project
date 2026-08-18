@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EncounterDetailClient } from "./_components/EncounterDetailClient";
 
 export const metadata: Metadata = { title: "Chi tiết lượt khám — Pro-Diab HIS" };
@@ -9,5 +11,9 @@ interface Props {
 
 export default async function EncounterDetailPage({ params }: Props) {
   const { id } = await params;
-  return <EncounterDetailClient encounterId={id} />;
+  return (
+    <Suspense fallback={<Skeleton className="h-[80vh] w-full" />}>
+      <EncounterDetailClient encounterId={id} />
+    </Suspense>
+  );
 }

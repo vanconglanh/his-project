@@ -77,3 +77,57 @@ export async function getReceptionStats(): Promise<ReceptionStats> {
   const { data } = await apiClient.get<ApiResponse<ReceptionStats>>("/reception/stats");
   return data.data;
 }
+
+// ─── [G05] Điều phối khám + chờ kết quả CLS ──────────────────────────────────
+
+export interface ReassignTicketRequest {
+  doctor_id?: string | null;
+  room_id?: string | null;
+  reason: string;
+  acknowledge_schedule_warning?: boolean;
+}
+
+export interface TicketClsStatusResponse {
+  id: string;
+  status: string;
+  status_label: string;
+  room_id?: string | null;
+  released_room_id?: string | null;
+  waiting_cls_at?: string | null;
+}
+
+/** [G05] Đổi phòng / đổi bác sĩ cho vé tiếp đón, giữ nguyên mã lượt khám */
+export async function reassignTicket(
+  ticketId: string,
+  body: ReassignTicketRequest
+): Promise<ReceptionTicketResponse> {
+  const { data } = await apiClient.put<ApiResponse<ReceptionTicketResponse>>(
+    `/reception/tickets/${ticketId}/reassign`,
+    body
+  );
+  return data.data;
+}
+
+/** Chuyển vé sang "Chờ kết quả CLS" — nhả phòng cho bệnh nhân kế tiếp */
+export async function waitClsTicket(
+  ticketId: string,
+  body?: { cls_round_id?: string | null; note?: string | null }
+): Promise<TicketClsStatusResponse> {
+  const { data } = await apiClient.post<ApiResponse<TicketClsStatusResponse>>(
+    `/reception/tickets/${ticketId}/wait-cls`,
+    body ?? {}
+  );
+  return data.data;
+}
+
+/** Quay lại phòng khám sau khi có kết quả CLS */
+export async function resumeTicket(
+  ticketId: string,
+  body?: { room_id?: string | null }
+): Promise<TicketClsStatusResponse> {
+  const { data } = await apiClient.post<ApiResponse<TicketClsStatusResponse>>(
+    `/reception/tickets/${ticketId}/resume`,
+    body ?? {}
+  );
+  return data.data;
+}
