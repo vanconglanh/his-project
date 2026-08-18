@@ -51,7 +51,10 @@ public class WebPushSubscriptionConfiguration : IEntityTypeConfiguration<WebPush
         builder.Ignore(e => e.DeletedAt);
         builder.Ignore(e => e.DeletedBy);
 
-        builder.HasIndex(e => e.Endpoint).IsUnique();
+        // Cot endpoint dai toi 1000 ky tu (varchar(1000) utf8mb4 = 4000 byte) vuot gioi han
+        // index InnoDB 3072 byte. Dung prefix length 255 ky tu (~1020 byte) cho unique index —
+        // du de phan biet cac endpoint khac nhau (khac host/token o dau chuoi).
+        builder.HasIndex(e => e.Endpoint).IsUnique().HasPrefixLength(255);
         builder.HasIndex(e => new { e.TenantId, e.UserId });
     }
 }

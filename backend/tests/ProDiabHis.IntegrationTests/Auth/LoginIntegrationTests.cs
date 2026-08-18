@@ -15,7 +15,7 @@ public class LoginIntegrationTests : IClassFixture<MySqlTestFixture>
         _fixture = fixture;
     }
 
-    [Fact(Skip = "Yeu cau Docker — chay tren CI hoac local co Docker")]
+    [DockerAvailableFact]
     public async Task Login_WithValidCredentials_ReturnsToken()
     {
         // Arrange
@@ -47,7 +47,7 @@ public class LoginIntegrationTests : IClassFixture<MySqlTestFixture>
         dbUser!.Email.Should().Be("doctor@test.vn");
     }
 
-    [Fact(Skip = "Yeu cau Docker — chay tren CI hoac local co Docker")]
+    [DockerAvailableFact]
     public async Task Login_WithInvalidPassword_ReturnsError()
     {
         // Edge case: user ton tai nhung sai mat khau
