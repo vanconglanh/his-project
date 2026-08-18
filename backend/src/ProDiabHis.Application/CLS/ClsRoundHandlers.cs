@@ -332,11 +332,13 @@ public class PayClsRoundCommandHandler : IRequestHandler<PayClsRoundCommand, Res
                 $"Không thể chuyển trạng thái thanh toán từ {pay} sang {ClsRoundPaymentStatus.Paid}");
 
         var total = Convert.ToDecimal(row.total_amount);
-        var requestedAmount = cmd.Request?.Amount;
-        if (requestedAmount.HasValue && requestedAmount.Value != total)
-            return Result<ClsRoundResponse>.Failure("BILLING_AMOUNT_MISMATCH",
-                "Số tiền thanh toán không khớp tổng tiền đợt chỉ định",
-                new { expected = total, actual = requestedAmount.Value });
+        if (cmd.Request?.Amount is decimal requestedAmount)
+        {
+            if (requestedAmount != total)
+                return Result<ClsRoundResponse>.Failure("BILLING_AMOUNT_MISMATCH",
+                    "Số tiền thanh toán không khớp tổng tiền đợt chỉ định",
+                    new { expected = total, actual = requestedAmount });
+        }
 
         var now = DateTime.UtcNow;
         var userId = _user.UserId?.ToString();

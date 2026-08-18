@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Text.Json;
 using Dapper;
 using Microsoft.Extensions.Logging;
@@ -10,6 +10,7 @@ namespace ProDiabHis.Infrastructure.Bhyt;
 /// <summary>
 /// Query encounters + billings + items trong period_month, build XML Bang 1-5 theo QD 4750.
 /// ma_lien_ket = {tenant_code}{encounter_id} (toi da 200 ky tu).
+/// Toan bo SQL nam trong <see cref="BhytXmlSql"/> de review + unit test ten bang.
 /// </summary>
 public class BhytXmlGeneratorImpl : IBhytXmlGenerator
 {
@@ -42,6 +43,16 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
         }
     }
 
+    // Cot tra ve tu MySQL co the la INT/DECIMAL/DOUBLE tuy bang -> unbox truc tiep sang decimal se nem
+    // InvalidCastException. Luon di qua Convert.
+    private static decimal Dec(object? v) => v is null || v is DBNull ? 0m : Convert.ToDecimal(v);
+    private static int Int(object? v, int fallback) => v is null || v is DBNull ? fallback : Convert.ToInt32(v);
+    private static string Str(object? v) => v is null || v is DBNull ? "" : Convert.ToString(v) ?? "";
+    private static DateTime? Dt(object? v) => v is null || v is DBNull ? null : Convert.ToDateTime(v);
+
+    private static object? Col(IDictionary<string, object?>? row, string name)
+        => row is not null && row.TryGetValue(name, out var v) ? v : null;
+
     public async Task<BhytXmlGenerateResult> GenerateAsync(
         int exportId, int tenantId, string periodMonth,
         string? scopeFilterJson, CancellationToken ct)
@@ -52,8 +63,7 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
 
         // Lay tenant code de build ma_lien_ket
         var tenantCode = await conn.ExecuteScalarAsync<string>(
-            "SELECT IFNULL(clinic_code, CAST(id AS CHAR)) FROM diab_his_tenants WHERE id=@t",
-            new { t = tenantId }) ?? tenantId.ToString();
+            BhytXmlSql.TenantCode, new { t = tenantId }) ?? tenantId.ToString();
 
         // Parse period_month -> date range
         if (!TryParsePeriod(periodMonth, out var dateFrom, out var dateTo))
@@ -61,21 +71,7 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
 
         // Query encounters trong ky co BHYT
         var encounters = (await conn.QueryAsync<dynamic>(
-            @"SELECT e.id, e.patient_id, e.doctor_id, e.started_at, e.finished_at,
-                     p.full_name, p.date_of_birth, p.gender,
-                     i.card_no_enc as ma_the_bhyt_enc, i.hospital_code as ma_dkbd,
-                     i.valid_from as gt_the_tu, i.valid_to as gt_the_den,
-                     i.coverage_percent as muc_huong
-              FROM diab_his_clinic_encounters e
-              JOIN diab_his_pat_patients p ON p.id = e.patient_id
-              LEFT JOIN diab_his_pat_insurances i
-                     ON i.patient_id = e.patient_id AND i.tenant_id = e.tenant_id
-                    AND i.type = 'BHYT' AND i.deleted_at IS NULL
-              WHERE e.tenant_id = @t
-                AND e.started_at >= @df AND e.started_at < @dt
-                AND e.deleted_at IS NULL
-                AND i.card_no_enc IS NOT NULL
-              ORDER BY e.started_at",
+            BhytXmlSql.Encounters,
             new { t = tenantId, df = dateFrom, dt = dateTo })).ToList();
 
         if (encounters.Count == 0)
@@ -93,30 +89,28 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
 
         foreach (var enc in encounters)
         {
-            var encId = (string)enc.id;
+            var e = (IDictionary<string, object?>)enc;
+            var encId = Str(Col(e, "id"));
             var maLienKet = $"{tenantCode}{encId}";
             if (maLienKet.Length > 200) maLienKet = maLienKet[..200];
 
+            // Muc huong BHYT lay tu the cua benh nhan; the khong ghi -> 80% (muc pho bien nhat).
+            var mucHuong = Int(Col(e, "muc_huong"), 80);
+
             // Bang 1: Tong hop dot kham
             var billing = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                @"SELECT COALESCE(SUM(bi.amount),0) as t_thuoc,
-                         COALESCE(SUM(bi.amount * 0.1),0) as t_vtyt,
-                         COALESCE(SUM(bi.amount),0) as t_tongchi,
-                         COALESCE(SUM(bi.bhyt_amount),0) as t_bhtt,
-                         COALESCE(SUM(bi.patient_amount),0) as t_bntt
-                  FROM diab_his_billing_items bi
-                  JOIN diab_his_billings b ON b.id = bi.billing_id
-                  WHERE b.encounter_id = @eid AND b.tenant_id = @t AND b.deleted_at IS NULL",
-                new { eid = encId, t = tenantId }) ?? new { t_thuoc = 0m, t_vtyt = 0m, t_tongchi = 0m, t_bhtt = 0m, t_bntt = 0m, t_bncct = 0m };
+                BhytXmlSql.BillingSummary, new { eid = encId, t = tenantId });
+            var b = billing as IDictionary<string, object?>;
+
+            var tThuoc = Dec(Col(b, "t_thuoc"));
+            var tTongchi = Dec(Col(b, "t_tongchi"));
+            var tBhtt = Dec(Col(b, "t_bhtt"));
+            var tBntt = Dec(Col(b, "t_bntt"));
 
             // QD 4750 - Bang 1: MA_BENH = chan doan CHINH, MA_BENH_KHAC = cac chan doan kem theo (ngan cach bang ";")
             // Luu y: bang dung la diab_his_enc_diagnoses, phan biet chinh/phu bang cot `type`.
             var diagRows = (await conn.QueryAsync<dynamic>(
-                @"SELECT icd10_code, type
-                  FROM diab_his_enc_diagnoses
-                  WHERE tenant_id = @t AND encounter_id = @eid AND deleted_at IS NULL
-                  ORDER BY (type = 'PRIMARY') DESC, created_at",
-                new { t = tenantId, eid = encId })).ToList();
+                BhytXmlSql.Diagnoses, new { t = tenantId, eid = encId })).ToList();
 
             var primaryCode = diagRows
                 .Where(d => string.Equals((string?)d.type, "PRIMARY", StringComparison.OrdinalIgnoreCase))
@@ -138,126 +132,124 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                     "BhytXmlGenerator: encounter {EncId} khong co chan doan CHINH, MA_BENH fallback Z00 - nguy co xuat toan",
                     encId);
 
+            var patientCode = Str(Col(e, "patient_code"));
+
             var table1Row = new BhytTable1Row(
                 MaLienKet: maLienKet,
-                MaBn: (string)enc.patient_id,
-                HoTen: (string)(enc.full_name ?? ""),
-                NgaySinh: enc.date_of_birth != null ? ((DateTime)enc.date_of_birth).ToString("yyyy-MM-dd") : "",
-                GioiTinh: (string?)enc.gender == "FEMALE" ? 2 : 1,
+                // MA_BN = ma benh nhan cua co so (pat_patients.code); chua co ma -> fallback ve patient_id.
+                MaBn: string.IsNullOrWhiteSpace(patientCode) ? Str(Col(e, "patient_id")) : patientCode,
+                HoTen: Str(Col(e, "full_name")),
+                NgaySinh: Dt(Col(e, "date_of_birth"))?.ToString("yyyy-MM-dd") ?? "",
+                GioiTinh: Str(Col(e, "gender")) == "FEMALE" ? 2 : 1,
                 // Hang muc 6: so the BHYT luu ma hoa AES-256-GCM -> BAT BUOC giai ma,
                 // neu khong file XML giam dinh se chua ciphertext.
-                MaTheBhyt: DecryptCardNo((string?)enc.ma_the_bhyt_enc, encId) ?? "",
-                MaDkbd: (string)(enc.ma_dkbd ?? ""),
-                GtTheTu: enc.gt_the_tu != null ? ((DateTime)enc.gt_the_tu).ToString("yyyy-MM-dd") : "",
-                GtTheDen: enc.gt_the_den != null ? ((DateTime)enc.gt_the_den).ToString("yyyy-MM-dd") : "",
+                MaTheBhyt: DecryptCardNo(Str(Col(e, "ma_the_bhyt_enc")), encId) ?? "",
+                MaDkbd: Str(Col(e, "ma_dkbd")),
+                GtTheTu: Dt(Col(e, "gt_the_tu"))?.ToString("yyyy-MM-dd") ?? "",
+                GtTheDen: Dt(Col(e, "gt_the_den"))?.ToString("yyyy-MM-dd") ?? "",
                 MaLoaiKcb: 1,
-                NgayVao: enc.started_at != null ? (DateTime)enc.started_at : DateTime.UtcNow,
-                NgayRa: enc.finished_at != null ? (DateTime)enc.finished_at : DateTime.UtcNow,
+                NgayVao: Dt(Col(e, "started_at")) ?? DateTime.UtcNow,
+                NgayRa: Dt(Col(e, "finished_at")) ?? DateTime.UtcNow,
                 SoNgayDtri: 1,
                 KetQuaDtri: 1,
                 MaBenh: maBenh,
                 MaBenhKhac: maBenhKhac,
                 LyDoVvien: "Kham benh dinh ky",
                 ChanDoanRv: "",
-                TThuoc: (decimal)(billing?.t_thuoc ?? 0m),
-                TVtyt: (decimal)(billing?.t_vtyt ?? 0m),
-                TTongchi: (decimal)(billing?.t_tongchi ?? 0m),
-                TBhtt: (decimal)(billing?.t_bhtt ?? 0m),
-                TBntt: (decimal)(billing?.t_bntt ?? 0m),
+                TThuoc: tThuoc,
+                // TODO(BHYT): schema chua co truong phan loai vat tu y te (VTYT) tren billing item
+                // (item_type chi co SERVICE|DRUG|PROCEDURE|LAB|RAD|PACKAGE|OTHER) -> T_VTYT tam de 0.
+                TVtyt: 0m,
+                TTongchi: tTongchi,
+                TBhtt: tBhtt,
+                TBntt: tBntt,
                 TBncct: 0m);
 
             var rowJson1 = JsonSerializer.Serialize(table1Row);
-            items.Add(new BhytExportItemData(1, table1Idx++, rowJson1, maLienKet, encId, null,
-                (decimal)(billing?.t_bhtt ?? 0m)));
-            totalRequested += (decimal)(billing?.t_bhtt ?? 0m);
+            items.Add(new BhytExportItemData(1, table1Idx++, rowJson1, maLienKet, encId, null, tBhtt));
+            totalRequested += tBhtt;
 
             // Bang 2: Thuoc BHYT
             var prescItems = await conn.QueryAsync<dynamic>(
-                @"SELECT pi.drug_code as ma_thuoc, pi.drug_name as ten_thuoc,
-                         pi.unit as don_vi_tinh, pi.concentration as ham_luong,
-                         pi.route as duong_dung, pi.dosage as lieu_dung,
-                         pi.registration_no as so_dang_ky, pi.supplier_code as ma_nha_thau,
-                         pi.quantity as so_luong, pi.unit_price as don_gia,
-                         pi.total_price as thanh_tien, pi.bhyt_amount as t_bhtt,
-                         pi.lot_no as mahieu_lo, pi.expiry_date as han_dung,
-                         pi.coverage_level as muc_huong, pr.prescribed_at as ngay_yl,
-                         pr.room_code as ma_phong, pr.doctor_code as ma_bs
-                  FROM diab_his_pharma_prescription_items pi
-                  JOIN diab_his_pharma_prescriptions pr ON pr.id = pi.prescription_id
-                  WHERE pr.encounter_id = @eid AND pr.tenant_id = @t
-                    AND pi.is_bhyt = 1 AND pr.deleted_at IS NULL",
-                new { eid = encId, t = tenantId });
+                BhytXmlSql.PrescriptionItems, new { eid = encId, t = tenantId });
 
             int tbl2Idx = 0;
             foreach (var drug in prescItems)
             {
+                var d = (IDictionary<string, object?>)drug;
+                var donViTinh = Str(Col(d, "don_vi_tinh"));
+                var duongDung = Str(Col(d, "duong_dung"));
+
                 var table2Row = new BhytTable2Row(
                     MaLienKet: maLienKet,
-                    MaThuoc: (string)(drug.ma_thuoc ?? ""),
-                    TenThuoc: (string)(drug.ten_thuoc ?? ""),
-                    DonViTinh: (string)(drug.don_vi_tinh ?? "vien"),
-                    HamLuong: (string)(drug.ham_luong ?? ""),
-                    DuongDung: (string)(drug.duong_dung ?? "uong"),
-                    LieuDung: (string)(drug.lieu_dung ?? ""),
-                    SoDangKy: (string)(drug.so_dang_ky ?? ""),
-                    MaNhaThau: (string)(drug.ma_nha_thau ?? ""),
+                    MaThuoc: Str(Col(d, "ma_thuoc")),
+                    TenThuoc: Str(Col(d, "ten_thuoc")),
+                    DonViTinh: donViTinh.Length > 0 ? donViTinh : "vien",
+                    HamLuong: Str(Col(d, "ham_luong")),
+                    DuongDung: duongDung.Length > 0 ? duongDung : "uong",
+                    LieuDung: Str(Col(d, "lieu_dung")),
+                    // TODO(BHYT): schema chua co so dang ky (SO_DANG_KY) va ma nha thau (MA_NHA_THAU)
+                    // tren diab_his_pha_drugs / diab_his_pha_prescription_items.
+                    SoDangKy: "",
+                    MaNhaThau: "",
                     PhamViTt: 1,
-                    SoLuong: (decimal)(drug.so_luong ?? 0m),
-                    DonGia: (decimal)(drug.don_gia ?? 0m),
-                    ThanhTien: (decimal)(drug.thanh_tien ?? 0m),
-                    TBhtt: (decimal)(drug.t_bhtt ?? 0m),
+                    SoLuong: Dec(Col(d, "so_luong")),
+                    DonGia: Dec(Col(d, "don_gia")),
+                    ThanhTien: Dec(Col(d, "thanh_tien")),
+                    // TODO(BHYT): prescription_items chi co co bhyt_applicable, chua co so tien BHYT chi tra
+                    // theo tung dong thuoc -> T_BHTT dong thuoc de 0; tong quyet toan lay tu Bang 1/Bang 5.
+                    TBhtt: 0m,
                     TNguonkhac: 0m, TNguonkhacBhtt: 0m, TNguonkhacKhac: 0m,
-                    MucHuong: (int)(drug.muc_huong ?? 80),
-                    NgayYl: drug.ngay_yl != null ? (DateTime)drug.ngay_yl : DateTime.UtcNow,
-                    MaPhong: (string)(drug.ma_phong ?? ""),
-                    MaBs: (string)(drug.ma_bs ?? ""),
+                    MucHuong: mucHuong,
+                    NgayYl: Dt(Col(d, "ngay_yl")) ?? DateTime.UtcNow,
+                    // TODO(BHYT): don thuoc chua luu ma phong kham theo danh muc BHYT.
+                    MaPhong: "",
+                    // Luu y: doctor_id la UUID noi bo, schema chua co ma bac si/CCHN theo chuan BHYT.
+                    MaBs: Str(Col(d, "ma_bs")),
                     MaDichvuKem: null,
-                    MahieuLo: (string?)drug.mahieu_lo,
-                    HanDung: drug.han_dung != null ? ((DateTime)drug.han_dung).ToString("yyyy-MM-dd") : null,
+                    // TODO(BHYT): so lo (MAHIEU_LO) / han dung chi co o phieu cap phat, chua map sang don ke.
+                    MahieuLo: null,
+                    HanDung: null,
                     SoHop: null);
 
                 items.Add(new BhytExportItemData(2, tbl2Idx++,
-                    JsonSerializer.Serialize(table2Row), maLienKet, encId, null,
-                    (decimal)(drug.t_bhtt ?? 0m)));
+                    JsonSerializer.Serialize(table2Row), maLienKet, encId, null, 0m));
             }
 
-            // Bang 3: CLS
-            var clsOrders = await conn.QueryAsync<dynamic>(
-                @"SELECT lo.service_code as ma_dich_vu, lo.service_name as ten_dich_vu,
-                         lo.unit as don_vi_tinh, lo.quantity as so_luong,
-                         lo.unit_price as don_gia, lo.total_price as thanh_tien,
-                         lo.bhyt_amount as t_bhtt, lo.coverage_level as muc_huong,
-                         lo.ordered_at as ngay_yl, lo.room_code as ma_phong,
-                         lo.doctor_code as ma_bs, lo.result_at as ngay_kq
-                  FROM diab_his_clinic_lab_orders lo
-                  WHERE lo.encounter_id = @eid AND lo.tenant_id = @t
-                    AND lo.is_bhyt = 1 AND lo.deleted_at IS NULL",
-                new { eid = encId, t = tenantId });
+            // Bang 3: Dich vu ky thuat / CLS.
+            // Nguon = dong hoa don khong phai thuoc, vi bang chi dinh CLS khong luu gia/BHYT.
+            var serviceItems = await conn.QueryAsync<dynamic>(
+                BhytXmlSql.ServiceItems, new { eid = encId, t = tenantId });
 
             int tbl3Idx = 0;
-            foreach (var cls in clsOrders)
+            foreach (var cls in serviceItems)
             {
+                var c = (IDictionary<string, object?>)cls;
+                var svcBhtt = Dec(Col(c, "t_bhtt"));
+
                 var table3Row = new BhytTable3Row(
                     MaLienKet: maLienKet,
-                    MaDichVu: (string)(cls.ma_dich_vu ?? ""),
+                    MaDichVu: Str(Col(c, "ma_dich_vu")),
                     MaVatTu: null, TenVatTu: null,
-                    DonViTinh: (string)(cls.don_vi_tinh ?? "lan"),
+                    // TODO(BHYT): billing_items chua co cot don vi tinh -> mac dinh "lan".
+                    DonViTinh: "lan",
                     PhamVi: 1,
-                    SoLuong: (decimal)(cls.so_luong ?? 1m),
-                    DonGia: (decimal)(cls.don_gia ?? 0m),
+                    SoLuong: Dec(Col(c, "so_luong")),
+                    DonGia: Dec(Col(c, "don_gia")),
                     TtThau: null,
-                    ThanhTien: (decimal)(cls.thanh_tien ?? 0m),
-                    TBhtt: (decimal)(cls.t_bhtt ?? 0m),
-                    MucHuong: (int)(cls.muc_huong ?? 80),
-                    NgayYl: cls.ngay_yl != null ? (DateTime)cls.ngay_yl : DateTime.UtcNow,
-                    MaPhong: (string)(cls.ma_phong ?? ""),
-                    MaBs: (string)(cls.ma_bs ?? ""),
+                    ThanhTien: Dec(Col(c, "thanh_tien")),
+                    TBhtt: svcBhtt,
+                    MucHuong: mucHuong,
+                    NgayYl: Dt(Col(c, "ngay_yl")) ?? DateTime.UtcNow,
+                    // TODO(BHYT): billing_items khong luu phong / bac si chi dinh.
+                    MaPhong: "",
+                    MaBs: "",
                     MaBenh: maBenh,
-                    NgayKq: (DateTime?)cls.ngay_kq);
+                    // TODO(BHYT): ngay tra ket qua CLS chua duoc lien ket tu bang ket qua sang dong hoa don.
+                    NgayKq: null);
 
                 items.Add(new BhytExportItemData(3, tbl3Idx++,
-                    JsonSerializer.Serialize(table3Row), maLienKet, encId, null,
-                    (decimal)(cls.t_bhtt ?? 0m)));
+                    JsonSerializer.Serialize(table3Row), maLienKet, encId, null, svcBhtt));
             }
 
             // Bang 5: Tong hop chi phi
@@ -266,9 +258,9 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                 MaChiPhi: "CP01",
                 TenChiPhi: "Tong chi phi kham benh",
                 NhomChiPhi: 1,
-                ThanhTien: (decimal)(billing?.t_tongchi ?? 0m),
-                TBhtt: (decimal)(billing?.t_bhtt ?? 0m),
-                TBntt: (decimal)(billing?.t_bntt ?? 0m),
+                ThanhTien: tTongchi,
+                TBhtt: tBhtt,
+                TBntt: tBntt,
                 TNguonkhac: 0m);
 
             items.Add(new BhytExportItemData(5, 0, JsonSerializer.Serialize(table5Row), maLienKet, encId, null, 0m));

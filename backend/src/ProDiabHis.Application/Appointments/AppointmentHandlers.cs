@@ -31,7 +31,7 @@ internal static class AppointmentSql
                a.status AS Status, a.source AS Source,
                a.patient_ref AS PatientRef,
                COALESCE(pat.full_name, a.patient_name_temp) AS PatientName,
-               COALESCE(pat.phone, a.patient_phone) AS PatientPhone,
+               COALESCE(pat.phone_enc, a.patient_phone) AS PatientPhone,
                a.doctor_ref AS DoctorRef,
                doc.full_name AS DoctorName,
                a.note AS Note
@@ -39,9 +39,13 @@ internal static class AppointmentSql
         LEFT JOIN diab_his_pat_patients pat ON pat.id = a.patient_ref AND pat.tenant_id = a.tenant_id
         LEFT JOIN diab_his_sec_users doc ON doc.id = a.doctor_ref";
 
+    // Hang muc 6: pat.phone_enc da ma hoa -> phai giai ma truoc khi tra ra API.
+    // a.patient_phone (lich hen vang lai, chua co ho so BN) van la plaintext,
+    // PiiCrypto.Unprotect tu nhan biet qua marker nen an toan cho ca 2 nguon.
     public static AppointmentResponse ToResponse(AppointmentRow r) => new(
         r.Id, r.AppointmentAt, r.DurationMinutes, r.Status, r.Source,
-        r.PatientRef, r.PatientName, r.PatientPhone, r.DoctorRef, r.DoctorName, r.Note);
+        r.PatientRef, r.PatientName, PiiCrypto.Unprotect(r.PatientPhone),
+        r.DoctorRef, r.DoctorName, r.Note);
 }
 
 public class ListAppointmentsQueryHandler : IRequestHandler<ListAppointmentsQuery, PagedResult<AppointmentResponse>>
@@ -63,7 +67,10 @@ public class ListAppointmentsQueryHandler : IRequestHandler<ListAppointmentsQuer
         if (!string.IsNullOrWhiteSpace(request.DoctorRef)) where += " AND a.doctor_ref = @doctorRef";
         if (!string.IsNullOrWhiteSpace(request.Status)) where += " AND a.status = @status";
         if (!string.IsNullOrWhiteSpace(request.Q))
-            where += " AND (COALESCE(pat.full_name, a.patient_name_temp) LIKE @q OR COALESCE(pat.phone, a.patient_phone) LIKE @q)";
+            // Hang muc 6: SDT benh nhan da ma hoa -> tra cuu bang blind index (exact-match).
+            // patient_phone cua lich hen vang lai chua ma hoa nen van LIKE duoc.
+            where += " AND (COALESCE(pat.full_name, a.patient_name_temp) LIKE @q"
+                   + " OR pat.phone_bidx = @phoneBidx OR a.patient_phone LIKE @q)";
 
         var page = request.Page < 1 ? 1 : request.Page;
         var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
@@ -87,6 +94,7 @@ public class ListAppointmentsQueryHandler : IRequestHandler<ListAppointmentsQuer
             doctorRef = request.DoctorRef,
             status = request.Status,
             q = qParam,
+            phoneBidx = PiiCrypto.BlindIndex(request.Q, PiiField.Phone),
             pageSize,
             offset
         };
