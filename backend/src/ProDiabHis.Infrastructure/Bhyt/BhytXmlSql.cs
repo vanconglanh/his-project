@@ -67,7 +67,12 @@ FROM diab_his_enc_diagnoses
 WHERE tenant_id = @t AND encounter_id = @eid AND deleted_at IS NULL
 ORDER BY (type = 'PRIMARY') DESC, created_at";
 
-    /// <summary>Bang 2 - thuoc BHYT trong don ke.</summary>
+    /// <summary>
+    /// Bang 2 - thuoc BHYT trong don ke.
+    /// mahieu_lo/han_dung lay tu phieu cap phat thuc te (diab_his_pha_dispense_items, FEFO pick)
+    /// qua prescription_item_id -> co the NULL neu don chua duoc cap phat (chua xuat kho).
+    /// so_dang_ky/ma_nha_thau: diab_his_pha_drugs CHUA co nguon du lieu nay (xem migration 9110) -> de trong.
+    /// </summary>
     public const string PrescriptionItems = @"
 SELECT d.code                              AS ma_thuoc,
        pi.drug_name                        AS ten_thuoc,
@@ -79,12 +84,18 @@ SELECT d.code                              AS ma_thuoc,
        pi.unit_price                       AS don_gia,
        pi.line_total                       AS thanh_tien,
        COALESCE(pr.signed_at, pr.created_at) AS ngay_yl,
-       pr.doctor_id                        AS ma_bs
+       pr.doctor_id                        AS ma_bs,
+       d.so_dang_ky                        AS so_dang_ky,
+       d.ma_nha_thau                       AS ma_nha_thau,
+       disp.batch_no                       AS mahieu_lo,
+       disp.expiry_date                    AS han_dung
 FROM diab_his_pha_prescription_items pi
 JOIN diab_his_pha_prescriptions pr
      ON pr.id = pi.prescription_id AND pr.tenant_id = pi.tenant_id
 LEFT JOIN diab_his_pha_drugs d
      ON d.id = pi.drug_id AND d.tenant_id = pi.tenant_id
+LEFT JOIN diab_his_pha_dispense_items disp
+     ON disp.prescription_item_id = pi.id AND disp.tenant_id = pi.tenant_id AND disp.deleted_at IS NULL
 WHERE pr.encounter_id = @eid
   AND pr.tenant_id = @t
   AND pi.tenant_id = @t

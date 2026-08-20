@@ -44,7 +44,8 @@ public class BhytXmlSqlTests
         "diab_his_bil_billing_items",
         "diab_his_pha_prescriptions",
         "diab_his_pha_prescription_items",
-        "diab_his_pha_drugs"
+        "diab_his_pha_drugs",
+        "diab_his_pha_dispense_items"
     };
 
     private static string AllSql => string.Join("\n", BhytXmlSql.All);

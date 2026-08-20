@@ -42,4 +42,5 @@ public static class FileBuckets
     public const string Avatars = "avatars";
     public const string ClsUploads = "cls-uploads";
     public const string FilesGeneric = "files-generic";
+    public const string BhytExports = "bhyt-exports";
 }

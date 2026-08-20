@@ -29,6 +29,19 @@ public interface IBhytXmlGenerator
         CancellationToken ct);
 }
 
+// ── XML Serialization (QD 4750) ─────────────────────────────────────────────
+
+public interface IBhytXmlSerializer
+{
+    /// <summary>
+    /// Serialize danh sach BhytExportItemData (JSON tung dong Bang 1-5) thanh XML that theo
+    /// khung GIAMDINHHS/THONGTUYEN + BangN cua QD 4750. Bang nao khong co du lieu -> phan tu rong
+    /// hop le (khong bia so lieu).
+    /// </summary>
+    string Serialize(int exportId, string tenantCode, string periodMonth,
+        IReadOnlyList<BhytExportItemData> items);
+}
+
 // ── XSD Validation ────────────────────────────────────────────────────────────
 
 public record BhytXsdValidationResult(

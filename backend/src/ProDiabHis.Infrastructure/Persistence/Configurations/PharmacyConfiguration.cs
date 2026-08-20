@@ -29,6 +29,8 @@ public class DrugConfiguration : IEntityTypeConfiguration<Drug>
         builder.Property(e => e.ReorderLevel).HasColumnName("reorder_level").HasDefaultValue(10);
         builder.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
         builder.Property(e => e.Note).HasColumnName("note");
+        builder.Property(e => e.SoDangKy).HasColumnName("so_dang_ky").HasMaxLength(50);
+        builder.Property(e => e.MaNhaThau).HasColumnName("ma_nha_thau").HasMaxLength(50);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
@@ -252,5 +254,36 @@ public class GrnConfiguration : IEntityTypeConfiguration<Grn>
         builder.HasIndex(e => new { e.TenantId, e.PoId });
         builder.HasIndex(e => new { e.TenantId, e.SupplierId });
         builder.HasIndex(e => new { e.TenantId, e.ReceivedDate });
+    }
+}
+
+/// <summary>Map bang diab_his_pha_dispense_items (migration 0038) - nguon so lo/han dung cho XML BHYT Bang 2.</summary>
+public class DispenseItemConfiguration : IEntityTypeConfiguration<DispenseItem>
+{
+    public void Configure(EntityTypeBuilder<DispenseItem> builder)
+    {
+        builder.ToTable("diab_his_pha_dispense_items");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.DispenseRecordId).HasColumnName("dispense_record_id").HasMaxLength(36).IsRequired();
+        builder.Property(e => e.PrescriptionItemId).HasColumnName("prescription_item_id").HasMaxLength(36).IsRequired();
+        builder.Property(e => e.DrugId).HasColumnName("drug_id").IsRequired();
+        builder.Property(e => e.BatchNo).HasColumnName("batch_no").HasMaxLength(50).IsRequired();
+        builder.Property(e => e.ExpiryDate).HasColumnName("expiry_date").IsRequired();
+        builder.Property(e => e.Quantity).HasColumnName("quantity").HasColumnType("DECIMAL(10,2)");
+        builder.Property(e => e.UnitCost).HasColumnName("unit_cost").HasColumnType("DECIMAL(15,2)");
+        builder.Property(e => e.IsReturned).HasColumnName("is_returned").HasDefaultValue(false);
+        builder.Property(e => e.ReturnedQuantity).HasColumnName("returned_quantity").HasColumnType("DECIMAL(10,2)");
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at");
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+        builder.Ignore(e => e.CreatedBy);
+        builder.Ignore(e => e.UpdatedBy);
+        builder.Ignore(e => e.DeletedBy);
+
+        builder.HasIndex(e => e.DispenseRecordId);
+        builder.HasIndex(e => e.PrescriptionItemId);
+        builder.HasIndex(e => e.TenantId);
     }
 }

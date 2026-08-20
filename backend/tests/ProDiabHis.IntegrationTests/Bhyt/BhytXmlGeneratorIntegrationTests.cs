@@ -59,6 +59,21 @@ public class BhytXmlGeneratorIntegrationTests : IClassFixture<MySqlTestFixture>
             => Task.CompletedTask;
     }
 
+    /// <summary>IFileStorage khong lam gi - test nay chi goi ValidateXmlContent (khong qua DownloadAsync).</summary>
+    private sealed class NoopFileStorage : IFileStorage
+    {
+        public Task<string> UploadAsync(string bucket, string objectKey, Stream stream, string contentType,
+            CancellationToken cancellationToken = default) => Task.FromResult(objectKey);
+        public Task<string> GetSignedUrlAsync(string bucket, string objectKey, int ttlSeconds = 900,
+            CancellationToken cancellationToken = default) => Task.FromResult("");
+        public Task DeleteAsync(string bucket, string objectKey, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+        public Task EnsureBucketExistsAsync(string bucket, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+        public Task<Stream> DownloadAsync(string bucket, string objectKey, CancellationToken cancellationToken = default)
+            => Task.FromResult<Stream>(new MemoryStream());
+    }
+
     [DockerAvailableFact]
     public async Task GenerateAsync_EncounterWithPrimaryAndSecondaryDiagnoses_ProducesCorrectMaBenh()
     {
@@ -267,6 +282,20 @@ public class BhytXmlGeneratorIntegrationTests : IClassFixture<MySqlTestFixture>
         table2Item.MaLienKet.Should().Be(table1Item.MaLienKet);
         var table2Json = JsonDocument.Parse(table2Item.RowDataJson).RootElement;
         table2Json.GetProperty("TenThuoc").GetString().Should().Be("Metformin 500mg");
+
+        // ── Act 2: serialize XML that (khong con la JSON per-row) va validate voi XSD that ──
+        var serializer = new ProDiabHis.Infrastructure.Bhyt.BhytXmlSerializerImpl();
+        var xml = serializer.Serialize(exportId: 1, tenantCode: tenant.Code, periodMonth: "2026-05", result.Items);
+
+        xml.Should().Contain("<GIAMDINHHS").And.Contain("<Bang1>").And.Contain("<Bang2>");
+
+        var validator = new ProDiabHis.Infrastructure.Bhyt.BhytXsdValidatorImpl(
+            NullLogger<ProDiabHis.Infrastructure.Bhyt.BhytXsdValidatorImpl>.Instance,
+            new TestDapperConnectionFactory(_fixture.ConnectionString),
+            new NoopFileStorage());
+
+        var xsdResult = validator.ValidateXmlContent(xml);
+        xsdResult.Valid.Should().BeTrue(string.Join("; ", xsdResult.Errors.Select(e => $"{e.Field}: {e.Message}")));
     }
 
     [DockerAvailableFact]

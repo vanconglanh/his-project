@@ -59,6 +59,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<Prescription> Prescriptions => Set<Prescription>();
     public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
     public DbSet<Dispense> Dispenses => Set<Dispense>();
+    public DbSet<DispenseItem> DispenseItems => Set<DispenseItem>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<Grn> Grns => Set<Grn>();

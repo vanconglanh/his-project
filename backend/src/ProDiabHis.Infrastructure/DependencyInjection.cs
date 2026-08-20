@@ -294,6 +294,7 @@ public static class DependencyInjection
 
         // Sprint 9: BHYT Export services
         services.AddScoped<IBhytXmlGenerator, BhytXmlGeneratorImpl>();
+        services.AddScoped<IBhytXmlSerializer, BhytXmlSerializerImpl>();
         services.AddScoped<IBhytXsdValidator, BhytXsdValidatorImpl>();
         services.AddScoped<IBhytSigner, BhytSignerImpl>();
         services.AddScoped<IBhytSubmissionClient, MockBhytSubmissionClient>();

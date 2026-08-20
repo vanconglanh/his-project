@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text;
 using System.Text.Json;
 using Dapper;
 using Microsoft.Extensions.Logging;
@@ -10,18 +11,20 @@ namespace ProDiabHis.Infrastructure.Jobs;
 /// <summary>
 /// Hangfire job: generate XML Bang 1-5 cho ky export BHYT.
 /// Long-running (toi 30 phut cho period nhieu BN).
-/// Sau khi xong: UPDATE status = GENERATED + luu items.
+/// Sau khi xong: UPDATE status = GENERATED + luu items + luu file XML that (IFileStorage).
 /// </summary>
 public class BhytGenerateXmlJob
 {
     private readonly IBhytXmlGenerator _generator;
+    private readonly IBhytXmlSerializer _serializer;
+    private readonly IFileStorage _storage;
     private readonly IDapperConnectionFactory _db;
     private readonly ILogger<BhytGenerateXmlJob> _logger;
 
-    public BhytGenerateXmlJob(IBhytXmlGenerator generator, IDapperConnectionFactory db,
-        ILogger<BhytGenerateXmlJob> logger)
+    public BhytGenerateXmlJob(IBhytXmlGenerator generator, IBhytXmlSerializer serializer,
+        IFileStorage storage, IDapperConnectionFactory db, ILogger<BhytGenerateXmlJob> logger)
     {
-        _generator = generator; _db = db; _logger = logger;
+        _generator = generator; _serializer = serializer; _storage = storage; _db = db; _logger = logger;
     }
 
     [Hangfire.Queue("bhyt")]
@@ -73,17 +76,29 @@ public class BhytGenerateXmlJob
                     });
             }
 
+            // Sinh file XML that (Bang 1-5 theo QD 4750) va luu vao object storage
+            var tenantCode = await conn.ExecuteScalarAsync<string>(
+                "SELECT IFNULL(NULLIF(code, ''), CAST(id AS CHAR)) FROM diab_his_sys_tenants WHERE id=@t",
+                new { t = tenantId }) ?? tenantId.ToString();
+
+            var xml = _serializer.Serialize(exportId, tenantCode, periodMonth, result.Items);
+            var objectKey = $"{tenantId}/{exportId}/bang_all.xml";
+            await using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(xml)))
+            {
+                await _storage.UploadAsync(FileBuckets.BhytExports, objectKey, ms, "application/xml");
+            }
+
             // Update export: status=GENERATED
             await conn.ExecuteAsync(
                 @"UPDATE diab_his_int_bhyt_exports
                   SET status='GENERATED', generated_at=NOW(),
                       encounter_count=@ec, total_requested_amount=@tra,
-                      updated_at=NOW()
+                      xml_file_path=@xfp, updated_at=NOW()
                   WHERE id=@id",
-                new { id = exportId, ec = result.EncounterCount, tra = result.TotalRequestedAmount });
+                new { id = exportId, ec = result.EncounterCount, tra = result.TotalRequestedAmount, xfp = objectKey });
 
-            _logger.LogInformation("BhytGenerateXmlJob: done exportId={Id}, encounters={Ec}, items={Items}",
-                exportId, result.EncounterCount, result.Items.Count);
+            _logger.LogInformation("BhytGenerateXmlJob: done exportId={Id}, encounters={Ec}, items={Items}, xmlPath={Path}",
+                exportId, result.EncounterCount, result.Items.Count, objectKey);
         }
         catch (Exception ex)
         {

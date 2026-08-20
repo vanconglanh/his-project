@@ -188,10 +188,10 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                     HamLuong: Str(Col(d, "ham_luong")),
                     DuongDung: duongDung.Length > 0 ? duongDung : "uong",
                     LieuDung: Str(Col(d, "lieu_dung")),
-                    // TODO(BHYT): schema chua co so dang ky (SO_DANG_KY) va ma nha thau (MA_NHA_THAU)
-                    // tren diab_his_pha_drugs / diab_his_pha_prescription_items.
-                    SoDangKy: "",
-                    MaNhaThau: "",
+                    // TODO(BHYT): diab_his_pha_drugs chua co nguon nhap lieu SO_DANG_KY / MA_NHA_THAU
+                    // (them cot rong trong migration 9110, cho module quan ly dau thau/dang ky thuoc) -> de trong.
+                    SoDangKy: Str(Col(d, "so_dang_ky")),
+                    MaNhaThau: Str(Col(d, "ma_nha_thau")),
                     PhamViTt: 1,
                     SoLuong: Dec(Col(d, "so_luong")),
                     DonGia: Dec(Col(d, "don_gia")),
@@ -207,9 +207,10 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                     // Luu y: doctor_id la UUID noi bo, schema chua co ma bac si/CCHN theo chuan BHYT.
                     MaBs: Str(Col(d, "ma_bs")),
                     MaDichvuKem: null,
-                    // TODO(BHYT): so lo (MAHIEU_LO) / han dung chi co o phieu cap phat, chua map sang don ke.
-                    MahieuLo: null,
-                    HanDung: null,
+                    // So lo / han dung lay tu phieu cap phat thuc te (diab_his_pha_dispense_items, FEFO).
+                    // NULL neu don chua duoc cap phat (chua xuat kho) - khong bia so lieu.
+                    MahieuLo: Col(d, "mahieu_lo") is null or DBNull ? null : Str(Col(d, "mahieu_lo")),
+                    HanDung: Dt(Col(d, "han_dung"))?.ToString("yyyy-MM-dd"),
                     SoHop: null);
 
                 items.Add(new BhytExportItemData(2, tbl2Idx++,
