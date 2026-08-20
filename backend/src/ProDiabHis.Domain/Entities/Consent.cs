@@ -5,7 +5,7 @@ public class Consent
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int TenantId { get; set; }
-    public int PatientId { get; set; }
+    public string PatientId { get; set; } = string.Empty;
     public string ConsentType { get; set; } = string.Empty;
     public DateTime SignedAt { get; set; } = DateTime.UtcNow;
     public string? SignedBy { get; set; }

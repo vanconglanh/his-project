@@ -48,7 +48,7 @@ public record EncounterSummaryDto(
 
 public record AllergyResponse(
     Guid Id,
-    int PatientId,
+    string PatientId,
     string Allergen,
     string? Reaction,
     string Severity,
@@ -69,7 +69,7 @@ public record InsuranceResponse(
 
 public record EmergencyContactResponse(
     Guid Id,
-    int PatientId,
+    string PatientId,
     string FullName,
     string Relationship,
     string Phone,
@@ -77,7 +77,7 @@ public record EmergencyContactResponse(
 
 public record ConsentResponse(
     Guid Id,
-    int PatientId,
+    string PatientId,
     string ConsentType,
     DateTime SignedAt,
     string? SignedBy,

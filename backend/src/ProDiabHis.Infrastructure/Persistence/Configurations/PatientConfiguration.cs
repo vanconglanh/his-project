@@ -78,7 +78,7 @@ public class AllergyConfiguration : IEntityTypeConfiguration<Allergy>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
-        builder.Property(e => e.PatientId).HasColumnName("patient_id");
+        builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.Allergen).HasColumnName("allergen").HasMaxLength(255).IsRequired();
         builder.Property(e => e.Reaction).HasColumnName("reaction").HasMaxLength(255);
         builder.Property(e => e.Severity).HasColumnName("severity").HasMaxLength(20).IsRequired();
@@ -128,7 +128,7 @@ public class EmergencyContactConfiguration : IEntityTypeConfiguration<EmergencyC
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
-        builder.Property(e => e.PatientId).HasColumnName("patient_id");
+        builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.FullName).HasColumnName("full_name").HasMaxLength(255).IsRequired();
         builder.Property(e => e.Relationship).HasColumnName("relationship").HasMaxLength(50).IsRequired();
         builder.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(30).IsRequired();
@@ -150,7 +150,7 @@ public class ConsentConfiguration : IEntityTypeConfiguration<Consent>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
-        builder.Property(e => e.PatientId).HasColumnName("patient_id");
+        builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.ConsentType).HasColumnName("consent_type").HasMaxLength(50).IsRequired();
         builder.Property(e => e.SignedAt).HasColumnName("signed_at").IsRequired();
         builder.Property(e => e.SignedBy).HasColumnName("signed_by").HasMaxLength(255);

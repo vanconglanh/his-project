@@ -269,6 +269,49 @@ public class PatientHandlersTests
         result.IsSuccess.Should().BeTrue();
         result.Value!.Allergen.Should().Be("Penicillin");
         result.Value.Severity.Should().Be("SEVERE");
+        // Chan tai phat bug PatientId=0: PatientId phai khop GUID benh nhan, khong duoc la "0"
+        result.Value.PatientId.Should().Be(patientId.ToString());
+        (await db.Allergies.SingleAsync()).PatientId.Should().Be(patientId.ToString());
+    }
+
+    // ──────────────────────────────────────────
+    // Add emergency contact — chan tai phat bug PatientId=0
+    // ──────────────────────────────────────────
+    [Fact]
+    public async Task AddEmergencyContact_ValidPatient_SetsCorrectPatientId()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var patientId = Guid.NewGuid();
+        db.Patients.Add(new Patient { Id = patientId, TenantId = 1, Code = "BNT01000002", FullName = "Test" });
+        await db.SaveChangesAsync();
+
+        var handler = new AddEmergencyContactCommandHandler(db, _tenant, _currentUser);
+        var req = new EmergencyContactRequest("Nguyen Van Than", "Vo/Chong", "0900000000", null);
+        var result = await handler.Handle(new AddEmergencyContactCommand(patientId, req), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.PatientId.Should().Be(patientId.ToString());
+        (await db.EmergencyContacts.SingleAsync()).PatientId.Should().Be(patientId.ToString());
+    }
+
+    // ──────────────────────────────────────────
+    // Add consent — chan tai phat bug PatientId=0
+    // ──────────────────────────────────────────
+    [Fact]
+    public async Task AddConsent_ValidPatient_SetsCorrectPatientId()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var patientId = Guid.NewGuid();
+        db.Patients.Add(new Patient { Id = patientId, TenantId = 1, Code = "BNT01000003", FullName = "Test" });
+        await db.SaveChangesAsync();
+
+        var handler = new AddConsentCommandHandler(db, _tenant, _currentUser);
+        var req = new AddConsentRequest("DONG_Y_KHAM_BENH", "Nguyen Van A", null);
+        var result = await handler.Handle(new AddConsentCommand(patientId, req), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.PatientId.Should().Be(patientId.ToString());
+        (await db.Consents.SingleAsync()).PatientId.Should().Be(patientId.ToString());
     }
 
     // ──────────────────────────────────────────

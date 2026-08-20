@@ -5,7 +5,7 @@ public class Allergy
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int TenantId { get; set; }
-    public int PatientId { get; set; }
+    public string PatientId { get; set; } = string.Empty;
     public string Allergen { get; set; } = string.Empty;
     public string? Reaction { get; set; }
     public string Severity { get; set; } = string.Empty;

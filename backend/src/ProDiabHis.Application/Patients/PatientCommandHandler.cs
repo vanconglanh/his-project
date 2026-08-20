@@ -270,7 +270,7 @@ public class AddAllergyCommandHandler : IRequestHandler<AddAllergyCommand, Resul
         {
             Id = Guid.NewGuid(),
             TenantId = _tenant.TenantId,
-            PatientId = 0,
+            PatientId = command.PatientId.ToString(),
             Allergen = command.Request.Allergen,
             Reaction = command.Request.Reaction,
             Severity = command.Request.Severity,
@@ -451,7 +451,7 @@ public class AddEmergencyContactCommandHandler : IRequestHandler<AddEmergencyCon
         {
             Id = Guid.NewGuid(),
             TenantId = _tenant.TenantId,
-            PatientId = 0,
+            PatientId = command.PatientId.ToString(),
             FullName = req.FullName,
             Relationship = req.Relationship,
             Phone = req.Phone,
@@ -541,7 +541,7 @@ public class AddConsentCommandHandler : IRequestHandler<AddConsentCommand, Resul
         {
             Id = Guid.NewGuid(),
             TenantId = _tenant.TenantId,
-            PatientId = 0,
+            PatientId = command.PatientId.ToString(),
             ConsentType = req.ConsentType,
             SignedAt = now,
             SignedBy = req.SignedBy,
