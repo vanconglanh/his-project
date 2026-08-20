@@ -1,5 +1,57 @@
 ﻿# Apply Order — DB Migrations Pro-Diab HIS
 
+## ⚠️ TRẠNG THÁI THẬT (kiểm chứng 2026-08-20 trên MySQL 8.0 sạch, Docker)
+
+**Dựng DB mới từ số 0 HIỆN CHƯA chạy sạch được.** Đã build MySQL 8 tạm (Docker), nạp 64 file
+`db/diab_his_*.sql` (base dump, 0 lỗi, 64 bảng), rồi apply tuần tự 150 file `db/migrations/*.sql`
+theo thứ tự tên file — kết quả: **30/150 file lỗi SQL thật** (không phải suy đoán, đã chạy thật
+và log lại nguyên văn lỗi). Danh sách 30 file kèm nguyên nhân: xem `README.md` mục "Trạng thái
+migration chain".
+
+Nguyên nhân gốc chính (đã xác nhận bằng cách so cột/bảng thật trong MySQL, không đoán):
+
+1. **Bảng base dump dùng cột UPPERCASE kiểu cũ** (`ID`, `PATIENT_ID`, `PRESCRIBING_PROVIDER_ID`,
+   `PRESCRIPTION_DATE`, `PRESCRIPTION_STATUS`...) nhưng nhiều migration dải 0018-0067 lại
+   `ALTER`/`INSERT`/`INDEX` vào cột **lowercase kiểu mới** (`doctor_id`, `prescribed_at`,
+   `status`, `resource`, `module`, `is_active`...) chưa từng tồn tại trên bảng base dump thật.
+   Ví dụ xác nhận: `pha_prescriptions` base dump KHÔNG có cột `doctor_id`/`prescribed_at`
+   (0035, 0058 lỗi vì lý do này).
+2. **`9000_drop_legacy.sql` DROP toàn bộ bảng legacy không-prefix** (bao gồm cả những bảng mà
+   migration 0018-0066 seed permission còn tham chiếu tới bảng MỚI `diab_his_sec_*` — bảng này
+   chỉ được `CREATE` ở `9001_create_sec_all.sql`, tức là SAU 0018-0066 theo thứ tự tên file).
+   Vì `add_col_if_missing`/`INSERT` không kiểm tra bảng có tồn tại trước khi ALTER/INSERT, các
+   migration 0018/0021/0024/0030/0034/0039/0044/0047/0052/0054/0057/0060/0066 lỗi
+   `Table 'diab_his_sec_permissions' doesn't exist` / cột không tồn tại vì chạy TRƯỚC khi bảng
+   đích được tạo ở dải 9001+.
+3. `9011_create_missing_tables.sql` tạo `VIEW diab_his_int_bhyt_exports` nhưng bảng cùng tên đã
+   tồn tại (không phải VIEW) → lỗi 1347 "is not VIEW".
+4. Một số file dùng cú pháp MySQL không hợp lệ: `CREATE INDEX IF NOT EXISTS` /
+   `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` (MySQL 8.0 không hỗ trợ) — đã sửa cú pháp ở
+   `0058_perf_indexes.sql` sang stored procedure `add_index_if_missing`, nhưng file vẫn lỗi vì
+   lý do (1) ở trên (cột đích không tồn tại) — cần backend/architect xác nhận tên cột đúng
+   trước khi sửa tiếp, KHÔNG tự đoán thêm cột mới vào bảng production.
+
+**Các file 0035, 0036, 0045, 0056, 0059 cũng dùng cú pháp `ADD COLUMN/INDEX IF NOT EXISTS`
+không hợp lệ VÀ tham chiếu cột chưa rõ nguồn gốc — CHƯA sửa vì rủi ro đoán sai tên cột trên
+bảng production đang có dữ liệu thật. Cần agent backend/architect xác nhận trước.**
+
+### ⚠️ Bẫy khi nạp base schema — GTID_PURGED
+
+File `db/diab_his_*.sql` (dump mysqldump gốc) có dòng:
+```sql
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-...';
+```
+Dòng này gây lỗi **1840 / 3546** khi nạp tuần tự nhiều file dump vào cùng 1 server MySQL 8
+(GTID_PURGED chỉ set được khi GTID set rỗng — lần nạp file thứ 2 trở đi sẽ lỗi). **Phải loại
+bỏ dòng này trước khi nạp**, ví dụ:
+```bash
+sed '/SET @@GLOBAL.GTID_PURGED/d' db/diab_his_xxx.sql > /tmp/f.sql
+mysql -u root -p diab_his < /tmp/f.sql
+```
+README trước đây không đề cập bẫy này — đã bổ sung.
+
+---
+
 ## Prerequisites
 
 - MySQL 8.0+ với charset mặc định `utf8mb4`, collation `utf8mb4_0900_ai_ci`
