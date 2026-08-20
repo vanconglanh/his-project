@@ -21,8 +21,10 @@ public class EncounterHandlersTests
         _user = Substitute.For<ICurrentUser>();
         _user.UserId.Returns(Guid.NewGuid());
         _audit = Substitute.For<IAuditService>();
-        // Dong bo hang doi tiep don la side-effect non-fatal -> mock rong, loi bi nuot trong QueueTicketSync.
-        _dapper = Substitute.For<IDapperConnectionFactory>();
+        // Dong bo hang doi tiep don la side-effect non-fatal; tra icd10 tu dict/ref cung qua Dapper.
+        // PHAI dung DbConnection that (khong phai mock IDbConnection) de Dapper chay duoc nhanh async
+        // that (QueryFirstOrDefaultAsync/ExecuteAsync) — xem FakeEmptyDapperConnectionFactory.
+        _dapper = new FakeEmptyDapperConnectionFactory();
     }
 
     // ──────────────────────────────────────────
