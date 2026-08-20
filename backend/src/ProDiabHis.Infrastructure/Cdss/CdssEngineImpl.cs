@@ -88,9 +88,16 @@ public class CdssEngineImpl : ICdssEngine
         if (ctx.PatientId.HasValue)
         {
             var allergies = await conn.QueryAsync<AllergyRow>(
+                // Doc CA HAI bang di ung: schema bi chia doi tu 2 the he migration.
+                // diab_his_cli_allergies (CDSS, co atc_code) va diab_his_pat_allergies (UI nhap, chi co allergen tu do).
+                // Neu chi doc mot bang se bo sot tien su di ung -> canh bao am tinh gia.
                 @"SELECT allergen_ingredient AS AllergenIngredient, atc_code AS AtcCode, allergen_name AS AllergenName
                   FROM diab_his_cli_allergies
-                  WHERE tenant_id = @tenantId AND patient_id = @patientId AND is_active = 1 AND deleted_at IS NULL",
+                  WHERE tenant_id = @tenantId AND patient_id = @patientId AND is_active = 1 AND deleted_at IS NULL
+                  UNION ALL
+                  SELECT allergen AS AllergenIngredient, NULL AS AtcCode, allergen AS AllergenName
+                  FROM diab_his_pat_allergies
+                  WHERE tenant_id = @tenantId AND patient_id = @patientId AND deleted_at IS NULL",
                 new { tenantId = ctx.TenantId, patientId = ctx.PatientId.Value.ToString() });
 
             var allergyList = allergies.ToList();
