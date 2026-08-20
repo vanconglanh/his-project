@@ -301,7 +301,7 @@ public class CloseEncounterCommandHandler : IRequestHandler<CloseEncounterComman
         if (totalDiag == 0)
             return Result<bool>.Failure("DIAGNOSIS_REQUIRED", "Chưa có chẩn đoán");
 
-        // G06 - XML 4210 (QD 4750) bat buoc MA_BENH duy nhat -> phai co DUNG 1 chan doan chinh
+        // G06 - XML 4210 (QD 3176) bat buoc MA_BENH_CHINH duy nhat -> phai co DUNG 1 chan doan chinh
         var primaryCount = await _db.EncounterDiagnoses
             .CountAsync(d => d.EncounterId == encIdStr && d.Type == DiagnosisType.Primary, ct);
         if (primaryCount != 1)

@@ -5,7 +5,7 @@ namespace ProDiabHis.Domain.Entities.Pharmacy;
 /// <summary>
 /// Dong thuoc thuc te da cap phat (FEFO pick, co so lo/han dung). Map bang
 /// diab_his_pha_dispense_items (migration 0038_create_dispense_records.sql).
-/// Dung lam nguon MAHIEU_LO / HAN_DUNG cho XML Bang 2 QD 4750 (xem BhytXmlSql.PrescriptionItems).
+/// Dung lam nguon MAHIEU_LO / HAN_DUNG cho XML Bang 2 QD 3176 (xem BhytXmlSql.PrescriptionItems).
 /// </summary>
 public class DispenseItem : BaseEntity, ITenantScoped
 {

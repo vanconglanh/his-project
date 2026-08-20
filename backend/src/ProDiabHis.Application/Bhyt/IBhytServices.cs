@@ -20,7 +20,7 @@ public record BhytExportItemData(
 
 public interface IBhytXmlGenerator
 {
-    /// <summary>Query encounters trong period_month, build XML Bang 1-5 theo QD 4750.</summary>
+    /// <summary>Query encounters trong period_month, build XML Bang 1-5 theo QD 3176.</summary>
     Task<BhytXmlGenerateResult> GenerateAsync(
         int exportId,
         int tenantId,
@@ -29,13 +29,13 @@ public interface IBhytXmlGenerator
         CancellationToken ct);
 }
 
-// ── XML Serialization (QD 4750) ─────────────────────────────────────────────
+// ── XML Serialization (QD 3176) ─────────────────────────────────────────────
 
 public interface IBhytXmlSerializer
 {
     /// <summary>
     /// Serialize danh sach BhytExportItemData (JSON tung dong Bang 1-5) thanh XML that theo
-    /// khung GIAMDINHHS/THONGTUYEN + BangN cua QD 4750. Bang nao khong co du lieu -> phan tu rong
+    /// khung GIAMDINHHS/THONGTUYEN + BangN cua QD 3176. Bang nao khong co du lieu -> phan tu rong
     /// hop le (khong bia so lieu).
     /// </summary>
     string Serialize(int exportId, string tenantCode, string periodMonth,
@@ -50,7 +50,7 @@ public record BhytXsdValidationResult(
 
 public interface IBhytXsdValidator
 {
-    /// <summary>Validate XML cua export voi XSD QD 4750.</summary>
+    /// <summary>Validate XML cua export voi XSD QD 3176.</summary>
     Task<BhytXsdValidationResult> ValidateAsync(int exportId, CancellationToken ct);
 }
 

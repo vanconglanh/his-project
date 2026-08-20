@@ -24,7 +24,7 @@ public class Drug : BaseEntity, ITenantScoped
     public bool IsActive { get; set; } = true;
     public string? Note { get; set; }
 
-    // Migration 9110: cho XML Bang 2 QD 4750 - CHUA co nghiep vu nhap lieu, luon NULL cho toi
+    // Migration 9110: cho XML Bang 2 QD 3176 - CHUA co nghiep vu nhap lieu, luon NULL cho toi
     // khi co module quan ly dau thau / danh muc dang ky thuoc.
     public string? SoDangKy { get; set; }
     public string? MaNhaThau { get; set; }

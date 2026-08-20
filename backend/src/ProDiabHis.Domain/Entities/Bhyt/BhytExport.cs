@@ -2,7 +2,7 @@ using ProDiabHis.Domain.Common;
 
 namespace ProDiabHis.Domain.Entities.Bhyt;
 
-/// <summary>Ky xuat ho so BHYT theo QD 4750/QD-BYT (1 ban ghi = 1 ky thang)</summary>
+/// <summary>Ky xuat ho so BHYT theo QD 3176/QD-BYT (1 ban ghi = 1 ky thang)</summary>
 public class BhytExport : ISoftDelete
 {
     public int Id { get; set; }

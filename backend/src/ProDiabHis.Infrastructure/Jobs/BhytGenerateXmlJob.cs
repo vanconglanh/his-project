@@ -76,7 +76,7 @@ public class BhytGenerateXmlJob
                     });
             }
 
-            // Sinh file XML that (Bang 1-5 theo QD 4750) va luu vao object storage
+            // Sinh file XML that (Bang 1-5 theo QD 3176) va luu vao object storage
             var tenantCode = await conn.ExecuteScalarAsync<string>(
                 "SELECT IFNULL(NULLIF(code, ''), CAST(id AS CHAR)) FROM diab_his_sys_tenants WHERE id=@t",
                 new { t = tenantId }) ?? tenantId.ToString();

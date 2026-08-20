@@ -7,13 +7,14 @@ namespace ProDiabHis.Infrastructure.Bhyt;
 
 /// <summary>
 /// Serialize du lieu Bang 1-5 (JSON per-row, xem <see cref="BhytXmlGeneratorImpl"/>) ra file XML
-/// nop giam dinh BHYT theo QD 4750/QD-BYT.
+/// nop giam dinh BHYT theo QD 3176/QD-BYT (29/10/2024, dang ap dung 2026; ke thua Phu luc 01 kem
+/// Cong van 47/BHXH-CNTT ky so 08/01/2026 cua BHXH Viet Nam).
 ///
-/// LUU Y VE SCHEMA: cac file backend/src/ProDiabHis.Api/Resources/Xsd/qd4750/bang*.xsd trong repo
+/// LUU Y VE SCHEMA: cac file backend/src/ProDiabHis.Api/Resources/Xsd/qd3176/bang*.xsd trong repo
 /// la PLACEHOLDER (tu ghi chu "Can thay the bang XSD chinh thuc tu BYT khi co san") — KHONG phai
 /// XSD chinh thuc cua Bo Y te, chi dinh nghia <BangN><Row index="N"><xs:any lax/></Row></BangN>.
 /// Vi vay khung phan tu (GIAMDINHHS/THONGTUYEN/BangN/Row) va cac ten the da co san trong repo
-/// (MA_LIEN_KET, MA_BENH, MA_BENH_KHAC, ...) duoc dung lam ten the XML; CHUA the doi chieu 100%
+/// (MA_LIEN_KET, MA_BENH_CHINH, MA_BENH_KT, ...) duoc dung lam ten the XML; CHUA the doi chieu 100%
 /// voi XSD chinh thuc vi repo khong co ban that.
 /// </summary>
 public class BhytXmlSerializerImpl : IBhytXmlSerializer
@@ -62,7 +63,7 @@ public class BhytXmlSerializerImpl : IBhytXmlSerializer
     }
 
     /// <summary>
-    /// Dinh dang gia tri XML theo QD 4750: ngay-gio -> yyyyMMddHHmm, ngay -> yyyyMMdd,
+    /// Dinh dang gia tri XML theo QD 3176: ngay-gio -> yyyyMMddHHmm, ngay -> yyyyMMdd,
     /// so tien/so luong -> khong phan cach hang nghin, null -> rong.
     /// </summary>
     private static string FormatValue(JsonElement value)
