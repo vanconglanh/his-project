@@ -124,7 +124,18 @@ public record ReconcileSummaryResponse(
     IReadOnlyList<ReconcileSummaryByTable> ByTable,
     IReadOnlyList<ReconcileTopRejection> TopRejectionReasons);
 
-// ── Bảng Row DTOs (QD 4750) ──────────────────────────────────────────────────
+// ── Bảng Row DTOs (QD 3176) ──────────────────────────────────────────────────
+
+/// <summary>
+/// Ky tu ngan cach nhieu ma benh kem theo trong MA_BENH_KT.
+/// CHUA XAC MINH duoc tu Phu luc 01 (Cong van 47/BHXH-CNTT, 08/01/2026) - tai lieu khong neu ro
+/// ky tu phan tach khi co nhieu ma benh kem theo. Dang tam dung ";" (gia tri cu). Doi o day
+/// se cap nhat cho toan bo pipeline (BhytXmlGeneratorImpl + test) vi day la 1 nguon duy nhat.
+/// </summary>
+public static class BhytXmlConst
+{
+    public const string MaBenhKtSeparator_ChuaXacMinh = ";";
+}
 
 public record BhytTable1Row(
     string MaLienKet, string MaBn, string HoTen, string NgaySinh,
@@ -132,23 +143,28 @@ public record BhytTable1Row(
     string GtTheTu, string GtTheDen, int MaLoaiKcb,
     DateTime NgayVao, DateTime NgayRa, int SoNgayDtri,
     int KetQuaDtri,
-    // QD 4750: MA_BENH = chan doan CHINH, MA_BENH_KHAC = cac chan doan kem theo, ngan cach ";"
-    [property: JsonPropertyName("MA_BENH")] string MaBenh,
-    [property: JsonPropertyName("MA_BENH_KHAC")] string? MaBenhKhac,
+    // QD 3176 (Phu luc 01, CV 47/BHXH-CNTT 08/01/2026): MA_BENH_CHINH = chan doan CHINH,
+    // MA_BENH_KT = cac chan doan kem theo, ngan cach bang BhytXmlConst.MaBenhKtSeparator_ChuaXacMinh.
+    [property: JsonPropertyName("MA_BENH_CHINH")] string MaBenhChinh,
+    [property: JsonPropertyName("MA_BENH_KT")] string? MaBenhKt,
     string LyDoVvien, string ChanDoanRv,
+    // T_VTYT: tong chi phi VTYT toan benh an, thuoc XML1 (KHONG phai XML2). Chua co nguon du lieu
+    // (billing_items chua phan loai VTYT) -> luon 0, TUYET DOI khong bia cong thuc.
     decimal TThuoc, decimal TVtyt, decimal TTongchi,
     decimal TBhtt, decimal TBntt, decimal TBncct);
 
+// QD 3176 - XML2: MA_NHA_THAU, MAHIEU_LO, HAN_DUNG KHONG thuoc chuan BYT -> da bo khoi DTO nay
+// (cot DB tuong ung o diab_his_pha_drugs / diab_his_pha_dispense_items van GIU NGUYEN cho quan
+// ly kho noi bo, chi ngung map vao XML). SO_DANG_KY VAN co trong chuan -> giu lai.
 public record BhytTable2Row(
     string MaLienKet, string MaThuoc, string TenThuoc,
     string DonViTinh, string HamLuong, string DuongDung,
-    string LieuDung, string SoDangKy, string MaNhaThau,
+    string LieuDung, string SoDangKy,
     int PhamViTt, decimal SoLuong, decimal DonGia,
     decimal ThanhTien, decimal TBhtt, decimal TNguonkhac,
     decimal TNguonkhacBhtt, decimal TNguonkhacKhac,
     int MucHuong, DateTime NgayYl, string MaPhong,
-    string MaBs, string? MaDichvuKem, string? MahieuLo,
-    string? HanDung, string? SoHop);
+    string MaBs, string? MaDichvuKem, string? SoHop);
 
 public record BhytTable3Row(
     string MaLienKet, string MaDichVu, string? MaVatTu,

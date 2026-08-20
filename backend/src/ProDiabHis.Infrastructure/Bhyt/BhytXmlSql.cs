@@ -60,7 +60,7 @@ WHERE b.encounter_id = @eid
   AND bi.tenant_id = @t
   AND b.deleted_at IS NULL";
 
-    /// <summary>Chan doan: PRIMARY -> MA_BENH, con lai -> MA_BENH_KHAC.</summary>
+    /// <summary>Chan doan: PRIMARY -> MA_BENH_CHINH, con lai -> MA_BENH_KT.</summary>
     public const string Diagnoses = @"
 SELECT icd10_code, type
 FROM diab_his_enc_diagnoses
@@ -69,9 +69,12 @@ ORDER BY (type = 'PRIMARY') DESC, created_at";
 
     /// <summary>
     /// Bang 2 - thuoc BHYT trong don ke.
-    /// mahieu_lo/han_dung lay tu phieu cap phat thuc te (diab_his_pha_dispense_items, FEFO pick)
-    /// qua prescription_item_id -> co the NULL neu don chua duoc cap phat (chua xuat kho).
-    /// so_dang_ky/ma_nha_thau: diab_his_pha_drugs CHUA co nguon du lieu nay (xem migration 9110) -> de trong.
+    /// ma_nha_thau/mahieu_lo/han_dung: van SELECT o day de con dung noi bo cho quan ly kho (cot da
+    /// them tu migration 9110 + du lieu cap phat thuc te disp.*), NHUNG KHONG con duoc map vao XML2
+    /// vi 3 truong nay KHONG thuoc chuan XML2 BYT (Phu luc 01, CV 47/BHXH-CNTT 08/01/2026) - xem
+    /// BhytXmlGeneratorImpl.GenerateAsync, khong con dung Col(d,"ma_nha_thau"/"mahieu_lo"/"han_dung").
+    /// so_dang_ky: CO trong chuan XML2 -> van giu mapping; diab_his_pha_drugs CHUA co nguon nhap
+    /// lieu nay (xem migration 9110) nen tam de trong.
     /// </summary>
     public const string PrescriptionItems = @"
 SELECT d.code                              AS ma_thuoc,

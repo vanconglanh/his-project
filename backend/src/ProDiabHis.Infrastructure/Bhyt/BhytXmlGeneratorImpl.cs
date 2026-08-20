@@ -125,11 +125,13 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                 .ToList();
 
             var maBenh = string.IsNullOrWhiteSpace(primaryCode) ? "Z00" : primaryCode!;
-            var maBenhKhac = secondaryCodes.Count > 0 ? string.Join(";", secondaryCodes) : null;
+            var maBenhKhac = secondaryCodes.Count > 0
+                ? string.Join(BhytXmlConst.MaBenhKtSeparator_ChuaXacMinh, secondaryCodes)
+                : null;
 
             if (string.IsNullOrWhiteSpace(primaryCode))
                 _logger.LogWarning(
-                    "BhytXmlGenerator: encounter {EncId} khong co chan doan CHINH, MA_BENH fallback Z00 - nguy co xuat toan",
+                    "BhytXmlGenerator: encounter {EncId} khong co chan doan CHINH, MA_BENH_CHINH fallback Z00 - nguy co xuat toan",
                     encId);
 
             var patientCode = Str(Col(e, "patient_code"));
@@ -152,13 +154,14 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                 NgayRa: Dt(Col(e, "finished_at")) ?? DateTime.UtcNow,
                 SoNgayDtri: 1,
                 KetQuaDtri: 1,
-                MaBenh: maBenh,
-                MaBenhKhac: maBenhKhac,
+                MaBenhChinh: maBenh,
+                MaBenhKt: maBenhKhac,
                 LyDoVvien: "Kham benh dinh ky",
                 ChanDoanRv: "",
                 TThuoc: tThuoc,
                 // TODO(BHYT): schema chua co truong phan loai vat tu y te (VTYT) tren billing item
                 // (item_type chi co SERVICE|DRUG|PROCEDURE|LAB|RAD|PACKAGE|OTHER) -> T_VTYT tam de 0.
+                // KHONG duoc bia cong thuc (vd SUM(amount*0.1)) - giu 0 cho toi khi co nguon that.
                 TVtyt: 0m,
                 TTongchi: tTongchi,
                 TBhtt: tBhtt,
@@ -188,10 +191,10 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                     HamLuong: Str(Col(d, "ham_luong")),
                     DuongDung: duongDung.Length > 0 ? duongDung : "uong",
                     LieuDung: Str(Col(d, "lieu_dung")),
-                    // TODO(BHYT): diab_his_pha_drugs chua co nguon nhap lieu SO_DANG_KY / MA_NHA_THAU
+                    // TODO(BHYT): diab_his_pha_drugs chua co nguon nhap lieu SO_DANG_KY
                     // (them cot rong trong migration 9110, cho module quan ly dau thau/dang ky thuoc) -> de trong.
+                    // MA_NHA_THAU: KHONG thuoc chuan XML2 BYT -> da bo map (cot DB van giu cho quan ly kho noi bo).
                     SoDangKy: Str(Col(d, "so_dang_ky")),
-                    MaNhaThau: Str(Col(d, "ma_nha_thau")),
                     PhamViTt: 1,
                     SoLuong: Dec(Col(d, "so_luong")),
                     DonGia: Dec(Col(d, "don_gia")),
@@ -207,10 +210,8 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                     // Luu y: doctor_id la UUID noi bo, schema chua co ma bac si/CCHN theo chuan BHYT.
                     MaBs: Str(Col(d, "ma_bs")),
                     MaDichvuKem: null,
-                    // So lo / han dung lay tu phieu cap phat thuc te (diab_his_pha_dispense_items, FEFO).
-                    // NULL neu don chua duoc cap phat (chua xuat kho) - khong bia so lieu.
-                    MahieuLo: Col(d, "mahieu_lo") is null or DBNull ? null : Str(Col(d, "mahieu_lo")),
-                    HanDung: Dt(Col(d, "han_dung"))?.ToString("yyyy-MM-dd"),
+                    // MAHIEU_LO / HAN_DUNG: KHONG thuoc chuan XML2 BYT -> da bo map. Du lieu so lo/han dung
+                    // (diab_his_pha_dispense_items, FEFO) van con trong DB/query cho quan ly kho noi bo.
                     SoHop: null);
 
                 items.Add(new BhytExportItemData(2, tbl2Idx++,

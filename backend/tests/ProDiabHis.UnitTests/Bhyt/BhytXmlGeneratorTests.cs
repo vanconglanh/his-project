@@ -50,8 +50,8 @@ public class BhytXmlGeneratorTests
             NgayRa: new DateTime(2026, 5, 1, 10, 0, 0),
             SoNgayDtri: 1,
             KetQuaDtri: 1,
-            MaBenh: "E11.9",
-            MaBenhKhac: null,
+            MaBenhChinh: "E11.9",
+            MaBenhKt: null,
             LyDoVvien: "Kham benh dinh ky",
             ChanDoanRv: "Dai thao duong type 2",
             TThuoc: 150000m,
@@ -62,9 +62,9 @@ public class BhytXmlGeneratorTests
             TBncct: 0m);
 
         var json = JsonSerializer.Serialize(row);
-        // QD 4750: truong chan doan phai xuat dung ten MA_BENH / MA_BENH_KHAC
-        json.Should().Contain("MaLienKet").And.Contain("MA_BENH");
-        json.Should().Contain("MA_BENH_KHAC");
+        // QD 3176: truong chan doan phai xuat dung ten MA_BENH_CHINH / MA_BENH_KT
+        json.Should().Contain("MaLienKet").And.Contain("MA_BENH_CHINH");
+        json.Should().Contain("MA_BENH_KT");
         json.Should().Contain("E11.9");
         json.Should().Contain("PK001enc-001");
     }
@@ -72,7 +72,7 @@ public class BhytXmlGeneratorTests
     [Fact]
     public void BhytTable1Row_ma_benh_khac_ghep_nhieu_ma_bang_dau_cham_phay()
     {
-        // G06: MA_BENH = chan doan CHINH, MA_BENH_KHAC = cac chan doan kem theo noi bang ";"
+        // G06: MA_BENH_CHINH = chan doan CHINH, MA_BENH_KT = cac chan doan kem theo noi bang ";"
         var secondary = new[] { "I10", "E78.5" };
 
         var row = new BhytTable1Row(
@@ -90,20 +90,20 @@ public class BhytXmlGeneratorTests
             NgayRa: new DateTime(2026, 5, 2, 9, 0, 0),
             SoNgayDtri: 1,
             KetQuaDtri: 1,
-            MaBenh: "E11.9",
-            MaBenhKhac: string.Join(";", secondary),
+            MaBenhChinh: "E11.9",
+            MaBenhKt: string.Join(";", secondary),
             LyDoVvien: "Kham benh dinh ky",
             ChanDoanRv: "Dai thao duong type 2",
             TThuoc: 0m, TVtyt: 0m, TTongchi: 0m,
             TBhtt: 0m, TBntt: 0m, TBncct: 0m);
 
-        row.MaBenh.Should().Be("E11.9");
-        row.MaBenhKhac.Should().Be("I10;E78.5");
-        row.MaBenhKhac.Should().NotContain("E11.9", "chan doan chinh khong duoc lap lai o MA_BENH_KHAC");
+        row.MaBenhChinh.Should().Be("E11.9");
+        row.MaBenhKt.Should().Be("I10;E78.5");
+        row.MaBenhKt.Should().NotContain("E11.9", "chan doan chinh khong duoc lap lai o MA_BENH_KT");
 
         var json = JsonSerializer.Serialize(row);
-        json.Should().Contain("\"MA_BENH\":\"E11.9\"");
-        json.Should().Contain("\"MA_BENH_KHAC\":\"I10;E78.5\"");
+        json.Should().Contain("\"MA_BENH_CHINH\":\"E11.9\"");
+        json.Should().Contain("\"MA_BENH_KT\":\"I10;E78.5\"");
     }
 
     [Fact]

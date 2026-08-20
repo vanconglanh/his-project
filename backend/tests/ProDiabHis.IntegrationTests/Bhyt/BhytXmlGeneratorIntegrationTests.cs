@@ -18,7 +18,7 @@ namespace ProDiabHis.IntegrationTests.Bhyt;
 /// <summary>
 /// Chay that pipeline BhytXmlGeneratorImpl.GenerateAsync tren MySQL that (Testcontainers):
 /// seed tenant + benh nhan + the BHYT + encounter + chan doan (1 PRIMARY + 2 SECONDARY)
-/// + billing + don thuoc, roi assert du lieu Bang 1 (MA_BENH / MA_BENH_KHAC) dung QD 4750.
+/// + billing + don thuoc, roi assert du lieu Bang 1 (MA_BENH_CHINH / MA_BENH_KT) dung QD 3176.
 ///
 /// LUU Y: GenerateAsync hien tai KHONG tu serialize ra file XML (chua co XDocument/XmlWriter
 /// nao trong repo cho output BHYT) — no tra ve BhytExportItemData voi RowDataJson la JSON
@@ -270,8 +270,8 @@ public class BhytXmlGeneratorIntegrationTests : IClassFixture<MySqlTestFixture>
         var table1Item = result.Items.Should().ContainSingle(i => i.TableNo == 1).Subject;
         var table1Json = JsonDocument.Parse(table1Item.RowDataJson).RootElement;
 
-        table1Json.GetProperty("MA_BENH").GetString().Should().Be("E11.9");
-        var maBenhKhac = table1Json.GetProperty("MA_BENH_KHAC").GetString();
+        table1Json.GetProperty("MA_BENH_CHINH").GetString().Should().Be("E11.9");
+        var maBenhKhac = table1Json.GetProperty("MA_BENH_KT").GetString();
         maBenhKhac.Should().NotBeNullOrEmpty();
         maBenhKhac.Should().Contain("I10");
         maBenhKhac.Should().Contain("E78.5");
