@@ -47,7 +47,10 @@ public interface IApplicationDbContext
     DbSet<Stock> Stocks { get; }
     DbSet<Prescription> Prescriptions { get; }
     DbSet<PrescriptionItem> PrescriptionItems { get; }
-    DbSet<Dispense> Dispenses { get; }
+    // Dispense (diab_his_pha_dispenses) bo di 2026-08-21 (migration 9120): bang chet, khong
+    // handler nghiep vu nao dung EF de ghi/doc cap phat thuoc — toan bo luong that dung Dapper
+    // qua diab_his_pha_dispense_records (xem DispensingHandlers). Du lieu cu da duoc gop sang
+    // dispense_records, bang goc van giu nguyen (khong drop) lam ban sao.
     DbSet<Supplier> Suppliers { get; }
     DbSet<PurchaseOrder> PurchaseOrders { get; }
     DbSet<Grn> Grns { get; }

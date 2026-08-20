@@ -145,30 +145,9 @@ public class PrescriptionItemConfiguration : IEntityTypeConfiguration<Prescripti
     }
 }
 
-public class DispenseConfiguration : IEntityTypeConfiguration<Dispense>
-{
-    public void Configure(EntityTypeBuilder<Dispense> builder)
-    {
-        builder.ToTable("diab_his_pha_dispenses");
-        builder.HasKey(e => e.Id);
-        builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
-        builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
-        builder.Property(e => e.PrescriptionId).HasColumnName("prescription_id").HasMaxLength(36).IsRequired();
-        builder.Property(e => e.DispensedBy).HasColumnName("dispensed_by").HasMaxLength(36).IsRequired();
-        builder.Property(e => e.DispensedAt).HasColumnName("dispensed_at");
-        builder.Property(e => e.ItemsJson).HasColumnName("items_json").HasColumnType("JSON").IsRequired();
-        builder.Property(e => e.Note).HasColumnName("note");
-        builder.Property(e => e.CreatedAt).HasColumnName("created_at");
-        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
-        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
-        builder.Ignore(e => e.UpdatedBy);
-        builder.Ignore(e => e.DeletedAt);
-        builder.Ignore(e => e.DeletedBy);
-
-        builder.HasIndex(e => new { e.TenantId, e.PrescriptionId });
-        builder.HasIndex(e => new { e.TenantId, e.DispensedAt });
-    }
-}
+// DispenseConfiguration (bang diab_his_pha_dispenses) da bi xoa 2026-08-21 (migration 9120):
+// bang chet, EF khai thua, khong handler nghiep vu nao dung. Canonical: diab_his_pha_dispense_records
+// (Dapper, xem DispensingHandlers.cs). Bang goc van giu nguyen trong DB lam ban sao, khong drop.
 
 public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
 {

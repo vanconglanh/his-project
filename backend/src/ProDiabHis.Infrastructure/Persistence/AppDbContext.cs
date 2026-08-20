@@ -58,7 +58,6 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<Stock> Stocks => Set<Stock>();
     public DbSet<Prescription> Prescriptions => Set<Prescription>();
     public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
-    public DbSet<Dispense> Dispenses => Set<Dispense>();
     public DbSet<DispenseItem> DispenseItems => Set<DispenseItem>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
@@ -198,9 +197,6 @@ public class AppDbContext : DbContext, IApplicationDbContext
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<PrescriptionItem>()
-            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
-
-        modelBuilder.Entity<Dispense>()
             .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<Supplier>()
