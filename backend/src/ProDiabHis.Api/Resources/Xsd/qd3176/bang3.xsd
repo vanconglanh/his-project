@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<!-- XSD placeholder cho Bang 3 - QD 4750/QD-BYT
+<!-- XSD placeholder cho Bang 3 - QD 3176/QD-BYT (CHUA doi chieu voi ban chinh thuc tu Cong PIS)
      Can thay the bang XSD chinh thuc tu BYT khi co san -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:element name="Bang3">

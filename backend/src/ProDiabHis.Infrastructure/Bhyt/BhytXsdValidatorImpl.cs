@@ -10,7 +10,7 @@ using ProDiabHis.Application.Common;
 namespace ProDiabHis.Infrastructure.Bhyt;
 
 /// <summary>
-/// Validate XML file cua export voi XSD QD 4750 - validate THAT bang XmlSchemaSet + XDocument.Validate
+/// Validate XML file cua export voi XSD QD 3176 - validate THAT bang XmlSchemaSet + XDocument.Validate
 /// (khong con la placeholder chi log "OK").
 ///
 /// LUU Y: cac file bang{N}.xsd trong repo la PLACEHOLDER tu BYT chua co (xem ghi chu trong chinh
@@ -30,7 +30,7 @@ public class BhytXsdValidatorImpl : IBhytXsdValidator
         _logger = logger;
         _db = db;
         _storage = storage;
-        _xsdBasePath = Path.Combine(AppContext.BaseDirectory, "Resources", "Xsd", "qd4750");
+        _xsdBasePath = Path.Combine(AppContext.BaseDirectory, "Resources", "Xsd", "qd3176");
     }
 
     public async Task<BhytXsdValidationResult> ValidateAsync(int exportId, CancellationToken ct)

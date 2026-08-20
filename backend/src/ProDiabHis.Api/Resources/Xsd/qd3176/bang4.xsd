@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<!-- XSD placeholder cho Bang 5 - QD 4750/QD-BYT
+<!-- XSD placeholder cho Bang 4 - QD 3176/QD-BYT (CHUA doi chieu voi ban chinh thuc tu Cong PIS)
      Can thay the bang XSD chinh thuc tu BYT khi co san -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <xs:element name="Bang5">
+  <xs:element name="Bang4">
     <xs:complexType>
       <xs:sequence>
         <xs:element name="Row" minOccurs="0" maxOccurs="unbounded">
