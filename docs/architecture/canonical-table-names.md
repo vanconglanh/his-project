@@ -1,8 +1,54 @@
 # Tên bảng chuẩn (canonical table names) — Pro-Diab HIS
 
-> Quyết định kiến trúc. Tác giả: Lành (architect). Ngày: 2026-08-20. Nhánh: `develop`.
-> Phạm vi: chốt tên bảng chuẩn để DevOps dựng baseline schema và backend sửa code sau.
-> **Tài liệu này KHÔNG sửa code.** Việc sửa code giao ở task tiếp theo.
+> Quyết định kiến trúc. Tác giả: Lành (architect). Ngày: 2026-08-20.
+> **Bản sửa đổi 2026-08-21 (REV-2)** — nhánh `develop`.
+> Phạm vi: chốt tên bảng chuẩn để dựng baseline schema và backend sửa code sau.
+> **Tài liệu này KHÔNG sửa code.**
+
+---
+
+## REV-2 (2026-08-21) — ĐÍNH CHÍNH THEO SỐ LIỆU PRODUCTION THẬT
+
+Bản gốc (REV-1) chốt tên chuẩn khi **chưa có số đếm dòng trên production**, chỉ dựa vào
+migration + code. Nay đã có số đếm thật (read-only trên production, 150 bảng, 225 bệnh nhân,
+178 lượt khám). **Số liệu thật có quyền cao hơn mọi suy luận từ code**, và nó làm **ĐẢO NGƯỢC 3
+kết luận** của REV-1.
+
+| Cặp | Số dòng thật (production) | REV-1 chốt | **REV-2 chốt** | Thay đổi |
+|---|---|---|---|---|
+| pat_allergies / cli_allergies | **30** / 0 | `cli_allergies` | **`diab_his_pat_allergies`** | ĐẢO NGƯỢC |
+| lab_orders / cli_lab_orders | **90** / 0 | `cli_lab_orders` | **`diab_his_lab_orders`** | ĐẢO NGƯỢC |
+| rad_orders / cli_rad_orders | **26** / 0 | `cli_rad_orders` | **`diab_his_rad_orders`** | ĐẢO NGƯỢC |
+| pha_dispense_records / pha_dispenses | 12 / 15 | `pha_dispense_records` | **`diab_his_pha_dispense_records`** | GIỮ (đã merge ở `9120`) |
+| enc_emr_contents / cli_emr_contents / cli_emr_content | **112** / 0 / 0 | `enc_emr_contents` | **`diab_his_enc_emr_contents`** | GIỮ |
+| fil_cls_uploads / cls_uploads | 0 / 0 | `fil_cls_uploads` | **`diab_his_fil_cls_uploads`** | GIỮ (cả hai rỗng, chọn theo code) |
+| dict_icd10 / ref_icd10 | **15 532** / 98 | *chưa quyết* | **`diab_his_dict_icd10`** | ĐÃ CHỐT (mục 6.1 khép lại) |
+
+### Vì sao đảo ngược — nguyên tắc chốt lại
+
+REV-1 chọn theo "bảng nào là luồng ghi chính theo đọc code". Số liệu chứng minh giả định đó
+**sai với thực tế runtime**: các bảng `cli_*` mà REV-1 chọn **rỗng 0 dòng trên production**,
+tức luồng ghi thật đang đổ vào bảng còn lại. Nguyên tắc chốt mới, theo thứ tự:
+
+1. **Bảng đang chứa dữ liệu thật thắng.** Chọn bảng rỗng làm canonical đồng nghĩa buộc phải di
+   trú 100% dữ liệu sống (30 + 90 + 26 dòng) — rủi ro mất dữ liệu lâm sàng vô ích, đổi lấy
+   không lợi ích nào.
+2. Chỉ khi **cả hai đều rỗng** mới chọn theo code/độ chuẩn schema (đúng trường hợp `cls_uploads`).
+3. Chỉ khi **cả hai đều có dữ liệu** mới cần migration hợp nhất (đúng trường hợp dispense
+   12/15 → `9120_merge_dispense_records.sql`, đã commit).
+
+**Hệ quả đổi hướng sửa code:** REV-1 yêu cầu sửa EF/handler trỏ về `cli_*`. **HỦY yêu cầu đó.**
+Hướng đúng là ngược lại: sửa các chỗ đang đọc/ghi `cli_lab_orders` / `cli_rad_orders` /
+`cli_allergies` (ClsHandlers, BhytXmlSql, BillingCalculatorImpl, ClsPdfHandlers, CdssEngineImpl…)
+trỏ về `diab_his_lab_orders` / `diab_his_rad_orders` / `diab_his_pat_allergies`.
+
+**Còn nguyên giá trị:** phân tích bug ở REV-1 vẫn ĐÚNG — chỉ định và kết quả/báo cáo/portal
+đang ở hai bảng khác nhau. Chỉ **chiều sửa** là ngược lại. Fix CDSS đọc UNION cả hai bảng dị ứng
+(commit `e587789`) vẫn an toàn và nên giữ cho tới khi hợp nhất xong.
+
+**Chưa xác minh (không đoán):** số liệu là *count dòng*, chưa phải *count dòng theo tenant* và
+chưa đối chiếu `deleted_at IS NULL`. Trước khi RENAME/DROP bất kỳ bảng nào phải chạy lại
+`COUNT(*) WHERE deleted_at IS NULL GROUP BY tenant_id`.
 
 ---
 
@@ -44,7 +90,10 @@ của toàn bộ 5 cặp lệch tên.**
 Không cặp nào thuộc loại (a) hay (b). **Schema đang bị nhân đôi thật sự**, và với 2 cặp thì **dữ liệu
 đang bị ghi vào 2 nơi khác nhau bởi 2 luồng nghiệp vụ khác nhau**.
 
-### 1.1 `diab_his_lab_orders` vs `diab_his_cli_lab_orders` — **CANONICAL: `diab_his_cli_lab_orders`**
+### 1.1 `diab_his_lab_orders` vs `diab_his_cli_lab_orders` — ~~CANONICAL: `cli_lab_orders`~~
+
+> ⚠️ **REV-2 ĐẢO NGƯỢC: CANONICAL = `diab_his_lab_orders`** (90 dòng thật vs `cli_lab_orders` 0 dòng).
+> Phần phân tích dưới đây giữ lại làm hồ sơ; **kết luận chọn tên và hướng sửa code đã bị thay thế**.
 
 | | tạo bởi | ai dùng |
 |---|---|---|
@@ -77,7 +126,11 @@ downstream quan trọng nhất đang đọc: BHYT XML 4210, tính viện phí, P
 liệu sang `cli_lab_orders` (map cột do backend chốt), rồi mới `RENAME TO _deprecated_lab_orders`
 (giữ 1 sprint, không DROP ngay).
 
-### 1.2 `diab_his_rad_orders` vs `diab_his_cli_rad_orders` — **CANONICAL: `diab_his_cli_rad_orders`**
+### 1.2 `diab_his_rad_orders` vs `diab_his_cli_rad_orders` — ~~CANONICAL: `cli_rad_orders`~~
+
+> ⚠️ **REV-2 ĐẢO NGƯỢC: CANONICAL = `diab_his_rad_orders`** (26 dòng thật vs `cli_rad_orders` 0 dòng).
+> Ghi chú: `PortalMeHandlers` đọc `rad_orders` ⇒ **portal bệnh nhân đang đọc ĐÚNG bảng**, không
+> phải bug như REV-1 kết luận. Bug thật nằm ở phía `ClsHandlers` ghi vào `cli_rad_orders`.
 
 Hoàn toàn đối xứng với 1.1. `cli_rad_orders` (`0031`) = luồng kê chỉ định CĐHA (`ClsHandlers`, 6 chỗ),
 BHYT, billing, PDF. `rad_orders` (`9004`) = EF + `RadResultHandlers` (6 chỗ, nhập kết quả CĐHA) +
@@ -88,7 +141,16 @@ BHYT, billing, PDF. `rad_orders` (`9004`) = EF + `RadResultHandlers` (6 chỗ, n
 
 Hành động: như 1.1, sửa code trỏ về `cli_rad_orders`; kiểm đếm dữ liệu `rad_orders` trước khi loại bỏ.
 
-### 1.3 `diab_his_pat_allergies` vs `diab_his_cli_allergies` — **CANONICAL: `diab_his_cli_allergies`**
+### 1.3 `diab_his_pat_allergies` vs `diab_his_cli_allergies` — ~~CANONICAL: `cli_allergies`~~
+
+> ⚠️ **REV-2 ĐẢO NGƯỢC: CANONICAL = `diab_his_pat_allergies`** (30 dòng dị ứng thật vs
+> `cli_allergies` **0 dòng**). REV-1 định chọn bảng RỖNG làm chuẩn cho dữ liệu an toàn người
+> bệnh — đó sẽ là quyết định nguy hiểm nhất trong tài liệu này nếu đã thi hành.
+> Lý lẽ "cli_allergies là superset schema" vẫn đúng về mặt cột, nhưng **không đủ để bù rủi ro
+> di trú 30 bản ghi dị ứng sống**. Hướng đúng: giữ `pat_allergies`, bổ sung các cột thiếu
+> (`allergen_type`, `allergen_ingredient`, `atc_code`, `is_active`, severity `LIFE_THREATENING`)
+> vào `pat_allergies` bằng migration ADD COLUMN.
+> FHIR R4: `diab_his_pat_allergies` → `AllergyIntolerance`.
 
 | | tạo bởi | ai dùng |
 |---|---|---|
@@ -145,15 +207,17 @@ trong khi `diab_his_fil_cls_uploads` **đã là TABLE** (tạo ở `0006`) ⇒ l
 config sai** → trỏ `diab_his_pha_dispense_records`, hoặc bỏ hẳn entity `Dispense` khỏi `AppDbContext`.
 Rủi ro di trú: thấp (bảng nhiều khả năng 0 dòng — vẫn phải `COUNT(*)` xác nhận trước khi loại).
 
-### Bảng tóm tắt 5 cặp
+### Bảng tóm tắt 5 cặp — **BẢN REV-2 (thay thế bảng REV-1)**
 
-| # | Cặp | Loại | Tên chuẩn | Bên phải sửa | Rủi ro dữ liệu |
-|---|---|---|---|---|---|
-| 1 | lab_orders / cli_lab_orders | (c) | `diab_his_cli_lab_orders` | EF + 6 file code | **CAO** — 2 luồng ghi/đọc lệch nhau |
-| 2 | rad_orders / cli_rad_orders | (c) | `diab_his_cli_rad_orders` | EF + 4 file code | **CAO** — ảnh hưởng cả portal bệnh nhân |
-| 3 | pat_allergies / cli_allergies | (c) | `diab_his_cli_allergies` | EF Patient + 3 handler | **NGHIÊM TRỌNG** — CDSS dị ứng âm tính giả |
-| 4 | cls_uploads / fil_cls_uploads | (c) | `diab_his_fil_cls_uploads` | EF `ClsUploadConfiguration` | Thấp (bảng EF chết) |
-| 5 | pha_dispenses / pha_dispense_records | (c) | `diab_his_pha_dispense_records` | EF `PharmacyConfiguration` | Thấp (bảng EF chết) |
+| # | Cặp (số dòng thật) | Tên chuẩn REV-2 | Bên phải sửa | Rủi ro |
+|---|---|---|---|---|
+| 1 | lab_orders **90** / cli_lab_orders **0** | `diab_his_lab_orders` | Dapper `ClsHandlers`, `ClsRoundHandlers`, `ClsPdfHandlers`, `BhytXmlSql`, `BillingCalculatorImpl`, `ProcessInboundJob`, `LabIntegrationHandlers` | **CAO** — chỉ định mới ghi vào bảng rỗng |
+| 2 | rad_orders **26** / cli_rad_orders **0** | `diab_his_rad_orders` | như (1), phần CĐHA | **CAO** |
+| 3 | pat_allergies **30** / cli_allergies **0** | `diab_his_pat_allergies` | `CdssEngineImpl` (hiện đã UNION cả hai — commit `e587789`) | **NGHIÊM TRỌNG** |
+| 4 | fil_cls_uploads **0** / cls_uploads **0** | `diab_his_fil_cls_uploads` | EF `ClsUploadConfiguration` | Thấp (cả hai rỗng) |
+| 5 | pha_dispense_records **12** / pha_dispenses **15** | `diab_his_pha_dispense_records` | EF `PharmacyConfiguration`; dữ liệu đã hợp nhất ở `9120` | Trung bình (đã xử lý) |
+| 6 | enc_emr_contents **112** / cli_emr_contents **0** / cli_emr_content **0** | `diab_his_enc_emr_contents` | xóa attribute `[Table]` ở `EmrContent.cs` | Thấp |
+| 7 | dict_icd10 **15 532** / ref_icd10 **98** | `diab_his_dict_icd10` | `ReportRegistry.cs:1403`, `ReportHandlers.cs:486,641,710` | Trung bình — báo cáo đang tra danh mục thiếu 99,4% mã ICD |
 
 ---
 
@@ -244,8 +308,8 @@ VIEW tương thích (`9009`, `9022`, `9061`) và **không được dùng trong c
 | Tiếp đón | `diab_his_rcp_queue_tickets`, `diab_his_rcp_ticket_reassignments` |
 | Lịch hẹn | `diab_his_sch_appointments`, `diab_his_sch_doctor_schedules`, `diab_his_sch_schedule_blocks` |
 | Khám bệnh | `diab_his_enc_encounters`, `diab_his_enc_diagnoses`, `diab_his_enc_vital_signs`, `diab_his_enc_emr_contents` |
-| Lâm sàng | `diab_his_cli_allergies`, `diab_his_cli_emr_templates`, `diab_his_cli_emr_versions`, `diab_his_cli_emr_signatures`, `diab_his_cli_encounter_addenda`, `diab_his_cli_diabetes_assessments`, `diab_his_cli_diabetes_templates`, `diab_his_cli_care_pathway_target`, `diab_his_cli_followup_recall`, `diab_his_cli_patient_risk_flag`, `diab_his_cli_ai_suggestion_log` |
-| CLS | `diab_his_cli_lab_orders`, `diab_his_lab_results`, `diab_his_cli_rad_orders`, `diab_his_rad_results`, `diab_his_cls_order_rounds`, `diab_his_fil_cls_uploads` |
+| Lâm sàng | `diab_his_pat_allergies` *(REV-2, thay `cli_allergies`)*, `diab_his_cli_emr_templates`, `diab_his_cli_emr_versions`, `diab_his_cli_emr_signatures`, `diab_his_cli_encounter_addenda`, `diab_his_cli_diabetes_assessments`, `diab_his_cli_diabetes_templates`, `diab_his_cli_care_pathway_target`, `diab_his_cli_followup_recall`, `diab_his_cli_patient_risk_flag`, `diab_his_cli_ai_suggestion_log` |
+| CLS | `diab_his_lab_orders` *(REV-2)*, `diab_his_lab_results`, `diab_his_rad_orders` *(REV-2)*, `diab_his_rad_results`, `diab_his_cls_order_rounds`, `diab_his_fil_cls_uploads` |
 | CDSS | `diab_his_cdss_rules`, `diab_his_cdss_ddi_pairs`, `diab_his_cdss_alert_events`, `diab_his_cdss_alert_override_log` |
 | Dược | `diab_his_pha_drugs`, `diab_his_pha_drug_categories`, `diab_his_pha_stock`, `diab_his_pha_stock_movements`, `diab_his_pha_stocktakes`, `diab_his_pha_stocktake_items`, `diab_his_pha_prescriptions`, `diab_his_pha_prescription_items`, `diab_his_pha_prescription_print_history`, `diab_his_pha_dispense_records`, `diab_his_pha_dispense_items`, `diab_his_pha_ddi_rules`, `diab_his_pha_suppliers`, `diab_his_pha_purchase_orders`, `diab_his_pha_purchase_order_items`, `diab_his_pha_grn` |
 | Thu ngân | `diab_his_bil_billing`, `diab_his_bil_billing_items`, `diab_his_bil_payments`, `diab_his_bil_qr_codes`, `diab_his_bil_einvoices`, `diab_his_bil_cashier_shifts`, `diab_his_bil_cash_out`, `diab_his_bil_counters`, `diab_his_bil_services`, `diab_his_bil_service_packages`, `diab_his_bil_service_package_items` |
@@ -253,19 +317,22 @@ VIEW tương thích (`9009`, `9022`, `9061`) và **không được dùng trong c
 | API partner | `diab_his_api_partners`, `diab_his_api_request_logs` |
 | Thông báo | `diab_his_nti_notifications`, `diab_his_nti_preferences`, `diab_his_nti_web_push_subs`, `diab_his_nti_vapid_keys` |
 | Portal BN | `diab_his_ptl_med_reminders` |
-| Danh mục | `diab_his_dict_icd10`, `diab_his_dict_lab_tests`, `diab_his_dict_rad_procedures`, `diab_his_ref_icd10` |
+| Danh mục | `diab_his_dict_icd10` *(chuẩn — REV-2)*, `diab_his_dict_lab_tests`, `diab_his_dict_rad_procedures`, ~~`diab_his_ref_icd10`~~ *(deprecated — REV-2)* |
 | Báo cáo | `diab_his_rep_definitions`, `diab_his_rep_dashboards`, `diab_his_rep_schedules` |
 | File | `fil_files` ⚠️ **vi phạm quy ước prefix** (tạo ở `9062`, code `FileHandlers.cs` đang dùng). Đề xuất đổi thành `diab_his_fil_files` ở migration sau — **nhưng KHÔNG làm chung với đợt sửa 5 cặp** để tách rủi ro. Baseline hiện tại giữ nguyên tên `fil_files`. |
 
 ### 5.2 Bảng LOẠI BỎ (deprecated — không đưa vào baseline mới)
 
-| Bảng | Lý do |
-|---|---|
-| `diab_his_lab_orders` | trùng `diab_his_cli_lab_orders` (mục 1.1) |
-| `diab_his_rad_orders` | trùng `diab_his_cli_rad_orders` (mục 1.2) |
-| `diab_his_pat_allergies` | trùng `diab_his_cli_allergies` (mục 1.3) |
-| `diab_his_cls_uploads` | trùng `diab_his_fil_cls_uploads` (mục 1.4) |
-| `diab_his_pha_dispenses` | trùng `diab_his_pha_dispense_records` (mục 1.5) |
+*(Danh sách REV-2 — 3 dòng đầu đã đảo chiều so với REV-1)*
+
+| Bảng | Số dòng thật | Lý do |
+|---|---|---|
+| `diab_his_cli_lab_orders` | 0 | trùng `diab_his_lab_orders` (90 dòng) — REV-2 |
+| `diab_his_cli_rad_orders` | 0 | trùng `diab_his_rad_orders` (26 dòng) — REV-2 |
+| `diab_his_cli_allergies` | 0 | trùng `diab_his_pat_allergies` (30 dòng) — REV-2 |
+| `diab_his_ref_icd10` | 98 | trùng `diab_his_dict_icd10` (15 532 mã) — REV-2 |
+| `diab_his_cls_uploads` | 0 | trùng `diab_his_fil_cls_uploads` (mục 1.4) |
+| `diab_his_pha_dispenses` | 15 | đã merge sang `diab_his_pha_dispense_records` ở `9120` |
 | `diab_his_cli_emr_contents`, `diab_his_cli_emr_content` | trùng `diab_his_enc_emr_contents` (mục 2) |
 | `diab_his_bhyt_exports`, `diab_his_bhyt_export_items`, `diab_his_bhyt_reconcile_uploads`, `diab_his_bhyt_reconcile_items` | bản trùng của `diab_his_int_bhyt_*` (mục 3) |
 | `diab_his_dict_icd10` **hoặc** `diab_his_ref_icd10` | **CHƯA QUYẾT ĐỊNH** — xem mục 6 |
@@ -278,14 +345,11 @@ VIEW tương thích (`9009`, `9022`, `9061`) và **không được dùng trong c
 
 ## 6. Việc CHƯA quyết định được (ghi rõ, không đoán)
 
-1. **`diab_his_dict_icd10` vs `diab_his_ref_icd10`** — cặp lệch thứ 7, cùng là danh mục ICD-10, cả hai
-   đều tồn tại và **cả hai đều đang được code dùng**: `dict_icd10` (seed `0018`/`0028`, `Icd10Handlers`
-   đọc `is_billable`) và `ref_icd10` (seed `9007`, dùng trong `ReportRegistry`, `ReportHandlers`).
-   Chưa chốt vì chưa biết bảng nào có bộ mã đầy đủ hơn trên production — **cần DevOps chạy
-   `SELECT COUNT(*)` trên cả hai rồi báo lại**, sau đó tôi ra ADR.
-2. **Số dòng thực tế của các bảng deprecated trên production** — không truy cập được DB từ máy này.
-   Toàn bộ kết luận ở mục 1 dựa trên migration + code, **chưa xác minh bằng dữ liệu runtime**.
-   Trước khi backend sửa code, DevOps phải cung cấp `COUNT(*)` của 5 cặp (10 bảng).
+1. ~~`dict_icd10` vs `ref_icd10`~~ — **ĐÃ CHỐT ở REV-2: `diab_his_dict_icd10`** (15 532 mã so với
+   98 mã của `ref_icd10`). `ref_icd10` chỉ là tập mẫu nhỏ; báo cáo đang tra nó nên thống kê theo
+   chẩn đoán gần như chắc chắn sai/thiếu.
+2. ~~Số dòng thực tế các bảng deprecated~~ — **ĐÃ CÓ ở REV-2** (xem bảng đầu tài liệu).
+   Còn thiếu: số dòng **theo tenant** và loại trừ `deleted_at`. Bắt buộc chạy trước khi RENAME/DROP.
 3. **Thứ tự apply migration `0xxx` vs `9xxx`** — đã xác định là nguyên nhân gốc nhưng phương án sửa
    (đổi tên file vs viết lại chain vs sinh baseline một file duy nhất) sẽ ra **ADR riêng**, chưa chốt ở đây.
 4. **Mapping FHIR R4** cho các bảng chuẩn mới — mới xác định `diab_his_cli_allergies` →
@@ -297,9 +361,10 @@ VIEW tương thích (`9009`, `9022`, `9061`) và **không được dùng trong c
 
 | Ưu tiên | Việc | Lý do |
 |---|---|---|
-| **P0** | Hợp nhất dị ứng về `diab_his_cli_allergies` | An toàn người bệnh — CDSS đang bỏ sót dị ứng |
+| **P0** | Hợp nhất dị ứng về `diab_his_pat_allergies` **(REV-2 — hướng ngược REV-1)** | An toàn người bệnh — CDSS đang bỏ sót dị ứng |
 | **P0** | Xóa 5 dòng `CREATE OR REPLACE VIEW` lỗi ở `9011` (dòng 173–176, 179) | Chặn dựng baseline (lỗi 1347) |
-| **P1** | Hợp nhất `cli_lab_orders` / `cli_rad_orders` | Sai lệch dữ liệu chỉ định ↔ kết quả ↔ báo cáo ↔ portal |
-| **P1** | DevOps cung cấp `COUNT(*)` 10 bảng + 2 bảng ICD | Đầu vào bắt buộc cho P0/P1 và mục 6.1 |
+| **P1** | Hợp nhất về `diab_his_lab_orders` / `diab_his_rad_orders` **(REV-2)** | Sai lệch chỉ định ↔ kết quả ↔ báo cáo ↔ portal |
+| ~~P1~~ | ~~DevOps cung cấp `COUNT(*)`~~ | **ĐÃ CÓ — nền tảng của REV-2** |
+| **P2** | Chuyển báo cáo từ `ref_icd10` sang `dict_icd10` | Báo cáo đang tra danh mục thiếu 99,4% mã |
 | **P2** | Sửa EF `ClsUploadConfiguration`, `PharmacyConfiguration`, xóa attribute `[Table]` ở `EmrContent.cs` | Bảng chết, rủi ro thấp nhưng gây hiểu nhầm khi đọc code |
 | **P3** | Đổi `fil_files` → `diab_his_fil_files` | Vi phạm quy ước, không gây lỗi chức năng |
