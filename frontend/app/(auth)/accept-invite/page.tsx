@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAcceptInvite } from "@/lib/hooks/use-users";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { getMyTenant } from "@/lib/api/tenants";
+import type { UserRole } from "@/lib/api/types";
 
 const schema = z
   .object({
@@ -63,19 +65,41 @@ export default function AcceptInvitePage() {
       password: data.password,
       full_name: data.full_name,
     });
-    // Auto login after accepting invite
+
+    // API kích hoạt tài khoản đã trả kèm profile thật (user.tenant_id, roles,
+    // permissions) — dùng trực tiếp, không bịa giá trị giả (id/role/tenantId/clinicId).
+    const { user } = result;
+    const roleCodes = user.roles.map((r) => r.code);
+    const primaryRole = (roleCodes[0] ?? "") as UserRole;
+
+    // Tenant = phòng khám (1 tenant = 1 clinic, hệ thống không có bảng clinic
+    // riêng) nên clinicId dùng chung giá trị tenant_id thật.
+    let clinicName = "";
+    try {
+      // Lấy tên phòng khám thật nếu tài khoản có quyền tenant.read (thường là
+      // admin đầu tiên của tenant). Best-effort — không chặn luồng kích hoạt
+      // nếu tài khoản không đủ quyền hoặc gọi API thất bại.
+      const tenant = await getMyTenant();
+      clinicName = tenant.name;
+    } catch {
+      // bỏ qua — vẫn kích hoạt tài khoản thành công dù thiếu tên phòng khám
+    }
+
     setAuth(
       {
-        id: 0,
-        email: result.user.email,
-        fullName: result.user.full_name,
-        role: "Admin",
-        tenantId: 0,
-        clinicId: 0,
-        clinicName: "",
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        role: primaryRole,
+        tenantId: user.tenant_id,
+        clinicId: user.tenant_id,
+        clinicName,
+        avatarUrl: user.avatar_url ?? undefined,
       },
       result.access_token,
-      result.refresh_token
+      result.refresh_token,
+      user.permissions,
+      roleCodes
     );
     toast.success("Kích hoạt tài khoản thành công! Chào mừng bạn.");
     router.push("/");

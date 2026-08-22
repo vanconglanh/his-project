@@ -36,7 +36,7 @@ public class UploadFileCommandHandler : IRequestHandler<UploadFileCommand, Resul
 
         using var conn = _db.CreateConnection();
         await conn.ExecuteAsync(@"
-            INSERT INTO fil_files (id, tenant_id, bucket, object_key, file_name, mime_type, file_size_bytes, category, uploaded_by, created_at, updated_at)
+            INSERT INTO diab_his_fil_files (id, tenant_id, bucket, object_key, file_name, mime_type, file_size_bytes, category, uploaded_by, created_at, updated_at)
             VALUES (@Id, @TenantId, @Bucket, @Key, @FileName, @Mime, @Size, @Category, @UploadedBy, @Now, @Now)",
             new
             {
@@ -73,7 +73,7 @@ public class GetSignedUrlQueryHandler : IRequestHandler<GetSignedUrlQuery, Resul
     {
         using var conn = _db.CreateConnection();
         var row = await conn.QueryFirstOrDefaultAsync(
-            "SELECT id, bucket, object_key, file_name, mime_type, file_size_bytes FROM fil_files WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
+            "SELECT id, bucket, object_key, file_name, mime_type, file_size_bytes FROM diab_his_fil_files WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
             new { Id = request.FileId.ToString(), TenantId = _tenant.TenantId });
 
         if (row is null)
@@ -106,7 +106,7 @@ public class DeleteFileCommandHandler : IRequestHandler<DeleteFileCommand, Resul
     {
         using var conn = _db.CreateConnection();
         var row = await conn.QueryFirstOrDefaultAsync(
-            "SELECT bucket, object_key FROM fil_files WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
+            "SELECT bucket, object_key FROM diab_his_fil_files WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
             new { Id = command.FileId.ToString(), TenantId = _tenant.TenantId });
 
         if (row is null)
@@ -114,7 +114,7 @@ public class DeleteFileCommandHandler : IRequestHandler<DeleteFileCommand, Resul
 
         await _storage.DeleteAsync((string)row.bucket, (string)row.object_key, cancellationToken);
         await conn.ExecuteAsync(
-            "UPDATE fil_files SET deleted_at=@Now WHERE id=@Id",
+            "UPDATE diab_his_fil_files SET deleted_at=@Now WHERE id=@Id",
             new { Id = command.FileId.ToString(), Now = DateTime.UtcNow });
 
         return Result<bool>.Success(true);
@@ -165,7 +165,7 @@ public class UploadClsCommandHandler : IRequestHandler<UploadClsCommand, Result<
 
         // Insert file meta
         await conn.ExecuteAsync(@"
-            INSERT INTO fil_files (id, tenant_id, bucket, object_key, file_name, mime_type, file_size_bytes, category, uploaded_by, created_at, updated_at)
+            INSERT INTO diab_his_fil_files (id, tenant_id, bucket, object_key, file_name, mime_type, file_size_bytes, category, uploaded_by, created_at, updated_at)
             VALUES (@Id, @TenantId, @Bucket, @Key, @FileName, @Mime, @Size, 'CLS', @UploadedBy, @Now, @Now)",
             new
             {

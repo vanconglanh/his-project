@@ -118,11 +118,11 @@ internal static class ReportScheduleValidation
     {
         var userId = currentUser.UserId?.ToString();
         var isOwner = userId is not null && string.Equals(existing.CreatedBy, userId, StringComparison.OrdinalIgnoreCase);
-        var isAdmin = currentUser.Roles.Any(r =>
-            r.Equals("admin", StringComparison.OrdinalIgnoreCase) ||
-            r.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) ||
-            r.Contains("Quản trị", StringComparison.OrdinalIgnoreCase) ||
-            r.Contains("Quan tri", StringComparison.OrdinalIgnoreCase));
+        // So theo MA ROLE (RoleCodes/role_code), KHONG so theo ten hien thi (Roles) — ten hien thi
+        // la free-text tenant tu dat nen co the bi gia mao (vd role CUSTOM ten "Quản trị kho").
+        var isAdmin = currentUser.RoleCodes.Any(code =>
+            code.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase) ||
+            code.Equals("ADMIN", StringComparison.OrdinalIgnoreCase));
 
         if (!isOwner && !isAdmin)
             throw new CrossTenantAccessException("REPORT_SCHEDULE_FORBIDDEN", "Chỉ chủ sở hữu hoặc quản trị viên mới được sửa/xoá lịch gửi này");

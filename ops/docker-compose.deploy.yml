@@ -94,6 +94,8 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: ${APP_PUBLIC_URL}
+        # Domain goc de ghep subdomain phong kham (man quan ly tenant: <subdomain>.${NEXT_PUBLIC_BASE_DOMAIN})
+        NEXT_PUBLIC_BASE_DOMAIN: ${NEXT_PUBLIC_BASE_DOMAIN}
     image: prodiab-his-frontend:latest
     container_name: prodiab-his-frontend
     restart: unless-stopped

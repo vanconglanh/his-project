@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as emrApi from "@/lib/api/emr";
 import type { EmrSaveRequest, SignEmrRequest, EmrTemplateRequest } from "@/lib/api/types";
+import { getErrorMessage } from "@/lib/utils/errors";
 
 export const emrKeys = {
   content: (encounterId: string) => ["emr", "content", encounterId] as const,
@@ -86,7 +87,7 @@ export function useUpdateEmrTemplate(id: string) {
       qc.invalidateQueries({ queryKey: emrKeys.templates() });
       toast.success("Cập nhật mẫu bệnh án thành công");
     },
-    onError: () => toast.error("Cập nhật mẫu bệnh án thất bại"),
+    onError: (err) => toast.error(getErrorMessage(err, "Cập nhật mẫu bệnh án thất bại")),
   });
 }
 

@@ -1,6 +1,6 @@
 namespace ProDiabHis.Domain.Entities;
 
-/// <summary>Metadata file tren MinIO. Map bang fil_files</summary>
+/// <summary>Metadata file tren MinIO. Map bang diab_his_fil_files</summary>
 public class FileMeta
 {
     public Guid Id { get; set; } = Guid.NewGuid();

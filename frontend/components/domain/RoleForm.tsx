@@ -13,14 +13,16 @@ import { usePermissions } from "@/lib/hooks/use-roles";
 import type { RoleResponse, CreateRoleRequest, UpdateRoleRequest } from "@/lib/api/types";
 
 const createSchema = z.object({
-  code: z.string().regex(/^[A-Z][A-Z0-9_]{2,30}$/, "Mã vai trò: viết hoa, gạch dưới, 3-30 ký tự"),
-  name: z.string().min(2),
+  code: z
+    .string()
+    .regex(/^[a-z][a-z0-9_]{2,30}$/, "Mã vai trò: chữ thường, gạch dưới, 3-30 ký tự"),
+  name: z.string().min(2, "Tên vai trò tối thiểu 2 ký tự"),
   description: z.string().optional(),
   permission_codes: z.array(z.string()).min(1, "Chọn ít nhất 1 quyền"),
 });
 
 const editSchema = z.object({
-  name: z.string().min(2).optional(),
+  name: z.string().min(2, "Tên vai trò tối thiểu 2 ký tự").optional(),
   description: z.string().optional(),
   permission_codes: z.array(z.string()).optional(),
 });
@@ -79,7 +81,7 @@ export function RoleForm({ formId, initialValues, isEdit, onSubmit, isLoading, h
       {!isEdit && (
         <div className="space-y-1.5">
           <Label htmlFor="role-code">Mã vai trò *</Label>
-          <Input id="role-code" placeholder="BACSI_TRUONG" {...form.register("code")} />
+          <Input id="role-code" placeholder="bac_si_truong" {...form.register("code")} />
           {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
         </div>
       )}

@@ -46,12 +46,15 @@ public class JwtService : IJwtService
         foreach (var code in roleCodes ?? Enumerable.Empty<string>())
             claims.Add(new Claim("role_code", code));
 
-        // SUPER_ADMIN / ADMIN / Quan tri vien bypass tat ca permission check
-        var isAdmin = roleList.Any(r =>
-            r.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase) ||
-            r.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) ||
-            r.Contains("Quản trị", StringComparison.OrdinalIgnoreCase) ||
-            r.Contains("Quan tri", StringComparison.OrdinalIgnoreCase));
+        // SUPER_ADMIN / ADMIN bypass tat ca permission check.
+        // QUAN TRONG: phai so sanh theo MA ROLE (role_code, on dinh, UNIQUE trong sec_roles),
+        // KHONG duoc so sanh theo TEN HIEN THI (ClaimTypes.Role / roleList) vi ten hien thi la
+        // free-text tenant tu dat (vd role CUSTOM "Quản trị kho" do 1 tenant tu tao) — neu so
+        // theo ten se bi gia mao thanh super admin va bypass RequireSuperAdminAttribute.
+        var roleCodeList = (roleCodes ?? Enumerable.Empty<string>()).ToList();
+        var isAdmin = roleCodeList.Any(code =>
+            code.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase) ||
+            code.Equals("ADMIN", StringComparison.OrdinalIgnoreCase));
         if (isAdmin)
             claims.Add(new Claim("is_super_admin", "true"));
 

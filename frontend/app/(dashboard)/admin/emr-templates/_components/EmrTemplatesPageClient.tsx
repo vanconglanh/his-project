@@ -112,17 +112,19 @@ function TemplateSection({
             <Badge variant={t.is_system ? "default" : "outline"} className="text-xs shrink-0">
               {t.is_system ? "Hệ thống" : "Tùy chỉnh"}
             </Badge>
-            <Can permission="emr_template.write">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => onEdit(t)}
-                aria-label="Sửa mẫu bệnh án"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            </Can>
+            {!t.is_system && (
+              <Can permission="emr_template.write">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => onEdit(t)}
+                  aria-label="Sửa mẫu bệnh án"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </Can>
+            )}
             {onDelete && !t.is_system && (
               <Can permission="emr_template.write">
                 <Button

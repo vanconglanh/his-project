@@ -37,7 +37,9 @@ export interface LoginResponse {
 }
 
 export interface UserProfile {
-  id: number;
+  // BE trả id là GUID (chuỗi) ở một số endpoint (vd accept-invite), và number
+  // ở endpoint khác (login) — cho phép cả 2 để không phải fake giá trị.
+  id: number | string;
   email: string;
   fullName: string;
   role: UserRole;

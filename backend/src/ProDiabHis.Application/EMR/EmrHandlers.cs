@@ -503,9 +503,11 @@ public class CreateEmrTemplateCommandHandler : IRequestHandler<CreateEmrTemplate
     private readonly IApplicationDbContext _db;
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
 
-    public CreateEmrTemplateCommandHandler(IApplicationDbContext db, ITenantProvider tenant, ICurrentUser user)
-    { _db = db; _tenant = tenant; _user = user; }
+    public CreateEmrTemplateCommandHandler(IApplicationDbContext db, ITenantProvider tenant, ICurrentUser user,
+        IAuditService audit)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; }
 
     public async Task<Result<EmrTemplateResponse>> Handle(CreateEmrTemplateCommand cmd, CancellationToken ct)
     {
@@ -523,6 +525,9 @@ public class CreateEmrTemplateCommandHandler : IRequestHandler<CreateEmrTemplate
         _db.EmrTemplates.Add(entity);
         await _db.SaveChangesAsync(ct);
 
+        await _audit.LogAsync("CREATE", "EMR_TEMPLATE", entity.Id.ToString(),
+            new { name = entity.Name, tenantId = entity.TenantId, userId = _user.UserId }, ct);
+
         return Result<EmrTemplateResponse>.Success(new EmrTemplateResponse(
             entity.Id, entity.TenantId, entity.Name, req.ContentJson, entity.Speciality,
             false, _user.UserId, entity.CreatedAt));
@@ -532,10 +537,13 @@ public class CreateEmrTemplateCommandHandler : IRequestHandler<CreateEmrTemplate
 public class UpdateEmrTemplateCommandHandler : IRequestHandler<UpdateEmrTemplateCommand, Result<bool>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ITenantProvider _tenantProvider;
     private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
 
-    public UpdateEmrTemplateCommandHandler(IApplicationDbContext db, ICurrentUser user)
-    { _db = db; _user = user; }
+    public UpdateEmrTemplateCommandHandler(IApplicationDbContext db, ITenantProvider tenantProvider,
+        ICurrentUser user, IAuditService audit)
+    { _db = db; _tenantProvider = tenantProvider; _user = user; _audit = audit; }
 
     public async Task<Result<bool>> Handle(UpdateEmrTemplateCommand cmd, CancellationToken ct)
     {
@@ -543,12 +551,49 @@ public class UpdateEmrTemplateCommandHandler : IRequestHandler<UpdateEmrTemplate
         if (entity is null)
             return Result<bool>.Failure("TEMPLATE_NOT_FOUND", "Không tìm thấy mẫu bệnh án");
 
+        // Defense-in-depth: ngoai IsSystem, chan luon truong hop tenant_id null/khac tenant hien tai
+        // (phong khi seed/migration/SQL tay tao ra hang "mo coi" tenant_id NULL + is_system = 0
+        // ma Global Query Filter van cho lot qua vi dieu kien (TenantId == null || TenantId == current)).
+        var isCrossTenantAttempt = !entity.IsSystem
+            && (entity.TenantId is null || entity.TenantId != _tenantProvider.TenantId);
+
+        if (entity.IsSystem || isCrossTenantAttempt)
+        {
+            var code    = entity.IsSystem ? "TEMPLATE_SYSTEM" : "TEMPLATE_NOT_FOUND";
+            var message = entity.IsSystem
+                ? "Không thể sửa mẫu bệnh án hệ thống"
+                : "Không tìm thấy mẫu bệnh án";
+
+            // Ghi nhan hanh vi bi tu choi (compliance CLAUDE.md: audit moi truy cap cross-tenant attempt)
+            await _audit.LogAsync(
+                "UPDATE_DENIED",
+                "EMR_TEMPLATE",
+                entity.Id.ToString(),
+                AuditSeverity.WARN,
+                crossTenantAttempt: isCrossTenantAttempt,
+                requestId: null,
+                details: new
+                {
+                    reason = entity.IsSystem ? "IS_SYSTEM" : "TENANT_MISMATCH",
+                    templateTenantId = entity.TenantId,
+                    requestTenantId = _tenantProvider.TenantId,
+                    userId = _user.UserId
+                },
+                cancellationToken: ct);
+
+            return Result<bool>.Failure(code, message);
+        }
+
         entity.Name        = cmd.Request.Name;
         entity.ContentJson = JsonSerializer.Serialize(cmd.Request.ContentJson);
         entity.Speciality  = cmd.Request.Speciality;
         entity.UpdatedBy   = _user.UserId;
 
         await _db.SaveChangesAsync(ct);
+
+        await _audit.LogAsync("UPDATE", "EMR_TEMPLATE", entity.Id.ToString(),
+            new { name = entity.Name, tenantId = entity.TenantId, userId = _user.UserId }, ct);
+
         return Result<bool>.Success(true);
     }
 }
@@ -557,9 +602,10 @@ public class DeleteEmrTemplateCommandHandler : IRequestHandler<DeleteEmrTemplate
 {
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
 
-    public DeleteEmrTemplateCommandHandler(IApplicationDbContext db, ICurrentUser user)
-    { _db = db; _user = user; }
+    public DeleteEmrTemplateCommandHandler(IApplicationDbContext db, ICurrentUser user, IAuditService audit)
+    { _db = db; _user = user; _audit = audit; }
 
     public async Task<Result<bool>> Handle(DeleteEmrTemplateCommand cmd, CancellationToken ct)
     {
@@ -572,6 +618,9 @@ public class DeleteEmrTemplateCommandHandler : IRequestHandler<DeleteEmrTemplate
         entity.DeletedAt = DateTime.UtcNow;
         entity.DeletedBy = _user.UserId;
         await _db.SaveChangesAsync(ct);
+
+        await _audit.LogAsync("DELETE", "EMR_TEMPLATE", entity.Id.ToString(),
+            new { name = entity.Name, tenantId = entity.TenantId, userId = _user.UserId }, ct);
 
         return Result<bool>.Success(true);
     }

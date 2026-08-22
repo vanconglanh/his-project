@@ -213,11 +213,17 @@ services:
   # Frontend — Next.js 15
   # -------------------------------------------------------------------
   frontend:
+    # LUU Y: NEXT_PUBLIC_* duoc Next.js bake vao bundle LUC BUILD IMAGE (CI), khong phai
+    # luc container khoi dong — cac gia tri o "environment:" ben duoi chi de tham chieu/tai
+    # lieu cho pipeline CI build image (build-arg NEXT_PUBLIC_API_BASE_URL,
+    # NEXT_PUBLIC_BASE_DOMAIN), KHONG tu dong doi hanh vi cua image da build san.
     image: ghcr.io/your-org/prodiab-frontend:${WEB_IMAGE_TAG:-latest}
     container_name: prodiab-frontend
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${API_BASE_URL}
+      # Domain goc de ghep subdomain phong kham (man quan ly tenant): <subdomain>.${NEXT_PUBLIC_BASE_DOMAIN}
+      NEXT_PUBLIC_BASE_DOMAIN: ${NEXT_PUBLIC_BASE_DOMAIN}
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
     depends_on:

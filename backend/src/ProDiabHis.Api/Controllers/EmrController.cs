@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ProDiabHis.Api.Filters;
 using ProDiabHis.Application.EMR;
@@ -126,7 +127,11 @@ public class EmrTemplatesController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] EmrTemplateRequest request, CancellationToken ct)
     {
         var result = await _mediator.Send(new UpdateEmrTemplateCommand(id, request), ct);
-        if (!result.IsSuccess) return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        if (!result.IsSuccess)
+        {
+            var code = result.ErrorCode == "TEMPLATE_SYSTEM" ? StatusCodes.Status422UnprocessableEntity : StatusCodes.Status404NotFound;
+            return StatusCode(code, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
         return Ok();
     }
 
@@ -137,7 +142,7 @@ public class EmrTemplatesController : ControllerBase
         var result = await _mediator.Send(new DeleteEmrTemplateCommand(id), ct);
         if (!result.IsSuccess)
         {
-            var code = result.ErrorCode == "TEMPLATE_SYSTEM" ? 422 : 404;
+            var code = result.ErrorCode == "TEMPLATE_SYSTEM" ? StatusCodes.Status422UnprocessableEntity : StatusCodes.Status404NotFound;
             return StatusCode(code, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
         }
         return NoContent();

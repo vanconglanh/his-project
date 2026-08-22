@@ -23,8 +23,16 @@ const schema = z.object({
   name: z.string().min(2, "Tên tối thiểu 2 ký tự"),
   contact_email: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
   scopes: z.array(z.string()).min(1, "Chọn ít nhất 1 scope"),
-  rate_limit_per_min: z.number().int().min(1).max(10000),
-  daily_quota: z.number().int().min(1).max(10_000_000),
+  rate_limit_per_min: z
+    .number()
+    .int("Rate limit phải là số nguyên")
+    .min(1, "Rate limit tối thiểu 1")
+    .max(10000, "Rate limit tối đa 10000"),
+  daily_quota: z
+    .number()
+    .int("Hạn mức / ngày phải là số nguyên")
+    .min(1, "Hạn mức / ngày tối thiểu 1")
+    .max(10_000_000, "Hạn mức / ngày tối đa 10.000.000"),
   expires_at: z.string().optional().or(z.literal("")),
 });
 

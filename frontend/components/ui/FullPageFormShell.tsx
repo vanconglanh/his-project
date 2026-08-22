@@ -36,6 +36,8 @@ export interface FullPageFormShellProps {
   submitLabel?: string;
   /** Đang submit — disable nút + đổi nhãn "Đang lưu..." */
   isSubmitting?: boolean;
+  /** Ẩn hoàn toàn nút "Lưu" (header + sticky bar) và tắt phím tắt Ctrl+S — dùng cho form chỉ xem/không thể chỉnh sửa */
+  hideSubmit?: boolean;
   children: React.ReactNode;
 }
 
@@ -47,14 +49,15 @@ export function FullPageFormShell({
   onSubmit,
   submitLabel = "Lưu",
   isSubmitting = false,
+  hideSubmit = false,
   children,
 }: FullPageFormShellProps) {
   const router = useRouter();
 
   // Giữ tham chiếu mới nhất của props hay đổi để listener keydown không cần bind lại mỗi render
-  const latest = useRef({ onSubmit, onBack, backHref, isSubmitting });
+  const latest = useRef({ onSubmit, onBack, backHref, isSubmitting, hideSubmit });
   useEffect(() => {
-    latest.current = { onSubmit, onBack, backHref, isSubmitting };
+    latest.current = { onSubmit, onBack, backHref, isSubmitting, hideSubmit };
   });
 
   const handleBack = () => {
@@ -71,10 +74,10 @@ export function FullPageFormShell({
   // Ctrl+S submit / Esc quay lại — có cleanup khi unmount
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const { onSubmit: submit, onBack: back, backHref: href, isSubmitting: submitting } = latest.current;
+      const { onSubmit: submit, onBack: back, backHref: href, isSubmitting: submitting, hideSubmit: hidden } = latest.current;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        if (!submitting) submit();
+        if (!submitting && !hidden) submit();
         return;
       }
       if (e.key === "Escape") {
@@ -137,10 +140,12 @@ export function FullPageFormShell({
             >
               Huỷ
             </Button>
-            <Button type="button" size="sm" onClick={onSubmit} disabled={isSubmitting}>
-              <Save className="h-4 w-4 mr-1" />
-              {isSubmitting ? "Đang lưu..." : submitLabel}
-            </Button>
+            {!hideSubmit && (
+              <Button type="button" size="sm" onClick={onSubmit} disabled={isSubmitting}>
+                <Save className="h-4 w-4 mr-1" />
+                {isSubmitting ? "Đang lưu..." : submitLabel}
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -151,14 +156,16 @@ export function FullPageFormShell({
           {children}
 
           {/* Sticky action bar — bám cuối vùng content, full-bleed trong container px-6 */}
-          <StickyActionBar left={<span>Ctrl+S lưu · Esc quay lại</span>}>
+          <StickyActionBar left={<span>{hideSubmit ? "Esc quay lại" : "Ctrl+S lưu · Esc quay lại"}</span>}>
             <Button type="button" variant="outline" size="sm" onClick={handleBack} disabled={isSubmitting}>
               Huỷ
             </Button>
-            <Button type="button" size="sm" onClick={onSubmit} disabled={isSubmitting}>
-              <Save className="h-4 w-4 mr-1" />
-              {isSubmitting ? "Đang lưu..." : submitLabel}
-            </Button>
+            {!hideSubmit && (
+              <Button type="button" size="sm" onClick={onSubmit} disabled={isSubmitting}>
+                <Save className="h-4 w-4 mr-1" />
+                {isSubmitting ? "Đang lưu..." : submitLabel}
+              </Button>
+            )}
           </StickyActionBar>
         </div>
       </main>

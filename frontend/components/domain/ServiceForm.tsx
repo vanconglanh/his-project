@@ -25,7 +25,7 @@ const schema = z.object({
   code: z.string().min(1, "Bắt buộc"),
   name: z.string().min(1, "Bắt buộc"),
   category: z.enum(["CONSULTATION", "PROCEDURE", "LAB", "RAD", "PHARMACY", "OTHER"]),
-  price: z.number({ message: "Nhập giá tiền" }).min(0),
+  price: z.number({ message: "Nhập giá tiền" }).min(0, "Giá tiền không được âm"),
   vat_rate: z.number().refine((v) => [0, 5, 8, 10].includes(v), "VAT không hợp lệ"),
   bhyt_code: z.string().optional().nullable(),
   bhyt_max_amount: z.number().optional().nullable(),
