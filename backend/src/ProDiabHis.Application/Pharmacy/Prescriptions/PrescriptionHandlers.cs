@@ -160,7 +160,7 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
                      i.instructions as Instructions, NULL as BatchDispensedJson
               FROM diab_his_pha_prescription_items i
               JOIN diab_his_pha_drugs d ON d.id = i.drug_id
-              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL",
+              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId",
             new { presId = pres.Id, tenantId });
 
         var itemResponses = items.Select(MapItem).ToList();
@@ -422,8 +422,11 @@ public class RemovePrescriptionItemHandler : IRequestHandler<RemovePrescriptionI
         if (status != "DRAFT")
             return Result<bool>.Failure("PRESCRIPTION_INVALID_STATE", "Chi co the xoa thuoc trong don DRAFT.");
 
+        // diab_his_pha_prescription_items khong co cot deleted_at (khong ho tro soft-delete) ->
+        // xoa cung (hard delete) thay vi UPDATE deleted_at (truoc day gay loi
+        // "Unknown column 'deleted_at' in 'field list'"). An toan vi da kiem tra status = DRAFT o tren.
         await conn.ExecuteAsync(
-            "UPDATE diab_his_pha_prescription_items SET deleted_at = NOW() WHERE id = @itemId AND tenant_id = @tenantId",
+            "DELETE FROM diab_his_pha_prescription_items WHERE id = @itemId AND tenant_id = @tenantId",
             new { itemId = cmd.ItemId.ToString(), tenantId });
 
         return Result<bool>.Success(true);
@@ -484,7 +487,7 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
             @"SELECT pi.drug_id AS DrugId, d.generic_name AS GenericName, d.atc_code AS AtcCode
               FROM diab_his_pha_prescription_items pi
               JOIN diab_his_pha_drugs d ON d.id = pi.drug_id
-              WHERE pi.prescription_id = @presId AND pi.tenant_id = @tenantId AND pi.deleted_at IS NULL",
+              WHERE pi.prescription_id = @presId AND pi.tenant_id = @tenantId",
             new { presId = presIdStr, tenantId })).ToList();
 
         var cdssCtx = new CdssEvaluationContext(
@@ -637,7 +640,7 @@ public class CheckDdiHandler : IRequestHandler<CheckDdiQuery, Result<DdiCheckRes
             @"SELECT pi.drug_id AS DrugId, d.generic_name AS GenericName, d.atc_code AS AtcCode
               FROM diab_his_pha_prescription_items pi
               JOIN diab_his_pha_drugs d ON d.id = pi.drug_id
-              WHERE pi.prescription_id = @presId AND pi.tenant_id = @tenantId AND pi.deleted_at IS NULL",
+              WHERE pi.prescription_id = @presId AND pi.tenant_id = @tenantId",
             new { presId = presIdStr, tenantId })).ToList();
 
         var cdssCtx = new CdssEvaluationContext(
@@ -751,7 +754,7 @@ public class GetPrescriptionPdfHandler : IRequestHandler<GetPrescriptionPdfQuery
                      i.duration_days as DurationDays, i.quantity as Quantity, i.instructions as Instructions
               FROM diab_his_pha_prescription_items i
               JOIN diab_his_pha_drugs d ON d.id = i.drug_id
-              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL
+              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId
               ORDER BY i.created_at",
             new { presId, tenantId });
 
@@ -854,7 +857,7 @@ public class GetPortalPrescriptionPdfHandler : IRequestHandler<GetPortalPrescrip
                      i.duration_days as DurationDays, i.quantity as Quantity, i.instructions as Instructions
               FROM diab_his_pha_prescription_items i
               JOIN diab_his_pha_drugs d ON d.id = i.drug_id
-              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL
+              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId
               ORDER BY i.created_at",
             new { presId, tenantId });
 

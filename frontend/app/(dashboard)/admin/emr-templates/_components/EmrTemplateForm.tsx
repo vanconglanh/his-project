@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { promptForSafeImageUrl } from "@/lib/tiptap-image";
 import type {
   EmrTemplateResponse,
   EmrTemplateRequest,
@@ -208,7 +209,7 @@ function TemplateEditorToolbar({ editor }: { editor: ReturnType<typeof useEditor
       </ToolbarButton>
       <ToolbarButton
         onClick={() => {
-          const url = prompt("Nhập URL ảnh:");
+          const url = promptForSafeImageUrl();
           if (url) editor.chain().focus().setImage({ src: url }).run();
         }}
         title="Chèn ảnh"

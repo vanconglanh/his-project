@@ -10,7 +10,8 @@
 | API base | `/api/v1/emr-templates` |
 | Bảng DB | `diab_his_cli_emr_templates` (PK `id` CHAR(36)) · **KHÔNG có UNIQUE** (name trùng thoải mái) |
 | Permission | Xem `emr_template.read` · Ghi `emr_template.write` |
-| ⚠️ Tình trạng | **FE chưa có form Tạo/Sửa** (nút "Tạo mẫu mới" không có onClick; không có editor); **BE có CRUD** nhưng **không validator**. UTC test chủ yếu ở **tầng API**. |
+| ⚠️ Tình trạng | ~~**FE chưa có form Tạo/Sửa** (nút "Tạo mẫu mới" không có onClick; không có editor); **BE có CRUD** nhưng **không validator**.~~ **Cập nhật 23/08/2026:** FE **ĐÃ CÓ** form Tạo/Sửa đầy đủ (Tiptap editor, xác nhận bằng browser thật — xem Defect#1); BE **ĐÃ CÓ** validator `EmrTemplateValidators.cs` trong code (chưa re-test trên staging). Phần lớn case của phiên test trước vẫn thực hiện ở **tầng API**. |
+| 📄 PRD | `docs/prd/emr-template-prd.md` — nguồn chuẩn về nghiệp vụ, AC-01…AC-05 và ma trận quyền |
 
 ## 1. Field matrix (3 tầng)
 
@@ -70,7 +71,7 @@
 
 | ID | Mức | Mô tả | Vị trí | Trạng thái (verify 23/08/2026) |
 |---|---|---|---|---|
-| #1 | **Cao** | FE thiếu toàn bộ form Tạo/Sửa: nút "Tạo mẫu mới" không có `onClick`; không editor content; không select speciality → **không tạo/sửa được qua UI** | `EmrTemplatesPageClient.tsx:27` | ✅ **ĐÃ FIX (chờ xác nhận bằng browser)** — `onClick={openCreate}` → `router.push("/admin/emr-templates/new")`; có `EmrTemplateForm.tsx`, route `new/` và `[id]/edit/`; staging trả HTTP 200; build FE đang chạy trong container đã chứa route + nhãn form. Case A02 để `保留` vì chưa click thật bằng browser |
+| #1 | ~~**Cao**~~ **ĐÓNG** | ~~FE thiếu toàn bộ form Tạo/Sửa: nút "Tạo mẫu mới" không có `onClick`; không editor content; không select speciality → **không tạo/sửa được qua UI**~~ | `EmrTemplatesPageClient.tsx:27` | ✅ **ĐÃ CÓ FORM — nhận định cũ SAI/LỖI THỜI, cập nhật 23/08/2026.** Đã xác nhận **bằng browser thật**: form Tạo/Sửa đầy đủ tại `/admin/emr-templates/new` và `/admin/emr-templates/{id}/edit` (Tiptap editor + toolbar Đậm/Nghiêng/Tiêu đề/Danh sách/Bảng/Ảnh, ô "Tên mẫu", select "Chuyên khoa áp dụng"). `EmrTemplateForm.tsx` + `new/page.tsx` + `[id]/edit/page.tsx` đều tồn tại; `onClick={openCreate}` → `router.push("/admin/emr-templates/new")`. **Không tạo ticket dựng lại form.** Xem `docs/prd/emr-template-prd.md` §11.2 |
 | #2 | **Cao** | BE không validator → name rỗng/quá dài, speciality rác đều lưu được | `EmrHandlers.cs:447+` | ❌ **CÒN NG** — `name` rỗng → 201 (C01); `speciality = XYZ123` → 201 (C04); `name` 201 ký tự và `speciality` 51 ký tự → **HTTP 500** (C02/C05). Vẫn chưa có `AbstractValidator<EmrTemplateRequest>` |
 | #3 | TB | `content_json` kiểu `object` ko kiểm null → `Serialize(null)` lưu `"null"` vào cột NOT NULL | `EmrHandlers.cs:463` | ✅ **ĐÃ CHẶN — verify 23/08/2026**: `content_json: null` và bỏ hẳn field đều trả **400** "The ContentJson field is required." Lưu ý: chặn nhờ model binding NRT của ASP.NET, **không** phải validator ứng dụng → nếu sau này đổi DTO sang `object?` thì lỗ hổng quay lại. Khuyến nghị bổ sung validator tường minh |
 | #4 | TB | speciality không enum-check ở cả 3 tầng (chỉ COMMENT) | — | ❌ **CÒN NG** — `speciality = XYZ123` lưu thành công (C04) |
@@ -94,7 +95,7 @@
 - **Tỉ lệ OK trên số case thực thi được (17 case):** 12/17 = **70,6 %** — **không đạt** ngưỡng ≥ 95 % của `utc-00-quy-uoc-chuan-nhat.md`.
 - **NG:** C01, C02, C04, C05 (đều gốc **Defect#2/#7** — BE hoàn toàn không có validator cho `EmrTemplateRequest`) và D01 (**Defect#5** — thiếu UNIQUE trên `name`).
 - **保留:** A01, A02 — case thao tác UI, phiên test này không có browser thật; đã ghi bằng chứng gián tiếp ở cột 備考.
-- **Đã đóng trong đợt này:** Defect#6 (Update mẫu hệ thống) ✅, Defect#3 (content_json null) ✅, Defect#1 (FE thiếu form) ✅ chờ xác nhận click bằng browser.
+- **Đã đóng trong đợt này:** Defect#6 (Update mẫu hệ thống) ✅, Defect#3 (content_json null) ✅, Defect#1 (FE thiếu form) ✅ — **đã xác nhận bằng browser thật ngày 23/08/2026, nhận định "FE chưa có form" là lỗi thời**.
 - **Audit log:** đầy đủ cho CREATE / UPDATE / DELETE và cả 2 nhánh từ chối `UPDATE_DENIED` / `DELETE_DENIED` (severity WARN, có cờ `cross_tenant_attempt`) — trừ trường hợp nêu ở Defect#11.
 - **Hiệu năng:** `GET /emr-templates` 133–146 ms (đo 5 lần, gồm ~45 ms TLS/kết nối) → đạt yêu cầu < 500 ms.
 - **Dọn dẹp:** 4 mẫu bệnh án và 2 row cross-tenant tạo trong phiên test đã bị xoá; staging chỉ còn 2 mẫu hệ thống gốc như trước khi test.

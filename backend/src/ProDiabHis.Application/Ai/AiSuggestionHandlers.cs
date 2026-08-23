@@ -49,7 +49,7 @@ public class GenerateTreatmentSuggestionCommandHandler
               JOIN diab_his_pha_prescription_items pi ON pi.prescription_id = p.id AND pi.tenant_id = p.tenant_id
               JOIN diab_his_pha_drugs d ON d.id = pi.drug_id
               WHERE p.tenant_id = @tenantId AND p.patient_id = @patientId AND p.deleted_at IS NULL
-                AND p.status <> 'CANCELLED' AND pi.deleted_at IS NULL
+                AND p.status <> 'CANCELLED'
                 AND LOWER(d.generic_name) LIKE '%metformin%'",
             new { tenantId, patientId }) > 0;
 

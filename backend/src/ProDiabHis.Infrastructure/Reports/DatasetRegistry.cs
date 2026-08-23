@@ -119,7 +119,8 @@ public class DatasetRegistry : IDatasetRegistry
             INNER JOIN diab_his_pha_drugs dr ON dr.id = it.drug_id AND dr.tenant_id = it.tenant_id
             LEFT JOIN diab_his_sec_users doc ON doc.id = rx.doctor_id";
 
-        const string baseWhere = "it.tenant_id = @tenantId AND it.deleted_at IS NULL AND rx.deleted_at IS NULL";
+        // Luu y: diab_his_pha_prescription_items KHONG co cot deleted_at (chi rx co) -> khong loc it.deleted_at.
+        const string baseWhere = "it.tenant_id = @tenantId AND rx.deleted_at IS NULL";
 
         var fields = new List<DatasetField>
         {

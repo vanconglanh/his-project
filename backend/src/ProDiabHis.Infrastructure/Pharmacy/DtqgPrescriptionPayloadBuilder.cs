@@ -66,7 +66,7 @@ public class DtqgPrescriptionPayloadBuilder : IDtqgPrescriptionPayloadBuilder
             "i.quantity AS Quantity, i.dosage AS Dosage, i.frequency AS Frequency, i.route AS Route, i.duration_days AS DurationDays, " +
             "d.dtqg_drug_code AS DtqgDrugCode, i.note AS Note " +
             "FROM diab_his_pha_prescription_items i LEFT JOIN diab_his_pha_drugs d ON d.id = i.drug_id " +
-            "WHERE i.prescription_id = @id AND i.tenant_id = @tenantId AND i.deleted_at IS NULL",
+            "WHERE i.prescription_id = @id AND i.tenant_id = @tenantId",
             new { id = prescriptionId, tenantId })).ToList();
 
         return MapPayload(header, patient, cardNo, diag, items);

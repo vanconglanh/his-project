@@ -83,7 +83,7 @@ public class SubmitDtqgFromPrescriptionHandler
         // Kiem tra co dong thuoc khong
         var itemCount = await conn.ExecuteScalarAsync<int>(
             @"SELECT COUNT(*) FROM diab_his_pha_prescription_items
-              WHERE prescription_id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+              WHERE prescription_id = @id AND tenant_id = @tenantId",
             new { id = presId, tenantId });
 
         if (itemCount == 0)

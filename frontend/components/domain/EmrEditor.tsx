@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useSaveEmrDraft } from "@/lib/hooks/use-emr";
+import { promptForSafeImageUrl } from "@/lib/tiptap-image";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -194,7 +195,7 @@ export function EmrEditor({ encounterId, initialContent, isSigned, onSaved, temp
           </ToolbarButton>
           <ToolbarButton
             onClick={() => {
-              const url = prompt("Nhập URL ảnh:");
+              const url = promptForSafeImageUrl();
               if (url) editor.chain().focus().setImage({ src: url }).run();
             }}
             title="Chèn ảnh"

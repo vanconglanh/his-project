@@ -2448,7 +2448,7 @@ public class ReportRegistry : IReportRegistry
                 INNER JOIN diab_his_pha_drugs d ON d.id = pi.drug_id AND d.tenant_id = pi.tenant_id
                 INNER JOIN diab_his_pha_prescriptions pr ON pr.id = pi.prescription_id AND pr.tenant_id = pi.tenant_id
                 WHERE pi.tenant_id = @tenantId
-                  AND pi.deleted_at IS NULL
+                  AND pr.deleted_at IS NULL
                   AND d.is_antibiotic = 1
                   AND pr.created_at BETWEEN @from AND @to
                 GROUP BY d.id, d.code, d.name_vi, d.name

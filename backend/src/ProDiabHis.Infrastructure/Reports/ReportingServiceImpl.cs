@@ -114,6 +114,9 @@ public class ReportingServiceImpl : IReportingService
         using var conn = _db.CreateConnection();
         // Dung bang thuc: diab_his_pha_prescription_items, diab_his_pha_drugs, diab_his_pha_prescriptions
         // diab_his_pha_prescription_items khong co unit_price -> lay sell_price tu diab_his_pha_drugs
+        // Luu y: diab_his_pha_prescription_items KHONG co cot deleted_at (chi co created_at,
+        // xoa item qua ON DELETE CASCADE tu prescription cha) -> khong duoc loc di.deleted_at,
+        // truoc day gay loi "Unknown column 'di.deleted_at' in 'where clause'".
         var sql = @"
             SELECT
                 di.drug_id                           AS DrugId,
@@ -127,7 +130,7 @@ public class ReportingServiceImpl : IReportingService
             JOIN diab_his_pha_prescriptions p ON p.id = di.prescription_id
             WHERE p.tenant_id = @tenantId
               AND DATE(p.created_at) BETWEEN @from AND @to
-              AND di.deleted_at IS NULL AND p.deleted_at IS NULL
+              AND p.deleted_at IS NULL
             GROUP BY di.drug_id, d.name_vi, d.name_en, d.generic_name
             ORDER BY QuantityDispensed DESC
             LIMIT @top";
