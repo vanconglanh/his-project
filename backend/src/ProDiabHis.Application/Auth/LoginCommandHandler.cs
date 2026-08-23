@@ -28,7 +28,10 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
 
     public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        // Tim user theo email (cross-tenant cho login)
+        // Tim user theo email (cross-tenant cho login): IgnoreQueryFilters() o day CHI de bo qua
+        // filter TenantId cua User/Role (luc login chua biet tenant cua user). KHONG duoc de no vo
+        // tinh bo qua luon filter Role.DeletedAt == null — vi vay ben duoi phai loc tuong minh lai
+        // bang tay (khong dua vao EF global filter) truoc khi dua role vao JWT.
         var user = await _db.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -49,24 +52,28 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
             return Result<LoginResponse>.Failure("AUTH_INVALID_CREDENTIALS", "Email hoac mat khau khong dung");
         }
 
-        var roles = user.UserRoles
-            .Where(ur => ur.Role != null)
+        // Chi lay UserRole tro toi Role con hieu luc (chua bi xoa mem, dang active). Loc tuong minh
+        // o day thay vi dua vao EF global query filter, vi query User o tren da IgnoreQueryFilters().
+        var activeUserRoles = user.UserRoles
+            .Where(ur => ur.Role != null && ur.Role!.DeletedAt == null && ur.Role!.IsActive)
+            .ToList();
+
+        var roles = activeUserRoles
             .Select(ur => ur.Role!.Name)
             .ToList();
 
-        var roleCodes = user.UserRoles
-            .Where(ur => ur.Role != null)
+        var roleCodes = activeUserRoles
             .Select(ur => ur.Role!.Code)
             .ToList();
 
         // Chi lay ma cua nhung role RoleType == System (role seed that) de tinh is_super_admin —
         // role CUSTOM du trung ma ADMIN/SUPER_ADMIN cung KHONG duoc tin tuong (xem JwtService).
-        var systemRoleCodes = user.UserRoles
-            .Where(ur => ur.Role != null && ur.Role!.RoleType == RoleType.System)
+        var systemRoleCodes = activeUserRoles
+            .Where(ur => ur.Role!.RoleType == RoleType.System)
             .Select(ur => ur.Role!.Code)
             .ToList();
 
-        var roleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
+        var roleIds = activeUserRoles.Select(ur => ur.RoleId).ToList();
         var permissions = await _db.RolePermissions
             .Where(rp => roleIds.Contains(rp.RoleId) && rp.Permission != null)
             .Select(rp => rp.Permission!.Code)

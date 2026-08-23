@@ -27,6 +27,9 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
 
     public async Task<Result<LoginResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
+        // IgnoreQueryFilters() o day CHI de bo qua filter TenantId cua User/Role (refresh token co the
+        // duoc goi truoc khi co tenant context ro rang trong scope hien tai). KHONG duoc de no vo tinh
+        // bo qua luon filter Role.DeletedAt == null — loc tuong minh lai ben duoi truoc khi dua vao JWT.
         var existing = await _db.RefreshTokens
             .Include(rt => rt.User)
                 .ThenInclude(u => u!.UserRoles)
@@ -41,8 +44,14 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         }
 
         var user = existing.User!;
-        var roles = user.UserRoles
-            .Where(ur => ur.Role != null)
+
+        // Chi lay UserRole tro toi Role con hieu luc (chua bi xoa mem, dang active). Loc tuong minh
+        // o day thay vi dua vao EF global query filter, vi query o tren da IgnoreQueryFilters().
+        var activeUserRoles = user.UserRoles
+            .Where(ur => ur.Role != null && ur.Role!.DeletedAt == null && ur.Role!.IsActive)
+            .ToList();
+
+        var roles = activeUserRoles
             .Select(ur => ur.Role!.Name)
             .ToList();
 
@@ -60,17 +69,17 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         };
         _db.RefreshTokens.Add(newRefreshToken);
 
-        var roleCodes = user.UserRoles.Where(ur => ur.Role != null).Select(ur => ur.Role!.Code).ToList();
+        var roleCodes = activeUserRoles.Select(ur => ur.Role!.Code).ToList();
         // Chi lay ma cua nhung role RoleType == System (role seed that) de tinh is_super_admin —
         // role CUSTOM du trung ma ADMIN/SUPER_ADMIN cung KHONG duoc tin tuong (xem JwtService).
-        var systemRoleCodes = user.UserRoles
-            .Where(ur => ur.Role != null && ur.Role!.RoleType == RoleType.System)
+        var systemRoleCodes = activeUserRoles
+            .Where(ur => ur.Role!.RoleType == RoleType.System)
             .Select(ur => ur.Role!.Code)
             .ToList();
         var newAccessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes, systemRoleCodes);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var roleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
+        var roleIds = activeUserRoles.Select(ur => ur.RoleId).ToList();
         var permissions = await _db.RolePermissions
             .Where(rp => roleIds.Contains(rp.RoleId) && rp.Permission != null)
             .Select(rp => rp.Permission!.Code)

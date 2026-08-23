@@ -52,6 +52,9 @@ public class AcceptInviteCommandHandler : IRequestHandler<AcceptInviteCommand, R
 
     public async Task<Result<AcceptInviteResponse>> Handle(AcceptInviteCommand req, CancellationToken ct)
     {
+        // IgnoreQueryFilters() o day CHI de bo qua filter TenantId cua User/Role (accept-invite duoc
+        // goi truoc khi user dang nhap, chua co tenant context). KHONG duoc de no vo tinh bo qua luon
+        // filter Role.DeletedAt == null — loc tuong minh lai ben duoi truoc khi dua vao JWT.
         var user = await _db.Users.IgnoreQueryFilters()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -78,19 +81,23 @@ public class AcceptInviteCommandHandler : IRequestHandler<AcceptInviteCommand, R
         user.InviteToken = null;
         user.InviteTokenExpiresAt = null;
 
-        var roles = user.UserRoles
-            .Where(ur => ur.Role != null)
+        // Chi lay UserRole tro toi Role con hieu luc (chua bi xoa mem, dang active). Loc tuong minh
+        // o day thay vi dua vao EF global query filter, vi query o tren da IgnoreQueryFilters().
+        var activeUserRoles = user.UserRoles
+            .Where(ur => ur.Role != null && ur.Role!.DeletedAt == null && ur.Role!.IsActive)
+            .ToList();
+
+        var roles = activeUserRoles
             .Select(ur => ur.Role!.Name)
             .ToList();
-        var roleCodes = user.UserRoles
-            .Where(ur => ur.Role != null)
+        var roleCodes = activeUserRoles
             .Select(ur => ur.Role!.Code)
             .ToList();
 
         // Chi lay ma cua nhung role RoleType == System (role seed that) de tinh is_super_admin —
         // role CUSTOM du trung ma ADMIN/SUPER_ADMIN cung KHONG duoc tin tuong (xem JwtService).
-        var systemRoleCodes = user.UserRoles
-            .Where(ur => ur.Role != null && ur.Role!.RoleType == RoleType.System)
+        var systemRoleCodes = activeUserRoles
+            .Where(ur => ur.Role!.RoleType == RoleType.System)
             .Select(ur => ur.Role!.Code)
             .ToList();
 

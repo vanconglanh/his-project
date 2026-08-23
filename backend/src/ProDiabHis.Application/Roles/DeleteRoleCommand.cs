@@ -50,11 +50,20 @@ public class DeleteRoleCommandHandler : IRequestHandler<DeleteRoleCommand, Resul
         role.DeletedBy = _currentUser.UserId;
         role.IsActive = false;
 
+        // Chu dong don dep UserRole tro toi role vua bi xoa mem, tranh de ton du khien user van
+        // duoc nap nham quyen tu role da xoa (xem RevokeRoleCommand la luoi an toan phu cho truong
+        // hop nay). Xoa cung 1 SaveChangesAsync (1 transaction) voi thao tac soft-delete role o tren.
+        var userRolesToRemove = await _db.UserRoles
+            .Where(ur => ur.RoleId == role.Id)
+            .ToListAsync(ct);
+        if (userRolesToRemove.Count > 0)
+            _db.UserRoles.RemoveRange(userRolesToRemove);
+
         await _db.SaveChangesAsync(ct);
 
         // Audit: xoa vai tro thanh cong (role la vector vua duoc va lo hong leo thang quyen)
         await _audit.LogAsync("DELETE", "ROLE", role.Id.ToString(),
-            new { code = role.Code, name = role.Name, userId = _currentUser.UserId },
+            new { code = role.Code, name = role.Name, userId = _currentUser.UserId, revokedUserRoleCount = userRolesToRemove.Count },
             ct);
 
         return Result.Success();

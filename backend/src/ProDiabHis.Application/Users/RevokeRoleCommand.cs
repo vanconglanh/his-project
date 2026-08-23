@@ -21,8 +21,13 @@ public class RevokeRoleCommandHandler : IRequestHandler<RevokeRoleCommand, Resul
 
     public async Task<Result> Handle(RevokeRoleCommand req, CancellationToken ct)
     {
+        // IgnoreQueryFilters() o day de tim duoc UserRole tro toi Role DA BI XOA MEM (Role.DeletedAt
+        // != null) — muc dich la de DON DEP (xoa UserRole thua), KHONG phai de cap quyen. Neu khong
+        // co dong nay, global query filter cua Role se loc mat navigation ur.Role khi role da bi xoa
+        // mem, khien handler tra 404 sai va Admin khong the tu don dep UserRole tro toi role da xoa.
         var userRole = await _db.UserRoles
             .Include(ur => ur.Role)
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(ur =>
                 ur.UserId == req.UserId &&
                 ur.Role != null &&
