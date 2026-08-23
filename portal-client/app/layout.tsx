@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   },
   description: "Cổng thông tin bệnh nhân — tra cứu hồ sơ, đặt lịch, kết quả khám",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

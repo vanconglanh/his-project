@@ -79,7 +79,7 @@ export default function RolesPage() {
             Sửa quyền
           </Button>
           {row.role_type === "CUSTOM" && (
-            <>
+            <Can permission="role.write">
               <Button
                 variant="ghost"
                 size="sm"
@@ -101,7 +101,7 @@ export default function RolesPage() {
               >
                 Xoá
               </Button>
-            </>
+            </Can>
           )}
         </div>
       ),
@@ -115,7 +115,7 @@ export default function RolesPage() {
         title="Vai trò & Quyền hạn"
         description="Quản lý vai trò và ma trận quyền hạn"
         actions={
-          <Can permission="admin.role_manage">
+          <Can permission="role.write">
             <Button onClick={() => router.push("/admin/roles/new")} className="min-h-[44px]">
               <Plus className="h-4 w-4 mr-2" />
               Tạo vai trò mới

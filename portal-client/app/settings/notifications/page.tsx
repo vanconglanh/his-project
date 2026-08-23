@@ -99,7 +99,7 @@ export default function NotificationSettingsPage() {
               <p className="text-lg font-semibold text-slate-900">Thông báo đẩy (push)</p>
               <p className="text-base text-slate-500">Nhắc lịch hẹn, số thứ tự, uống thuốc</p>
             </div>
-            <label className="relative inline-flex h-8 w-14 cursor-pointer items-center">
+            <label className="relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center">
               <input
                 type="checkbox"
                 className="peer sr-only"
@@ -117,7 +117,7 @@ export default function NotificationSettingsPage() {
               <p className="text-lg font-semibold text-slate-900">Thông báo email</p>
               <p className="text-base text-slate-500">Gửi thông báo qua email</p>
             </div>
-            <label className="relative inline-flex h-8 w-14 cursor-pointer items-center">
+            <label className="relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center">
               <input
                 type="checkbox"
                 className="peer sr-only"

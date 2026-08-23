@@ -1,3 +1,4 @@
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
@@ -12,6 +13,28 @@ public record UpdateRoleCommand(
     string? Description,
     IEnumerable<string>? PermissionCodes
 ) : IRequest<Result<RoleResponse>>;
+
+/// <summary>
+/// BUG-02 (Major, QC final review + tester UTC): UpdateRoleCommand truoc day khong co
+/// validator (CreateRoleCommand da co). Name/Description la optional field khi Update
+/// (client co the khong gui = giu nguyen), nhung NEU gui len thi van phai hop le, tranh
+/// vo constraint DB (name VARCHAR(100) NOT NULL, xem 9001_create_sec_all.sql) roi lot
+/// xuong thanh HTTP 500 thay vi 400 co envelope chuan.
+/// </summary>
+public class UpdateRoleCommandValidator : AbstractValidator<UpdateRoleCommand>
+{
+    public UpdateRoleCommandValidator()
+    {
+        RuleFor(x => x.Code).NotEmpty().WithMessage("Mã vai trò không được để trống");
+
+        RuleFor(x => x.Name).NotEmpty().WithMessage("Tên vai trò không được để trống")
+            .MaximumLength(100).WithMessage("Tên vai trò tối đa 100 ký tự")
+            .When(x => x.Name != null);
+
+        RuleFor(x => x.Description).MaximumLength(500).WithMessage("Mô tả vai trò tối đa 500 ký tự")
+            .When(x => x.Description != null);
+    }
+}
 
 public class UpdateRoleCommandHandler : IRequestHandler<UpdateRoleCommand, Result<RoleResponse>>
 {
@@ -54,6 +77,7 @@ public class UpdateRoleCommandHandler : IRequestHandler<UpdateRoleCommand, Resul
 
         if (req.Name != null) role.Name = req.Name;
         if (req.Description != null) role.Description = req.Description;
+        role.UpdatedBy = _user.UserId;
 
         List<string>? updatedPermCodes = null;
         if (req.PermissionCodes != null)

@@ -6,8 +6,9 @@
 # =====================================================================
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund
+COPY package.json package-lock.json ./
+# npm ci: cai dat dung khoa theo package-lock.json → build tai lap duoc (reproducible)
+RUN npm ci --no-audit --no-fund
 
 # ---------------------------------------------------------------------
 FROM node:22-alpine AS build

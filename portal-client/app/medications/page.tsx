@@ -103,7 +103,7 @@ export default function MedicationsPage() {
                         {r.doseLabel} — {r.remindTime}
                       </p>
                     </div>
-                    <label className="relative inline-flex h-8 w-14 cursor-pointer items-center">
+                    <label className="relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center">
                       <input
                         type="checkbox"
                         className="peer sr-only"

@@ -108,4 +108,41 @@ public class CreateRoleCommandTests
         await audit.DidNotReceive().LogAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
+
+    // ─── BUG-01 (Major, QC final review): tao lai role trung ma sau khi role cu cung ma
+    // da bi xoa mem phai THANH CONG (khong con vo UNIQUE constraint tang DB -> HTTP 500,
+    // xem migration 9077_fix_roles_unique_code_soft_delete.sql). Test nay xac nhan tang
+    // ung dung (check DeletedAt == null) van dung sau khi fix DB — code khong con "chiem
+    // cho vinh vien" boi role da xoa mem trung ma. ───
+    [Fact]
+    public async Task Handle_KhiRoleCuCungCodeDaXoaMem_TaoLaiThanhCong()
+    {
+        var handler = CreateHandler(out var db, out var permission, out var audit);
+
+        var deletedRole = new Role
+        {
+            Code = "QUAN_LY_KHO", Name = "Quản lý kho (bản cũ)", RoleType = RoleType.Custom,
+            TenantId = 1, IsActive = false, DeletedAt = DateTime.UtcNow.AddDays(-1)
+        };
+        db.Roles.Add(deletedRole);
+        await db.SaveChangesAsync();
+
+        var result = await handler.Handle(
+            new CreateRoleCommand("QUAN_LY_KHO", "Quản lý kho (bản mới)", "Tạo lại sau khi xóa mềm",
+                new[] { permission.Code }),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Code.Should().Be("QUAN_LY_KHO");
+
+        var roles = await db.Roles.IgnoreQueryFilters()
+            .Where(r => r.Code == "QUAN_LY_KHO").ToListAsync();
+        roles.Should().HaveCount(2);
+        var newRole = roles.Should().ContainSingle(r => r.DeletedAt == null && r.Name == "Quản lý kho (bản mới)")
+            .Subject;
+        newRole.Id.Should().NotBe(deletedRole.Id);
+
+        await audit.Received(1).LogAsync("CREATE", "ROLE", newRole.Id.ToString(),
+            Arg.Any<object>(), Arg.Any<CancellationToken>());
+    }
 }
