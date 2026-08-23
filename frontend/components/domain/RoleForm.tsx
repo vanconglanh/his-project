@@ -15,7 +15,7 @@ import type { RoleResponse, CreateRoleRequest, UpdateRoleRequest } from "@/lib/a
 const createSchema = z.object({
   code: z
     .string()
-    .regex(/^[a-z][a-z0-9_]{2,30}$/, "Mã vai trò: chữ thường, gạch dưới, 3-30 ký tự"),
+    .regex(/^[A-Z][A-Z0-9_]{2,30}$/, "Mã vai trò phải từ 3-31 ký tự, bắt đầu bằng chữ hoa, chỉ dùng chữ hoa số và dấu _"),
   name: z.string().min(2, "Tên vai trò tối thiểu 2 ký tự"),
   description: z.string().optional(),
   permission_codes: z.array(z.string()).min(1, "Chọn ít nhất 1 quyền"),
@@ -81,7 +81,7 @@ export function RoleForm({ formId, initialValues, isEdit, onSubmit, isLoading, h
       {!isEdit && (
         <div className="space-y-1.5">
           <Label htmlFor="role-code">Mã vai trò *</Label>
-          <Input id="role-code" placeholder="bac_si_truong" {...form.register("code")} />
+          <Input id="role-code" placeholder="BAC_SI_TRUONG" {...form.register("code")} />
           {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
         </div>
       )}

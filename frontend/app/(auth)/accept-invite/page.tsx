@@ -69,6 +69,7 @@ export default function AcceptInvitePage() {
     // API kích hoạt tài khoản đã trả kèm profile thật (user.tenant_id, roles,
     // permissions) — dùng trực tiếp, không bịa giá trị giả (id/role/tenantId/clinicId).
     const { user } = result;
+    const roleNames = user.roles.map((r) => r.name);
     const roleCodes = user.roles.map((r) => r.code);
     const primaryRole = (roleCodes[0] ?? "") as UserRole;
 
@@ -99,6 +100,7 @@ export default function AcceptInvitePage() {
       result.access_token,
       result.refresh_token,
       user.permissions,
+      roleNames,
       roleCodes
     );
     toast.success("Kích hoạt tài khoản thành công! Chào mừng bạn.");

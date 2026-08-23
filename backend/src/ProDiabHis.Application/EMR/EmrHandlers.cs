@@ -601,19 +601,53 @@ public class UpdateEmrTemplateCommandHandler : IRequestHandler<UpdateEmrTemplate
 public class DeleteEmrTemplateCommandHandler : IRequestHandler<DeleteEmrTemplateCommand, Result<bool>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ITenantProvider _tenantProvider;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
 
-    public DeleteEmrTemplateCommandHandler(IApplicationDbContext db, ICurrentUser user, IAuditService audit)
-    { _db = db; _user = user; _audit = audit; }
+    public DeleteEmrTemplateCommandHandler(IApplicationDbContext db, ITenantProvider tenantProvider,
+        ICurrentUser user, IAuditService audit)
+    { _db = db; _tenantProvider = tenantProvider; _user = user; _audit = audit; }
 
     public async Task<Result<bool>> Handle(DeleteEmrTemplateCommand cmd, CancellationToken ct)
     {
         var entity = await _db.EmrTemplates.FirstOrDefaultAsync(e => e.Id == cmd.TemplateId, ct);
         if (entity is null)
             return Result<bool>.Failure("TEMPLATE_NOT_FOUND", "Không tìm thấy mẫu bệnh án");
-        if (entity.IsSystem)
-            return Result<bool>.Failure("TEMPLATE_SYSTEM", "Không thể xóa mẫu bệnh án hệ thống");
+
+        // Defense-in-depth: doi xung voi Update — ngoai IsSystem, chan luon truong hop
+        // tenant_id null/khac tenant hien tai (phong khi seed/migration/SQL tay tao ra
+        // hang "mo coi" tenant_id NULL + is_system = 0 ma Global Query Filter van cho
+        // lot qua vi dieu kien (TenantId == null || TenantId == current)).
+        var isCrossTenantAttempt = !entity.IsSystem
+            && (entity.TenantId is null || entity.TenantId != _tenantProvider.TenantId);
+
+        if (entity.IsSystem || isCrossTenantAttempt)
+        {
+            var code    = entity.IsSystem ? "TEMPLATE_SYSTEM" : "TEMPLATE_NOT_FOUND";
+            var message = entity.IsSystem
+                ? "Không thể xóa mẫu bệnh án hệ thống"
+                : "Không tìm thấy mẫu bệnh án";
+
+            // Ghi nhan hanh vi bi tu choi (compliance CLAUDE.md: audit moi truy cap cross-tenant attempt)
+            await _audit.LogAsync(
+                "DELETE_DENIED",
+                "EMR_TEMPLATE",
+                entity.Id.ToString(),
+                AuditSeverity.WARN,
+                crossTenantAttempt: isCrossTenantAttempt,
+                requestId: null,
+                details: new
+                {
+                    reason = entity.IsSystem ? "IS_SYSTEM" : "TENANT_MISMATCH",
+                    templateTenantId = entity.TenantId,
+                    requestTenantId = _tenantProvider.TenantId,
+                    userId = _user.UserId
+                },
+                cancellationToken: ct);
+
+            return Result<bool>.Failure(code, message);
+        }
 
         entity.DeletedAt = DateTime.UtcNow;
         entity.DeletedBy = _user.UserId;

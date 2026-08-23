@@ -8,7 +8,10 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   permissions: string[];
+  /** Tên hiển thị vai trò (vd "Quản trị viên") — CHỈ dùng để hiển thị lên UI, KHÔNG dùng để tính quyền */
   roles: string[];
+  /** Mã vai trò ổn định (vd "ADMIN") — nguồn duy nhất cho logic phân quyền/super-admin */
+  roleCodes: string[];
 }
 
 interface AuthActions {
@@ -17,7 +20,8 @@ interface AuthActions {
     accessToken: string,
     refreshToken: string,
     permissions?: string[],
-    roles?: string[]
+    roles?: string[],
+    roleCodes?: string[]
   ) => void;
   clearAuth: () => void;
   updateTokens: (accessToken: string, refreshToken: string) => void;
@@ -32,9 +36,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       isAuthenticated: false,
       permissions: [],
       roles: [],
+      roleCodes: [],
 
-      setAuth: (user, accessToken, refreshToken, permissions = [], roles = []) =>
-        set({ user, accessToken, refreshToken, isAuthenticated: true, permissions, roles }),
+      setAuth: (user, accessToken, refreshToken, permissions = [], roles = [], roleCodes = []) =>
+        set({ user, accessToken, refreshToken, isAuthenticated: true, permissions, roles, roleCodes }),
 
       clearAuth: () =>
         set({
@@ -44,6 +49,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           isAuthenticated: false,
           permissions: [],
           roles: [],
+          roleCodes: [],
         }),
 
       updateTokens: (accessToken, refreshToken) =>
@@ -58,6 +64,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         isAuthenticated: state.isAuthenticated,
         permissions: state.permissions,
         roles: state.roles,
+        roleCodes: state.roleCodes,
       }),
     }
   )

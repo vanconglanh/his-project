@@ -178,10 +178,14 @@ public class EmrHandlersTests
             Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task DeleteEmrTemplate_SystemTemplate_ReturnsFailure()
+    // ─── Đối xứng với Update: mẫu hệ thống (tenant_id = NULL) phải bị chặn khi Delete
+    // dù test giả lập tenant nào, và hành vi bị từ chối phải được audit DELETE_DENIED ───
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task DeleteEmrTemplate_SystemTemplate_ReturnsFailure_RegardlessOfTenant(int tenantId)
     {
-        using var db = TestDbContextFactory.Create(tenantId: 1);
+        using var db = TestDbContextFactory.Create(tenantId: tenantId);
         var tplId = Guid.NewGuid();
         db.EmrTemplates.Add(new EmrTemplate
         {
@@ -190,13 +194,21 @@ public class EmrHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new DeleteEmrTemplateCommandHandler(db, _user, _audit);
+        var tenantProvider = new FakeTenantProvider(tenantId);
+        var handler = new DeleteEmrTemplateCommandHandler(db, tenantProvider, _user, _audit);
         var result = await handler.Handle(new DeleteEmrTemplateCommand(tplId), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
         result.ErrorCode.Should().Be("TEMPLATE_SYSTEM");
-        await _audit.DidNotReceive().LogAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<object>(), Arg.Any<CancellationToken>());
+        result.ErrorMessage.Should().Be("Không thể xóa mẫu bệnh án hệ thống");
+
+        // Đảm bảo mẫu KHÔNG bị xóa
+        var unchanged = await db.EmrTemplates.IgnoreQueryFilters().FirstAsync(e => e.Id == tplId);
+        unchanged.DeletedAt.Should().BeNull();
+
+        // Hành vi bị từ chối vẫn phải được audit (đối xứng với UPDATE_DENIED của Update)
+        await _audit.Received(1).LogAsync("DELETE_DENIED", "EMR_TEMPLATE", tplId.ToString(),
+            AuditSeverity.WARN, false, Arg.Any<string?>(), Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
 
     // ─── Delete mẫu thường ghi audit log đúng 1 lần ───
@@ -212,12 +224,70 @@ public class EmrHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new DeleteEmrTemplateCommandHandler(db, _user, _audit);
+        var handler = new DeleteEmrTemplateCommandHandler(db, _tenant, _user, _audit);
         var result = await handler.Handle(new DeleteEmrTemplateCommand(tplId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         await _audit.Received(1).LogAsync("DELETE", "EMR_TEMPLATE", tplId.ToString(),
             Arg.Any<object>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─── Đối xứng với Update: tenant khác không xóa được mẫu THƯỜNG (is_system=false)
+    // của tenant khác. EF Core Global Query Filter đã loại bản ghi tenant_id=1 ra khỏi
+    // kết quả truy vấn khi current tenant = 2, nên handler rơi vào nhánh "entity is null"
+    // -> TEMPLATE_NOT_FOUND, guard cross-tenant không có cơ hội chạy tới ───
+    [Fact]
+    public async Task DeleteEmrTemplate_NormalTemplate_OtherTenant_ReturnsNotFound()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 2);
+        var tplId = Guid.NewGuid();
+        db.EmrTemplates.Add(new EmrTemplate
+        {
+            Id = tplId, TenantId = 1, Name = "Mẫu riêng tenant 1",
+            ContentJson = "{}", Speciality = "GENERAL", IsSystem = false
+        });
+        await db.SaveChangesAsync();
+
+        var tenantProvider = new FakeTenantProvider(2);
+        var handler = new DeleteEmrTemplateCommandHandler(db, tenantProvider, _user, _audit);
+        var result = await handler.Handle(new DeleteEmrTemplateCommand(tplId), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("TEMPLATE_NOT_FOUND");
+
+        // Đảm bảo mẫu KHÔNG bị xóa
+        var unchanged = await db.EmrTemplates.IgnoreQueryFilters().FirstAsync(e => e.Id == tplId);
+        unchanged.DeletedAt.Should().BeNull();
+    }
+
+    // ─── Defense-in-depth đối xứng với Update: hàng "mồ côi" tenant_id = NULL nhưng
+    // is_system = false (dữ liệu bẩn tạo bởi seed/migration/SQL tay) — Global Query Filter
+    // vẫn cho lọt (TenantId == null || TenantId == current) nên entity KHÔNG null; guard
+    // (TenantId is null) phải tự chặn khi Delete, không được chỉ dựa vào IsSystem ───
+    [Fact]
+    public async Task DeleteEmrTemplate_OrphanTenantNullNotSystem_ReturnsFailure_DoesNotDelete()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var tplId = Guid.NewGuid();
+        db.EmrTemplates.Add(new EmrTemplate
+        {
+            Id = tplId, TenantId = null, Name = "Mẫu mồ côi (dữ liệu bẩn)",
+            ContentJson = "{}", Speciality = "GENERAL", IsSystem = false
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new DeleteEmrTemplateCommandHandler(db, _tenant, _user, _audit);
+        var result = await handler.Handle(new DeleteEmrTemplateCommand(tplId), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("TEMPLATE_NOT_FOUND");
+
+        var unchanged = await db.EmrTemplates.IgnoreQueryFilters().FirstAsync(e => e.Id == tplId);
+        unchanged.Name.Should().Be("Mẫu mồ côi (dữ liệu bẩn)");
+        unchanged.DeletedAt.Should().BeNull();
+
+        await _audit.Received(1).LogAsync("DELETE_DENIED", "EMR_TEMPLATE", tplId.ToString(),
+            AuditSeverity.WARN, true, Arg.Any<string?>(), Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
 
     // ─── BUG-01/02: Update mẫu hệ thống (tenant_id = NULL) phải bị chặn dù test giả lập tenant nào ───

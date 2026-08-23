@@ -12,16 +12,20 @@ export function useAuth() {
 
   async function login(payload: LoginRequest) {
     const response = await apiLogin(payload);
-    // BE trả roles + roleCodes lồng trong user object. Gộp cả 2 để hook usePermissions check linh hoạt.
+    // BE trả roles (tên hiển thị) + roleCodes (mã ổn định) lồng trong user object.
+    // KHÔNG gộp chung 2 mảng: roles chỉ dùng để HIỂN THỊ lên UI, roleCodes là nguồn
+    // DUY NHẤT cho logic phân quyền/super-admin (usePermissions) — nếu gộp, tenant
+    // tạo role có tên hiển thị trùng "Admin" sẽ bị FE nhầm là super admin dù BE đã
+    // chặn đúng (menu quản trị hiện ra rồi bấm vào lỗi 403).
     const userRoles = (response.user?.roles ?? []) as string[];
     const userRoleCodes = (response.user?.roleCodes ?? []) as string[];
-    const allRoles = [...userRoles, ...userRoleCodes];
     setAuth(
       response.user,
       response.accessToken,
       response.refreshToken,
       response.permissions ?? [],
-      allRoles
+      userRoles,
+      userRoleCodes
     );
     return response;
   }

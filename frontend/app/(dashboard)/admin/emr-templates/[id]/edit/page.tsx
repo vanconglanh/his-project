@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { FullPageFormShell } from "@/components/ui/FullPageFormShell";
 import { FormSkeleton } from "@/components/ui/PageSkeleton";
 import { EmrTemplateForm } from "../../_components/EmrTemplateForm";
@@ -38,8 +39,12 @@ export default function EditEmrTemplatePage({
           Không tải được mẫu bệnh án. Vui lòng thử lại.
         </div>
       ) : isSystemTemplate ? (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-6 text-center text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-          Đây là mẫu bệnh án hệ thống và không thể chỉnh sửa. Vui lòng tạo mẫu tùy chỉnh mới nếu cần thay đổi nội dung.
+        <div
+          role="alert"
+          className="flex flex-col items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-6 text-center text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+        >
+          <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>Đây là mẫu bệnh án hệ thống và không thể chỉnh sửa. Vui lòng tạo mẫu tùy chỉnh mới nếu cần thay đổi nội dung.</span>
         </div>
       ) : (
         <EmrTemplateForm

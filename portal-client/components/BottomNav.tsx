@@ -24,7 +24,7 @@ export function BottomNav() {
     >
       <ul className="mx-auto grid max-w-lg grid-cols-5">
         {TABS.map(({ href, label, Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <li key={href}>
               <Link
