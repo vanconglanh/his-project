@@ -59,6 +59,13 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
             .Select(ur => ur.Role!.Code)
             .ToList();
 
+        // Chi lay ma cua nhung role RoleType == System (role seed that) de tinh is_super_admin —
+        // role CUSTOM du trung ma ADMIN/SUPER_ADMIN cung KHONG duoc tin tuong (xem JwtService).
+        var systemRoleCodes = user.UserRoles
+            .Where(ur => ur.Role != null && ur.Role!.RoleType == RoleType.System)
+            .Select(ur => ur.Role!.Code)
+            .ToList();
+
         var roleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
         var permissions = await _db.RolePermissions
             .Where(rp => roleIds.Contains(rp.RoleId) && rp.Permission != null)
@@ -66,7 +73,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var accessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes);
+        var accessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes, systemRoleCodes);
         var refreshTokenValue = _jwtService.GenerateRefreshToken();
 
         var refreshToken = new RefreshToken

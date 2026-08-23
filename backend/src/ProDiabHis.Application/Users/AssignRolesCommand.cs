@@ -39,6 +39,17 @@ public class AssignRolesCommandHandler : IRequestHandler<AssignRolesCommand, Res
         if (roles.Count != roleCodes.Count)
             return Result<UserResponse>.Failure("ROLE_NOT_FOUND", "Một hoặc nhiều vai trò không tồn tại");
 
+        // Chan gan nham role CUSTOM cua tenant khac: vi Code la unique TOAN CUC va query o tren dung
+        // IgnoreQueryFilters (can de tim ca role SYSTEM dung chung), 1 tenant co the do duoc/gan duoc
+        // role CUSTOM cua tenant khac neu biet dung ma. Chi cho phep gan role SYSTEM (dung chung moi
+        // tenant) hoac role CUSTOM thuoc DUNG tenant hien tai.
+        var foreignRole = roles.FirstOrDefault(r =>
+            r.RoleType != RoleType.System && r.TenantId != _tenantProvider.TenantId);
+        if (foreignRole is not null)
+            return Result<UserResponse>.Failure(
+                "ROLE_TENANT_MISMATCH",
+                "Không thể gán vai trò không thuộc phòng khám hiện tại");
+
         foreach (var role in roles)
         {
             if (!user.UserRoles.Any(ur => ur.RoleId == role.Id))

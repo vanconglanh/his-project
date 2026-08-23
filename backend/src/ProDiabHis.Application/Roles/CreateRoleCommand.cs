@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Domain.Common;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Roles;
@@ -39,6 +40,13 @@ public class CreateRoleCommandHandler : IRequestHandler<CreateRoleCommand, Resul
 
     public async Task<Result<RoleResponse>> Handle(CreateRoleCommand req, CancellationToken ct)
     {
+        // Chan tu goc: khong cho tenant tu tao role CUSTOM voi ma trung role he thong (ADMIN,
+        // SUPER_ADMIN...) — neu khong se bi loi dung de gia mao super admin (xem JwtService).
+        if (ReservedRoleCodes.IsReserved(req.Code))
+            return Result<RoleResponse>.Failure(
+                "ROLE_CODE_RESERVED",
+                "Mã vai trò này được dành riêng cho vai trò hệ thống, không thể sử dụng để tạo vai trò tùy chỉnh");
+
         var codeExists = await _db.Roles.IgnoreQueryFilters()
             .AnyAsync(r => r.Code == req.Code && r.DeletedAt == null, ct);
         if (codeExists)

@@ -87,7 +87,14 @@ public class AcceptInviteCommandHandler : IRequestHandler<AcceptInviteCommand, R
             .Select(ur => ur.Role!.Code)
             .ToList();
 
-        var accessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes);
+        // Chi lay ma cua nhung role RoleType == System (role seed that) de tinh is_super_admin —
+        // role CUSTOM du trung ma ADMIN/SUPER_ADMIN cung KHONG duoc tin tuong (xem JwtService).
+        var systemRoleCodes = user.UserRoles
+            .Where(ur => ur.Role != null && ur.Role!.RoleType == RoleType.System)
+            .Select(ur => ur.Role!.Code)
+            .ToList();
+
+        var accessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes, systemRoleCodes);
         var refreshTokenValue = _jwtService.GenerateRefreshToken();
 
         _db.RefreshTokens.Add(new RefreshToken

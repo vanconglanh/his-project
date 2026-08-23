@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using ProDiabHis.Application.Auth;
+using ProDiabHis.Domain.Common;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Infrastructure.Auth;
@@ -18,7 +19,11 @@ public class JwtService : IJwtService
         _configuration = configuration;
     }
 
-    public string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null)
+    public string GenerateAccessToken(
+        User user,
+        IEnumerable<string> roles,
+        IEnumerable<string>? roleCodes = null,
+        IEnumerable<string>? systemRoleCodes = null)
     {
         var secret = _configuration["JWT__SECRET"]
             ?? _configuration["Jwt:Secret"]
@@ -51,10 +56,14 @@ public class JwtService : IJwtService
         // KHONG duoc so sanh theo TEN HIEN THI (ClaimTypes.Role / roleList) vi ten hien thi la
         // free-text tenant tu dat (vd role CUSTOM "Quản trị kho" do 1 tenant tu tao) — neu so
         // theo ten se bi gia mao thanh super admin va bypass RequireSuperAdminAttribute.
-        var roleCodeList = (roleCodes ?? Enumerable.Empty<string>()).ToList();
-        var isAdmin = roleCodeList.Any(code =>
-            code.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase) ||
-            code.Equals("ADMIN", StringComparison.OrdinalIgnoreCase));
+        //
+        // QUAN TRONG (fix lo hong leo thang dac quyen): CUNG KHONG duoc chi dua vao role_code —
+        // mot tenant thuong (co quyen role.write + user.assign_role) co the tu tao role CUSTOM voi
+        // Code = "SUPER_ADMIN"/"ADMIN" roi tu gan cho chinh minh. Vi vay o day BAT BUOC phai dung
+        // systemRoleCodes (chi chua ma cua nhung role co RoleType == System that su, khong ai tao
+        // duoc qua API tao role) — KHONG duoc dung roleCodes (chua ca ma cua role CUSTOM).
+        var systemRoleCodeList = (systemRoleCodes ?? Enumerable.Empty<string>()).ToList();
+        var isAdmin = systemRoleCodeList.Any(ReservedRoleCodes.IsReserved);
         if (isAdmin)
             claims.Add(new Claim("is_super_admin", "true"));
 

@@ -9,11 +9,16 @@ using Xunit;
 namespace ProDiabHis.UnitTests.Auth;
 
 /// <summary>
-/// Regression test cho lo hong bao mat: claim "is_super_admin" tung duoc gan bang cach so
-/// TEN HIEN THI vai tro (vd r.Contains("Quản trị")) thay vi so MA VAI TRO (role_code). Ten hien
-/// thi la free-text 1 tenant co the tu dat cho role CUSTOM (vd "Quản trị kho"), nen so theo ten
-/// se cho phep user thuong gia mao thanh super admin va bypass RequireSuperAdminAttribute.
-/// JwtService phai CHI dua vao tham so roleCodes (Role.Code, on dinh, UNIQUE trong sec_roles).
+/// Regression test cho 2 lo hong bao mat lien quan claim "is_super_admin":
+///  1) (Da fix truoc do) Tung gan bang cach so TEN HIEN THI vai tro (vd r.Contains("Quản trị"))
+///     thay vi so MA VAI TRO (role_code). Ten hien thi la free-text 1 tenant co the tu dat cho
+///     role CUSTOM (vd "Quản trị kho"), nen so theo ten se cho phep gia mao super admin.
+///  2) (Critical - QC phat hien tren staging) Tung chi so theo role_code MA KHONG PHAN BIET
+///     RoleType — 1 tenant thuong (co quyen role.write + user.assign_role) tu tao role CUSTOM voi
+///     Code = "SUPER_ADMIN" roi tu gan cho chinh minh se duoc cap is_super_admin=true khi dang
+///     nhap lai. JwtService BAT BUOC phai dua vao tham so systemRoleCodes (chi chua ma cua role
+///     co RoleType == System that su, khong ai tao duoc qua API tao role) — KHONG duoc suy tu
+///     roleCodes (co the chua ca ma cua role CUSTOM).
 /// </summary>
 public class JwtServiceTests
 {
@@ -47,28 +52,31 @@ public class JwtServiceTests
     }
 
     [Fact]
-    public void GenerateAccessToken_KhiRoleCodeLaADMIN_PhaiCoClaimIsSuperAdminTrue()
+    public void GenerateAccessToken_KhiRoleCodeLaADMINVaLaRoleHeThong_PhaiCoClaimIsSuperAdminTrue()
     {
-        // Arrange: user that su la ADMIN (ma role he thong, seed trong sec_roles)
+        // Arrange: user that su la ADMIN (ma role he thong, seed trong sec_roles -> RoleType = System)
         var user = CreateUser();
         var roles = new[] { "Quản trị hệ thống" };
         var roleCodes = new[] { "ADMIN" };
+        var systemRoleCodes = new[] { "ADMIN" };
 
         // Act
-        var jwt = _service.GenerateAccessToken(user, roles, roleCodes);
+        var jwt = _service.GenerateAccessToken(user, roles, roleCodes, systemRoleCodes);
 
         // Assert
         GetIsSuperAdminClaim(jwt).Should().BeTrue();
     }
 
     [Fact]
-    public void GenerateAccessToken_KhiRoleCodeLaSUPER_ADMIN_PhaiCoClaimIsSuperAdminTrue()
+    public void GenerateAccessToken_KhiRoleCodeLaSUPER_ADMINVaLaRoleHeThong_PhaiCoClaimIsSuperAdminTrue()
     {
+        // Regression: role SYSTEM dung ma van phai duoc cap super admin binh thuong
         var user = CreateUser();
         var roles = new[] { "Super Admin nen tang" };
         var roleCodes = new[] { "SUPER_ADMIN" };
+        var systemRoleCodes = new[] { "SUPER_ADMIN" };
 
-        var jwt = _service.GenerateAccessToken(user, roles, roleCodes);
+        var jwt = _service.GenerateAccessToken(user, roles, roleCodes, systemRoleCodes);
 
         GetIsSuperAdminClaim(jwt).Should().BeTrue();
     }
@@ -86,6 +94,23 @@ public class JwtServiceTests
         var jwt = _service.GenerateAccessToken(user, roles, roleCodes);
 
         // Assert: KHONG duoc bypass RequireSuperAdminAttribute
+        GetIsSuperAdminClaim(jwt).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GenerateAccessToken_KhiRoleCUSTOMCoMaTrungSUPER_ADMIN_PhaiCoClaimIsSuperAdminFalse()
+    {
+        // Regression cho lo hong Critical QC phat hien tren staging: tenant thuong tu tao role
+        // CUSTOM voi Code = "SUPER_ADMIN" (RoleType = Custom, khong phai role seed he thong) roi tu
+        // gan cho chinh minh. roleCodes chua "SUPER_ADMIN" (dung de hien thi/role_code claim) nhung
+        // systemRoleCodes KHONG chua no (vi role nay la CUSTOM) -> KHONG duoc cap is_super_admin.
+        var user = CreateUser();
+        var roles = new[] { "SUPER_ADMIN" };
+        var roleCodes = new[] { "SUPER_ADMIN" };
+        IEnumerable<string>? systemRoleCodes = Array.Empty<string>(); // role la CUSTOM -> khong nam trong systemRoleCodes
+
+        var jwt = _service.GenerateAccessToken(user, roles, roleCodes, systemRoleCodes);
+
         GetIsSuperAdminClaim(jwt).Should().BeFalse();
     }
 
@@ -109,6 +134,20 @@ public class JwtServiceTests
         var roles = new[] { "Quản trị hệ thống" };
 
         var jwt = _service.GenerateAccessToken(user, roles, roleCodes: null);
+
+        GetIsSuperAdminClaim(jwt).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GenerateAccessToken_KhiTruyenRoleCodesNhungKhongTruyenSystemRoleCodes_PhaiCoClaimIsSuperAdminFalse()
+    {
+        // roleCodes co ADMIN nhung systemRoleCodes khong truyen (null, mac dinh) -> khong duoc suy
+        // luan tu roleCodes, phai coi nhu khong co role he thong nao -> false.
+        var user = CreateUser();
+        var roles = new[] { "Quản trị hệ thống" };
+        var roleCodes = new[] { "ADMIN" };
+
+        var jwt = _service.GenerateAccessToken(user, roles, roleCodes, systemRoleCodes: null);
 
         GetIsSuperAdminClaim(jwt).Should().BeFalse();
     }
