@@ -50,7 +50,10 @@ public class DtqgSubmitRetryJob
 
         _logger.LogInformation("DtqgSubmitRetryJob: retrying submission {Id} (attempt {Attempt})", submissionId, retryCount + 1);
 
-        var payload = new DtqgSubmitPayload((int)sub.tenant_id, (int)sub.prescription_id, "", "", new { });
+        // Ghi chu: sub.prescription_id la CHAR(36) (GUID), khong phai INT — khong ep kieu (int).
+        // DtqgSubmitPayload.PrescriptionId (int) chi la truong lich su, khong dinh danh don thuoc that -> truyen 0.
+        string presIdStr = (string)sub.prescription_id;
+        var payload = new DtqgSubmitPayload((int)sub.tenant_id, 0, "", "", new { });
         var result = await _dtqgClient.SubmitPrescriptionAsync(payload, CancellationToken.None);
 
         if (result.Success && result.MaDonThuoc?.Length == 14)
@@ -59,9 +62,11 @@ public class DtqgSubmitRetryJob
                 "UPDATE diab_his_int_dtqg_submissions SET status = 'ACCEPTED', ma_don_thuoc = @code, accepted_at = NOW(), retry_count = @rc, updated_at = NOW() WHERE id = @id",
                 new { code = result.MaDonThuoc, rc = retryCount + 1, id = submissionId });
 
+            // pha_prescriptions (view -> diab_his_pha_prescriptions) KHONG co cot dtqg_status; trang thai
+            // da day duoc suy ra tu dtqg_pushed_at IS NOT NULL.
             await conn.ExecuteAsync(
-                "UPDATE pha_prescriptions SET dtqg_code = @code, dtqg_status = 'ACCEPTED', status = 'SUBMITTED_DTQG', UPDATED_AT = NOW() WHERE ID = @presId",
-                new { code = result.MaDonThuoc, presId = (int)sub.prescription_id });
+                "UPDATE pha_prescriptions SET dtqg_code = @code, dtqg_pushed_at = NOW(), status = 'SUBMITTED_DTQG', UPDATED_AT = NOW() WHERE ID = @presId",
+                new { code = result.MaDonThuoc, presId = presIdStr });
 
             _logger.LogInformation("DtqgSubmitRetryJob: submission {Id} accepted, ma_don_thuoc={Code}", submissionId, result.MaDonThuoc);
         }

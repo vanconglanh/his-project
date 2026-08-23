@@ -2,7 +2,7 @@ namespace ProDiabHis.Application.Pharmacy.Dtqg;
 
 public record DtqgSubmissionResponse(
     Guid Id,
-    int PrescriptionId,
+    Guid PrescriptionId,
     string? MaDonThuoc,
     string? QrPayload,
     string? QrImageUrl,

@@ -37,8 +37,10 @@ public class SubmitDtqgHandler : IRequestHandler<SubmitDtqgCommand, Result<DtqgS
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
 
+        // Ghi chu: pha_prescriptions (view -> diab_his_pha_prescriptions) KHONG co cot dtqg_status.
+        // Trang thai da day ĐTQG duoc suy ra tu dtqg_pushed_at IS NOT NULL / dtqg_code.
         var pres = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT ID, status, dtqg_code, dtqg_status FROM pha_prescriptions WHERE ID = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+            "SELECT ID, status, dtqg_code, dtqg_pushed_at FROM pha_prescriptions WHERE ID = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
             new { id = cmd.PrescriptionId.ToString(), tenantId });
 
         if (pres == null)
@@ -61,14 +63,18 @@ public class SubmitDtqgHandler : IRequestHandler<SubmitDtqgCommand, Result<DtqgS
             return Result<DtqgSubmissionResponse>.Failure("DTQG_CSKCB_NOT_REGISTERED", "Phong kham chua dang ky tich hop DTQG.");
 
         // Create submission record
+        // Ghi chu: pres.ID / diab_his_int_dtqg_submissions.prescription_id la CHAR(36) (GUID),
+        // KHONG phai INT — khong duoc ep kieu (int) (truoc day gay RuntimeBinderException / InvalidCastException).
+        string presIdStr = (string)pres.ID;
         var submissionId = Guid.NewGuid().ToString();
         await conn.ExecuteAsync(
             @"INSERT INTO diab_his_int_dtqg_submissions (id, tenant_id, prescription_id, status, retry_count, created_at, updated_at)
               VALUES (@id, @tenantId, @presId, 'PENDING', 0, NOW(), NOW())",
-            new { id = submissionId, tenantId, presId = (int)pres.ID });
+            new { id = submissionId, tenantId, presId = presIdStr });
 
-        // Submit to DTQG
-        var payload = new DtqgSubmitPayload(tenantId, (int)pres.ID, creds.cskcb_id, creds.partner_code, new { });
+        // Submit to DTQG. DtqgSubmitPayload.PrescriptionId (int) chi la truong lich su cho client cu,
+        // khong dung de dinh danh don thuoc that (giong pattern cua SubmitDtqgFromPrescriptionHandler) -> truyen 0.
+        var payload = new DtqgSubmitPayload(tenantId, 0, creds.cskcb_id, creds.partner_code, new { });
         var submitResult = await _dtqgClient.SubmitPrescriptionAsync(payload, ct);
 
         if (submitResult.Success && submitResult.MaDonThuoc?.Length == 14)
@@ -80,8 +86,8 @@ public class SubmitDtqgHandler : IRequestHandler<SubmitDtqgCommand, Result<DtqgS
                 new { maDonThuoc = submitResult.MaDonThuoc, id = submissionId });
 
             await conn.ExecuteAsync(
-                "UPDATE pha_prescriptions SET dtqg_code = @code, dtqg_status = 'ACCEPTED', status = 'SUBMITTED_DTQG', UPDATED_AT = NOW() WHERE ID = @presId AND tenant_id = @tenantId",
-                new { code = submitResult.MaDonThuoc, presId = (int)pres.ID, tenantId });
+                "UPDATE pha_prescriptions SET dtqg_code = @code, dtqg_pushed_at = NOW(), status = 'SUBMITTED_DTQG', UPDATED_AT = NOW() WHERE ID = @presId AND tenant_id = @tenantId",
+                new { code = submitResult.MaDonThuoc, presId = presIdStr, tenantId });
 
             var sub = await GetSubmissionById(conn, submissionId);
             return Result<DtqgSubmissionResponse>.Success(sub);
@@ -108,9 +114,13 @@ public class SubmitDtqgHandler : IRequestHandler<SubmitDtqgCommand, Result<DtqgS
         return MapSubmission(row);
     }
 
-    internal static DtqgSubmissionResponse MapSubmission(dynamic row) =>
+    /// <summary>
+    /// Map dong Dapper dynamic tu diab_his_int_dtqg_submissions sang DTO. Public (thay vi internal)
+    /// de unit test truc tiep logic parse GUID (Fix 9078: id/prescription_id la CHAR(36), khong phai INT).
+    /// </summary>
+    public static DtqgSubmissionResponse MapSubmission(dynamic row) =>
         new(Guid.TryParse((string?)row.id, out var g) ? g : Guid.Empty,
-            (int)row.prescription_id,
+            Guid.TryParse((string?)row.prescription_id, out var p) ? p : Guid.Empty,
             (string?)row.ma_don_thuoc,
             (string?)row.qr_payload, null,
             (string)row.status,
@@ -135,11 +145,12 @@ public class GetDtqgStatusHandler : IRequestHandler<GetDtqgStatusQuery, Result<D
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
 
-        var presId = await conn.ExecuteScalarAsync<int?>(
+        // Ghi chu: pha_prescriptions.ID la CHAR(36) (GUID) — truoc day doc vao int? gay InvalidCastException.
+        var presId = await conn.ExecuteScalarAsync<string?>(
             "SELECT ID FROM pha_prescriptions WHERE ID = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
             new { id = q.PrescriptionId.ToString(), tenantId });
 
-        if (!presId.HasValue)
+        if (presId == null)
             return Result<DtqgSubmissionResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
 
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
@@ -194,8 +205,9 @@ public class RetryDtqgHandler : IRequestHandler<RetryDtqgCommand, Result<DtqgSub
             "UPDATE diab_his_int_dtqg_submissions SET status = 'PENDING', retry_count = retry_count + 1, last_retry_at = NOW(), updated_at = NOW() WHERE id = @id",
             new { id = (string)sub.id });
 
-        // Re-submit (simplified)
-        var payload = new DtqgSubmitPayload(tenantId, (int)sub.prescription_id, "", "", new { });
+        // Re-submit (simplified). prescription_id la CHAR(36) — khong ep (int), truyen 0 cho truong
+        // PrescriptionId (int) lich su cua payload (giong pattern SubmitDtqgFromPrescriptionHandler).
+        var payload = new DtqgSubmitPayload(tenantId, 0, "", "", new { });
         var result = await _dtqgClient.SubmitPrescriptionAsync(payload, ct);
 
         if (result.Success && result.MaDonThuoc?.Length == 14)

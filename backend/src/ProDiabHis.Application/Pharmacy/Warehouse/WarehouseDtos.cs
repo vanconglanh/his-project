@@ -50,7 +50,7 @@ public record GoodsReceivedRequest(
     IReadOnlyList<GrnItemRequest> Items);
 
 public record GrnItemRequest(
-    int DrugId,
+    string DrugId,
     string BatchNo,
     DateOnly? ManufactureDate,
     DateOnly ExpiryDate,
@@ -97,7 +97,7 @@ public record StockAdjustmentRequest(
     string? Note,
     IReadOnlyList<StockAdjustmentItem> Items);
 
-public record StockAdjustmentItem(int DrugId, string BatchNo, decimal QuantityDiff);
+public record StockAdjustmentItem(string DrugId, string BatchNo, decimal QuantityDiff);
 
 public record AdjustmentResponse(string AdjustmentId, IReadOnlyList<StockMovementResponse> Movements);
 
@@ -107,6 +107,6 @@ public record TransferRequest(
     string? Note,
     IReadOnlyList<TransferItem> Items);
 
-public record TransferItem(int DrugId, string BatchNo, decimal Quantity);
+public record TransferItem(string DrugId, string BatchNo, decimal Quantity);
 
 public record TransferResponse(string TransferId, IReadOnlyList<StockMovementResponse> Movements);
