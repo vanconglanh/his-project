@@ -157,7 +157,7 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
                      d.strength as Strength, d.unit as Unit,
                      i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
                      i.duration_days as DurationDays, i.quantity as Quantity,
-                     i.instructions as Instructions, NULL as BatchDispensedJson
+                     i.note as Instructions, NULL as BatchDispensedJson
               FROM diab_his_pha_prescription_items i
               JOIN diab_his_pha_drugs d ON d.id = i.drug_id
               WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId",
@@ -223,15 +223,32 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
         {
             foreach (var item in cmd.Request.Items)
             {
-                // Cot thuc te cua diab_his_pha_prescription_items (theo schema dump goc):
-                // id, tenant_id, prescription_id, drug_id, dosage, frequency, route,
-                // duration_days, quantity, instructions - KHONG co drug_name/unit/unit_price/
-                // line_total/note (nhung cot nay chi ton tai o migration 9005 chua duoc ap dung).
+                // Cot thuc te cua diab_his_pha_prescription_items (xac nhan qua DESCRIBE
+                // truc tiep tren DB, comment cu trong file nay bi sai/loi thoi - bang THAT SU
+                // co drug_name/unit/unit_price/line_total/note (NOT NULL), KHONG co "instructions":
+                // id, tenant_id, prescription_id, drug_id, drug_name, drug_strength, quantity,
+                // unit, dosage, frequency, duration_days, route, unit_price, line_total,
+                // bhyt_applicable, note, created_at, deleted_by.
+                var drug = await conn.QueryFirstOrDefaultAsync<(string Name, string? Strength, string Unit, decimal SellPrice)>(
+                    "SELECT name, strength, unit, sell_price FROM diab_his_pha_drugs WHERE id = @drugId AND tenant_id = @tenantId",
+                    new { drugId = item.DrugId, tenantId });
+                var drugName = drug.Name ?? "(khong xac dinh)";
+                var unit = drug.Unit ?? "";
+                var unitPrice = drug.SellPrice;
+                var lineTotal = unitPrice * item.Quantity;
+
                 await conn.ExecuteAsync(
                     @"INSERT INTO diab_his_pha_prescription_items
-                      (id, tenant_id, prescription_id, drug_id, dosage, frequency, route, duration_days, quantity, instructions)
-                      VALUES (UUID(), @tenantId, @presId, @drugId, @dosage, @frequency, @route, @durationDays, @quantity, @instructions)",
-                    new { tenantId, presId, drugId = item.DrugId, dosage = item.Dosage, frequency = item.Frequency, route = item.Route, durationDays = item.DurationDays, quantity = item.Quantity, instructions = item.Instructions });
+                      (id, tenant_id, prescription_id, drug_id, drug_name, drug_strength, quantity, unit,
+                       dosage, frequency, duration_days, route, unit_price, line_total, bhyt_applicable, note, created_at)
+                      VALUES (UUID(), @tenantId, @presId, @drugId, @drugName, @drugStrength, @quantity, @unit,
+                              @dosage, @frequency, @durationDays, @route, @unitPrice, @lineTotal, 0, @note, NOW())",
+                    new
+                    {
+                        tenantId, presId, drugId = item.DrugId, drugName, drugStrength = drug.Strength, quantity = item.Quantity, unit,
+                        dosage = item.Dosage, frequency = item.Frequency, durationDays = item.DurationDays, route = item.Route,
+                        unitPrice, lineTotal, note = item.Instructions
+                    });
             }
         }
 
@@ -379,14 +396,26 @@ public class AddPrescriptionItemsHandler : IRequestHandler<AddPrescriptionItemsC
         {
             var itemId = Guid.NewGuid().ToString();
             // Cot thuc te cua diab_his_pha_prescription_items (xem ghi chu trong CreatePrescriptionHandler)
+            var drug = await conn.QueryFirstOrDefaultAsync<(string Name, string? Strength, string Unit, decimal SellPrice)>(
+                "SELECT name, strength, unit, sell_price FROM diab_his_pha_drugs WHERE id = @drugId AND tenant_id = @tenantId",
+                new { drugId = item.DrugId, tenantId });
+            var drugName = drug.Name ?? "(khong xac dinh)";
+            var unit = drug.Unit ?? "";
+            var unitPrice = drug.SellPrice;
+            var lineTotal = unitPrice * item.Quantity;
+
             await conn.ExecuteAsync(
                 @"INSERT INTO diab_his_pha_prescription_items
-                  (id, tenant_id, prescription_id, drug_id, dosage, frequency, route, duration_days, quantity, instructions)
-                  VALUES (@id, @tenantId, @presId, @drugId, @dosage, @frequency, @route, @durationDays, @quantity, @instructions)",
-                new { id = itemId, tenantId, presId, drugId = item.DrugId, dosage = item.Dosage, frequency = item.Frequency, route = item.Route, durationDays = item.DurationDays, quantity = item.Quantity, instructions = item.Instructions });
-
-            var drugName = await conn.ExecuteScalarAsync<string>(
-                "SELECT name FROM diab_his_pha_drugs WHERE ID = @drugId", new { drugId = item.DrugId }) ?? "";
+                  (id, tenant_id, prescription_id, drug_id, drug_name, drug_strength, quantity, unit,
+                   dosage, frequency, duration_days, route, unit_price, line_total, bhyt_applicable, note, created_at)
+                  VALUES (@id, @tenantId, @presId, @drugId, @drugName, @drugStrength, @quantity, @unit,
+                          @dosage, @frequency, @durationDays, @route, @unitPrice, @lineTotal, 0, @note, NOW())",
+                new
+                {
+                    id = itemId, tenantId, presId, drugId = item.DrugId, drugName, drugStrength = drug.Strength, quantity = item.Quantity, unit,
+                    dosage = item.Dosage, frequency = item.Frequency, durationDays = item.DurationDays, route = item.Route,
+                    unitPrice, lineTotal, note = item.Instructions
+                });
 
             addedItems.Add(new PrescriptionItemResponse(
                 Guid.Parse(itemId), item.DrugId, drugName, null, null,
@@ -751,7 +780,7 @@ public class GetPrescriptionPdfHandler : IRequestHandler<GetPrescriptionPdfQuery
         var itemRows = await conn.QueryAsync<PrescriptionPdfItemRow>(
             @"SELECT d.name as DrugName, d.strength as Strength, d.unit as Unit,
                      i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
-                     i.duration_days as DurationDays, i.quantity as Quantity, i.instructions as Instructions
+                     i.duration_days as DurationDays, i.quantity as Quantity, i.note as Instructions
               FROM diab_his_pha_prescription_items i
               JOIN diab_his_pha_drugs d ON d.id = i.drug_id
               WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId
@@ -854,7 +883,7 @@ public class GetPortalPrescriptionPdfHandler : IRequestHandler<GetPortalPrescrip
         var itemRows = await conn.QueryAsync<PrescriptionPdfItemRow>(
             @"SELECT d.name as DrugName, d.strength as Strength, d.unit as Unit,
                      i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
-                     i.duration_days as DurationDays, i.quantity as Quantity, i.instructions as Instructions
+                     i.duration_days as DurationDays, i.quantity as Quantity, i.note as Instructions
               FROM diab_his_pha_prescription_items i
               JOIN diab_his_pha_drugs d ON d.id = i.drug_id
               WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId
