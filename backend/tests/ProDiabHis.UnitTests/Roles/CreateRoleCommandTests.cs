@@ -1,5 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
+using ProDiabHis.Application.Auth;
+using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Roles;
 using ProDiabHis.Domain.Entities;
 using ProDiabHis.Infrastructure.Persistence;
@@ -15,7 +18,7 @@ namespace ProDiabHis.UnitTests.Roles;
 /// </summary>
 public class CreateRoleCommandTests
 {
-    private static CreateRoleCommandHandler CreateHandler(out AppDbContext db, out Permission permission)
+    private static CreateRoleCommandHandler CreateHandler(out AppDbContext db, out Permission permission, out IAuditService audit)
     {
         db = TestDbContextFactory.Create();
         permission = new Permission { Code = "patient.read", Resource = "patient", Action = "read" };
@@ -23,7 +26,10 @@ public class CreateRoleCommandTests
         db.SaveChanges();
 
         var tenant = new FakeTenantProvider(1);
-        return new CreateRoleCommandHandler(db, tenant);
+        var user = Substitute.For<ICurrentUser>();
+        user.UserId.Returns(Guid.NewGuid());
+        audit = Substitute.For<IAuditService>();
+        return new CreateRoleCommandHandler(db, tenant, user, audit);
     }
 
     [Theory]
@@ -31,7 +37,7 @@ public class CreateRoleCommandTests
     [InlineData("ADMIN")]
     public async Task Handle_KhiCodeLaMaReserved_TuChoiVoiLoiROLE_CODE_RESERVED(string reservedCode)
     {
-        var handler = CreateHandler(out _, out var permission);
+        var handler = CreateHandler(out _, out var permission, out _);
 
         var result = await handler.Handle(
             new CreateRoleCommand(reservedCode, "Vai trò giả mạo", null, new[] { permission.Code }),
@@ -45,7 +51,7 @@ public class CreateRoleCommandTests
     public async Task Handle_KhiCodeReservedVietThuong_VanBiTuChoi()
     {
         // Reserved-check khong phan biet hoa/thuong, tranh bypass bang "super_admin"
-        var handler = CreateHandler(out _, out var permission);
+        var handler = CreateHandler(out _, out var permission, out _);
 
         var result = await handler.Handle(
             new CreateRoleCommand("super_admin", "Vai trò giả mạo", null, new[] { permission.Code }),
@@ -58,7 +64,7 @@ public class CreateRoleCommandTests
     [Fact]
     public async Task Handle_KhiCodeHopLeVaKhongTrungReserved_TaoThanhCongVaLaRoleCustom()
     {
-        var handler = CreateHandler(out var db, out var permission);
+        var handler = CreateHandler(out var db, out var permission, out _);
 
         var result = await handler.Handle(
             new CreateRoleCommand("QUAN_LY_KHO", "Quản lý kho", "Vai trò quản lý kho thuốc", new[] { permission.Code }),
@@ -71,5 +77,35 @@ public class CreateRoleCommandTests
         var saved = await db.Roles.IgnoreQueryFilters().FirstAsync(r => r.Code == "QUAN_LY_KHO");
         saved.RoleType.Should().Be(RoleType.Custom);
         saved.TenantId.Should().Be(1);
+    }
+
+    // ─── BUG-01: Create phai ghi audit log "CREATE" dung 1 lan khi thanh cong (role la vector
+    // vua duoc va lo hong leo thang quyen ROLE_CODE_RESERVED, khong duoc phep "im lang") ───
+    [Fact]
+    public async Task Handle_TaoThanhCong_GoiAuditServiceDungMotLan()
+    {
+        var handler = CreateHandler(out _, out var permission, out var audit);
+
+        var result = await handler.Handle(
+            new CreateRoleCommand("QUAN_LY_KHO", "Quản lý kho", "Vai trò quản lý kho thuốc", new[] { permission.Code }),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        await audit.Received(1).LogAsync("CREATE", "ROLE", Arg.Any<string>(),
+            Arg.Any<object>(), Arg.Any<CancellationToken>());
+    }
+
+    // ─── Khi bi tu choi vi ma reserved, KHONG duoc goi audit CREATE (role chua duoc tao) ───
+    [Fact]
+    public async Task Handle_KhiCodeLaMaReserved_KhongGoiAuditService()
+    {
+        var handler = CreateHandler(out _, out var permission, out var audit);
+
+        await handler.Handle(
+            new CreateRoleCommand("SUPER_ADMIN", "Vai trò giả mạo", null, new[] { permission.Code }),
+            CancellationToken.None);
+
+        await audit.DidNotReceive().LogAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
 }

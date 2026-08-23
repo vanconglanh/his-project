@@ -31,11 +31,16 @@ public class CreateRoleCommandHandler : IRequestHandler<CreateRoleCommand, Resul
 {
     private readonly IApplicationDbContext _db;
     private readonly ITenantProvider _tenantProvider;
+    private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
 
-    public CreateRoleCommandHandler(IApplicationDbContext db, ITenantProvider tenantProvider)
+    public CreateRoleCommandHandler(IApplicationDbContext db, ITenantProvider tenantProvider,
+        ICurrentUser user, IAuditService audit)
     {
         _db = db;
         _tenantProvider = tenantProvider;
+        _user = user;
+        _audit = audit;
     }
 
     public async Task<Result<RoleResponse>> Handle(CreateRoleCommand req, CancellationToken ct)
@@ -87,6 +92,11 @@ public class CreateRoleCommandHandler : IRequestHandler<CreateRoleCommand, Resul
             PermissionId = p.Id,
             Permission = p
         }).ToList();
+
+        // Audit: tao vai tro moi la thao tac nhay cam (role la vector leo thang quyen)
+        await _audit.LogAsync("CREATE", "ROLE", role.Id.ToString(),
+            new { code = role.Code, name = role.Name, permissionCodes = permCodes, tenantId = role.TenantId, userId = _user.UserId },
+            ct);
 
         return Result<RoleResponse>.Success(role.ToResponse());
     }

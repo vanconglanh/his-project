@@ -12,11 +12,13 @@ public class DeleteRoleCommandHandler : IRequestHandler<DeleteRoleCommand, Resul
 {
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IAuditService _audit;
 
-    public DeleteRoleCommandHandler(IApplicationDbContext db, ICurrentUser currentUser)
+    public DeleteRoleCommandHandler(IApplicationDbContext db, ICurrentUser currentUser, IAuditService audit)
     {
         _db = db;
         _currentUser = currentUser;
+        _audit = audit;
     }
 
     public async Task<Result> Handle(DeleteRoleCommand req, CancellationToken ct)
@@ -28,13 +30,33 @@ public class DeleteRoleCommandHandler : IRequestHandler<DeleteRoleCommand, Resul
             return Result.Failure("ROLE_NOT_FOUND", "Không tìm thấy vai trò");
 
         if (role.RoleType == RoleType.System)
+        {
+            // Ghi nhan hanh vi bi tu choi (compliance CLAUDE.md: audit moi thao tac tren vai tro,
+            // dac biet vi role la vector vua duoc va lo hong leo thang quyen ROLE_CODE_RESERVED)
+            await _audit.LogAsync(
+                "DELETE_DENIED",
+                "ROLE",
+                role.Id.ToString(),
+                AuditSeverity.WARN,
+                crossTenantAttempt: false,
+                requestId: null,
+                details: new { code = role.Code, reason = "ROLE_SYSTEM_PROTECTED", userId = _currentUser.UserId },
+                cancellationToken: ct);
+
             return Result.Failure("ROLE_SYSTEM_PROTECTED", "Không thể xóa vai trò hệ thống");
+        }
 
         role.DeletedAt = DateTime.UtcNow;
         role.DeletedBy = _currentUser.UserId;
         role.IsActive = false;
 
         await _db.SaveChangesAsync(ct);
+
+        // Audit: xoa vai tro thanh cong (role la vector vua duoc va lo hong leo thang quyen)
+        await _audit.LogAsync("DELETE", "ROLE", role.Id.ToString(),
+            new { code = role.Code, name = role.Name, userId = _currentUser.UserId },
+            ct);
+
         return Result.Success();
     }
 }

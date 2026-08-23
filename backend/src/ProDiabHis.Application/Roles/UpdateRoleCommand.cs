@@ -16,8 +16,15 @@ public record UpdateRoleCommand(
 public class UpdateRoleCommandHandler : IRequestHandler<UpdateRoleCommand, Result<RoleResponse>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
 
-    public UpdateRoleCommandHandler(IApplicationDbContext db) => _db = db;
+    public UpdateRoleCommandHandler(IApplicationDbContext db, ICurrentUser user, IAuditService audit)
+    {
+        _db = db;
+        _user = user;
+        _audit = audit;
+    }
 
     public async Task<Result<RoleResponse>> Handle(UpdateRoleCommand req, CancellationToken ct)
     {
@@ -29,11 +36,26 @@ public class UpdateRoleCommandHandler : IRequestHandler<UpdateRoleCommand, Resul
             return Result<RoleResponse>.Failure("ROLE_NOT_FOUND", "Không tìm thấy vai trò");
 
         if (role.RoleType == RoleType.System)
-            return Result<RoleResponse>.Failure("ROLE_SYSTEM_PROTECTED", "Không thể xóa vai trò hệ thống");
+        {
+            // Ghi nhan hanh vi bi tu choi (compliance CLAUDE.md: audit moi thao tac tren vai tro,
+            // dac biet vi role la vector vua duoc va lo hong leo thang quyen ROLE_CODE_RESERVED)
+            await _audit.LogAsync(
+                "UPDATE_DENIED",
+                "ROLE",
+                role.Id.ToString(),
+                AuditSeverity.WARN,
+                crossTenantAttempt: false,
+                requestId: null,
+                details: new { code = role.Code, reason = "ROLE_SYSTEM_PROTECTED", userId = _user.UserId },
+                cancellationToken: ct);
+
+            return Result<RoleResponse>.Failure("ROLE_SYSTEM_PROTECTED", "Không thể sửa vai trò hệ thống");
+        }
 
         if (req.Name != null) role.Name = req.Name;
         if (req.Description != null) role.Description = req.Description;
 
+        List<string>? updatedPermCodes = null;
         if (req.PermissionCodes != null)
         {
             var permCodes = req.PermissionCodes.ToList();
@@ -50,9 +72,17 @@ public class UpdateRoleCommandHandler : IRequestHandler<UpdateRoleCommand, Resul
 
             foreach (var perm in permissions)
                 _db.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = perm.Id });
+
+            updatedPermCodes = permCodes;
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Audit: cap nhat vai tro thanh cong (role la vector vua duoc va lo hong leo thang quyen)
+        await _audit.LogAsync("UPDATE", "ROLE", role.Id.ToString(),
+            new { code = role.Code, name = role.Name, permissionCodes = updatedPermCodes, userId = _user.UserId },
+            ct);
+
         return Result<RoleResponse>.Success(role.ToResponse());
     }
 }
