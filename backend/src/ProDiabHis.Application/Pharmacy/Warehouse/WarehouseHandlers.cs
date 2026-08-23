@@ -285,7 +285,7 @@ public class CreateGrnHandler : IRequestHandler<CreateGrnCommand, Result<GrnResp
                 new { tenantId, stockId, warehouseId = warehouseIdStr, qty = item.QuantityReceived, unitCost = item.UnitCost, grnId, userId = 0 });
 
             var drugName = await conn.ExecuteScalarAsync<string>(
-                "SELECT COALESCE(name_vi, name) FROM pha_drug_master WHERE id = @id", new { id = item.DrugId });
+                "SELECT name FROM pha_drug_master WHERE id = @id", new { id = item.DrugId });
             var daysToExpiry = (item.ExpiryDate.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days;
 
             updatedStocks.Add(new StockResponse(
@@ -402,7 +402,7 @@ public class CreateAdjustmentHandler : IRequestHandler<CreateAdjustmentCommand, 
                   FROM diab_his_pha_stock WHERE tenant_id = @tenantId AND warehouse_id <=> @warehouseId AND drug_id = @drugId AND lot_number = @lotNumber LIMIT 1",
                 new { tenantId, warehouseId = r.WarehouseId, warehouseIdStr, drugId = item.DrugId, lotNumber = item.BatchNo, diff = item.QuantityDiff, reason = $"{r.Reason}: {r.Note}", adjId = adjustmentId });
 
-            var drugName = await conn.ExecuteScalarAsync<string>("SELECT COALESCE(name_vi, name) FROM pha_drug_master WHERE id = @id", new { id = item.DrugId });
+            var drugName = await conn.ExecuteScalarAsync<string>("SELECT name FROM pha_drug_master WHERE id = @id", new { id = item.DrugId });
             movements.Add(new StockMovementResponse(mvtId, tenantId, r.WarehouseId, "ADJUST", item.DrugId, drugName,
                 item.BatchNo, item.QuantityDiff, 0, "ADJUSTMENT", adjustmentId, DateTime.UtcNow, null, r.Reason));
         }
