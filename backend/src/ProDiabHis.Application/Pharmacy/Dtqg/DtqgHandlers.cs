@@ -347,7 +347,7 @@ public class GetDtqgCredentialsHandler : IRequestHandler<GetDtqgCredentialsQuery
             Guid.TryParse((string?)row.id, out var g) ? g : Guid.Empty,
             tenantId,
             (string?)row.cskcb_id, (string?)row.partner_code, masked,
-            row.is_active == 1, (DateTime?)row.last_tested_at, row.last_test_ok == 1));
+            (bool)row.is_active, (DateTime?)row.last_tested_at, (bool?)row.last_test_ok ?? false));
     }
 }
 
