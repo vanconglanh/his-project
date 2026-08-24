@@ -44,9 +44,12 @@ export function LoginForm() {
   } = useForm<LoginFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(loginSchema) as any,
+    // TODO(staging-only): dien san tai khoan admin demo de test nhanh tren staging.
+    // PHAI xoa/tra ve rong truoc khi trien khai production that (rui ro bao mat -
+    // moi nguoi vao trang login deu thay san email/mat khau admin).
     defaultValues: {
-      email: "",
-      password: "",
+      email: "admin@prodiab.local",
+      password: "admin123",
       rememberMe: false,
     },
   });
