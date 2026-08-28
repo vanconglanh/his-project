@@ -127,16 +127,16 @@ INSERT IGNORE INTO `diab_his_lab_orders`
     (`id`, `tenant_id`, `encounter_id`, `test_code`, `test_name`, `sample_type`, `status`,
      `ordered_at`, `ordered_by`, `created_at`)
 VALUES
-    ('lo000001-0000-0000-0000-000000000001', 1, 'e0000001-0000-0000-0000-000000000001', 'PANEL-DIAB', 'Bộ xét nghiệm đái tháo đường', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 30 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 30 DAY)),
-    ('lo000001-0000-0000-0000-000000000002', 1, 'e0000001-0000-0000-0000-000000000002', 'PANEL-DIAB', 'Bộ xét nghiệm đái tháo đường', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 7 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 7 DAY)),
-    ('lo000001-0000-0000-0000-000000000003', 1, 'e0000001-0000-0000-0000-000000000003', 'PANEL-LIPID','Bộ xét nghiệm lipid máu',       'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 25 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 25 DAY)),
-    ('lo000001-0000-0000-0000-000000000004', 1, 'e0000001-0000-0000-0000-000000000004', 'PANEL-LIPID','Bộ xét nghiệm lipid máu',       'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 22 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 22 DAY)),
-    ('lo000001-0000-0000-0000-000000000005', 1, 'e0000001-0000-0000-0000-000000000006', 'PANEL-CARD', 'Bộ xét nghiệm tim mạch',        'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 18 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 18 DAY)),
-    ('lo000001-0000-0000-0000-000000000006', 1, 'e0000001-0000-0000-0000-000000000008', 'PANEL-DIAB', 'Bộ xét nghiệm đái tháo đường', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 12 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 12 DAY)),
-    ('lo000001-0000-0000-0000-000000000007', 1, 'e0000001-0000-0000-0000-000000000010', 'PANEL-FULL', 'Tổng phân tích máu + sinh hóa', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 8 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 8 DAY)),
-    ('lo000001-0000-0000-0000-000000000008', 1, 'e0000001-0000-0000-0000-000000000011', 'PANEL-CARD', 'Bộ xét nghiệm tim mạch',        'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 6 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 6 DAY)),
-    ('lo000001-0000-0000-0000-000000000009', 1, 'e0000001-0000-0000-0000-000000000012', 'PANEL-DIAB', 'Bộ xét nghiệm đái tháo đường', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 5 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 5 DAY)),
-    ('lo000001-0000-0000-0000-000000000010', 1, 'e0000001-0000-0000-0000-000000000013', 'PANEL-LIPID','Bộ xét nghiệm lipid máu',       'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 4 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 4 DAY));
+    ('10000001-0000-0000-0000-000000000001', 1, 'e0000001-0000-0000-0000-000000000001', 'PANEL-DIAB', 'Bộ xét nghiệm đái tháo đường', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 30 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 30 DAY)),
+    ('10000001-0000-0000-0000-000000000002', 1, 'e0000001-0000-0000-0000-000000000002', 'PANEL-DIAB', 'Bộ xét nghiệm đái tháo đường', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 7 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 7 DAY)),
+    ('10000001-0000-0000-0000-000000000003', 1, 'e0000001-0000-0000-0000-000000000003', 'PANEL-LIPID','Bộ xét nghiệm lipid máu',       'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 25 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 25 DAY)),
+    ('10000001-0000-0000-0000-000000000004', 1, 'e0000001-0000-0000-0000-000000000004', 'PANEL-LIPID','Bộ xét nghiệm lipid máu',       'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 22 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 22 DAY)),
+    ('10000001-0000-0000-0000-000000000005', 1, 'e0000001-0000-0000-0000-000000000006', 'PANEL-CARD', 'Bộ xét nghiệm tim mạch',        'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 18 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 18 DAY)),
+    ('10000001-0000-0000-0000-000000000006', 1, 'e0000001-0000-0000-0000-000000000008', 'PANEL-DIAB', 'Bộ xét nghiệm đái tháo đường', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 12 DAY), 'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 12 DAY)),
+    ('10000001-0000-0000-0000-000000000007', 1, 'e0000001-0000-0000-0000-000000000010', 'PANEL-FULL', 'Tổng phân tích máu + sinh hóa', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 8 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 8 DAY)),
+    ('10000001-0000-0000-0000-000000000008', 1, 'e0000001-0000-0000-0000-000000000011', 'PANEL-CARD', 'Bộ xét nghiệm tim mạch',        'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 6 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 6 DAY)),
+    ('10000001-0000-0000-0000-000000000009', 1, 'e0000001-0000-0000-0000-000000000012', 'PANEL-DIAB', 'Bộ xét nghiệm đái tháo đường', 'Máu toàn phần', 'done', DATE_SUB(NOW(), INTERVAL 5 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 5 DAY)),
+    ('10000001-0000-0000-0000-000000000010', 1, 'e0000001-0000-0000-0000-000000000013', 'PANEL-LIPID','Bộ xét nghiệm lipid máu',       'Máu tĩnh mạch', 'done', DATE_SUB(NOW(), INTERVAL 4 DAY),  'a0000000-0000-0000-0000-000000000002', DATE_SUB(NOW(), INTERVAL 4 DAY));
 
 -- 30 KẾT QUẢ XÉT NGHIỆM (3 chỉ số × 10 orders)
 INSERT IGNORE INTO `diab_his_lab_results`
@@ -144,45 +144,45 @@ INSERT IGNORE INTO `diab_his_lab_results`
      `normal_range`, `is_abnormal`, `result_flag`, `performed_at`, `performed_by`, `created_at`)
 VALUES
     -- Order 1: BN Trần Văn Bình — đái tháo đường
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000001', 'GLU',   'Đường huyết lúc đói',       '12.4', 'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 30 DAY), 'KTV. Nguyễn Thị Hoa', NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000001', 'HBA1C', 'HbA1c',                     '8.2',  '%',       '< 6.5',        1, 'H', DATE_SUB(NOW(), INTERVAL 30 DAY), 'KTV. Nguyễn Thị Hoa', NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000001', 'CHOL',  'Cholesterol toàn phần',     '5.8',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 30 DAY), 'KTV. Nguyễn Thị Hoa', NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000001', 'GLU',   'Đường huyết lúc đói',       '12.4', 'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 30 DAY), 'KTV. Nguyễn Thị Hoa', NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000001', 'HBA1C', 'HbA1c',                     '8.2',  '%',       '< 6.5',        1, 'H', DATE_SUB(NOW(), INTERVAL 30 DAY), 'KTV. Nguyễn Thị Hoa', NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000001', 'CHOL',  'Cholesterol toàn phần',     '5.8',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 30 DAY), 'KTV. Nguyễn Thị Hoa', NOW()),
     -- Order 2: BN Trần Văn Bình — tái khám
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000002', 'GLU',   'Đường huyết lúc đói',       '9.8',  'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 7 DAY),  'KTV. Nguyễn Thị Hoa', NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000002', 'HBA1C', 'HbA1c',                     '7.5',  '%',       '< 6.5',        1, 'H', DATE_SUB(NOW(), INTERVAL 7 DAY),  'KTV. Nguyễn Thị Hoa', NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000002', 'TRIG',  'Triglyceride',               '2.1',  'mmol/L',  '< 1.7',        1, 'H', DATE_SUB(NOW(), INTERVAL 7 DAY),  'KTV. Nguyễn Thị Hoa', NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000002', 'GLU',   'Đường huyết lúc đói',       '9.8',  'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 7 DAY),  'KTV. Nguyễn Thị Hoa', NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000002', 'HBA1C', 'HbA1c',                     '7.5',  '%',       '< 6.5',        1, 'H', DATE_SUB(NOW(), INTERVAL 7 DAY),  'KTV. Nguyễn Thị Hoa', NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000002', 'TRIG',  'Triglyceride',               '2.1',  'mmol/L',  '< 1.7',        1, 'H', DATE_SUB(NOW(), INTERVAL 7 DAY),  'KTV. Nguyễn Thị Hoa', NOW()),
     -- Order 3: BN Nguyễn Thị Lan — lipid
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000003', 'CHOL',  'Cholesterol toàn phần',     '6.2',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 25 DAY), 'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000003', 'LDL',   'LDL-Cholesterol',            '4.1',  'mmol/L',  '< 3.0',        1, 'H', DATE_SUB(NOW(), INTERVAL 25 DAY), 'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000003', 'TRIG',  'Triglyceride',               '1.5',  'mmol/L',  '< 1.7',        0, NULL, DATE_SUB(NOW(), INTERVAL 25 DAY), 'KTV. Lê Văn Bảo',   NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000003', 'CHOL',  'Cholesterol toàn phần',     '6.2',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 25 DAY), 'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000003', 'LDL',   'LDL-Cholesterol',            '4.1',  'mmol/L',  '< 3.0',        1, 'H', DATE_SUB(NOW(), INTERVAL 25 DAY), 'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000003', 'TRIG',  'Triglyceride',               '1.5',  'mmol/L',  '< 1.7',        0, NULL, DATE_SUB(NOW(), INTERVAL 25 DAY), 'KTV. Lê Văn Bảo',   NOW()),
     -- Order 4: BN Lê Minh Tuấn — lipid
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000004', 'CHOL',  'Cholesterol toàn phần',     '7.1',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 22 DAY), 'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000004', 'LDL',   'LDL-Cholesterol',            '4.9',  'mmol/L',  '< 3.0',        1, 'H', DATE_SUB(NOW(), INTERVAL 22 DAY), 'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000004', 'HDL',   'HDL-Cholesterol',            '0.9',  'mmol/L',  '> 1.0',        1, 'L', DATE_SUB(NOW(), INTERVAL 22 DAY), 'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000004', 'CHOL',  'Cholesterol toàn phần',     '7.1',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 22 DAY), 'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000004', 'LDL',   'LDL-Cholesterol',            '4.9',  'mmol/L',  '< 3.0',        1, 'H', DATE_SUB(NOW(), INTERVAL 22 DAY), 'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000004', 'HDL',   'HDL-Cholesterol',            '0.9',  'mmol/L',  '> 1.0',        1, 'L', DATE_SUB(NOW(), INTERVAL 22 DAY), 'KTV. Lê Văn Bảo',    NOW()),
     -- Order 5: BN Hoàng Văn Đức — tim mạch
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000005', 'TROP',  'Troponin I',                 '0.02', 'ng/mL',   '< 0.04',       0, NULL, DATE_SUB(NOW(), INTERVAL 18 DAY), 'KTV. Nguyễn Thị Hoa',NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000005', 'CK',    'Creatine Kinase (CK)',       '88',   'U/L',     '< 200',        0, NULL, DATE_SUB(NOW(), INTERVAL 18 DAY), 'KTV. Nguyễn Thị Hoa',NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000005', 'GLU',   'Đường huyết lúc đói',       '11.3', 'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 18 DAY), 'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000005', 'TROP',  'Troponin I',                 '0.02', 'ng/mL',   '< 0.04',       0, NULL, DATE_SUB(NOW(), INTERVAL 18 DAY), 'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000005', 'CK',    'Creatine Kinase (CK)',       '88',   'U/L',     '< 200',        0, NULL, DATE_SUB(NOW(), INTERVAL 18 DAY), 'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000005', 'GLU',   'Đường huyết lúc đói',       '11.3', 'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 18 DAY), 'KTV. Nguyễn Thị Hoa',NOW()),
     -- Order 6: BN Đặng Quốc Hùng — đái tháo đường
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000006', 'GLU',   'Đường huyết lúc đói',       '8.1',  'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 12 DAY), 'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000006', 'HBA1C', 'HbA1c',                     '7.1',  '%',       '< 6.5',        1, 'H', DATE_SUB(NOW(), INTERVAL 12 DAY), 'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000006', 'UREA',  'Urê máu',                   '5.2',  'mmol/L',  '2.8 - 7.5',   0, NULL, DATE_SUB(NOW(), INTERVAL 12 DAY), 'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000006', 'GLU',   'Đường huyết lúc đói',       '8.1',  'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 12 DAY), 'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000006', 'HBA1C', 'HbA1c',                     '7.1',  '%',       '< 6.5',        1, 'H', DATE_SUB(NOW(), INTERVAL 12 DAY), 'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000006', 'UREA',  'Urê máu',                   '5.2',  'mmol/L',  '2.8 - 7.5',   0, NULL, DATE_SUB(NOW(), INTERVAL 12 DAY), 'KTV. Lê Văn Bảo',    NOW()),
     -- Order 7: BN Lý Văn Phong — toàn phần
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000007', 'CBC',   'Công thức máu toàn phần',   'Xem chi tiết', NULL, 'Xem bình thường', 0, NULL, DATE_SUB(NOW(), INTERVAL 8 DAY), 'KTV. Nguyễn Thị Hoa',NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000007', 'GLU',   'Đường huyết lúc đói',       '5.1',  'mmol/L',  '3.9 - 6.0',   0, NULL, DATE_SUB(NOW(), INTERVAL 8 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000007', 'CREA',  'Creatinine máu',             '82',   'µmol/L',  '62 - 115',     0, NULL, DATE_SUB(NOW(), INTERVAL 8 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000007', 'CBC',   'Công thức máu toàn phần',   'Xem chi tiết', NULL, 'Xem bình thường', 0, NULL, DATE_SUB(NOW(), INTERVAL 8 DAY), 'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000007', 'GLU',   'Đường huyết lúc đói',       '5.1',  'mmol/L',  '3.9 - 6.0',   0, NULL, DATE_SUB(NOW(), INTERVAL 8 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000007', 'CREA',  'Creatinine máu',             '82',   'µmol/L',  '62 - 115',     0, NULL, DATE_SUB(NOW(), INTERVAL 8 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
     -- Order 8: BN Trịnh Thị Nga — tim mạch
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000008', 'CHOL',  'Cholesterol toàn phần',     '6.5',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 6 DAY),  'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000008', 'TRIG',  'Triglyceride',               '3.2',  'mmol/L',  '< 1.7',        1, 'H', DATE_SUB(NOW(), INTERVAL 6 DAY),  'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000008', 'GLU',   'Đường huyết lúc đói',       '5.8',  'mmol/L',  '3.9 - 6.0',   0, NULL, DATE_SUB(NOW(), INTERVAL 6 DAY),  'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000008', 'CHOL',  'Cholesterol toàn phần',     '6.5',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 6 DAY),  'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000008', 'TRIG',  'Triglyceride',               '3.2',  'mmol/L',  '< 1.7',        1, 'H', DATE_SUB(NOW(), INTERVAL 6 DAY),  'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000008', 'GLU',   'Đường huyết lúc đói',       '5.8',  'mmol/L',  '3.9 - 6.0',   0, NULL, DATE_SUB(NOW(), INTERVAL 6 DAY),  'KTV. Lê Văn Bảo',    NOW()),
     -- Order 9: BN Trần Văn Bình — tái khám 2
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000009', 'GLU',   'Đường huyết lúc đói',       '8.9',  'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 5 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000009', 'HBA1C', 'HbA1c',                     '7.0',  '%',       '< 6.5',        1, 'H', DATE_SUB(NOW(), INTERVAL 5 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000009', 'TRIG',  'Triglyceride',               '1.9',  'mmol/L',  '< 1.7',        1, 'H', DATE_SUB(NOW(), INTERVAL 5 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000009', 'GLU',   'Đường huyết lúc đói',       '8.9',  'mmol/L',  '3.9 - 6.0',   1, 'H', DATE_SUB(NOW(), INTERVAL 5 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000009', 'HBA1C', 'HbA1c',                     '7.0',  '%',       '< 6.5',        1, 'H', DATE_SUB(NOW(), INTERVAL 5 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000009', 'TRIG',  'Triglyceride',               '1.9',  'mmol/L',  '< 1.7',        1, 'H', DATE_SUB(NOW(), INTERVAL 5 DAY),  'KTV. Nguyễn Thị Hoa',NOW()),
     -- Order 10: BN Lê Minh Tuấn — tái khám lipid
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000010', 'CHOL',  'Cholesterol toàn phần',     '5.9',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 4 DAY),  'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000010', 'LDL',   'LDL-Cholesterol',            '3.8',  'mmol/L',  '< 3.0',        1, 'H', DATE_SUB(NOW(), INTERVAL 4 DAY),  'KTV. Lê Văn Bảo',    NOW()),
-    (UUID(), 1, 'lo000001-0000-0000-0000-000000000010', 'HDL',   'HDL-Cholesterol',            '1.1',  'mmol/L',  '> 1.0',        0, NULL, DATE_SUB(NOW(), INTERVAL 4 DAY),  'KTV. Lê Văn Bảo',    NOW());
+    (UUID(), 1, '10000001-0000-0000-0000-000000000010', 'CHOL',  'Cholesterol toàn phần',     '5.9',  'mmol/L',  '< 5.2',        1, 'H', DATE_SUB(NOW(), INTERVAL 4 DAY),  'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000010', 'LDL',   'LDL-Cholesterol',            '3.8',  'mmol/L',  '< 3.0',        1, 'H', DATE_SUB(NOW(), INTERVAL 4 DAY),  'KTV. Lê Văn Bảo',    NOW()),
+    (UUID(), 1, '10000001-0000-0000-0000-000000000010', 'HDL',   'HDL-Cholesterol',            '1.1',  'mmol/L',  '> 1.0',        0, NULL, DATE_SUB(NOW(), INTERVAL 4 DAY),  'KTV. Lê Văn Bảo',    NOW());
 
 -- ============================================================
 -- PHẦN 5: REPORT CACHE — Dashboard widget
@@ -280,7 +280,7 @@ SELECT
     'LAB_RESULT_READY',
     'Kết quả xét nghiệm đã sẵn sàng',
     'Kết quả xét nghiệm HbA1c và đường huyết của BN Trần Văn Bình (BN00001) đã có.',
-    JSON_OBJECT('patient_id', 'f0000000-0000-0000-0000-000000000001', 'patient_name', 'Trần Văn Bình', 'order_id', 'lo000001-0000-0000-0000-000000000009'),
+    JSON_OBJECT('patient_id', 'f0000000-0000-0000-0000-000000000001', 'patient_name', 'Trần Văn Bình', 'order_id', '10000001-0000-0000-0000-000000000009'),
     DATE_SUB(NOW(), INTERVAL 5 HOUR);
 
 -- ============================================================

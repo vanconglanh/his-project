@@ -150,7 +150,7 @@ public class GetBillingHandler : IRequestHandler<GetBillingQuery, Result<Billing
     {
         using var conn = _dapper.CreateConnection();
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT full_name, dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND deleted_at IS NULL",
+            "SELECT full_name, date_of_birth AS dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND deleted_at IS NULL",
             new { id = patientId.ToString() });
         if (row == null) return null;
         return new PatientSummaryDto(
@@ -194,13 +194,17 @@ public class ListBillingsHandler : IRequestHandler<ListBillingsQuery, Result<Pag
             $@"SELECT b.* FROM diab_his_bil_billing b {where}
                ORDER BY b.created_at DESC LIMIT @limit OFFSET @offset", p);
 
+        // GHI CHU: MySqlConnector mac dinh doc cot CHAR(36) chua gia tri dang UUID thanh
+        // System.Guid (khong phai string) khi query khong generic (dynamic row). Ep kieu truc tiep
+        // (string?)r.id se nem RuntimeBinderException "Cannot convert type 'System.Guid' to 'string'".
+        // Dung ToGuidOrEmpty/ToGuidOrNull de nhan ca 2 truong hop (Guid hoac string) mot cach an toan.
         var items = rows.Select(r => new BillingResponse(
-            Guid.TryParse((string?)r.id, out var gId) ? gId : Guid.Empty,
+            ToGuidOrEmpty(r.id),
             (int)r.tenant_id,
-            r.encounter_id == null ? null : (Guid.TryParse((string?)r.encounter_id, out var gEid) ? gEid : (Guid?)null),
-            Guid.TryParse((string?)r.patient_id, out var gPid) ? gPid : Guid.Empty,
+            ToGuidOrNull(r.encounter_id),
+            ToGuidOrEmpty(r.patient_id),
             null,
-            (string?)r.bill_no, [],
+            (string?)r.bill_no, new List<BillingItemDto>(),
             r.subtotal == null ? 0m : (decimal)r.subtotal,
             r.vat_total == null ? 0m : (decimal)r.vat_total,
             r.discount_amount == null ? 0m : (decimal)r.discount_amount,
@@ -209,16 +213,30 @@ public class ListBillingsHandler : IRequestHandler<ListBillingsQuery, Result<Pag
             r.paid_amount == null ? 0m : (decimal)r.paid_amount,
             r.balance == null ? 0m : (decimal)r.balance,
             (string)r.status,
-            r.payment_due_date == null ? null : DateOnly.FromDateTime((DateTime)r.payment_due_date),
+            r.payment_due_date == null ? (DateOnly?)null : DateOnly.FromDateTime((DateTime)r.payment_due_date),
             (string)r.payer, (string?)r.note,
             (DateTime)r.created_at,
-            r.created_by == null ? null : (Guid.TryParse((string?)r.created_by, out var gCby) ? gCby : (Guid?)null),
+            ToGuidOrNull(r.created_by),
             r.finalized_at == null ? null : (DateTime?)r.finalized_at,
             (string?)r.void_reason)).ToList();
 
         return Result<PagedResult<BillingResponse>>.Success(
             new PagedResult<BillingResponse>(items, query.Page, query.PageSize, total));
     }
+
+    /// <summary>
+    /// Nhan gia tri tho tu dynamic row Dapper (co the la Guid hoac string tuy MySqlConnector suy dien)
+    /// va tra ve Guid?; null neu khong parse duoc / gia tri null.
+    /// </summary>
+    private static Guid? ToGuidOrNull(object? value) => value switch
+    {
+        null => null,
+        Guid g => g,
+        string s when Guid.TryParse(s, out var parsed) => parsed,
+        _ => null
+    };
+
+    private static Guid ToGuidOrEmpty(object? value) => ToGuidOrNull(value) ?? Guid.Empty;
 }
 
 public class UpdateBillingHandler : IRequestHandler<UpdateBillingCommand, Result<BillingResponse>>

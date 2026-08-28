@@ -57,13 +57,13 @@ public class ServiceUpsertRequestValidator : AbstractValidator<ServiceUpsertRequ
         RuleFor(x => x.Code).NotEmpty().MaximumLength(50);
         RuleFor(x => x.Name).NotEmpty().MaximumLength(255);
         RuleFor(x => x.Category).Must(c => ValidCategories.Contains(c))
-            .WithMessage("Category phai la: " + string.Join(", ", ValidCategories));
+            .WithMessage("Nhóm dịch vụ phải là: " + string.Join(", ", ValidCategories));
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
         RuleFor(x => x.VatRate).Must(r => ValidVatRates.Contains(r))
-            .WithMessage("VatRate phai la 0, 5, 8 hoac 10");
+            .WithMessage("Thuế suất VAT phải là 0, 5, 8 hoặc 10");
         RuleFor(x => x.BhytMaxAmount).GreaterThanOrEqualTo(0)
             .When(x => x.BhytMaxAmount.HasValue)
-            .WithMessage("Muc BHYT toi da khong duoc am");
+            .WithMessage("Mức BHYT tối đa không được âm");
     }
 }
 

@@ -49,15 +49,15 @@ public class PackageUpsertRequestValidator : AbstractValidator<PackageUpsertRequ
     {
         RuleFor(x => x.Code).NotEmpty().MaximumLength(50);
         RuleFor(x => x.Name).NotEmpty().MaximumLength(255);
-        RuleFor(x => x.DurationDays).GreaterThan(0).WithMessage("Thoi han goi phai > 0 ngay");
+        RuleFor(x => x.DurationDays).GreaterThan(0).WithMessage("Thời hạn gói phải lớn hơn 0 ngày");
         RuleFor(x => x.ListPrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.MinDepositPercent).InclusiveBetween(0, 100).When(x => x.MinDepositPercent.HasValue);
         RuleFor(x => x.Entitlements).NotEmpty().When(x => x.IsActive)
-            .WithMessage("Goi dang hoat dong phai co it nhat 1 dinh muc");
+            .WithMessage("Gói đang hoạt động phải có ít nhất 1 định mức");
         RuleForEach(x => x.Entitlements).ChildRules(e =>
         {
             e.RuleFor(i => i.ItemType).Must(t => ValidTypes.Contains(t))
-                .WithMessage("item_type phai la VISIT, SERVICE hoac DRUG");
+                .WithMessage("Loại định mức phải là VISIT, SERVICE hoặc DRUG");
             e.RuleFor(i => i.Quantity).GreaterThan(0);
         });
     }
@@ -81,7 +81,7 @@ public class CreateSubscriptionCommandValidator : AbstractValidator<CreateSubscr
         RuleFor(x => x.Request.PackageId).NotEmpty();
         RuleFor(x => x.Request.TotalPrice).GreaterThan(0);
         RuleFor(x => x.Request.InitialPayment.Amount).GreaterThan(0)
-            .WithMessage("So tien thu lan dau phai > 0");
+            .WithMessage("Số tiền thu lần đầu phải lớn hơn 0");
     }
 }
 
@@ -91,14 +91,14 @@ public class AddSubscriptionPaymentCommandValidator : AbstractValidator<AddSubsc
     {
         RuleFor(x => x.Request.Amount).GreaterThan(0)
             .WithErrorCode("PACKAGE_PAYMENT_INVALID_AMOUNT")
-            .WithMessage("So tien thu phai > 0");
+            .WithMessage("Số tiền thu phải lớn hơn 0");
     }
 }
 
 public class CancelSubscriptionCommandValidator : AbstractValidator<CancelSubscriptionCommand>
 {
     public CancelSubscriptionCommandValidator()
-        => RuleFor(x => x.Request.Reason).NotEmpty().WithMessage("Ly do huy goi la bat buoc");
+        => RuleFor(x => x.Request.Reason).NotEmpty().WithMessage("Lý do hủy gói là bắt buộc");
 }
 
 // ═══════════════════════════════════════════════════════════════

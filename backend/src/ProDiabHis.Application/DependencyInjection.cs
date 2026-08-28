@@ -16,6 +16,11 @@ public static class DependencyInjection
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
+        // [BUG-003] Message mac dinh cua FluentValidation (NotEmpty, EmailAddress, ...)
+        // phai la tieng Viet co dau theo CLAUDE.md. Cau hinh 1 lan duy nhat o day
+        // thay vi lap .WithMessage(...) o tung rule cua tung validator.
+        Common.FluentValidationVietnameseSetup.Configure();
+
         // Kich hoat FluentValidation trong pipeline MediatR — thieu dong nay thi
         // moi validator dang ky se KHONG bao gio duoc chay (dead-code).
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));

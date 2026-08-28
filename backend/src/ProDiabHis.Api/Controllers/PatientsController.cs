@@ -85,8 +85,11 @@ public class PatientsController : ControllerBase
             });
         }
 
+        // QUAN TRONG: "data" phai la chinh doi tuong benh nhan (co "id" o cap cao nhat)
+        // dung chuan envelope CLAUDE.md { "data": { "id": ..., ... } } de client lay duoc
+        // id ngay sau khi tao (truoc day long them 1 cap "patient" lam client khong doc duoc data.id).
         return CreatedAtAction(nameof(GetById), new { id = result.Value.Patient!.Id },
-            new { data = new { possibleDuplicate = false, patient = result.Value.Patient } });
+            new { data = result.Value.Patient });
     }
 
     // GET /api/v1/patients/{id}

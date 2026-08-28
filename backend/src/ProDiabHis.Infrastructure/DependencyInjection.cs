@@ -60,6 +60,15 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found");
 
+        // BUG-004 (Blocker): MySqlConnector mac dinh (GuidFormat=Default, tuong duong Char36) tu suy dien
+        // MOI cot CHAR(36) la Guid va tra ve System.Guid ngay o tang ADO.NET, bat ke property C# tuong ung
+        // duoc EF map la string (vd Encounter.PatientId/DoctorId/RoomId). Khi EF materialize goi
+        // reader.GetString(ordinal) cho cac cot nay -> InvalidCastException "Unable to cast object of type
+        // 'System.Guid' to type 'System.String'". Ep GuidFormat=None de MySqlConnector luon tra CHAR(36)
+        // ve string; cac property C# kieu Guid (Id, LockedBy, CreatedBy...) van duoc Pomelo tu convert
+        // Guid<->string binh thuong qua ValueConverter rieng, khong phu thuoc GuidFormat.
+        connectionString = EnsureGuidFormatNone(connectionString);
+
         services.AddDbContext<AppDbContext>((sp, options) =>
         {
             options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
@@ -496,5 +505,19 @@ public static class DependencyInjection
         services.AddScoped<ILabResultPdfExporter, LabResultQuestPdfExporter>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Them "Guid Format=None" vao connection string MySQL neu chua co, de MySqlConnector KHONG
+    /// tu suy dien cot CHAR(36)/CHAR(32) la Guid (tranh InvalidCastException khi EF/Dapper doc cot
+    /// duoc map la string). Xem giai thich chi tiet o noi goi ham nay.
+    /// </summary>
+    internal static string EnsureGuidFormatNone(string connectionString)
+    {
+        var builder = new MySqlConnector.MySqlConnectionStringBuilder(connectionString)
+        {
+            GuidFormat = MySqlConnector.MySqlGuidFormat.None
+        };
+        return builder.ConnectionString;
     }
 }

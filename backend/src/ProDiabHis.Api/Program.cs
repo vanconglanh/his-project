@@ -55,6 +55,34 @@ try
         opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower;
         opts.JsonSerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower;
     });
+
+    // BUG-003: model-binding validation (DataAnnotations / JSON binding) mac dinh tra message tieng Anh
+    // theo chuan ProblemDetails. Ghi de de tra dung error envelope + message tieng Viet nhu FluentValidation.
+    builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(opts =>
+    {
+        opts.InvalidModelStateResponseFactory = ctx =>
+        {
+            var details = ctx.ModelState
+                .Where(kv => kv.Value is not null && kv.Value.Errors.Count > 0)
+                .ToDictionary(
+                    kv => kv.Key,
+                    kv => kv.Value!.Errors
+                        .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage)
+                            ? "Giá trị không hợp lệ"
+                            : ProDiabHis.Api.VietnameseModelBindingMessages.Translate(kv.Key, e.ErrorMessage))
+                        .ToArray());
+
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new
+            {
+                error = new
+                {
+                    code = "VALIDATION_ERROR",
+                    message = "Dữ liệu đầu vào không hợp lệ",
+                    details
+                }
+            });
+        };
+    });
     builder.Services.AddScoped<ITicketPdfService, TicketPdfService>();
     builder.Services.AddScoped<IInvoicePdfService, InvoicePdfService>();
     builder.Services.AddScoped<IReceiptPdfService, ReceiptPdfService>();

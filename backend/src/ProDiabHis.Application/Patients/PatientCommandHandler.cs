@@ -57,9 +57,13 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
 
             if (!string.IsNullOrWhiteSpace(req.Phone) && req.DateOfBirth is not null)
             {
+                // BUG FIX: p.Phone la cot da ma hoa AES-256-GCM (nonce ngau nhien moi lan ma hoa)
+                // nen KHONG the so sanh truc tiep p.Phone == req.Phone (gan nhu khong bao gio khop
+                // -> dedup vo hieu). Phai so sanh qua blind index (HMAC-SHA256 deterministic).
+                var phoneBidx = _pii.BlindIndex(req.Phone, PiiField.Phone);
                 var byPhoneNameDob = await _db.Patients.AsNoTracking()
                     .Where(p => p.TenantId == _tenant.TenantId
-                        && p.Phone == req.Phone
+                        && p.PhoneBidx == phoneBidx
                         && p.FullName == req.FullName
                         && p.DateOfBirth == req.DateOfBirth)
                     .Select(p => new PatientDuplicateCandidate(p.Id, p.Code, p.FullName, p.DateOfBirth, p.Phone, "SDT_HOTEN_NGAYSINH_TRUNG"))

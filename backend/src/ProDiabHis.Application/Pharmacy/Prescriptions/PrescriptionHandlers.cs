@@ -679,7 +679,7 @@ public class CheckDdiHandler : IRequestHandler<CheckDdiQuery, Result<DdiCheckRes
         var tenantId = _currentUser.TenantId!.Value;
         var presIdStr = q.PrescriptionId.ToString();
 
-        var pres = await conn.QueryFirstOrDefaultAsync<(string? PatientId, string? EncounterId)?>(
+        var pres = await conn.QueryFirstOrDefaultAsync<(object? PatientId, object? EncounterId)?>(
             "SELECT patient_id AS PatientId, encounter_id AS EncounterId FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
             new { id = presIdStr, tenantId });
 
@@ -695,8 +695,8 @@ public class CheckDdiHandler : IRequestHandler<CheckDdiQuery, Result<DdiCheckRes
 
         var cdssCtx = new CdssEvaluationContext(
             tenantId,
-            Guid.TryParse(pres.Value.PatientId, out var patGuid) ? patGuid : null,
-            Guid.TryParse(pres.Value.EncounterId, out var encGuid) ? encGuid : null,
+            Guid.TryParse(pres.Value.PatientId?.ToString(), out var patGuid) ? patGuid : null,
+            Guid.TryParse(pres.Value.EncounterId?.ToString(), out var encGuid) ? encGuid : null,
             q.PrescriptionId,
             drugItems.Select(d => new PrescribedDrug(d.DrugId, d.GenericName, d.AtcCode)).ToList());
 
@@ -1023,7 +1023,7 @@ internal class PrescriptionRow
     public int TenantId { get; set; }
     public object? EncounterId { get; set; }
     public object? PatientId { get; set; }
-    public string? DoctorId { get; set; }
+    public object? DoctorId { get; set; }
     public string? Status { get; set; }
     public DateTime PrescribedAt { get; set; }
     public DateTime? SignedAt { get; set; }

@@ -33,14 +33,14 @@ public class ErrorHandlingMiddleware
             var details = ex.Errors.GroupBy(e => e.PropertyName)
                 .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
 
-            await WriteError(ctx, "VALIDATION_ERROR", "Du lieu dau vao khong hop le", details);
+            await WriteError(ctx, "VALIDATION_ERROR", "Dữ liệu đầu vào không hợp lệ", details);
         }
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning("Unauthorized: {Message}", ex.Message);
             ctx.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
             ctx.Response.ContentType = "application/json";
-            await WriteError(ctx, "UNAUTHORIZED", "Khong co quyen truy cap");
+            await WriteError(ctx, "UNAUTHORIZED", "Không có quyền truy cập");
         }
         catch (KeyNotFoundException ex)
         {
@@ -82,7 +82,7 @@ public class ErrorHandlingMiddleware
             _logger.LogError(ex, "Unhandled exception");
             ctx.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             ctx.Response.ContentType = "application/json";
-            await WriteError(ctx, "INTERNAL_ERROR", "Loi he thong, vui long thu lai sau");
+            await WriteError(ctx, "INTERNAL_ERROR", "Lỗi hệ thống, vui lòng thử lại sau");
         }
     }
 
