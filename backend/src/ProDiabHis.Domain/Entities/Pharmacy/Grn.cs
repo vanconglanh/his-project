@@ -3,9 +3,10 @@ using ProDiabHis.Domain.Common;
 namespace ProDiabHis.Domain.Entities.Pharmacy;
 
 /// <summary>Phieu nhap kho (Goods Receipt Note). Map bang diab_his_pha_grn</summary>
-public class Grn : BaseEntity, ITenantScoped
+public class Grn : BaseEntity, ITenantScoped, IBranchScoped
 {
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public string GrnNo { get; set; } = string.Empty;
     public Guid? PoId { get; set; }
     public Guid SupplierId { get; set; }

@@ -3,9 +3,12 @@ using ProDiabHis.Domain.Common;
 namespace ProDiabHis.Domain.Entities;
 
 /// <summary>Nguoi dung he thong. Map bang sec_users</summary>
-public class User : BaseEntity, ITenantScoped
+public class User : BaseEntity, ITenantScoped, IBranchScoped
 {
     public int TenantId { get; set; }
+    /// <summary>Chi nhanh mac dinh khi dang nhap (denormalize, phai trung 1 dong is_primary=1
+    /// trong diab_his_sec_user_branches)</summary>
+    public int? BranchId { get; set; }
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;

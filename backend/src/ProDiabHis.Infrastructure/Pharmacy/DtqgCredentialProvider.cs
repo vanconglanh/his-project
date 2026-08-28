@@ -7,25 +7,29 @@ using ProDiabHis.Application.Pharmacy;
 namespace ProDiabHis.Infrastructure.Pharmacy;
 
 /// <summary>
-/// Đọc credential ĐTQG per-tenant từ <c>diab_his_int_dtqg_credentials</c> và giải mã token (AES-256-GCM).
-/// Query khớp với <c>SubmitDtqgHandler</c> (chỉ 3 cột, lọc theo tenant + deleted_at) để tránh phụ thuộc
-/// các cột biến thể schema (is_active/id) giữa các migration.
+/// Đọc credential ĐTQG per-tenant (R7/R8: nay ưu tiên theo branch, 1 credential/chi nhánh) từ
+/// <c>diab_his_int_dtqg_credentials</c> và giải mã token (AES-256-GCM). Ưu tiên dòng khớp branch_id
+/// hiện tại; nếu chưa có (giai đoạn migrate/chưa cấu hình riêng) fallback dòng branch_id IS NULL
+/// (credential dùng chung toàn tenant kiểu cũ).
 /// </summary>
 public class DtqgCredentialProvider : IDtqgCredentialProvider
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branchProvider;
     private readonly IEncryptionService _encryption;
     private readonly ILogger<DtqgCredentialProvider> _logger;
 
     public DtqgCredentialProvider(
         IDapperConnectionFactory db,
         ICurrentUser currentUser,
+        IBranchProvider branchProvider,
         IEncryptionService encryption,
         ILogger<DtqgCredentialProvider> logger)
     {
         _db = db;
         _currentUser = currentUser;
+        _branchProvider = branchProvider;
         _encryption = encryption;
         _logger = logger;
     }
@@ -37,10 +41,15 @@ public class DtqgCredentialProvider : IDtqgCredentialProvider
             return null;
 
         using var conn = _db.CreateConnection();
+        // Uu tien credential rieng cua branch hien tai, fallback credential dung chung (branch_id NULL)
         var row = await conn.QueryFirstOrDefaultAsync<CredentialRow>(
-            "SELECT cskcb_id AS CskcbId, partner_code AS PartnerCode, token_encrypted AS TokenEncrypted " +
-            "FROM diab_his_int_dtqg_credentials WHERE tenant_id = @tenantId AND deleted_at IS NULL",
-            new { tenantId = tenantId.Value });
+            @"SELECT cskcb_id AS CskcbId, partner_code AS PartnerCode, token_encrypted AS TokenEncrypted
+                FROM diab_his_int_dtqg_credentials
+               WHERE tenant_id = @tenantId AND deleted_at IS NULL
+                 AND (branch_id = @branchId OR branch_id IS NULL)
+               ORDER BY (branch_id = @branchId) DESC
+               LIMIT 1",
+            new { tenantId = tenantId.Value, branchId = _branchProvider.BranchId });
 
         if (row is null)
             return null;

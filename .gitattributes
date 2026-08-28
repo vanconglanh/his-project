@@ -1,0 +1,4 @@
+# Script chay trong container Linux (migrator, entrypoint...) PHAI la LF.
+# Neu de Git tu dong convert theo core.autocrlf tren May Windows, script se
+# bi CRLF -> bash trong container loi "$'\r': command not found".
+*.sh text eol=lf

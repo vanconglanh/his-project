@@ -32,8 +32,9 @@ public class ListWarehousesHandler : IRequestHandler<ListWarehousesQuery, Result
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public ListWarehousesHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public ListWarehousesHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<IReadOnlyList<WarehouseResponse>>> Handle(ListWarehousesQuery q, CancellationToken ct)
     {
@@ -41,8 +42,8 @@ public class ListWarehousesHandler : IRequestHandler<ListWarehousesQuery, Result
         var tenantId = _currentUser.TenantId!.Value;
 
         var rows = await conn.QueryAsync<dynamic>(
-            "SELECT id, tenant_id, code, name, type, address, manager_user_id, created_at FROM pha_warehouses WHERE tenant_id = @tenantId AND deleted_at IS NULL ORDER BY code",
-            new { tenantId });
+            $"SELECT id, tenant_id, code, name, type, address, manager_user_id, created_at FROM pha_warehouses WHERE tenant_id = @tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")} ORDER BY code",
+            new { tenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
         var items = rows.Select(r => new WarehouseResponse(
             r.id.ToString(), (int)r.tenant_id, (string)r.code, (string)r.name,
             (string?)r.type, (string?)r.address, (int?)r.manager_user_id, (DateTime)r.created_at)).ToList();
@@ -54,8 +55,9 @@ public class GetWarehouseHandler : IRequestHandler<GetWarehouseQuery, Result<War
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public GetWarehouseHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public GetWarehouseHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<WarehouseResponse>> Handle(GetWarehouseQuery q, CancellationToken ct)
     {
@@ -63,8 +65,8 @@ public class GetWarehouseHandler : IRequestHandler<GetWarehouseQuery, Result<War
         var tenantId = _currentUser.TenantId!.Value;
 
         var r = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, tenant_id, code, name, type, address, manager_user_id, created_at FROM pha_warehouses WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { id = q.Id, tenantId });
+            $"SELECT id, tenant_id, code, name, type, address, manager_user_id, created_at FROM pha_warehouses WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = q.Id, tenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
         if (r == null)
             return Result<WarehouseResponse>.Failure("PHARMACY_WAREHOUSE_NOT_FOUND", "Không tìm thấy kho.");
         return Result<WarehouseResponse>.Success(new WarehouseResponse(
@@ -77,20 +79,23 @@ public class CreateWarehouseHandler : IRequestHandler<CreateWarehouseCommand, Re
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public CreateWarehouseHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public CreateWarehouseHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<WarehouseResponse>> Handle(CreateWarehouseCommand cmd, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
         var r = cmd.Request;
+        // branch_id luon gan tu IBranchProvider, khong trust input client
+        var branchId = _branch.BranchId > 0 ? _branch.BranchId : (int?)null;
 
         var id = await conn.ExecuteScalarAsync<int>(
-            @"INSERT INTO pha_warehouses (tenant_id, CODE, NAME, TYPE, ADDRESS, MANAGER_USER_ID, CREATED_AT, UPDATED_AT)
-              VALUES (@tenantId, @code, @name, @type, @address, @mgr, NOW(), NOW());
+            @"INSERT INTO pha_warehouses (tenant_id, branch_id, CODE, NAME, TYPE, ADDRESS, MANAGER_USER_ID, CREATED_AT, UPDATED_AT)
+              VALUES (@tenantId, @branchId, @code, @name, @type, @address, @mgr, NOW(), NOW());
               SELECT LAST_INSERT_ID();",
-            new { tenantId, code = r.Code, name = r.Name, type = r.Type, address = r.Address, mgr = r.ManagerUserId });
+            new { tenantId, branchId, code = r.Code, name = r.Name, type = r.Type, address = r.Address, mgr = r.ManagerUserId });
 
         return Result<WarehouseResponse>.Success(new WarehouseResponse(
             id.ToString(), tenantId, r.Code, r.Name, r.Type, r.Address, r.ManagerUserId, DateTime.UtcNow));
@@ -101,8 +106,9 @@ public class UpdateWarehouseHandler : IRequestHandler<UpdateWarehouseCommand, Re
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public UpdateWarehouseHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public UpdateWarehouseHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<WarehouseResponse>> Handle(UpdateWarehouseCommand cmd, CancellationToken ct)
     {
@@ -111,13 +117,13 @@ public class UpdateWarehouseHandler : IRequestHandler<UpdateWarehouseCommand, Re
         var r = cmd.Request;
 
         var rows = await conn.ExecuteAsync(
-            "UPDATE pha_warehouses SET CODE=@code, NAME=@name, TYPE=@type, ADDRESS=@address, MANAGER_USER_ID=@mgr, UPDATED_AT=NOW() WHERE ID=@id AND tenant_id=@tenantId AND DELETED_AT IS NULL",
-            new { code = r.Code, name = r.Name, type = r.Type, address = r.Address, mgr = r.ManagerUserId, id = cmd.Id, tenantId });
+            $"UPDATE pha_warehouses SET CODE=@code, NAME=@name, TYPE=@type, ADDRESS=@address, MANAGER_USER_ID=@mgr, UPDATED_AT=NOW() WHERE ID=@id AND tenant_id=@tenantId AND DELETED_AT IS NULL AND {BranchSql.Condition("")}",
+            new { code = r.Code, name = r.Name, type = r.Type, address = r.Address, mgr = r.ManagerUserId, id = cmd.Id, tenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         if (rows == 0)
             return Result<WarehouseResponse>.Failure("PHARMACY_WAREHOUSE_NOT_FOUND", "Khong tim thay kho.");
 
-        return await new GetWarehouseHandler(_db, _currentUser).Handle(new GetWarehouseQuery(cmd.Id), ct);
+        return await new GetWarehouseHandler(_db, _currentUser, _branch).Handle(new GetWarehouseQuery(cmd.Id), ct);
     }
 }
 
@@ -125,8 +131,9 @@ public class DeleteWarehouseHandler : IRequestHandler<DeleteWarehouseCommand, Re
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public DeleteWarehouseHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public DeleteWarehouseHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<bool>> Handle(DeleteWarehouseCommand cmd, CancellationToken ct)
     {
@@ -134,8 +141,8 @@ public class DeleteWarehouseHandler : IRequestHandler<DeleteWarehouseCommand, Re
         var tenantId = _currentUser.TenantId!.Value;
 
         var rows = await conn.ExecuteAsync(
-            "UPDATE pha_warehouses SET DELETED_AT=NOW(), UPDATED_AT=NOW() WHERE ID=@id AND tenant_id=@tenantId AND DELETED_AT IS NULL",
-            new { id = cmd.Id, tenantId });
+            $"UPDATE pha_warehouses SET DELETED_AT=NOW(), UPDATED_AT=NOW() WHERE ID=@id AND tenant_id=@tenantId AND DELETED_AT IS NULL AND {BranchSql.Condition("")}",
+            new { id = cmd.Id, tenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         return rows == 0
             ? Result<bool>.Failure("PHARMACY_WAREHOUSE_NOT_FOUND", "Khong tim thay kho.")
@@ -147,8 +154,9 @@ public class ListPurchaseOrdersHandler : IRequestHandler<ListPurchaseOrdersQuery
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public ListPurchaseOrdersHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public ListPurchaseOrdersHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<PagedResult<PurchaseOrderResponse>>> Handle(ListPurchaseOrdersQuery q, CancellationToken ct)
     {
@@ -156,9 +164,10 @@ public class ListPurchaseOrdersHandler : IRequestHandler<ListPurchaseOrdersQuery
         var tenantId = _currentUser.TenantId!.Value;
         var offset = (q.Page - 1) * q.PageSize;
 
-        var where = new List<string> { "po.tenant_id = @tenantId", "po.deleted_at IS NULL" };
+        var where = new List<string> { "po.tenant_id = @tenantId", "po.deleted_at IS NULL", BranchSql.Condition("po") };
         var prm = new DynamicParameters();
         prm.Add("tenantId", tenantId); prm.Add("offset", offset); prm.Add("limit", q.PageSize);
+        prm.Add("branchId", _branch.BranchId); prm.Add("ignoreBranch", _branch.IgnoreBranchFilter);
 
         if (!string.IsNullOrWhiteSpace(q.Status)) { where.Add("po.status = @status"); prm.Add("status", q.Status); }
         if (!string.IsNullOrWhiteSpace(q.SupplierId)) { where.Add("po.supplier_id = @supplierId"); prm.Add("supplierId", q.SupplierId); }
@@ -188,22 +197,24 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderCom
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public CreatePurchaseOrderHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public CreatePurchaseOrderHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<PurchaseOrderResponse>> Handle(CreatePurchaseOrderCommand cmd, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
         var r = cmd.Request;
+        var branchId = _branch.BranchId > 0 ? _branch.BranchId : (int?)null;
 
         var id = Guid.NewGuid().ToString();
         decimal totalAmount = r.Items.Sum(i => i.QuantityOrdered * i.UnitPrice);
 
         await conn.ExecuteAsync(
-            @"INSERT INTO diab_his_pha_purchase_orders (id, tenant_id, supplier_id, warehouse_id, order_no, ordered_at, expected_delivery, status, total_amount, note, created_at, updated_at)
-              VALUES (@id, @tenantId, @supplierId, @warehouseId, @orderNo, @orderedAt, @expectedDelivery, 'DRAFT', @totalAmount, @note, NOW(), NOW())",
-            new { id, tenantId, supplierId = r.SupplierId, warehouseId = r.WarehouseId, orderNo = r.OrderNo, orderedAt = r.OrderedAt, expectedDelivery = r.ExpectedDelivery, totalAmount, note = r.Note });
+            @"INSERT INTO diab_his_pha_purchase_orders (id, tenant_id, branch_id, supplier_id, warehouse_id, order_no, ordered_at, expected_delivery, status, total_amount, note, created_at, updated_at)
+              VALUES (@id, @tenantId, @branchId, @supplierId, @warehouseId, @orderNo, @orderedAt, @expectedDelivery, 'DRAFT', @totalAmount, @note, NOW(), NOW())",
+            new { id, tenantId, branchId, supplierId = r.SupplierId, warehouseId = r.WarehouseId, orderNo = r.OrderNo, orderedAt = r.OrderedAt, expectedDelivery = r.ExpectedDelivery, totalAmount, note = r.Note });
 
         foreach (var item in r.Items)
         {
@@ -393,8 +404,9 @@ public class ListMovementsHandler : IRequestHandler<ListMovementsQuery, Result<P
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public ListMovementsHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public ListMovementsHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<PagedResult<StockMovementResponse>>> Handle(ListMovementsQuery q, CancellationToken ct)
     {
@@ -405,9 +417,10 @@ public class ListMovementsHandler : IRequestHandler<ListMovementsQuery, Result<P
         // Schema thuc te (mig 0013): id, tenant_id, stock_id, warehouse_id, movement_type, quantity,
         // unit_price, reason, reference_type, reference_id, movement_at, performed_by, audit cols.
         // drug_id lay qua join diab_his_pha_stock.
-        var where = new List<string> { "m.tenant_id = @tenantId" };
+        var where = new List<string> { "m.tenant_id = @tenantId", BranchSql.Condition("m") };
         var prm = new DynamicParameters();
         prm.Add("tenantId", tenantId); prm.Add("offset", offset); prm.Add("limit", q.PageSize);
+        prm.Add("branchId", _branch.BranchId); prm.Add("ignoreBranch", _branch.IgnoreBranchFilter);
 
         if (!string.IsNullOrWhiteSpace(q.MovementType)) { where.Add("m.movement_type = @mvtType"); prm.Add("mvtType", q.MovementType); }
         if (q.FromDate.HasValue) { where.Add("DATE(m.created_at) >= @fromDate"); prm.Add("fromDate", q.FromDate.Value); }
@@ -696,29 +709,33 @@ public class GetStocktakePdfHandler : IRequestHandler<GetStocktakePdfQuery, Resu
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
     private readonly IStocktakePdfBuilder _builder;
 
-    public GetStocktakePdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IStocktakePdfBuilder builder)
-    { _db = db; _currentUser = currentUser; _builder = builder; }
+    public GetStocktakePdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch, IStocktakePdfBuilder builder)
+    { _db = db; _currentUser = currentUser; _branch = branch; _builder = builder; }
 
     public async Task<Result<byte[]>> Handle(GetStocktakePdfQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
+        var branchId = _branch.BranchId;
+        var ignoreBranch = _branch.IgnoreBranchFilter;
 
         // Ghi chu: diab_his_pha_stocktakes chua co cot warehouse_id (chi co "location" dang text
         // tu do), nen KHONG the loc chinh xac theo q.WarehouseId. Lay phien kiem ke gan nhat
-        // cua tenant (theo stocktake_date DESC) — pha_warehouses.id chi dung de tra ten kho hien thi.
+        // cua tenant + chi nhanh dang lam viec (theo stocktake_date DESC) — pha_warehouses.id chi
+        // dung de tra ten kho hien thi.
         var warehouseName = await conn.ExecuteScalarAsync<string?>(
-            "SELECT name FROM pha_warehouses WHERE id = @id AND tenant_id = @tenantId",
-            new { id = q.WarehouseId, tenantId });
+            $"SELECT name FROM pha_warehouses WHERE id = @id AND tenant_id = @tenantId AND {BranchSql.Condition("")}",
+            new { id = q.WarehouseId, tenantId, branchId, ignoreBranch });
 
         var st = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT id, code, stocktake_date, location, note
+            $@"SELECT id, code, stocktake_date, location, note
               FROM diab_his_pha_stocktakes
-              WHERE tenant_id = @tenantId AND deleted_at IS NULL
+              WHERE tenant_id = @tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}
               ORDER BY stocktake_date DESC, created_at DESC LIMIT 1",
-            new { tenantId });
+            new { tenantId, branchId, ignoreBranch });
 
         if (st == null)
             return Result<byte[]>.Failure("STOCKTAKE_NOT_FOUND", "Không tìm thấy phiếu kiểm kê kho.");

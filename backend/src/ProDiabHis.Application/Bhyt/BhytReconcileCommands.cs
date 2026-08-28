@@ -22,14 +22,15 @@ public class ImportReconcileFileHandler : IRequestHandler<ImportReconcileFileCom
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly ICurrentUser _user;
     private readonly IFileStorage _fileStorage;
     private readonly IBackgroundJobEnqueuer _jobs;
 
-    public ImportReconcileFileHandler(IDapperConnectionFactory db, ITenantProvider tenant,
+    public ImportReconcileFileHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch,
         ICurrentUser user, IFileStorage fileStorage, IBackgroundJobEnqueuer jobs)
     {
-        _db = db; _tenant = tenant; _user = user; _fileStorage = fileStorage; _jobs = jobs;
+        _db = db; _tenant = tenant; _branch = branch; _user = user; _fileStorage = fileStorage; _jobs = jobs;
     }
 
     public async Task<Result<ReconcileUploadResponse>> Handle(ImportReconcileFileCommand cmd, CancellationToken ct)
@@ -37,8 +38,8 @@ public class ImportReconcileFileHandler : IRequestHandler<ImportReconcileFileCom
         using var conn = (IDbConnection)_db.CreateConnection();
 
         var export = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, status FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = cmd.ExportId, t = _tenant.TenantId });
+            $"SELECT id, status FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = cmd.ExportId, t = _tenant.TenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         if (export == null)
             return Result<ReconcileUploadResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
@@ -100,19 +101,23 @@ public class DisputeReconcileItemHandler : IRequestHandler<DisputeReconcileItemC
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly ICurrentUser _user;
 
-    public DisputeReconcileItemHandler(IDapperConnectionFactory db, ITenantProvider tenant, ICurrentUser user)
+    public DisputeReconcileItemHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, ICurrentUser user)
     {
-        _db = db; _tenant = tenant; _user = user;
+        _db = db; _tenant = tenant; _branch = branch; _user = user;
     }
 
     public async Task<Result<ReconcileItemResponse>> Handle(DisputeReconcileItemCommand cmd, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        // Nhom B: reconcile_items ke thua branch tu export cha -> join de xac thuc quyen truy cap
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM diab_his_int_bhyt_reconcile_items WHERE id=@id AND tenant_id=@t",
-            new { id = cmd.ItemId.ToString(), t = _tenant.TenantId });
+            $@"SELECT ri.* FROM diab_his_int_bhyt_reconcile_items ri
+               JOIN diab_his_int_bhyt_exports ex ON ex.id = ri.export_id AND ex.tenant_id = ri.tenant_id
+               WHERE ri.id=@id AND ri.tenant_id=@t AND {BranchSql.Condition("ex")}",
+            new { id = cmd.ItemId.ToString(), t = _tenant.TenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         if (row == null)
             return Result<ReconcileItemResponse>.Failure("BHYT_RECONCILE_ITEM_NOT_FOUND", "Khong tim thay item doi soat");
@@ -157,19 +162,22 @@ public class AcceptReconcileItemHandler : IRequestHandler<AcceptReconcileItemCom
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly ICurrentUser _user;
 
-    public AcceptReconcileItemHandler(IDapperConnectionFactory db, ITenantProvider tenant, ICurrentUser user)
+    public AcceptReconcileItemHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, ICurrentUser user)
     {
-        _db = db; _tenant = tenant; _user = user;
+        _db = db; _tenant = tenant; _branch = branch; _user = user;
     }
 
     public async Task<Result<ReconcileItemResponse>> Handle(AcceptReconcileItemCommand cmd, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM diab_his_int_bhyt_reconcile_items WHERE id=@id AND tenant_id=@t",
-            new { id = cmd.ItemId.ToString(), t = _tenant.TenantId });
+            $@"SELECT ri.* FROM diab_his_int_bhyt_reconcile_items ri
+               JOIN diab_his_int_bhyt_exports ex ON ex.id = ri.export_id AND ex.tenant_id = ri.tenant_id
+               WHERE ri.id=@id AND ri.tenant_id=@t AND {BranchSql.Condition("ex")}",
+            new { id = cmd.ItemId.ToString(), t = _tenant.TenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         if (row == null)
             return Result<ReconcileItemResponse>.Failure("BHYT_RECONCILE_ITEM_NOT_FOUND", "Khong tim thay item doi soat");

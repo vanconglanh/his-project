@@ -181,6 +181,7 @@ try
     app.UseCors("DevPolicy");
     app.UseAuthentication();
     app.UseMiddleware<TenantScopeMiddleware>();
+    app.UseMiddleware<BranchScopeMiddleware>();
     app.UseAuthorization();
     app.UseMiddleware<AuditLogMiddleware>();
 
@@ -241,6 +242,35 @@ try
         "portal-med-reminder",
         j => j.ExecuteAsync(default),
         "*/30 * * * *");
+
+    // FR-511: canh bao ket qua XN qua han SLA cam ket voi doi tac lab (moi gio)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.LabOrderOverdueAlertJob>(
+        "lab-order-overdue-sla",
+        j => j.ExecuteAsync(),
+        "0 * * * *");
+
+    // FR-1206: canh bao goi dinh muc sap het han / sap het dinh muc / cong no qua han (hang ngay 00:15)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.PackageAlertJob>(
+        "package-entitlement-alert",
+        j => j.ExecuteAsync(),
+        "15 0 * * *");
+
+    // FR-801..803: Telehealth Docosan - dong bo trang thai phien (moi 5 phut, khong co webhook)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.DocosanSessionSyncJob>(
+        "docosan-session-sync",
+        j => j.ExecuteAsync(default),
+        "*/5 * * * *");
+    // Telehealth Docosan: retry outbox (moi 2 phut, backoff 1p/5p/15p/60p/6h)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.DocosanOutboxRetryJob>(
+        "docosan-outbox-retry",
+        j => j.ExecuteAsync(default),
+        "*/2 * * * *");
+
+    // FR-711 [P2]: Ket noi thiet bi do duong huyet/CGM - dong bo readings (moi 15 phut)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.CgmReadingsSyncJob>(
+        "cgm-readings-sync",
+        j => j.ExecuteAsync(default),
+        "*/15 * * * *");
 
     // Minimal endpoint kiem tra nhanh
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();

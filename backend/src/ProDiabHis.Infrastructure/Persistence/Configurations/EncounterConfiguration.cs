@@ -12,6 +12,7 @@ public class EncounterConfiguration : IEntityTypeConfiguration<Encounter>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.DoctorId).HasColumnName("doctor_id").HasMaxLength(36);
         builder.Property(e => e.RoomId).HasColumnName("room_id").HasMaxLength(36);
@@ -27,6 +28,7 @@ public class EncounterConfiguration : IEntityTypeConfiguration<Encounter>
         builder.Property(e => e.LockedBy).HasColumnName("locked_by").HasMaxLength(36);
         builder.Property(e => e.AmendmentCount).HasColumnName("amendment_count").HasDefaultValue(0);
         builder.Ignore(e => e.IsLocked);
+        builder.Property(e => e.TelehealthSessionId).HasColumnName("telehealth_session_id").HasMaxLength(36);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");

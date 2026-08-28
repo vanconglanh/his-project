@@ -209,12 +209,15 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
     private readonly IAuditService _audit;
+    private readonly ProDiabHis.Application.Common.Interfaces.IPackageEntitlementService _packageEntitlement;
 
-    public CreatePrescriptionHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IAuditService audit)
+    public CreatePrescriptionHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IAuditService audit,
+        ProDiabHis.Application.Common.Interfaces.IPackageEntitlementService packageEntitlement)
     {
         _db = db;
         _currentUser = currentUser;
         _audit = audit;
+        _packageEntitlement = packageEntitlement;
     }
 
     public async Task<Result<PrescriptionResponse>> Handle(CreatePrescriptionCommand cmd, CancellationToken ct)
@@ -239,6 +242,7 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
                 createdBy = userId?.ToString()
             });
 
+        var packageLines = new List<ProDiabHis.Application.Common.Interfaces.PackageCoverageLineRequest>();
         if (cmd.Request.Items?.Count > 0)
         {
             foreach (var item in cmd.Request.Items)
@@ -247,11 +251,40 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
                 // id, tenant_id, prescription_id, drug_id, dosage, frequency, route,
                 // duration_days, quantity, instructions - KHONG co drug_name/unit/unit_price/
                 // line_total/note (nhung cot nay chi ton tai o migration 9005 chua duoc ap dung).
+                var itemId = Guid.NewGuid();
                 await conn.ExecuteAsync(
                     @"INSERT INTO diab_his_pha_prescription_items
                       (id, tenant_id, prescription_id, drug_id, dosage, frequency, route, duration_days, quantity, instructions)
-                      VALUES (UUID(), @tenantId, @presId, @drugId, @dosage, @frequency, @route, @durationDays, @quantity, @instructions)",
-                    new { tenantId, presId, drugId = item.DrugId, dosage = item.Dosage, frequency = item.Frequency, route = item.Route, durationDays = item.DurationDays, quantity = item.Quantity, instructions = item.Instructions });
+                      VALUES (@itemId, @tenantId, @presId, @drugId, @dosage, @frequency, @route, @durationDays, @quantity, @instructions)",
+                    new { itemId = itemId.ToString(), tenantId, presId, drugId = item.DrugId, dosage = item.Dosage, frequency = item.Frequency, route = item.Route, durationDays = item.DurationDays, quantity = item.Quantity, instructions = item.Instructions });
+
+                if (Guid.TryParse(item.DrugId, out var drugGuid))
+                {
+                    packageLines.Add(new ProDiabHis.Application.Common.Interfaces.PackageCoverageLineRequest(
+                        ProDiabHis.Application.Common.Interfaces.PackageItemType.DRUG, drugGuid, item.Quantity, itemId));
+                }
+            }
+        }
+
+        // Quyet dinh nghiep vu #2 (chot voi PO): tru dinh muc thuoc NGAY LUC KE DON (luu don thuoc),
+        // KHONG phai luc cap phat tai quay duoc. Best-effort: chay o transaction rieng (khong chung
+        // voi INSERT prescription o tren do CreatePrescriptionHandler hien dang dung nhieu lenh
+        // Dapper roi rac khong bao trong 1 transaction) - neu that bai se khong rollback prescription,
+        // nhung ConsumeAsync la idempotent nen co the goi lai an toan qua retry/reconciliation job.
+        if (packageLines.Count > 0)
+        {
+            try
+            {
+                await _packageEntitlement.ConsumeAsync(
+                    new ProDiabHis.Application.Common.Interfaces.PackageCoverageRequest(
+                        cmd.Request.PatientId, "PRESCRIPTION", Guid.Parse(presId), packageLines, userId),
+                    ct);
+            }
+            catch (ProDiabHis.Application.Common.Interfaces.PackageBalanceConflictException)
+            {
+                // Xung dot dong thoi hiem gap (2 giao dich tru cung 1 balance) - khong chan viec tao don,
+                // duoc ban chi don gian khong ap dung dinh muc cho lan nay (BN van duoc kham/dung thuoc binh thuong,
+                // se tinh phi day du). TODO: xem xet retry 1 lan hoac canh bao rieng cho nghiep vu.
             }
         }
 

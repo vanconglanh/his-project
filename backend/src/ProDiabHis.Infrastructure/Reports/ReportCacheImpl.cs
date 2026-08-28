@@ -10,29 +10,46 @@ public class ReportCacheImpl : IReportCache
 
     public ReportCacheImpl(IDapperConnectionFactory db) => _db = db;
 
-    public async Task<string?> GetAsync(string tableName, int tenantId, string periodKey, CancellationToken ct = default)
+    public async Task<string?> GetAsync(string tableName, int tenantId, string periodKey, int? branchId = null, CancellationToken ct = default)
     {
         // Whitelist table names to prevent SQL injection
         if (!AllowedTables.Contains(tableName))
             throw new ArgumentException($"Bang cache khong hop le: {tableName}");
 
         using var conn = _db.CreateConnection();
-        var sql = $"SELECT data_json FROM `{tableName}` WHERE tenant_id = @tid AND period_key = @key LIMIT 1";
-        return await conn.QueryFirstOrDefaultAsync<string>(sql, new { tid = tenantId, key = periodKey });
+        // branch_id la 1 phan cua khoa (xem migration 9087) — NULL nghia la cache dung chung toan tenant.
+        var sql = $@"SELECT data_json FROM `{tableName}`
+                     WHERE tenant_id = @tid AND period_key = @key
+                       AND (branch_id <=> @branchId)
+                     LIMIT 1";
+        return await conn.QueryFirstOrDefaultAsync<string>(sql, new { tid = tenantId, key = periodKey, branchId });
     }
 
-    public async Task SetAsync(string tableName, int tenantId, string periodKey, string dataJson, CancellationToken ct = default)
+    public async Task SetAsync(string tableName, int tenantId, string periodKey, string dataJson, int? branchId = null, CancellationToken ct = default)
     {
         if (!AllowedTables.Contains(tableName))
             throw new ArgumentException($"Bang cache khong hop le: {tableName}");
 
         using var conn = _db.CreateConnection();
-        var sql = $@"
-            INSERT INTO `{tableName}` (id, tenant_id, period_key, data_json, refreshed_at)
-            VALUES (UUID(), @tid, @key, @json, NOW(3))
-            ON DUPLICATE KEY UPDATE data_json = @json, refreshed_at = NOW(3), updated_at = NOW(3)";
+        // Khong dung ON DUPLICATE KEY don gian vi UNIQUE moi la (tenant_id, branch_id, period_key)
+        // va branch_id co the NULL (MySQL coi nhieu NULL la khac nhau trong unique index) -> upsert thu cong.
+        var existing = await conn.ExecuteScalarAsync<string?>(
+            $"SELECT id FROM `{tableName}` WHERE tenant_id=@tid AND period_key=@key AND (branch_id <=> @branchId) LIMIT 1",
+            new { tid = tenantId, key = periodKey, branchId });
 
-        await conn.ExecuteAsync(sql, new { tid = tenantId, key = periodKey, json = dataJson });
+        if (existing != null)
+        {
+            await conn.ExecuteAsync(
+                $"UPDATE `{tableName}` SET data_json=@json, refreshed_at=NOW(3), updated_at=NOW(3) WHERE id=@id",
+                new { id = existing, json = dataJson });
+        }
+        else
+        {
+            await conn.ExecuteAsync(
+                $@"INSERT INTO `{tableName}` (id, tenant_id, branch_id, period_key, data_json, refreshed_at)
+                   VALUES (UUID(), @tid, @branchId, @key, @json, NOW(3))",
+                new { tid = tenantId, branchId, key = periodKey, json = dataJson });
+        }
     }
 
     private static readonly HashSet<string> AllowedTables =

@@ -160,6 +160,16 @@ public class ClsOrdersController : ControllerBase
         return File(result.Value!, "application/pdf", $"phieu-chi-dinh-cdha-{encounterId:N}.pdf");
     }
 
+    // GET /api/v1/lab-orders/overdue
+    // FR-511 [P1]: canh bao cac chi dinh XN qua han SLA cam ket voi doi tac ma chua co ket qua
+    [HttpGet("api/v1/lab-orders/overdue")]
+    [RequirePermission("lab_order.read")]
+    public async Task<IActionResult> ListOverdue(CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ListOverdueLabOrdersQuery(), ct);
+        return Ok(new { data = result.Value, meta = new { total = result.Value?.Count ?? 0 } });
+    }
+
     // GET /api/v1/cls-catalog/tests
     [HttpGet("api/v1/cls-catalog/tests")]
     [RequirePermission("lab_order.read")]

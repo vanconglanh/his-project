@@ -20,7 +20,9 @@ public class PrescriptionStateMachineTests
 
     public PrescriptionStateMachineTests()
     {
-        _signer = new MockUsbTokenSigner(NullLogger<MockUsbTokenSigner>.Instance);
+        var provider = new ProDiabHis.Infrastructure.Security.MockDigitalSignatureProvider(
+            NullLogger<ProDiabHis.Infrastructure.Security.MockDigitalSignatureProvider>.Instance);
+        _signer = new UsbTokenSignerAdapter(provider, NullLogger<UsbTokenSignerAdapter>.Instance);
         _ddiChecker = Substitute.For<IDdiChecker>();
     }
 
@@ -36,7 +38,7 @@ public class PrescriptionStateMachineTests
         // Assert
         result.IsValid.Should().BeTrue();
         result.SerialNumber.Should().NotBeNullOrEmpty();
-        result.SubjectName.Should().Contain("MockDoctor");
+        result.SubjectName.Should().Contain("MOCK_CERT");
     }
 
     [Fact]

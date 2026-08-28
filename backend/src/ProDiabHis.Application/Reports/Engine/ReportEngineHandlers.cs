@@ -121,17 +121,21 @@ public class GetReportOptionsHandler : IRequestHandler<GetReportOptionsQuery, IR
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public GetReportOptionsHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public GetReportOptionsHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
     }
 
     public async Task<IReadOnlyList<ReportOptionItem>> Handle(GetReportOptionsQuery request, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
         var tenantId = _tenant.TenantId;
+        var branchId = _branch.BranchId;
+        var ignoreBranch = _branch.IgnoreBranchFilter;
 
         IEnumerable<(string Value, string Label)> rows = request.Source.ToLowerInvariant() switch
         {
@@ -156,10 +160,10 @@ public class GetReportOptionsHandler : IRequestHandler<GetReportOptionsQuery, IR
                 new { tenantId }),
 
             "counters" => await conn.QueryAsync<(string, string)>(
-                @"SELECT id, name FROM diab_his_bil_counters
-                  WHERE tenant_id = @tenantId AND deleted_at IS NULL AND status = 1
+                $@"SELECT id, name FROM diab_his_bil_counters
+                  WHERE tenant_id = @tenantId AND deleted_at IS NULL AND status = 1 AND {BranchSql.Condition("")}
                   ORDER BY sort_order",
-                new { tenantId }),
+                new { tenantId, branchId, ignoreBranch }),
 
             "clinics" => await conn.QueryAsync<(string, string)>(
                 "SELECT CAST(id AS CHAR) AS Value, name AS Label FROM diab_his_sys_tenants WHERE id = @tenantId",

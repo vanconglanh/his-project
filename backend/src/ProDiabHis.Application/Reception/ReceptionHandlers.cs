@@ -10,14 +10,16 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly ICurrentUser _currentUser;
     private readonly IAuditService _audit;
 
-    public CheckInCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
+    public CheckInCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch,
         ICurrentUser currentUser, IAuditService audit)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
         _currentUser = currentUser;
         _audit = audit;
     }
@@ -27,43 +29,48 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
         var req = command.Request;
         using var conn = _db.CreateConnection();
 
-        // Validate patient
+        if (_branch.BranchId <= 0)
+            return Result<ReceptionTicketResponse>.Failure("BRANCH_REQUIRED", "Vui long chon chi nhanh truoc khi tiep don");
+        var branchId = _branch.BranchId;
+        var ignoreBranch = _branch.IgnoreBranchFilter;
+
+        // Validate patient (Nhom C - benh nhan toan cuc theo tenant, khong loc branch)
         var patient = await conn.QueryFirstOrDefaultAsync(
             "SELECT id, code, full_name, gender, date_of_birth FROM pat_patients WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
             new { Id = req.PatientId.ToString(), TenantId = _tenant.TenantId });
         if (patient is null)
             return Result<ReceptionTicketResponse>.Failure("PATIENT_NOT_FOUND", "Không tìm thấy bệnh nhân");
 
-        // Validate room
+        // Validate room (phong da co branch_id tu 9006, backfill o 9085)
         var room = await conn.QueryFirstOrDefaultAsync(
-            "SELECT id, name, code AS room_code, capacity AS max_per_day FROM diab_his_sys_rooms WHERE id=@Id AND (tenant_id=@TenantId OR tenant_id IS NULL) AND deleted_at IS NULL",
-            new { Id = req.RoomId.ToString(), TenantId = _tenant.TenantId });
+            $"SELECT id, name, code AS room_code, capacity AS max_per_day FROM diab_his_sys_rooms WHERE id=@Id AND (tenant_id=@TenantId OR tenant_id IS NULL) AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { Id = req.RoomId.ToString(), TenantId = _tenant.TenantId, branchId, ignoreBranch });
         if (room is null)
             return Result<ReceptionTicketResponse>.Failure("ROOM_NOT_FOUND", "Không tìm thấy phòng khám");
 
         var today = DateTime.Today.ToString("yyyy-MM-dd");
         var patId = ((object)patient.id).ToString()!;
 
-        // Check duplicate check-in today
+        // Check duplicate check-in today (gioi han theo chi nhanh dang lam viec)
         var dupCount = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND patient_id=@PatId AND room_id=@RoomId AND ticket_date=@Date AND status NOT IN ('CANCELLED') AND deleted_at IS NULL",
-            new { TenantId = _tenant.TenantId, PatId = patId, RoomId = req.RoomId.ToString(), Date = today });
+            "SELECT COUNT(*) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND branch_id=@BranchId AND patient_id=@PatId AND room_id=@RoomId AND ticket_date=@Date AND status NOT IN ('CANCELLED') AND deleted_at IS NULL",
+            new { TenantId = _tenant.TenantId, BranchId = branchId, PatId = patId, RoomId = req.RoomId.ToString(), Date = today });
         if (dupCount > 0)
             return Result<ReceptionTicketResponse>.Failure("RECEPTION_DUPLICATE_CHECKIN", "Bệnh nhân đã được tiếp đón hôm nay tại phòng này");
 
-        // Check room capacity
+        // Check room capacity (theo chi nhanh)
         // G01/G02: ve dang WAITING_CLS da NHA PHONG -> khong tinh vao suc chua phong
         var todayCount = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND room_id=@RoomId AND ticket_date=@Date AND status NOT IN ('CANCELLED', 'WAITING_CLS') AND deleted_at IS NULL",
-            new { TenantId = _tenant.TenantId, RoomId = req.RoomId.ToString(), Date = today });
+            "SELECT COUNT(*) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND branch_id=@BranchId AND room_id=@RoomId AND ticket_date=@Date AND status NOT IN ('CANCELLED', 'WAITING_CLS') AND deleted_at IS NULL",
+            new { TenantId = _tenant.TenantId, BranchId = branchId, RoomId = req.RoomId.ToString(), Date = today });
         if (todayCount >= (int)room.max_per_day)
             return Result<ReceptionTicketResponse>.Failure("RECEPTION_ROOM_FULL", "Phòng khám đã đạt giới hạn lượt khám tối đa");
 
-        // Generate ticket_no (so thu tu trong ngay, theo phong): bang thuc te dung ticket_no/ticket_date,
+        // Generate ticket_no (so thu tu trong ngay, theo phong + chi nhanh): bang thuc te dung ticket_no/ticket_date,
         // khong co cot queue_number (xem 0022_create_reception_queue.sql)
         var maxNo = await conn.ExecuteScalarAsync<int>(
-            "SELECT COALESCE(MAX(CAST(ticket_no AS UNSIGNED)), 0) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND room_id=@RoomId AND ticket_date=@Date AND deleted_at IS NULL",
-            new { TenantId = _tenant.TenantId, RoomId = req.RoomId.ToString(), Date = today });
+            "SELECT COALESCE(MAX(CAST(ticket_no AS UNSIGNED)), 0) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND branch_id=@BranchId AND room_id=@RoomId AND ticket_date=@Date AND deleted_at IS NULL",
+            new { TenantId = _tenant.TenantId, BranchId = branchId, RoomId = req.RoomId.ToString(), Date = today });
         var queueNumber = maxNo + 1;
         var ticketNo = $"{queueNumber:D3}";
 
@@ -73,11 +80,11 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
 
         await conn.ExecuteAsync(
             @"INSERT INTO diab_his_rcp_queue_tickets
-                (id, tenant_id, patient_id, room_id, ticket_no, ticket_date, status, priority, reason_for_visit, note, created_at, updated_at)
-              VALUES (@Id, @TenantId, @PatId, @RoomId, @TicketNo, @TicketDate, 'WAITING', @Priority, @ReasonForVisit, @Note, @Now, @Now)",
+                (id, tenant_id, branch_id, patient_id, room_id, ticket_no, ticket_date, status, priority, reason_for_visit, note, created_at, updated_at)
+              VALUES (@Id, @TenantId, @BranchId, @PatId, @RoomId, @TicketNo, @TicketDate, 'WAITING', @Priority, @ReasonForVisit, @Note, @Now, @Now)",
             new
             {
-                Id = newId, TenantId = _tenant.TenantId, PatId = patId, RoomId = req.RoomId.ToString(),
+                Id = newId, TenantId = _tenant.TenantId, BranchId = branchId, PatId = patId, RoomId = req.RoomId.ToString(),
                 TicketNo = ticketNo, TicketDate = today, Priority = priority, ReasonForVisit = req.ReasonForVisit,
                 Note = req.Note, Now = now
             });
@@ -110,18 +117,20 @@ public class CallTicketCommandHandler : IRequestHandler<CallTicketCommand, Resul
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IBackgroundJobEnqueuer _jobs;
 
-    public CallTicketCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBackgroundJobEnqueuer jobs)
+    public CallTicketCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IBackgroundJobEnqueuer jobs)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
         _jobs = jobs;
     }
 
     public async Task<Result<ReceptionTicketResponse>> Handle(CallTicketCommand command, CancellationToken cancellationToken)
     {
-        var result = await TicketTransitionHelper.TransitionTicket(_db, _tenant, command.TicketId, TicketStatus.Called, cancellationToken);
+        var result = await TicketTransitionHelper.TransitionTicket(_db, _tenant, _branch, command.TicketId, TicketStatus.Called, cancellationToken);
 
         // Bao cho benh nhan gan den luot (fire-and-forget qua Hangfire, khong chan response)
         if (result.IsSuccess && result.Value!.RoomId != Guid.Empty)
@@ -137,30 +146,34 @@ public class SkipTicketCommandHandler : IRequestHandler<SkipTicketCommand, Resul
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public SkipTicketCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public SkipTicketCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
     }
 
     public async Task<Result<ReceptionTicketResponse>> Handle(SkipTicketCommand command, CancellationToken cancellationToken)
-        => await TicketTransitionHelper.TransitionTicket(_db, _tenant, command.TicketId, TicketStatus.Skipped, cancellationToken);
+        => await TicketTransitionHelper.TransitionTicket(_db, _tenant, _branch, command.TicketId, TicketStatus.Skipped, cancellationToken);
 }
 
 public class CancelTicketCommandHandler : IRequestHandler<CancelTicketCommand, Result<ReceptionTicketResponse>>
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public CancelTicketCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public CancelTicketCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
     }
 
     public async Task<Result<ReceptionTicketResponse>> Handle(CancelTicketCommand command, CancellationToken cancellationToken)
-        => await TicketTransitionHelper.TransitionTicket(_db, _tenant, command.TicketId, TicketStatus.Cancelled, cancellationToken, command.Reason);
+        => await TicketTransitionHelper.TransitionTicket(_db, _tenant, _branch, command.TicketId, TicketStatus.Cancelled, cancellationToken, command.Reason);
 }
 
 // Shared state machine transition
@@ -175,6 +188,7 @@ public static class TicketTransitionHelper
     public static async Task<Result<ReceptionTicketResponse>> TransitionTicket(
         IDapperConnectionFactory db,
         ITenantProvider tenant,
+        IBranchProvider branch,
         Guid ticketId,
         string newStatus,
         CancellationToken ct,
@@ -182,8 +196,8 @@ public static class TicketTransitionHelper
     {
         using var conn = db.CreateConnection();
         var row = await conn.QueryFirstOrDefaultAsync(
-            "SELECT id, status, patient_id, room_id, doctor_id, ticket_no, note, created_at FROM diab_his_rcp_queue_tickets WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
-            new { Id = ticketId.ToString(), TenantId = tenant.TenantId });
+            $"SELECT id, status, patient_id, room_id, doctor_id, ticket_no, note, created_at FROM diab_his_rcp_queue_tickets WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { Id = ticketId.ToString(), TenantId = tenant.TenantId, branchId = branch.BranchId, ignoreBranch = branch.IgnoreBranchFilter });
 
         if (row is null)
             return Result<ReceptionTicketResponse>.Failure("TICKET_NOT_FOUND", "Không tìm thấy phiếu tiếp đón");
@@ -249,11 +263,13 @@ public class ListQueueQueryHandler : IRequestHandler<ListQueueQuery, List<Recept
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public ListQueueQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public ListQueueQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
     }
 
     public async Task<List<ReceptionTicketResponse>> Handle(ListQueueQuery request, CancellationToken cancellationToken)
@@ -261,8 +277,8 @@ public class ListQueueQueryHandler : IRequestHandler<ListQueueQuery, List<Recept
         using var conn = _db.CreateConnection();
         var date = (request.Date ?? DateOnly.FromDateTime(DateTime.Today)).ToString("yyyy-MM-dd");
 
-        // diab_his_rcp_queue_tickets: id, tenant_id, patient_id, ticket_no, ticket_date, room_id, status, note, created_at
-        var where = "WHERE t.tenant_id=@TenantId AND t.ticket_date=@Date AND t.deleted_at IS NULL";
+        // diab_his_rcp_queue_tickets: id, tenant_id, branch_id, patient_id, ticket_no, ticket_date, room_id, status, note, created_at
+        var where = "WHERE t.tenant_id=@TenantId AND t.ticket_date=@Date AND t.deleted_at IS NULL AND " + BranchSql.Condition("t");
         if (request.RoomId.HasValue) where += " AND t.room_id=@RoomId";
         if (!string.IsNullOrEmpty(request.Status)) where += " AND t.status=@Status";
 
@@ -285,7 +301,9 @@ public class ListQueueQueryHandler : IRequestHandler<ListQueueQuery, List<Recept
             TenantId = _tenant.TenantId,
             Date = date,
             RoomId = request.RoomId?.ToString(),
-            Status = request.Status
+            Status = request.Status,
+            branchId = _branch.BranchId,
+            ignoreBranch = _branch.IgnoreBranchFilter
         });
 
         return rows.Select(MapTicketRow).ToList();
@@ -329,11 +347,13 @@ public class ListRoomsQueryHandler : IRequestHandler<ListRoomsQuery, List<RoomRe
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public ListRoomsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public ListRoomsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
     }
 
     public async Task<List<RoomResponse>> Handle(ListRoomsQuery request, CancellationToken cancellationToken)
@@ -341,16 +361,21 @@ public class ListRoomsQueryHandler : IRequestHandler<ListRoomsQuery, List<RoomRe
         using var conn = _db.CreateConnection();
         var today = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
 
-        var sql = @"
+        var sql = $@"
             SELECT r.id, r.name, r.code AS room_code, r.capacity AS max_per_day,
                    NULL AS doctor_id, NULL AS doctor_name,
                    COUNT(CASE WHEN t.status='WAITING' THEN 1 END) as waiting_count
             FROM diab_his_sys_rooms r
             LEFT JOIN diab_his_rcp_queue_tickets t ON t.room_id=r.id AND DATE(t.created_at)=@Today AND t.deleted_at IS NULL
             WHERE (r.tenant_id=@TenantId OR r.tenant_id IS NULL) AND r.deleted_at IS NULL AND r.is_active=1
+              AND {BranchSql.Condition("r")}
             GROUP BY r.id, r.name, r.code, r.capacity";
 
-        var rows = await conn.QueryAsync(sql, new { TenantId = _tenant.TenantId, Today = today });
+        var rows = await conn.QueryAsync(sql, new
+        {
+            TenantId = _tenant.TenantId, Today = today,
+            branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter
+        });
         return rows.Select(r => new RoomResponse(
             ((object)r.id).ToString()!,
             (string)r.name,
@@ -368,11 +393,13 @@ public class GetReceptionStatsQueryHandler : IRequestHandler<GetReceptionStatsQu
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public GetReceptionStatsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public GetReceptionStatsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
     }
 
     public async Task<ReceptionStatsDto> Handle(GetReceptionStatsQuery request, CancellationToken cancellationToken)
@@ -380,7 +407,7 @@ public class GetReceptionStatsQueryHandler : IRequestHandler<GetReceptionStatsQu
         using var conn = _db.CreateConnection();
         var date = (request.Date ?? DateOnly.FromDateTime(DateTime.Today)).ToString("yyyy-MM-dd");
 
-        var sql = @"
+        var sql = $@"
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN status='WAITING' THEN 1 ELSE 0 END) as waiting,
@@ -390,9 +417,13 @@ public class GetReceptionStatsQueryHandler : IRequestHandler<GetReceptionStatsQu
                 SUM(CASE WHEN status='CANCELLED' THEN 1 ELSE 0 END) as cancelled,
                 0 as avg_wait
             FROM diab_his_rcp_queue_tickets
-            WHERE tenant_id=@TenantId AND DATE(created_at)=@Date AND deleted_at IS NULL";
+            WHERE tenant_id=@TenantId AND DATE(created_at)=@Date AND deleted_at IS NULL AND {BranchSql.Condition("")}";
 
-        var row = await conn.QueryFirstAsync(sql, new { TenantId = _tenant.TenantId, Date = date });
+        var row = await conn.QueryFirstAsync(sql, new
+        {
+            TenantId = _tenant.TenantId, Date = date,
+            branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter
+        });
         var targetDate = request.Date ?? DateOnly.FromDateTime(DateTime.Today);
 
         return new ReceptionStatsDto(
@@ -411,17 +442,19 @@ public class GetTicketQueryHandler : IRequestHandler<GetTicketQuery, Result<Rece
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public GetTicketQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public GetTicketQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _db = db;
         _tenant = tenant;
+        _branch = branch;
     }
 
     public async Task<Result<ReceptionTicketResponse>> Handle(GetTicketQuery request, CancellationToken cancellationToken)
     {
         using var conn = _db.CreateConnection();
-        var sql = @"
+        var sql = $@"
             SELECT t.id, t.tenant_id, t.patient_id, p.code, p.full_name, p.gender, p.date_of_birth,
                    t.ticket_no as ticket_no, t.room_id, r.name as room_name,
                    t.doctor_id as doctor_id, u.full_name as doctor_full_name,
@@ -432,9 +465,13 @@ public class GetTicketQueryHandler : IRequestHandler<GetTicketQuery, Result<Rece
             LEFT JOIN pat_patients p ON t.patient_id = p.id
             LEFT JOIN diab_his_sys_rooms r ON t.room_id = r.id
             LEFT JOIN sec_users u ON t.doctor_id = u.id
-            WHERE t.id=@Id AND t.tenant_id=@TenantId AND t.deleted_at IS NULL";
+            WHERE t.id=@Id AND t.tenant_id=@TenantId AND t.deleted_at IS NULL AND {BranchSql.Condition("t")}";
 
-        var row = await conn.QueryFirstOrDefaultAsync(sql, new { Id = request.TicketId.ToString(), TenantId = _tenant.TenantId });
+        var row = await conn.QueryFirstOrDefaultAsync(sql, new
+        {
+            Id = request.TicketId.ToString(), TenantId = _tenant.TenantId,
+            branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter
+        });
         if (row is null)
             return Result<ReceptionTicketResponse>.Failure("TICKET_NOT_FOUND", "Không tìm thấy phiếu tiếp đón");
 

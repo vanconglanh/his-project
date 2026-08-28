@@ -15,8 +15,10 @@ public class EmrSignFlowTests
     [Fact]
     public async Task MockVerifier_AcceptsAnySignature_IsValid()
     {
-        var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<ProDiabHis.Infrastructure.EMR.MockEmrSignatureVerifier>>();
-        var verifier = new ProDiabHis.Infrastructure.EMR.MockEmrSignatureVerifier(logger);
+        var providerLogger = Substitute.For<Microsoft.Extensions.Logging.ILogger<ProDiabHis.Infrastructure.Security.MockDigitalSignatureProvider>>();
+        var provider = new ProDiabHis.Infrastructure.Security.MockDigitalSignatureProvider(providerLogger);
+        var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<ProDiabHis.Infrastructure.EMR.EmrSignatureVerifierAdapter>>();
+        var verifier = new ProDiabHis.Infrastructure.EMR.EmrSignatureVerifierAdapter(provider, logger);
 
         var content = System.Text.Encoding.UTF8.GetBytes("{\"type\":\"doc\"}");
         var signature = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03, 0x04 };
@@ -32,12 +34,14 @@ public class EmrSignFlowTests
     [Fact]
     public async Task MockVerifier_LogsWarning()
     {
-        var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<ProDiabHis.Infrastructure.EMR.MockEmrSignatureVerifier>>();
-        var verifier = new ProDiabHis.Infrastructure.EMR.MockEmrSignatureVerifier(logger);
+        var providerLogger = Substitute.For<Microsoft.Extensions.Logging.ILogger<ProDiabHis.Infrastructure.Security.MockDigitalSignatureProvider>>();
+        var provider = new ProDiabHis.Infrastructure.Security.MockDigitalSignatureProvider(providerLogger);
+        var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<ProDiabHis.Infrastructure.EMR.EmrSignatureVerifierAdapter>>();
+        var verifier = new ProDiabHis.Infrastructure.EMR.EmrSignatureVerifierAdapter(provider, logger);
 
         await verifier.VerifyAsync(new byte[] { 1, 2 }, new byte[] { 3, 4 });
 
-        logger.Received().Log(
+        providerLogger.Received().Log(
             Microsoft.Extensions.Logging.LogLevel.Warning,
             Arg.Any<Microsoft.Extensions.Logging.EventId>(),
             Arg.Any<object>(),

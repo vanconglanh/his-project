@@ -27,7 +27,7 @@ public class MySqlTestFixture : IAsyncLifetime
             .UseMySql(ConnectionString, ServerVersion.AutoDetect(ConnectionString))
             .Options;
 
-        DbContext = new AppDbContext(options, new NoopTenantProvider());
+        DbContext = new AppDbContext(options, new NoopTenantProvider(), new NoopBranchProvider());
         await DbContext.Database.EnsureCreatedAsync();
     }
 
@@ -41,5 +41,13 @@ public class MySqlTestFixture : IAsyncLifetime
     {
         public int TenantId => 0;
         public void SetTenantId(int tenantId) { }
+    }
+
+    private class NoopBranchProvider : IBranchProvider
+    {
+        public int BranchId => 0;
+        public bool IgnoreBranchFilter => true;
+        public IReadOnlyList<int> AllowedBranchIds => Array.Empty<int>();
+        public void SetContext(int branchId, bool ignoreFilter, IReadOnlyList<int> allowedBranchIds) { }
     }
 }

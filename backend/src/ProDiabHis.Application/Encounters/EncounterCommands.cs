@@ -10,7 +10,9 @@ public record CreateEncounterRequest(
     string? DoctorId,
     string EncounterType,
     string ReasonForVisit,
-    string? ChiefComplaint);
+    string? ChiefComplaint,
+    /// <summary>FR-803: chi truyen khi tao Encounter tu ngu canh phien tu van tu xa Docosan (tel_sessions.id).</summary>
+    string? TelehealthSessionId = null);
 
 public record CreateEncounterCommand(CreateEncounterRequest Request)
     : IRequest<Result<EncounterResponse>>;

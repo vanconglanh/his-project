@@ -309,11 +309,13 @@ public class GetDtqgCredentialsHandler : IRequestHandler<GetDtqgCredentialsQuery
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branchProvider;
 
-    public GetDtqgCredentialsHandler(IDapperConnectionFactory db, ICurrentUser currentUser)
+    public GetDtqgCredentialsHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branchProvider)
     {
         _db = db;
         _currentUser = currentUser;
+        _branchProvider = branchProvider;
     }
 
     public async Task<Result<DtqgCredentialsResponse>> Handle(GetDtqgCredentialsQuery q, CancellationToken ct)
@@ -321,9 +323,15 @@ public class GetDtqgCredentialsHandler : IRequestHandler<GetDtqgCredentialsQuery
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
 
+        // R7/R8: 1 credential/branch — uu tien branch hien tai, fallback dong dung chung (branch_id NULL)
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, tenant_id, cskcb_id, partner_code, token_encrypted, is_active, last_tested_at, last_test_ok FROM diab_his_int_dtqg_credentials WHERE tenant_id = @tenantId AND deleted_at IS NULL",
-            new { tenantId });
+            @"SELECT id, tenant_id, cskcb_id, partner_code, token_encrypted, is_active, last_tested_at, last_test_ok
+                FROM diab_his_int_dtqg_credentials
+               WHERE tenant_id = @tenantId AND deleted_at IS NULL
+                 AND (branch_id = @branchId OR branch_id IS NULL)
+               ORDER BY (branch_id = @branchId) DESC
+               LIMIT 1",
+            new { tenantId, branchId = _branchProvider.BranchId });
 
         if (row == null)
             return Result<DtqgCredentialsResponse>.Success(new DtqgCredentialsResponse(Guid.Empty, tenantId, null, null, null, false, null, null));
@@ -343,12 +351,14 @@ public class UpsertDtqgCredentialsHandler : IRequestHandler<UpsertDtqgCredential
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branchProvider;
     private readonly IEncryptionService _encryption;
 
-    public UpsertDtqgCredentialsHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IEncryptionService encryption)
+    public UpsertDtqgCredentialsHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branchProvider, IEncryptionService encryption)
     {
         _db = db;
         _currentUser = currentUser;
+        _branchProvider = branchProvider;
         _encryption = encryption;
     }
 
@@ -356,16 +366,37 @@ public class UpsertDtqgCredentialsHandler : IRequestHandler<UpsertDtqgCredential
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
+        var branchId = _branchProvider.BranchId > 0 ? _branchProvider.BranchId : (int?)null;
 
         var tokenEncrypted = _encryption.Encrypt(cmd.Request.Token);
 
-        await conn.ExecuteAsync(
-            @"INSERT INTO diab_his_int_dtqg_credentials (id, tenant_id, cskcb_id, partner_code, token_encrypted, is_active, created_at, updated_at)
-              VALUES (UUID(), @tenantId, @cskcbId, @partnerCode, @token, 1, NOW(), NOW())
-              ON DUPLICATE KEY UPDATE cskcb_id = @cskcbId, partner_code = @partnerCode, token_encrypted = @token, is_active = 1, updated_at = NOW()",
-            new { tenantId, cskcbId = cmd.Request.CskcbId, partnerCode = cmd.Request.PartnerCode, token = tokenEncrypted });
+        // R7: 1 credential/branch — upsert theo (tenant_id, branch_id). Neu chua co branch context (branchId=0/legacy)
+        // luu voi branch_id NULL (dung chung toan tenant, tuong thich nguoc).
+        var existingId = await conn.ExecuteScalarAsync<string?>(
+            @"SELECT id FROM diab_his_int_dtqg_credentials
+               WHERE tenant_id = @tenantId AND deleted_at IS NULL
+                 AND ((@branchId IS NULL AND branch_id IS NULL) OR branch_id = @branchId)",
+            new { tenantId, branchId });
 
-        return await new GetDtqgCredentialsHandler(_db, _currentUser).Handle(new GetDtqgCredentialsQuery(), ct);
+        if (existingId != null)
+        {
+            await conn.ExecuteAsync(
+                @"UPDATE diab_his_int_dtqg_credentials
+                     SET cskcb_id = @cskcbId, partner_code = @partnerCode, token_encrypted = @token,
+                         is_active = 1, updated_at = NOW()
+                   WHERE id = @id",
+                new { id = existingId, cskcbId = cmd.Request.CskcbId, partnerCode = cmd.Request.PartnerCode, token = tokenEncrypted });
+        }
+        else
+        {
+            await conn.ExecuteAsync(
+                @"INSERT INTO diab_his_int_dtqg_credentials
+                    (id, tenant_id, branch_id, cskcb_id, partner_code, token_encrypted, is_active, created_at, updated_at)
+                  VALUES (UUID(), @tenantId, @branchId, @cskcbId, @partnerCode, @token, 1, NOW(), NOW())",
+                new { tenantId, branchId, cskcbId = cmd.Request.CskcbId, partnerCode = cmd.Request.PartnerCode, token = tokenEncrypted });
+        }
+
+        return await new GetDtqgCredentialsHandler(_db, _currentUser, _branchProvider).Handle(new GetDtqgCredentialsQuery(), ct);
     }
 }
 

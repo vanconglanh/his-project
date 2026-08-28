@@ -12,6 +12,7 @@ public class LabResultConfiguration : IEntityTypeConfiguration<LabResult>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.LabOrderId).HasColumnName("lab_order_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.LabOrderItemId).HasColumnName("lab_order_item_id").HasMaxLength(36);
         builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
@@ -69,6 +70,8 @@ public class LabPartnerConfiguration : IEntityTypeConfiguration<LabPartner>
         builder.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("INACTIVE");
         builder.Property(e => e.ContactEmail).HasColumnName("contact_email").HasMaxLength(255);
         builder.Property(e => e.ContactPhone).HasColumnName("contact_phone").HasMaxLength(20);
+        builder.Property(e => e.SlaDays).HasColumnName("sla_days").HasDefaultValue(3);
+        builder.Property(e => e.DefaultCostAmount).HasColumnName("default_cost_amount").HasColumnType("DECIMAL(12,2)");
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
@@ -77,6 +80,68 @@ public class LabPartnerConfiguration : IEntityTypeConfiguration<LabPartner>
         builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(36);
 
         builder.HasIndex(e => new { e.TenantId, e.Code }).IsUnique();
+        builder.HasIndex(e => new { e.TenantId, e.Status });
+    }
+}
+
+public class LabPartnerCostConfiguration : IEntityTypeConfiguration<LabPartnerCost>
+{
+    public void Configure(EntityTypeBuilder<LabPartnerCost> builder)
+    {
+        builder.ToTable("diab_his_int_lab_partner_costs");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
+        builder.Property(e => e.LabPartnerId).HasColumnName("lab_partner_id").HasMaxLength(36).IsRequired();
+        builder.Property(e => e.LabOrderId).HasColumnName("lab_order_id").HasMaxLength(36).IsRequired();
+        builder.Property(e => e.TestCode).HasColumnName("test_code").HasMaxLength(50).IsRequired();
+        builder.Property(e => e.CostAmount).HasColumnName("cost_amount").HasColumnType("DECIMAL(12,2)").IsRequired();
+        builder.Property(e => e.Currency).HasColumnName("currency").HasMaxLength(10).HasDefaultValue("VND");
+        builder.Property(e => e.IncurredAt).HasColumnName("incurred_at").IsRequired();
+        builder.Property(e => e.PeriodMonth).HasColumnName("period_month").HasMaxLength(7).IsRequired();
+        builder.Property(e => e.ReconciliationId).HasColumnName("reconciliation_id").HasMaxLength(36);
+        builder.Property(e => e.Note).HasColumnName("note").HasMaxLength(500);
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at");
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(36);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(36);
+
+        builder.HasIndex(e => e.LabOrderId).IsUnique();
+        builder.HasIndex(e => new { e.TenantId, e.LabPartnerId, e.PeriodMonth });
+        builder.HasIndex(e => e.ReconciliationId);
+    }
+}
+
+public class LabPartnerReconciliationConfiguration : IEntityTypeConfiguration<LabPartnerReconciliation>
+{
+    public void Configure(EntityTypeBuilder<LabPartnerReconciliation> builder)
+    {
+        builder.ToTable("diab_his_int_lab_partner_reconciliations");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.LabPartnerId).HasColumnName("lab_partner_id").HasMaxLength(36).IsRequired();
+        builder.Property(e => e.PeriodMonth).HasColumnName("period_month").HasMaxLength(7).IsRequired();
+        builder.Property(e => e.TotalOrders).HasColumnName("total_orders").HasDefaultValue(0);
+        builder.Property(e => e.TotalCost).HasColumnName("total_cost").HasColumnType("DECIMAL(14,2)").HasDefaultValue(0);
+        builder.Property(e => e.Currency).HasColumnName("currency").HasMaxLength(10).HasDefaultValue("VND");
+        builder.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("draft");
+        builder.Property(e => e.ConfirmedAt).HasColumnName("confirmed_at");
+        builder.Property(e => e.ConfirmedBy).HasColumnName("confirmed_by").HasMaxLength(36);
+        builder.Property(e => e.PaidAt).HasColumnName("paid_at");
+        builder.Property(e => e.PaidBy).HasColumnName("paid_by").HasMaxLength(36);
+        builder.Property(e => e.Note).HasColumnName("note").HasMaxLength(500);
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at");
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(36);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(36);
+
+        builder.HasIndex(e => new { e.TenantId, e.LabPartnerId, e.PeriodMonth }).IsUnique();
         builder.HasIndex(e => new { e.TenantId, e.Status });
     }
 }
@@ -90,6 +155,7 @@ public class LabOrderConfiguration : IEntityTypeConfiguration<LabOrder>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.EncounterId).HasColumnName("encounter_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.TestCode).HasColumnName("test_code").HasMaxLength(50).IsRequired();
         builder.Property(e => e.TestName).HasColumnName("test_name").HasMaxLength(255).IsRequired();
@@ -121,6 +187,7 @@ public class RadOrderConfiguration : IEntityTypeConfiguration<RadOrder>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.EncounterId).HasColumnName("encounter_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.Modality).HasColumnName("modality").HasMaxLength(20).IsRequired();
         builder.Property(e => e.BodyPart).HasColumnName("body_part").HasMaxLength(100);
@@ -152,6 +219,7 @@ public class ClsUploadConfiguration : IEntityTypeConfiguration<ClsUpload>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id");
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.PatientId).HasColumnName("patient_id");
         builder.Property(e => e.EncounterId).HasColumnName("encounter_id").HasMaxLength(36);
         builder.Property(e => e.DocType).HasColumnName("doc_type").HasMaxLength(50).IsRequired();

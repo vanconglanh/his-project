@@ -10,11 +10,12 @@ public static class TestDbContextFactory
     public static AppDbContext Create(string? dbName = null, int tenantId = 1)
     {
         var tenantProvider = new FakeTenantProvider(tenantId);
+        var branchProvider = new FakeBranchProvider();
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName ?? Guid.NewGuid().ToString())
             .Options;
 
-        return new AppDbContext(options, tenantProvider);
+        return new AppDbContext(options, tenantProvider, branchProvider);
     }
 }
 
@@ -24,4 +25,19 @@ public class FakeTenantProvider : ITenantProvider
     public FakeTenantProvider(int tenantId) => TenantId = tenantId;
     public int TenantId { get; private set; }
     public void SetTenantId(int tenantId) => TenantId = tenantId;
+}
+
+/// <summary>IBranchProvider gia lap cho unit test — mac dinh bo qua filter chi nhanh</summary>
+public class FakeBranchProvider : IBranchProvider
+{
+    public int BranchId { get; private set; }
+    public bool IgnoreBranchFilter { get; private set; } = true;
+    public IReadOnlyList<int> AllowedBranchIds { get; private set; } = Array.Empty<int>();
+
+    public void SetContext(int branchId, bool ignoreFilter, IReadOnlyList<int> allowedBranchIds)
+    {
+        BranchId = branchId;
+        IgnoreBranchFilter = ignoreFilter;
+        AllowedBranchIds = allowedBranchIds;
+    }
 }

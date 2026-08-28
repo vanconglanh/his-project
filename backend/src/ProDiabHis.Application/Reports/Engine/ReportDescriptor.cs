@@ -102,7 +102,9 @@ public record ReportQueryContext(
     int TenantId,
     DateOnly From,
     DateOnly To,
-    IReadOnlyDictionary<string, string?> Filters)
+    IReadOnlyDictionary<string, string?> Filters,
+    int BranchId = 0,
+    bool IgnoreBranchFilter = true)
 {
     public string? Filter(string key) => Filters.TryGetValue(key, out var v) ? v : null;
 

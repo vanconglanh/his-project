@@ -52,6 +52,7 @@ public class StockConfiguration : IEntityTypeConfiguration<Stock>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.DrugId).HasColumnName("drug_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.LotNumber).HasColumnName("lot_number").HasMaxLength(50).IsRequired();
         builder.Property(e => e.MfgDate).HasColumnName("mfg_date");
@@ -80,6 +81,7 @@ public class PrescriptionEntityConfiguration : IEntityTypeConfiguration<Prescrip
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.EncounterId).HasColumnName("encounter_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.DoctorId).HasColumnName("doctor_id").HasMaxLength(36).IsRequired();
@@ -186,6 +188,7 @@ public class PurchaseOrderEntityConfiguration : IEntityTypeConfiguration<Purchas
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.PoNo).HasColumnName("po_no").HasMaxLength(30).IsRequired();
         builder.Property(e => e.SupplierId).HasColumnName("supplier_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("DRAFT");
@@ -214,6 +217,7 @@ public class GrnConfiguration : IEntityTypeConfiguration<Grn>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.GrnNo).HasColumnName("grn_no").HasMaxLength(30).IsRequired();
         builder.Property(e => e.PoId).HasColumnName("po_id").HasMaxLength(36);
         builder.Property(e => e.SupplierId).HasColumnName("supplier_id").HasMaxLength(36).IsRequired();

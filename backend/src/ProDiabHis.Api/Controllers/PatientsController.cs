@@ -62,10 +62,31 @@ public class PatientsController : ControllerBase
         var result = await _mediator.Send(new CreatePatientCommand(request), ct);
         if (!result.IsSuccess)
         {
-            var statusCode = result.ErrorCode == "PATIENT_CODE_EXISTS" ? 409 : 422;
+            var statusCode = result.ErrorCode switch
+            {
+                "PATIENT_CODE_EXISTS" => 409,
+                "GUARDIAN_INFO_REQUIRED" => 422,
+                _ => 422
+            };
             return StatusCode(statusCode, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
         }
-        return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, new { data = result.Value });
+
+        // Phat hien nghi trung: KHONG tao ho so, tra ve 200 kem danh sach nghi trung
+        // de le tan xac nhan lai voi confirmCreateDespiteDuplicate = true.
+        if (result.Value!.PossibleDuplicate)
+        {
+            return Ok(new
+            {
+                data = new
+                {
+                    possibleDuplicate = true,
+                    duplicateCandidates = result.Value.DuplicateCandidates
+                }
+            });
+        }
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Value.Patient!.Id },
+            new { data = new { possibleDuplicate = false, patient = result.Value.Patient } });
     }
 
     // GET /api/v1/patients/{id}
@@ -286,6 +307,17 @@ public class PatientsController : ControllerBase
     public async Task<IActionResult> UpdateReceptionNote(Guid id, [FromBody] UpdateReceptionNoteBody body, CancellationToken ct = default)
     {
         var result = await _mediator.Send(new UpdateReceptionNoteCommand(id, body.ReceptionNote), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
+    }
+
+    // GET /api/v1/patients/{id}/cgm-status — FR-711: bac si xem trang thai lien ket thiet bi CGM
+    [HttpGet("{id:guid}/cgm-status")]
+    [RequirePermission("patient.read")]
+    public async Task<IActionResult> GetCgmStatus(Guid id, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ProDiabHis.Application.Diabetes.Cgm.GetCgmStatusQuery(id), ct);
         if (!result.IsSuccess)
             return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
         return Ok(new { data = result.Value });

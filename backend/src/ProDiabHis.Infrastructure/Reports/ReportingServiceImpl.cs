@@ -28,7 +28,10 @@ public class ReportingServiceImpl : IReportingService
         if (days >= 30)
         {
             var periodKey = $"{period}_{from:yyyy-MM-dd}_{to:yyyy-MM-dd}";
-            var cached = await _cache.GetAsync("diab_his_rep_daily_revenue_cache", tenantId, periodKey, ct);
+            // TODO(branch): ReportingServiceImpl chua nhan IBranchProvider -> cache dang dung chung
+            // toan tenant (branchId=null). Can bo sung branch context khi co thoi gian de tach cache
+            // theo chi nhanh dung nhu rep_*_cache da doi unique key (xem migration 9087).
+            var cached = await _cache.GetAsync("diab_his_rep_daily_revenue_cache", tenantId, periodKey, branchId: null, ct: ct);
             if (cached is not null)
             {
                 // simple stub — real impl would deserialize

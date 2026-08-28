@@ -16,13 +16,21 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
         var serverVersion = new MySqlServerVersion(new Version(8, 0, 36));
         optionsBuilder.UseMySql(connectionString, serverVersion);
 
-        // Dung NoopTenantProvider cho design-time (migration)
-        return new AppDbContext(optionsBuilder.Options, new NoopTenantProvider());
+        // Dung Noop provider cho design-time (migration)
+        return new AppDbContext(optionsBuilder.Options, new NoopTenantProvider(), new NoopBranchProvider());
     }
 
     private class NoopTenantProvider : ITenantProvider
     {
         public int TenantId => 0;
         public void SetTenantId(int tenantId) { }
+    }
+
+    private class NoopBranchProvider : IBranchProvider
+    {
+        public int BranchId => 0;
+        public bool IgnoreBranchFilter => true;
+        public IReadOnlyList<int> AllowedBranchIds => Array.Empty<int>();
+        public void SetContext(int branchId, bool ignoreFilter, IReadOnlyList<int> allowedBranchIds) { }
     }
 }

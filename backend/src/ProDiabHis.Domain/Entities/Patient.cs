@@ -15,6 +15,8 @@ public class Patient : BaseEntity, ITenantScoped
     public string? IdNumberMasked { get; set; }
     /// <summary>Blind index HMAC-SHA256 cua CMND/CCCD (tra cuu exact-match)</summary>
     public string? IdNumberBidx { get; set; }
+    /// <summary>SHA-256 cua CCCD/CMND da chuan hoa — dung de tim trung nhanh (khong hoi phuc plaintext)</summary>
+    public string? IdNumberHash { get; set; }
     /// <summary>So dien thoai — luu o cot phone_enc, ma hoa/giai ma tu dong qua EF value converter</summary>
     public string? Phone { get; set; }
     /// <summary>So dien thoai hien thi da che (vd 09****678)</summary>
