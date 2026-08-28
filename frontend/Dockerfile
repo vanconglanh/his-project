@@ -7,9 +7,13 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 # HUSKY=0: bo qua script "prepare": "husky" (khong co .git trong build context)
 ENV HUSKY=0
+# --- Layer ON DINH: chi copy package.json/lock, khong copy source ---
+# Chi khi doi dependency (them dong duoi) layer nay moi invalidate;
+# sua code .ts/.tsx binh thuong se KHONG chay lai npm install.
 COPY package.json package-lock.json ./
 # npm install (khong ci) vi package-lock trong repo lech nhe voi package.json
-RUN npm install --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-audit --no-fund
 
 # ---------------------------------------------------------------------
 FROM node:22-alpine AS build

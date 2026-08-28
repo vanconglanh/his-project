@@ -1,0 +1,56 @@
+# =====================================================
+# Pro-Diab HIS — Backend + Frontend LOCAL TEST (QC)
+# Dung chung network prodiab-net voi ops/docker-compose.yml (mysql/redis/minio)
+# Chay: cd ops && docker compose -f docker-compose.yml -f docker-compose.local-app.yml up -d --build backend frontend
+# =====================================================
+
+name: prodiab-dev
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: prodiab-backend
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${DB_NAME:-prodiab_his};User=${DB_USER:-prodiab};Password=${DB_PASSWORD:-prodiab_dev_2026};CharSet=utf8mb4;"
+      ConnectionStrings__Redis: "redis:6379"
+      JWT__SECRET: "dev_secret_min_32_chars_xxxxxxxxxx"
+      Encryption__MasterKey: "6/RnabdldwkoYFKx0gW9iJA4nJujUgBF0HTnbbB/8Zk="
+      Smtp__Host: mailhog
+      Smtp__Port: "1025"
+      Minio__Endpoint: "minio:9000"
+      Minio__AccessKey: ${MINIO_ROOT_USER:-minio}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD:-minio_dev_2026}
+    ports:
+      - "5000:5000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - prodiab-net
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:5000
+    container_name: prodiab-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - prodiab-net
+
+networks:
+  prodiab-net:
+    external: true
+    name: prodiab-net
