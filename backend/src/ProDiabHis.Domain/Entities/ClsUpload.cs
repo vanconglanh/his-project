@@ -5,6 +5,7 @@ public class ClsUpload
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int? TenantId { get; set; }
+    public int? BranchId { get; set; }
     public int PatientId { get; set; }
     public Guid? EncounterId { get; set; }
     public string DocType { get; set; } = string.Empty;

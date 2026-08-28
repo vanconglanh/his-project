@@ -1,6 +1,8 @@
 using Dapper;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Application.Common.Interfaces;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.CLS;
@@ -90,20 +92,25 @@ public class CreateLabOrdersCommandHandler
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IPackageEntitlementService _packageEntitlement;
+    private readonly ILogger<CreateLabOrdersCommandHandler> _logger;
 
     public CreateLabOrdersCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
-    { _db = db; _tenant = tenant; _user = user; _audit = audit; }
+        ICurrentUser user, IAuditService audit, IPackageEntitlementService packageEntitlement,
+        ILogger<CreateLabOrdersCommandHandler> logger)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; _packageEntitlement = packageEntitlement; _logger = logger; }
 
     public async Task<Result<IReadOnlyList<LabOrderResponse>>> Handle(CreateLabOrdersCommand cmd, CancellationToken ct)
     {
         using var conn = _db.CreateConnection();
         var enc = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id FROM diab_his_enc_encounters WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id, patient_id FROM diab_his_enc_encounters WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.EncounterId.ToString(), TId = _tenant.TenantId });
         if (enc is null) return Result<IReadOnlyList<LabOrderResponse>>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
+        var patientId = (string?)enc.patient_id;
 
         var results = new List<LabOrderResponse>();
+        var packageOrders = new List<(Guid OrderId, PackageCoverageLineRequest Line)>();
         var now = DateTime.UtcNow;
         var userId = _user.UserId?.ToString();
 
@@ -139,6 +146,44 @@ public class CreateLabOrdersCommandHandler
             results.Add(new LabOrderResponse(Guid.Parse(id), cmd.EncounterId, test.TestCode, testName,
                 sampleType, priority, LabOrderStatus.Ordered, now,
                 string.IsNullOrEmpty(userId) ? null : Guid.Parse(userId), test.ScheduledFor, test.Note));
+
+            // item_ref_id cua pkg_entitlement_definitions (item_type=SERVICE) tro ve
+            // diab_his_bil_services.id, khong phai ma test_code truc tiep - can resolve qua bang dich vu
+            // (quy uoc bil_services.code == dict_lab_tests.code, xem BillingCalculatorImpl).
+            var serviceId = await conn.ExecuteScalarAsync<string?>(
+                "SELECT id FROM diab_his_bil_services WHERE tenant_id=@TId AND code=@Code AND deleted_at IS NULL",
+                new { TId = _tenant.TenantId, Code = test.TestCode });
+            if (serviceId != null && Guid.TryParse(serviceId, out var serviceGuid))
+            {
+                var orderGuid = Guid.Parse(id);
+                packageOrders.Add((orderGuid, new PackageCoverageLineRequest(PackageItemType.SERVICE, serviceGuid, 1)));
+            }
+        }
+
+        // FR-1204 (D7) - tru dinh muc "dich vu CLS" (item_type=SERVICE) ngay luc tao chi dinh.
+        // Nguon (source_id) = ID cua TUNG lab order (khong phai encounter) de sau nay huy 1 chi dinh
+        // rieng le van co the ReverseAsync("LAB_ORDER", orderId, ...) chinh xac, khong hoan nham cac
+        // chi dinh khac cung luot kham. Best-effort: khong chan viec tao chi dinh CLS neu goi dinh muc loi.
+        if (patientId != null && Guid.TryParse(patientId, out var patientGuid))
+        {
+            foreach (var (orderId, line) in packageOrders)
+            {
+                try
+                {
+                    await _packageEntitlement.ConsumeAsync(
+                        new PackageCoverageRequest(patientGuid, "LAB_ORDER", orderId, new[] { line },
+                            string.IsNullOrEmpty(userId) ? null : Guid.Parse(userId)),
+                        ct);
+                }
+                catch (PackageBalanceConflictException ex)
+                {
+                    _logger.LogWarning(ex, "PackageEntitlement conflict khi tao chi dinh Lab {OrderId}", orderId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Khong the tru dinh muc goi khi tao chi dinh Lab {OrderId}, bo qua", orderId);
+                }
+            }
         }
 
         await _audit.LogAsync("CREATE", "LabOrders", cmd.EncounterId.ToString(), new { count = results.Count }, ct);
@@ -237,20 +282,25 @@ public class CreateRadOrdersCommandHandler
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IPackageEntitlementService _packageEntitlement;
+    private readonly ILogger<CreateRadOrdersCommandHandler> _logger;
 
     public CreateRadOrdersCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
-    { _db = db; _tenant = tenant; _user = user; _audit = audit; }
+        ICurrentUser user, IAuditService audit, IPackageEntitlementService packageEntitlement,
+        ILogger<CreateRadOrdersCommandHandler> logger)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; _packageEntitlement = packageEntitlement; _logger = logger; }
 
     public async Task<Result<IReadOnlyList<RadOrderResponse>>> Handle(CreateRadOrdersCommand cmd, CancellationToken ct)
     {
         using var conn = _db.CreateConnection();
         var enc = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id FROM diab_his_enc_encounters WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id, patient_id FROM diab_his_enc_encounters WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.EncounterId.ToString(), TId = _tenant.TenantId });
         if (enc is null) return Result<IReadOnlyList<RadOrderResponse>>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
+        var patientId = (string?)enc.patient_id;
 
         var results = new List<RadOrderResponse>();
+        var packageOrders = new List<(Guid OrderId, PackageCoverageLineRequest Line)>();
         var now = DateTime.UtcNow;
         var userId = _user.UserId?.ToString();
 
@@ -284,6 +334,42 @@ public class CreateRadOrdersCommandHandler
             results.Add(new RadOrderResponse(Guid.Parse(id), cmd.EncounterId, order.Modality, order.BodyPart,
                 order.Contrast, order.ProcedureCode, procName, priority, RadOrderStatus.Ordered, now,
                 string.IsNullOrEmpty(userId) ? null : Guid.Parse(userId), order.Note));
+
+            // item_ref_id (SERVICE) tro ve diab_his_bil_services.id, quy uoc code trung voi
+            // dict_rad_procedures.code (xem BillingCalculatorImpl).
+            var serviceId = await conn.ExecuteScalarAsync<string?>(
+                "SELECT id FROM diab_his_bil_services WHERE tenant_id=@TId AND code=@Code AND deleted_at IS NULL",
+                new { TId = _tenant.TenantId, Code = order.ProcedureCode });
+            if (serviceId != null && Guid.TryParse(serviceId, out var serviceGuid))
+            {
+                var orderGuid = Guid.Parse(id);
+                packageOrders.Add((orderGuid, new PackageCoverageLineRequest(PackageItemType.SERVICE, serviceGuid, 1)));
+            }
+        }
+
+        // FR-1204 (D7) - tru dinh muc "dich vu CLS" (item_type=SERVICE) ngay luc tao chi dinh CDHA.
+        // source_id = ID cua tung rad order (khong phai encounter) de huy 1 chi dinh rieng le
+        // co the ReverseAsync chinh xac. Best-effort, khong chan viec tao chi dinh neu loi.
+        if (patientId != null && Guid.TryParse(patientId, out var patientGuid))
+        {
+            foreach (var (orderId, line) in packageOrders)
+            {
+                try
+                {
+                    await _packageEntitlement.ConsumeAsync(
+                        new PackageCoverageRequest(patientGuid, "RAD_ORDER", orderId, new[] { line },
+                            string.IsNullOrEmpty(userId) ? null : Guid.Parse(userId)),
+                        ct);
+                }
+                catch (PackageBalanceConflictException ex)
+                {
+                    _logger.LogWarning(ex, "PackageEntitlement conflict khi tao chi dinh Rad {OrderId}", orderId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Khong the tru dinh muc goi khi tao chi dinh Rad {OrderId}, bo qua", orderId);
+                }
+            }
         }
 
         await _audit.LogAsync("CREATE", "RadOrders", cmd.EncounterId.ToString(), new { count = results.Count }, ct);

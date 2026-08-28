@@ -3,6 +3,21 @@ using ProDiabHis.Application.Common;
 
 namespace ProDiabHis.Application.Patients;
 
+// ── Guardian (nguoi giam ho) ──
+public record GuardianRequest(
+    string FullName,
+    string Relationship,
+    string Phone,
+    string? IdNumber);
+
+public record GuardianResponse(
+    Guid Id,
+    Guid PatientId,
+    string FullName,
+    string Relationship,
+    string Phone,
+    string? IdNumber);
+
 // ── Create ──
 public record CreatePatientRequest(
     string FullName,
@@ -20,10 +35,31 @@ public record CreatePatientRequest(
     string Nationality = "VN",
     string PatientType = "SERVICE",
     string? MaritalStatus = null,
-    string? VisitType = "FIRST_VISIT");
+    string? VisitType = "FIRST_VISIT",
+    List<GuardianRequest>? Guardians = null,
+    bool ConfirmCreateDespiteDuplicate = false);
+
+/// <summary>Ho so benh nhan nghi trung, tra ve de le tan doi chieu truoc khi xac nhan tao moi</summary>
+public record PatientDuplicateCandidate(
+    Guid Id,
+    string Code,
+    string FullName,
+    DateOnly? DateOfBirth,
+    string? Phone,
+    string MatchReason);
+
+/// <summary>
+/// Ket qua tao benh nhan: neu PossibleDuplicate = true va Patient = null nghia la
+/// he thong PHAT HIEN nghi trung va CHUA tao ho so, cho le tan xac nhan lai bang
+/// cach goi lai voi ConfirmCreateDespiteDuplicate = true.
+/// </summary>
+public record CreatePatientResult(
+    PatientResponse? Patient,
+    bool PossibleDuplicate,
+    List<PatientDuplicateCandidate> DuplicateCandidates);
 
 public record CreatePatientCommand(CreatePatientRequest Request)
-    : IRequest<Result<PatientResponse>>;
+    : IRequest<Result<CreatePatientResult>>;
 
 // ── Update ──
 public record UpdatePatientRequest(

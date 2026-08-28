@@ -14,12 +14,13 @@ public record ListDoctorSchedulesQuery(int TenantId, Guid? DoctorRef) : IRequest
 public class ListDoctorSchedulesHandler : IRequestHandler<ListDoctorSchedulesQuery, List<DoctorScheduleResponse>>
 {
     private readonly IDapperConnectionFactory _db;
-    public ListDoctorSchedulesHandler(IDapperConnectionFactory db) => _db = db;
+    private readonly IBranchProvider _branch;
+    public ListDoctorSchedulesHandler(IDapperConnectionFactory db, IBranchProvider branch) { _db = db; _branch = branch; }
 
     public async Task<List<DoctorScheduleResponse>> Handle(ListDoctorSchedulesQuery q, CancellationToken cancellationToken)
     {
         using var conn = _db.CreateConnection();
-        var where = "WHERE tenant_id = @TenantId AND deleted_at IS NULL";
+        var where = "WHERE tenant_id = @TenantId AND deleted_at IS NULL AND " + BranchSql.Condition("");
         if (q.DoctorRef.HasValue) where += " AND doctor_ref = @DoctorRef";
 
         var rows = await conn.QueryAsync<dynamic>(
@@ -28,7 +29,7 @@ public class ListDoctorSchedulesHandler : IRequestHandler<ListDoctorSchedulesQue
                FROM diab_his_sch_doctor_schedules
                {where}
                ORDER BY doctor_ref, day_of_week, start_time",
-            new { q.TenantId, DoctorRef = q.DoctorRef?.ToString() });
+            new { q.TenantId, DoctorRef = q.DoctorRef?.ToString(), branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         return rows.Select(r => (DoctorScheduleResponse)MapRow(r)).ToList();
     }
@@ -60,7 +61,8 @@ public record CreateDoctorScheduleCommand(int TenantId, DoctorScheduleUpsertRequ
 public class CreateDoctorScheduleHandler : IRequestHandler<CreateDoctorScheduleCommand, DoctorScheduleResponse>
 {
     private readonly IDapperConnectionFactory _db;
-    public CreateDoctorScheduleHandler(IDapperConnectionFactory db) => _db = db;
+    private readonly IBranchProvider _branch;
+    public CreateDoctorScheduleHandler(IDapperConnectionFactory db, IBranchProvider branch) { _db = db; _branch = branch; }
 
     public async Task<DoctorScheduleResponse> Handle(CreateDoctorScheduleCommand cmd, CancellationToken cancellationToken)
     {
@@ -69,14 +71,15 @@ public class CreateDoctorScheduleHandler : IRequestHandler<CreateDoctorScheduleC
 
         var newId = await conn.ExecuteScalarAsync<int>(
             @"INSERT INTO diab_his_sch_doctor_schedules
-                (tenant_id, doctor_ref, day_of_week, start_time, end_time, slot_minutes, max_per_slot,
+                (tenant_id, branch_id, doctor_ref, day_of_week, start_time, end_time, slot_minutes, max_per_slot,
                  effective_from, effective_to, enabled, created_at, updated_at)
-              VALUES (@TenantId, @DoctorRef, @DayOfWeek, @StartTime, @EndTime, @SlotMinutes, @MaxPerSlot,
+              VALUES (@TenantId, @BranchId, @DoctorRef, @DayOfWeek, @StartTime, @EndTime, @SlotMinutes, @MaxPerSlot,
                       @EffectiveFrom, @EffectiveTo, @Enabled, UTC_TIMESTAMP(), UTC_TIMESTAMP());
               SELECT LAST_INSERT_ID();",
             new
             {
-                cmd.TenantId, DoctorRef = req.DoctorRef.ToString(), DayOfWeek = req.DayOfWeek,
+                cmd.TenantId, BranchId = _branch.BranchId > 0 ? _branch.BranchId : (int?)null,
+                DoctorRef = req.DoctorRef.ToString(), DayOfWeek = req.DayOfWeek,
                 StartTime = req.StartTime.ToTimeSpan(), EndTime = req.EndTime.ToTimeSpan(),
                 req.SlotMinutes, req.MaxPerSlot,
                 EffectiveFrom = req.EffectiveFrom?.ToString("yyyy-MM-dd"),
@@ -95,7 +98,8 @@ public record UpdateDoctorScheduleCommand(int Id, int TenantId, DoctorScheduleUp
 public class UpdateDoctorScheduleHandler : IRequestHandler<UpdateDoctorScheduleCommand, Result<DoctorScheduleResponse>>
 {
     private readonly IDapperConnectionFactory _db;
-    public UpdateDoctorScheduleHandler(IDapperConnectionFactory db) => _db = db;
+    private readonly IBranchProvider _branch;
+    public UpdateDoctorScheduleHandler(IDapperConnectionFactory db, IBranchProvider branch) { _db = db; _branch = branch; }
 
     public async Task<Result<DoctorScheduleResponse>> Handle(UpdateDoctorScheduleCommand cmd, CancellationToken cancellationToken)
     {
@@ -103,12 +107,12 @@ public class UpdateDoctorScheduleHandler : IRequestHandler<UpdateDoctorScheduleC
         var req = cmd.Request;
 
         var affected = await conn.ExecuteAsync(
-            @"UPDATE diab_his_sch_doctor_schedules SET
+            $@"UPDATE diab_his_sch_doctor_schedules SET
                 doctor_ref = @DoctorRef, day_of_week = @DayOfWeek, start_time = @StartTime, end_time = @EndTime,
                 slot_minutes = @SlotMinutes, max_per_slot = @MaxPerSlot,
                 effective_from = @EffectiveFrom, effective_to = @EffectiveTo, enabled = @Enabled,
                 updated_at = UTC_TIMESTAMP()
-              WHERE id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL",
+              WHERE id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
             new
             {
                 cmd.Id, cmd.TenantId, DoctorRef = req.DoctorRef.ToString(), DayOfWeek = req.DayOfWeek,
@@ -116,7 +120,8 @@ public class UpdateDoctorScheduleHandler : IRequestHandler<UpdateDoctorScheduleC
                 req.SlotMinutes, req.MaxPerSlot,
                 EffectiveFrom = req.EffectiveFrom?.ToString("yyyy-MM-dd"),
                 EffectiveTo = req.EffectiveTo?.ToString("yyyy-MM-dd"),
-                req.Enabled
+                req.Enabled,
+                branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter
             });
 
         if (affected == 0)
@@ -133,14 +138,15 @@ public record DeleteDoctorScheduleCommand(int Id, int TenantId) : IRequest<Resul
 public class DeleteDoctorScheduleHandler : IRequestHandler<DeleteDoctorScheduleCommand, Result>
 {
     private readonly IDapperConnectionFactory _db;
-    public DeleteDoctorScheduleHandler(IDapperConnectionFactory db) => _db = db;
+    private readonly IBranchProvider _branch;
+    public DeleteDoctorScheduleHandler(IDapperConnectionFactory db, IBranchProvider branch) { _db = db; _branch = branch; }
 
     public async Task<Result> Handle(DeleteDoctorScheduleCommand cmd, CancellationToken cancellationToken)
     {
         using var conn = _db.CreateConnection();
         var affected = await conn.ExecuteAsync(
-            "UPDATE diab_his_sch_doctor_schedules SET deleted_at = UTC_TIMESTAMP() WHERE id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL",
-            new { cmd.Id, cmd.TenantId });
+            $"UPDATE diab_his_sch_doctor_schedules SET deleted_at = UTC_TIMESTAMP() WHERE id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { cmd.Id, cmd.TenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         if (affected == 0)
             return Result.Failure("SCHEDULE_NOT_FOUND", "Không tìm thấy lịch làm việc");
@@ -158,12 +164,13 @@ public record ListScheduleBlocksQuery(int TenantId, Guid? DoctorRef) : IRequest<
 public class ListScheduleBlocksHandler : IRequestHandler<ListScheduleBlocksQuery, List<ScheduleBlockResponse>>
 {
     private readonly IDapperConnectionFactory _db;
-    public ListScheduleBlocksHandler(IDapperConnectionFactory db) => _db = db;
+    private readonly IBranchProvider _branch;
+    public ListScheduleBlocksHandler(IDapperConnectionFactory db, IBranchProvider branch) { _db = db; _branch = branch; }
 
     public async Task<List<ScheduleBlockResponse>> Handle(ListScheduleBlocksQuery q, CancellationToken cancellationToken)
     {
         using var conn = _db.CreateConnection();
-        var where = "WHERE tenant_id = @TenantId AND deleted_at IS NULL";
+        var where = "WHERE tenant_id = @TenantId AND deleted_at IS NULL AND " + BranchSql.Condition("");
         if (q.DoctorRef.HasValue) where += " AND doctor_ref = @DoctorRef";
 
         var rows = await conn.QueryAsync<dynamic>(
@@ -171,7 +178,7 @@ public class ListScheduleBlocksHandler : IRequestHandler<ListScheduleBlocksQuery
                FROM diab_his_sch_schedule_blocks
                {where}
                ORDER BY block_date DESC",
-            new { q.TenantId, DoctorRef = q.DoctorRef?.ToString() });
+            new { q.TenantId, DoctorRef = q.DoctorRef?.ToString(), branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         return rows.Select(r => (ScheduleBlockResponse)MapBlockRow(r)).ToList();
     }
@@ -195,7 +202,8 @@ public record CreateScheduleBlockCommand(int TenantId, ScheduleBlockCreateReques
 public class CreateScheduleBlockHandler : IRequestHandler<CreateScheduleBlockCommand, ScheduleBlockResponse>
 {
     private readonly IDapperConnectionFactory _db;
-    public CreateScheduleBlockHandler(IDapperConnectionFactory db) => _db = db;
+    private readonly IBranchProvider _branch;
+    public CreateScheduleBlockHandler(IDapperConnectionFactory db, IBranchProvider branch) { _db = db; _branch = branch; }
 
     public async Task<ScheduleBlockResponse> Handle(CreateScheduleBlockCommand cmd, CancellationToken cancellationToken)
     {
@@ -204,12 +212,13 @@ public class CreateScheduleBlockHandler : IRequestHandler<CreateScheduleBlockCom
 
         var newId = await conn.ExecuteScalarAsync<int>(
             @"INSERT INTO diab_his_sch_schedule_blocks
-                (tenant_id, doctor_ref, block_date, start_time, end_time, reason, created_at)
-              VALUES (@TenantId, @DoctorRef, @BlockDate, @StartTime, @EndTime, @Reason, UTC_TIMESTAMP());
+                (tenant_id, branch_id, doctor_ref, block_date, start_time, end_time, reason, created_at)
+              VALUES (@TenantId, @BranchId, @DoctorRef, @BlockDate, @StartTime, @EndTime, @Reason, UTC_TIMESTAMP());
               SELECT LAST_INSERT_ID();",
             new
             {
-                cmd.TenantId, DoctorRef = req.DoctorRef.ToString(),
+                cmd.TenantId, BranchId = _branch.BranchId > 0 ? _branch.BranchId : (int?)null,
+                DoctorRef = req.DoctorRef.ToString(),
                 BlockDate = req.BlockDate.ToString("yyyy-MM-dd"),
                 StartTime = req.StartTime?.ToTimeSpan(), EndTime = req.EndTime?.ToTimeSpan(),
                 req.Reason
@@ -224,14 +233,15 @@ public record DeleteScheduleBlockCommand(int Id, int TenantId) : IRequest<Result
 public class DeleteScheduleBlockHandler : IRequestHandler<DeleteScheduleBlockCommand, Result>
 {
     private readonly IDapperConnectionFactory _db;
-    public DeleteScheduleBlockHandler(IDapperConnectionFactory db) => _db = db;
+    private readonly IBranchProvider _branch;
+    public DeleteScheduleBlockHandler(IDapperConnectionFactory db, IBranchProvider branch) { _db = db; _branch = branch; }
 
     public async Task<Result> Handle(DeleteScheduleBlockCommand cmd, CancellationToken cancellationToken)
     {
         using var conn = _db.CreateConnection();
         var affected = await conn.ExecuteAsync(
-            "UPDATE diab_his_sch_schedule_blocks SET deleted_at = UTC_TIMESTAMP() WHERE id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL",
-            new { cmd.Id, cmd.TenantId });
+            $"UPDATE diab_his_sch_schedule_blocks SET deleted_at = UTC_TIMESTAMP() WHERE id = @Id AND tenant_id = @TenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { cmd.Id, cmd.TenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         if (affected == 0)
             return Result.Failure("SCHEDULE_BLOCK_NOT_FOUND", "Không tìm thấy block lịch");

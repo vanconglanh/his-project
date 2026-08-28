@@ -46,26 +46,26 @@ public class ReportCacheRefreshJob
                 // 1. Revenue cache
                 var revenue = await _reporting.GetRevenueReportAsync(tenantId, "DAY", monthStart, today, null, ct);
                 await _cache.SetAsync("diab_his_rep_daily_revenue_cache", tenantId, periodKey,
-                    JsonSerializer.Serialize(revenue), ct);
+                    JsonSerializer.Serialize(revenue), branchId: null, ct: ct);
 
                 // 2. Doctor KPI cache
                 var kpi = await _reporting.GetDoctorKpiAsync(tenantId, monthStart, today, 50, ct);
                 await _cache.SetAsync("diab_his_rep_doctor_kpi_cache", tenantId, periodKey,
-                    JsonSerializer.Serialize(kpi), ct);
+                    JsonSerializer.Serialize(kpi), branchId: null, ct: ct);
 
                 // 3. Top drugs cache
                 var drugs = await _reporting.GetTopDrugsAsync(tenantId, monthStart, today, 50, ct);
                 await _cache.SetAsync("diab_his_rep_top_drugs_cache", tenantId, periodKey,
-                    JsonSerializer.Serialize(drugs), ct);
+                    JsonSerializer.Serialize(drugs), branchId: null, ct: ct);
 
                 // 4. Diabetes cohort cache
                 var cohort = await _reporting.GetDiabetesCohortAsync(tenantId, monthStart, today, ct);
                 await _cache.SetAsync("diab_his_rep_diabetes_cohort_cache", tenantId, periodKey,
-                    JsonSerializer.Serialize(cohort), ct);
+                    JsonSerializer.Serialize(cohort), branchId: null, ct: ct);
 
                 // 5. Inventory value cache — stub (real impl queries his_inventory_items)
                 await _cache.SetAsync("diab_his_rep_inventory_value_cache", tenantId, periodKey,
-                    JsonSerializer.Serialize(new { refreshed_at = DateTime.UtcNow }), ct);
+                    JsonSerializer.Serialize(new { refreshed_at = DateTime.UtcNow }), branchId: null, ct: ct);
 
                 _logger.LogInformation("Da lam moi cache cho tenant {TenantId}", tenantId);
             }

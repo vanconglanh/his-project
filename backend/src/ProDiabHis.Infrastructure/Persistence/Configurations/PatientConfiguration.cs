@@ -18,6 +18,7 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.Property(e => e.DateOfBirth).HasColumnName("date_of_birth");
         builder.Property(e => e.IdNumberEnc).HasColumnName("id_number_enc").HasMaxLength(500);
         builder.Property(e => e.IdNumberMasked).HasColumnName("id_number_masked").HasMaxLength(20);
+        builder.Property(e => e.IdNumberHash).HasColumnName("id_number_hash").HasMaxLength(64);
         builder.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(30);
         builder.Property(e => e.Email).HasColumnName("email").HasMaxLength(100);
         builder.Property(e => e.ProvinceCode).HasColumnName("province_code").HasMaxLength(10);
@@ -48,6 +49,33 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.HasIndex(e => new { e.TenantId, e.Status });
         builder.HasIndex(e => new { e.TenantId, e.FullName });
         builder.HasIndex(e => new { e.TenantId, e.Phone });
+        builder.HasIndex(e => new { e.TenantId, e.IdNumberHash });
+        builder.HasIndex(e => new { e.TenantId, e.Phone, e.DateOfBirth });
+    }
+}
+
+public class PatientGuardianConfiguration : IEntityTypeConfiguration<PatientGuardian>
+{
+    public void Configure(EntityTypeBuilder<PatientGuardian> builder)
+    {
+        builder.ToTable("diab_his_pat_guardians");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
+        builder.Property(e => e.FullName).HasColumnName("full_name").HasMaxLength(255).IsRequired();
+        builder.Property(e => e.Relationship).HasColumnName("relationship").HasMaxLength(50).IsRequired();
+        builder.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(30).IsRequired();
+        builder.Property(e => e.IdNumberEnc).HasColumnName("id_number_enc").HasMaxLength(500);
+        builder.Property(e => e.IdNumberMasked).HasColumnName("id_number_masked").HasMaxLength(20);
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at");
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(36);
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by").HasMaxLength(36);
+
+        builder.HasIndex(e => new { e.TenantId, e.PatientId });
     }
 }
 

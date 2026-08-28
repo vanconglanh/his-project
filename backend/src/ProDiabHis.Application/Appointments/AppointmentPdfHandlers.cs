@@ -24,15 +24,18 @@ public class GetAppointmentSlipPdfQueryHandler : IRequestHandler<GetAppointmentS
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IAppointmentSlipPdfBuilder _builder;
 
-    public GetAppointmentSlipPdfQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IAppointmentSlipPdfBuilder builder)
-    { _db = db; _tenant = tenant; _builder = builder; }
+    public GetAppointmentSlipPdfQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IAppointmentSlipPdfBuilder builder)
+    { _db = db; _tenant = tenant; _branch = branch; _builder = builder; }
 
     public async Task<Result<byte[]>> Handle(GetAppointmentSlipPdfQuery q, CancellationToken ct)
     {
         using var conn = (System.Data.IDbConnection)_db.CreateConnection();
         var tenantId = _tenant.TenantId;
+        var branchId = _branch.BranchId;
+        var ignoreBranch = _branch.IgnoreBranchFilter;
 
         // Ghi chu (bug tien nhiem #4): diab_his_sch_appointments dung schema INT-id legacy,
         // cot patient_id/doctor_id la INT khong tuong thich kieu voi diab_his_pat_patients.id /
@@ -42,7 +45,7 @@ public class GetAppointmentSlipPdfQueryHandler : IRequestHandler<GetAppointmentS
         // patient_ref/doctor_ref con NULL (du lieu cu chua map duoc) thi fallback ve
         // patient_name_temp/patient_phone nhu truoc.
         var row = await conn.QueryFirstOrDefaultAsync<AppointmentSlipRow>(
-            @"SELECT a.id AS Id, a.appointment_at AS AppointmentAt, a.duration_minutes AS DurationMinutes,
+            $@"SELECT a.id AS Id, a.appointment_at AS AppointmentAt, a.duration_minutes AS DurationMinutes,
                      a.status AS Status,
                      COALESCE(pat.full_name, a.patient_name_temp) AS PatientName,
                      COALESCE(pat.phone, a.patient_phone) AS PatientPhone,
@@ -51,8 +54,8 @@ public class GetAppointmentSlipPdfQueryHandler : IRequestHandler<GetAppointmentS
               FROM diab_his_sch_appointments a
               LEFT JOIN diab_his_pat_patients pat ON pat.id = a.patient_ref AND pat.tenant_id = a.tenant_id
               LEFT JOIN diab_his_sec_users doc ON doc.id = a.doctor_ref
-              WHERE a.id = @id AND a.tenant_id = @tenantId AND a.deleted_at IS NULL",
-            new { id = q.AppointmentId, tenantId });
+              WHERE a.id = @id AND a.tenant_id = @tenantId AND a.deleted_at IS NULL AND {BranchSql.Condition("a")}",
+            new { id = q.AppointmentId, tenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result<byte[]>.Failure("APPOINTMENT_NOT_FOUND", "Không tìm thấy giấy hẹn tái khám");

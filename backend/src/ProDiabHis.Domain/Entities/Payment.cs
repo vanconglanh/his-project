@@ -1,10 +1,13 @@
+using ProDiabHis.Domain.Common;
+
 namespace ProDiabHis.Domain.Entities;
 
 /// <summary>Thanh toan. Map bang diab_his_bil_payments</summary>
-public class Payment
+public class Payment : IBranchScoped
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public Guid BillingId { get; set; }
     public Guid? CashierShiftId { get; set; }
     public decimal Amount { get; set; }
@@ -49,10 +52,11 @@ public class QrCode
 }
 
 /// <summary>Hoa don dien tu. Map bang diab_his_bil_einvoices</summary>
-public class EInvoice
+public class EInvoice : IBranchScoped
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public Guid BillingId { get; set; }
     public string Provider { get; set; } = string.Empty;
     public string? InvoiceNo { get; set; }
@@ -75,10 +79,11 @@ public class EInvoice
 }
 
 /// <summary>Ca thu ngan. Map bang diab_his_bil_cashier_shifts</summary>
-public class CashierShift
+public class CashierShift : IBranchScoped
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public Guid CashierUserId { get; set; }
     public DateOnly ShiftDate { get; set; }
     public DateTime ShiftStart { get; set; } = DateTime.UtcNow;

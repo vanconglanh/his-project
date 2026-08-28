@@ -1,10 +1,13 @@
+using ProDiabHis.Domain.Common;
+
 namespace ProDiabHis.Domain.Entities.Bhyt;
 
 /// <summary>File ket qua giam dinh BHYT upload tu cong BHYT</summary>
-public class BhytReconcileUpload
+public class BhytReconcileUpload : IBranchScoped
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public int ExportId { get; set; }
     public string FilePath { get; set; } = string.Empty;
     public long? FileSize { get; set; }

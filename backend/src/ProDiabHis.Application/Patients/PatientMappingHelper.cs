@@ -1,8 +1,33 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace ProDiabHis.Application.Patients;
 
 /// <summary>Helper map DB row → DTO</summary>
 public static class PatientMappingHelper
 {
+    /// <summary>
+    /// Chuan hoa + SHA-256 mot so CCCD/CMND de dung lam khoa tim trung nhanh
+    /// (khong the index truc tiep cot ma hoa AES-256-GCM vi no non-deterministic).
+    /// </summary>
+    public static string? ComputeIdNumberHash(string? idNumber)
+    {
+        if (string.IsNullOrWhiteSpace(idNumber)) return null;
+        var normalized = idNumber.Trim();
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    /// <summary>Tinh so thang tuoi tu ngay sinh — dung cho quy tac guardian bat buoc &lt; 72 thang tuoi</summary>
+    public static int? CalcAgeInMonths(DateOnly? dob)
+    {
+        if (dob is null) return null;
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var months = (today.Year - dob.Value.Year) * 12 + (today.Month - dob.Value.Month);
+        if (today.Day < dob.Value.Day) months--;
+        return months < 0 ? 0 : months;
+    }
+
     /// <summary>Mask CMND: giu 2 ki tu dau va 2 ki tu cuoi, an phan giua</summary>
     public static string? MaskIdNumber(string? plain)
     {

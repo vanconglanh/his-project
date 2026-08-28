@@ -12,6 +12,7 @@ public class BhytExportConfiguration : IEntityTypeConfiguration<BhytExport>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.PeriodMonth).HasColumnName("period_month").HasMaxLength(7).IsRequired();
         builder.Property(e => e.ScopeFilterJson).HasColumnName("scope_filter_json").HasColumnType("JSON");
         builder.Property(e => e.Note).HasColumnName("note");
@@ -75,6 +76,7 @@ public class BhytReconcileUploadConfiguration : IEntityTypeConfiguration<BhytRec
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.ExportId).HasColumnName("export_id").IsRequired();
         builder.Property(e => e.FilePath).HasColumnName("file_path").HasMaxLength(500).IsRequired();
         builder.Property(e => e.FileSize).HasColumnName("file_size");

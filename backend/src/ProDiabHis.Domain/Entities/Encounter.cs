@@ -3,9 +3,10 @@ using ProDiabHis.Domain.Common;
 namespace ProDiabHis.Domain.Entities;
 
 /// <summary>Lượt khám bệnh. Maps table cli_visits</summary>
-public class Encounter : BaseEntity, ITenantScoped
+public class Encounter : BaseEntity, ITenantScoped, IBranchScoped
 {
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public string PatientId { get; set; } = string.Empty;
     public string? DoctorId { get; set; }
     public string? RoomId { get; set; }
@@ -16,6 +17,8 @@ public class Encounter : BaseEntity, ITenantScoped
     public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }
     public DateTime? AlertSentAt { get; set; }
+    /// <summary>FR-803: khac null = luot kham phat sinh tu phien tu van tu xa Docosan (FK mem -> diab_his_tel_sessions.id)</summary>
+    public string? TelehealthSessionId { get; set; }
 }
 
 public static class EncounterStatus

@@ -111,13 +111,128 @@ public class PatientHandlersTests
         var result = await handler.Handle(new CreatePatientCommand(req), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value!.FullName.Should().Be("Le Thi C");
-        result.Value.Code.Should().StartWith("BNT01");
-        result.Value.TenantId.Should().Be(1);
+        result.Value!.PossibleDuplicate.Should().BeFalse();
+        result.Value.Patient!.FullName.Should().Be("Le Thi C");
+        result.Value.Patient.Code.Should().StartWith("BNT01");
+        result.Value.Patient.TenantId.Should().Be(1);
 
         var inDb = await db.Patients.AsNoTracking().FirstOrDefaultAsync();
         inDb.Should().NotBeNull();
         inDb!.FullName.Should().Be("Le Thi C");
+    }
+
+    // ──────────────────────────────────────────
+    // Dedup theo CCCD — nghi trung, KHONG tao ho so
+    // ──────────────────────────────────────────
+    [Fact]
+    public async Task CreatePatient_DuplicateIdNumber_ReturnsPossibleDuplicate_DoesNotCreate()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var existingHash = PatientMappingHelper.ComputeIdNumberHash("123456789012");
+        db.Patients.Add(new Patient
+        {
+            TenantId = 1, Code = "BNT01000001", FullName = "Nguyen Van A",
+            DateOfBirth = new DateOnly(1990, 1, 1), IdNumberHash = existingHash
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new CreatePatientCommandHandler(db, _tenant, _currentUser, _enc, _audit);
+        var req = new CreatePatientRequest(
+            FullName: "Nguyen Van A Trung Ten",
+            Gender: null, DateOfBirth: new DateOnly(1990, 1, 1), IdNumber: "123456789012",
+            Phone: null, Email: null, Address: null,
+            Occupation: null, Ethnicity: null, BloodType: null,
+            IdCardIssuedDate: null, IdCardIssuedPlace: null);
+
+        var result = await handler.Handle(new CreatePatientCommand(req), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.PossibleDuplicate.Should().BeTrue();
+        result.Value.Patient.Should().BeNull();
+        result.Value.DuplicateCandidates.Should().ContainSingle();
+
+        var countInDb = await db.Patients.AsNoTracking().CountAsync();
+        countInDb.Should().Be(1); // khong tao them ban ghi moi
+    }
+
+    [Fact]
+    public async Task CreatePatient_DuplicateIdNumber_ConfirmDespiteDuplicate_CreatesAnyway()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var existingHash = PatientMappingHelper.ComputeIdNumberHash("123456789012");
+        db.Patients.Add(new Patient
+        {
+            TenantId = 1, Code = "BNT01000001", FullName = "Nguyen Van A",
+            DateOfBirth = new DateOnly(1990, 1, 1), IdNumberHash = existingHash
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new CreatePatientCommandHandler(db, _tenant, _currentUser, _enc, _audit);
+        var req = new CreatePatientRequest(
+            FullName: "Nguyen Van A Trung Ten",
+            Gender: null, DateOfBirth: new DateOnly(1990, 1, 1), IdNumber: "123456789012",
+            Phone: null, Email: null, Address: null,
+            Occupation: null, Ethnicity: null, BloodType: null,
+            IdCardIssuedDate: null, IdCardIssuedPlace: null,
+            ConfirmCreateDespiteDuplicate: true);
+
+        var result = await handler.Handle(new CreatePatientCommand(req), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.PossibleDuplicate.Should().BeFalse();
+        result.Value.Patient.Should().NotBeNull();
+
+        var countInDb = await db.Patients.AsNoTracking().CountAsync();
+        countInDb.Should().Be(2);
+    }
+
+    // ──────────────────────────────────────────
+    // Guardian bat buoc cho benh nhan < 72 thang tuoi
+    // ──────────────────────────────────────────
+    [Fact]
+    public async Task CreatePatient_UnderSixYears_WithoutGuardian_ReturnsGuardianRequiredError()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var handler = new CreatePatientCommandHandler(db, _tenant, _currentUser, _enc, _audit);
+
+        var req = new CreatePatientRequest(
+            FullName: "Be Nguyen Van D",
+            Gender: "MALE", DateOfBirth: DateOnly.FromDateTime(DateTime.Today.AddMonths(-24)),
+            IdNumber: null, Phone: null, Email: null, Address: null,
+            Occupation: null, Ethnicity: null, BloodType: null,
+            IdCardIssuedDate: null, IdCardIssuedPlace: null);
+
+        var result = await handler.Handle(new CreatePatientCommand(req), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("GUARDIAN_INFO_REQUIRED");
+
+        var countInDb = await db.Patients.AsNoTracking().CountAsync();
+        countInDb.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreatePatient_UnderSixYears_WithGuardian_CreatesSuccessfully()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var handler = new CreatePatientCommandHandler(db, _tenant, _currentUser, _enc, _audit);
+
+        var req = new CreatePatientRequest(
+            FullName: "Be Nguyen Van D",
+            Gender: "MALE", DateOfBirth: DateOnly.FromDateTime(DateTime.Today.AddMonths(-24)),
+            IdNumber: null, Phone: null, Email: null, Address: null,
+            Occupation: null, Ethnicity: null, BloodType: null,
+            IdCardIssuedDate: null, IdCardIssuedPlace: null,
+            Guardians: new List<GuardianRequest> { new("Nguyen Van Cha", "CHA", "0912345678", null) });
+
+        var result = await handler.Handle(new CreatePatientCommand(req), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Patient.Should().NotBeNull();
+
+        var guardianInDb = await db.PatientGuardians.AsNoTracking().FirstOrDefaultAsync();
+        guardianInDb.Should().NotBeNull();
+        guardianInDb!.FullName.Should().Be("Nguyen Van Cha");
     }
 
     // ──────────────────────────────────────────

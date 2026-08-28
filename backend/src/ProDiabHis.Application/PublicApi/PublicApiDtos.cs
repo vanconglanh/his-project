@@ -212,6 +212,7 @@ public record PrescriptionItemDto(
 
 public record PortalAppointmentCreateRequest(
     DateTime AppointmentAt,
+    int BranchId,
     Guid? DoctorId = null,
     Guid? DepartmentId = null,
     string? Note = null

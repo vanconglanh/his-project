@@ -17,11 +17,12 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IDapperConnectionFactory _dapperDb;
 
     public CreateEncounterCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
+        ICurrentUser user, IAuditService audit, IDapperConnectionFactory? dapperDb = null)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _dapperDb = dapperDb!;
     }
 
     public async Task<Result<EncounterResponse>> Handle(CreateEncounterCommand command, CancellationToken ct)
@@ -45,6 +46,7 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
             Status = EncounterStatus.Waiting,
             ReasonForVisit = req.ReasonForVisit,
             ChiefComplaint = req.ChiefComplaint,
+            TelehealthSessionId = req.TelehealthSessionId,
             CreatedAt = now,
             CreatedBy = _user.UserId,
             UpdatedAt = now
@@ -53,6 +55,19 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
         _db.Encounters.Add(encounter);
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync("CREATE", "Encounter", encounter.Id.ToString(), new { type = req.EncounterType }, ct);
+
+        // FR-803: ghi nguoc encounter_id vao phien telehealth (best-effort, khong chan luong tao Encounter)
+        if (!string.IsNullOrWhiteSpace(req.TelehealthSessionId) && _dapperDb is not null)
+        {
+            try
+            {
+                using var conn = _dapperDb.CreateConnection();
+                await conn.ExecuteAsync(
+                    "UPDATE diab_his_tel_sessions SET encounter_id=@EncId, updated_at=@Now WHERE id=@Id AND tenant_id=@TId",
+                    new { EncId = encounter.Id.ToString(), Now = now, Id = req.TelehealthSessionId, TId = _tenant.TenantId });
+            }
+            catch { /* best-effort, khong lam fail viec tao encounter */ }
+        }
 
         var response = await BuildEncounterResponse(encounter, ct);
         return Result<EncounterResponse>.Success(response);

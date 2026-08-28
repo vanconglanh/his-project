@@ -78,6 +78,7 @@ public class BillingConfiguration : IEntityTypeConfiguration<BillingEntity>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.BranchId).HasColumnName("branch_id");
         builder.Property(x => x.PatientId).HasColumnName("patient_id").HasMaxLength(36);
         builder.Property(x => x.EncounterId).HasColumnName("encounter_id").HasMaxLength(36);
         builder.Property(x => x.BillNo).HasColumnName("bill_no").HasMaxLength(30);
@@ -126,6 +127,8 @@ public class BillingItemConfiguration : IEntityTypeConfiguration<BillingItem>
         builder.Property(x => x.BhytApplicable).HasColumnName("bhyt_applicable");
         builder.Property(x => x.BhytAmount).HasColumnName("bhyt_amount").HasColumnType("DECIMAL(15,2)");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.CoveredBySubscriptionId).HasColumnName("covered_by_subscription_id").HasMaxLength(36);
+        builder.Property(x => x.CoveredByUsageLogId).HasColumnName("covered_by_usage_log_id").HasMaxLength(36);
         builder.Ignore(x => x.Billing);
     }
 }
@@ -138,6 +141,7 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.BranchId).HasColumnName("branch_id");
         builder.Property(x => x.BillingId).HasColumnName("billing_id").HasMaxLength(36);
         builder.Property(x => x.CashierShiftId).HasColumnName("cashier_shift_id").HasMaxLength(36);
         builder.Property(x => x.Amount).HasColumnName("amount").HasColumnType("DECIMAL(15,2)");
@@ -185,6 +189,7 @@ public class EInvoiceConfiguration : IEntityTypeConfiguration<EInvoice>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.BranchId).HasColumnName("branch_id");
         builder.Property(x => x.BillingId).HasColumnName("billing_id").HasMaxLength(36);
         builder.Property(x => x.Provider).HasColumnName("provider").HasMaxLength(10);
         builder.Property(x => x.InvoiceNo).HasColumnName("invoice_no").HasMaxLength(50);
@@ -215,6 +220,7 @@ public class CashierShiftConfiguration : IEntityTypeConfiguration<CashierShift>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasMaxLength(36).HasColumnName("id");
         builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.BranchId).HasColumnName("branch_id");
         builder.Property(x => x.CashierUserId).HasMaxLength(36).HasColumnName("cashier_user_id");
         builder.Property(x => x.ShiftDate).HasColumnType("DATE").HasColumnName("shift_date");
         builder.Property(x => x.ShiftStart).HasColumnName("shift_start");

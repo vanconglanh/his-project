@@ -136,6 +136,30 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Xem danh sach chi nhanh da gan cho 1 user</summary>
+    [HttpGet("{id:guid}/branches")]
+    [RequirePermission("user.read")]
+    public async Task<IActionResult> GetUserBranches(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetUserBranchesQuery(id), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
+    }
+
+    /// <summary>Gan lai danh sach chi nhanh cho 1 user (thay the toan bo)</summary>
+    [HttpPut("{id:guid}/branches")]
+    [RequirePermission("branch.assign_user")]
+    public async Task<IActionResult> SetUserBranches(Guid id, [FromBody] SetUserBranchesRequest request, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new SetUserBranchesCommand(id, request), ct);
+        if (!result.IsSuccess)
+            return result.ErrorCode == "USER_NOT_FOUND"
+                ? NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } })
+                : UnprocessableEntity(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
+    }
+
     /// <summary>Khoa user</summary>
     [HttpPost("{id:guid}/disable")]
     [RequirePermission("user.write")]

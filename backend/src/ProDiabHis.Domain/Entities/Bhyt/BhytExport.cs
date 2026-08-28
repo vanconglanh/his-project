@@ -3,10 +3,12 @@ using ProDiabHis.Domain.Common;
 namespace ProDiabHis.Domain.Entities.Bhyt;
 
 /// <summary>Ky xuat ho so BHYT theo QD 4750/QD-BYT (1 ban ghi = 1 ky thang)</summary>
-public class BhytExport : ISoftDelete
+public class BhytExport : ISoftDelete, IBranchScoped
 {
     public int Id { get; set; }
     public int TenantId { get; set; }
+    /// <summary>R8: XML 4210 xuat theo ma CSKCB cua branch, khong con dung tenants.cskcb_code</summary>
+    public int? BranchId { get; set; }
     public string PeriodMonth { get; set; } = string.Empty;         // YYYY-MM
     public string? ScopeFilterJson { get; set; }
     public string? Note { get; set; }

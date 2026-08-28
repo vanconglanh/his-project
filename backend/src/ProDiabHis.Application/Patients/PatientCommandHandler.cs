@@ -6,7 +6,7 @@ using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Patients;
 
-public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand, Result<PatientResponse>>
+public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand, Result<CreatePatientResult>>
 {
     private readonly IApplicationDbContext _db;
     private readonly ITenantProvider _tenant;
@@ -14,15 +14,68 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
     private readonly IEncryptionService _enc;
     private readonly IAuditService _audit;
 
+    /// <summary>Nguong tuoi (thang) bat buoc phai co thong tin nguoi giam ho (FR-101)</summary>
+    private const int GuardianRequiredMaxAgeMonths = 72;
+
     public CreatePatientCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
         ICurrentUser currentUser, IEncryptionService enc, IAuditService audit)
     {
         _db = db; _tenant = tenant; _currentUser = currentUser; _enc = enc; _audit = audit;
     }
 
-    public async Task<Result<PatientResponse>> Handle(CreatePatientCommand command, CancellationToken cancellationToken)
+    public async Task<Result<CreatePatientResult>> Handle(CreatePatientCommand command, CancellationToken cancellationToken)
     {
         var req = command.Request;
+
+        // ── BR: benh nhan < 72 thang tuoi phai co it nhat 1 guardian hop le (FullName + Phone) ──
+        var ageMonths = PatientMappingHelper.CalcAgeInMonths(req.DateOfBirth);
+        if (ageMonths is not null && ageMonths < GuardianRequiredMaxAgeMonths)
+        {
+            var hasValidGuardian = req.Guardians?.Any(g =>
+                !string.IsNullOrWhiteSpace(g.FullName) && !string.IsNullOrWhiteSpace(g.Phone)) ?? false;
+            if (!hasValidGuardian)
+                return Result<CreatePatientResult>.Failure(
+                    "GUARDIAN_INFO_REQUIRED",
+                    "Bệnh nhân dưới 72 tháng tuổi bắt buộc phải có thông tin người giám hộ (họ tên và số điện thoại)");
+        }
+
+        // ── BR: dedup theo CCCD hoac theo (SDT + ho ten + ngay sinh) ──
+        if (!req.ConfirmCreateDespiteDuplicate)
+        {
+            var candidates = new List<PatientDuplicateCandidate>();
+
+            if (!string.IsNullOrWhiteSpace(req.IdNumber))
+            {
+                var idHash = PatientMappingHelper.ComputeIdNumberHash(req.IdNumber);
+                var byIdNumber = await _db.Patients.AsNoTracking()
+                    .Where(p => p.TenantId == _tenant.TenantId && p.IdNumberHash == idHash)
+                    .Select(p => new PatientDuplicateCandidate(p.Id, p.Code, p.FullName, p.DateOfBirth, p.Phone, "CCCD_TRUNG"))
+                    .ToListAsync(cancellationToken);
+                candidates.AddRange(byIdNumber);
+            }
+
+            if (!string.IsNullOrWhiteSpace(req.Phone) && req.DateOfBirth is not null)
+            {
+                var byPhoneNameDob = await _db.Patients.AsNoTracking()
+                    .Where(p => p.TenantId == _tenant.TenantId
+                        && p.Phone == req.Phone
+                        && p.FullName == req.FullName
+                        && p.DateOfBirth == req.DateOfBirth)
+                    .Select(p => new PatientDuplicateCandidate(p.Id, p.Code, p.FullName, p.DateOfBirth, p.Phone, "SDT_HOTEN_NGAYSINH_TRUNG"))
+                    .ToListAsync(cancellationToken);
+                candidates.AddRange(byPhoneNameDob);
+            }
+
+            var distinctCandidates = candidates
+                .GroupBy(c => c.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            if (distinctCandidates.Count > 0)
+                return Result<CreatePatientResult>.Success(
+                    new CreatePatientResult(Patient: null, PossibleDuplicate: true, DuplicateCandidates: distinctCandidates));
+        }
+
         var prefix = $"BNT{_tenant.TenantId:D2}";
         // IgnoreQueryFilters: phai tinh seq tren CA benh nhan da soft-delete —
         // unique key uq_patients_code_tenant van tinh dong deleted_at != null nen
@@ -42,13 +95,14 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
         var codeExists = await _db.Patients.IgnoreQueryFilters()
             .AnyAsync(p => p.TenantId == _tenant.TenantId && p.Code == code, cancellationToken);
         if (codeExists)
-            return Result<PatientResponse>.Failure("PATIENT_CODE_EXISTS", "Mã bệnh nhân đã tồn tại");
+            return Result<CreatePatientResult>.Failure("PATIENT_CODE_EXISTS", "Mã bệnh nhân đã tồn tại");
 
-        string? idNumEnc = null, idNumMasked = null;
+        string? idNumEnc = null, idNumMasked = null, idNumHash = null;
         if (!string.IsNullOrEmpty(req.IdNumber))
         {
             idNumEnc = _enc.Encrypt(req.IdNumber);
             idNumMasked = PatientMappingHelper.MaskIdNumber(req.IdNumber);
+            idNumHash = PatientMappingHelper.ComputeIdNumberHash(req.IdNumber);
         }
 
         var now = DateTime.UtcNow;
@@ -62,6 +116,7 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
             DateOfBirth = req.DateOfBirth,
             IdNumberEnc = idNumEnc,
             IdNumberMasked = idNumMasked,
+            IdNumberHash = idNumHash,
             Phone = req.Phone,
             Email = req.Email,
             ProvinceCode = req.Address?.ProvinceCode,
@@ -84,10 +139,41 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
         };
 
         _db.Patients.Add(patient);
+
+        if (req.Guardians is { Count: > 0 })
+        {
+            foreach (var g in req.Guardians.Where(g => !string.IsNullOrWhiteSpace(g.FullName) && !string.IsNullOrWhiteSpace(g.Phone)))
+            {
+                string? guardianIdEnc = null, guardianIdMasked = null;
+                if (!string.IsNullOrEmpty(g.IdNumber))
+                {
+                    guardianIdEnc = _enc.Encrypt(g.IdNumber);
+                    guardianIdMasked = PatientMappingHelper.MaskIdNumber(g.IdNumber);
+                }
+
+                _db.PatientGuardians.Add(new PatientGuardian
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = _tenant.TenantId,
+                    PatientId = patient.Id,
+                    FullName = g.FullName,
+                    Relationship = g.Relationship,
+                    Phone = g.Phone,
+                    IdNumberEnc = guardianIdEnc,
+                    IdNumberMasked = guardianIdMasked,
+                    CreatedAt = now,
+                    CreatedBy = _currentUser.UserId,
+                    UpdatedAt = now
+                });
+            }
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("CREATE", "Patient", patient.Id.ToString(), new { code }, cancellationToken);
 
-        return Result<PatientResponse>.Success(PatientEntityMapper.ToResponse(patient));
+        var response = PatientEntityMapper.ToResponse(patient);
+        return Result<CreatePatientResult>.Success(
+            new CreatePatientResult(Patient: response, PossibleDuplicate: false, DuplicateCandidates: new List<PatientDuplicateCandidate>()));
     }
 }
 

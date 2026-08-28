@@ -1,6 +1,8 @@
 using Dapper;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Application.Common.Interfaces;
 using System.Data;
 
 namespace ProDiabHis.Application.Appointments;
@@ -48,16 +50,19 @@ public class ListAppointmentsQueryHandler : IRequestHandler<ListAppointmentsQuer
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public ListAppointmentsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
-    { _db = db; _tenant = tenant; }
+    public ListAppointmentsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
+    { _db = db; _tenant = tenant; _branch = branch; }
 
     public async Task<PagedResult<AppointmentResponse>> Handle(ListAppointmentsQuery request, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
         var tenantId = _tenant.TenantId;
+        var branchId = _branch.BranchId;
+        var ignoreBranch = _branch.IgnoreBranchFilter;
 
-        var where = "WHERE a.tenant_id = @tenantId AND a.deleted_at IS NULL";
+        var where = "WHERE a.tenant_id = @tenantId AND a.deleted_at IS NULL AND " + BranchSql.Condition("a");
         if (request.From.HasValue) where += " AND a.appointment_at >= @from";
         if (request.To.HasValue) where += " AND a.appointment_at <= @to";
         if (!string.IsNullOrWhiteSpace(request.DoctorRef)) where += " AND a.doctor_ref = @doctorRef";
@@ -82,6 +87,8 @@ public class ListAppointmentsQueryHandler : IRequestHandler<ListAppointmentsQuer
         var parameters = new
         {
             tenantId,
+            branchId,
+            ignoreBranch,
             from = request.From,
             to = request.To,
             doctorRef = request.DoctorRef,
@@ -103,17 +110,22 @@ public class GetAppointmentQueryHandler : IRequestHandler<GetAppointmentQuery, R
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public GetAppointmentQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
-    { _db = db; _tenant = tenant; }
+    public GetAppointmentQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
+    { _db = db; _tenant = tenant; _branch = branch; }
 
     public async Task<Result<AppointmentResponse>> Handle(GetAppointmentQuery request, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
         var sql = $@"{AppointmentSql.SelectBase}
-            WHERE a.id = @id AND a.tenant_id = @tenantId AND a.deleted_at IS NULL";
+            WHERE a.id = @id AND a.tenant_id = @tenantId AND a.deleted_at IS NULL AND {BranchSql.Condition("a")}";
 
-        var row = await conn.QueryFirstOrDefaultAsync<AppointmentRow>(sql, new { id = request.Id, tenantId = _tenant.TenantId });
+        var row = await conn.QueryFirstOrDefaultAsync<AppointmentRow>(sql, new
+        {
+            id = request.Id, tenantId = _tenant.TenantId,
+            branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter
+        });
         if (row is null)
             return Result<AppointmentResponse>.Failure("APPOINTMENT_NOT_FOUND", "Không tìm thấy lịch hẹn");
 
@@ -125,16 +137,22 @@ public class CreateAppointmentCommandHandler : IRequestHandler<CreateAppointment
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IAuditService _audit;
 
-    public CreateAppointmentCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IAuditService audit)
-    { _db = db; _tenant = tenant; _audit = audit; }
+    public CreateAppointmentCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IAuditService audit)
+    { _db = db; _tenant = tenant; _branch = branch; _audit = audit; }
 
     public async Task<Result<AppointmentResponse>> Handle(CreateAppointmentCommand command, CancellationToken ct)
     {
         var req = command.Request;
         using var conn = (IDbConnection)_db.CreateConnection();
         var tenantId = _tenant.TenantId;
+        // branch_id luon lay tu IBranchProvider (khong trust client). Neu user co cross_view
+        // va khong chon branch cu the (BranchId=0) thi khong doan - tra ve BRANCH_REQUIRED.
+        if (_branch.BranchId <= 0)
+            return Result<AppointmentResponse>.Failure("BRANCH_REQUIRED", "Vui long chon chi nhanh truoc khi tao lich hen");
+        var branchId = _branch.BranchId;
 
         if (!string.IsNullOrWhiteSpace(req.PatientRef))
         {
@@ -159,10 +177,10 @@ public class CreateAppointmentCommandHandler : IRequestHandler<CreateAppointment
 
         var insertSql = @"
             INSERT INTO diab_his_sch_appointments
-                (tenant_id, patient_ref, patient_name_temp, patient_phone, doctor_ref,
+                (tenant_id, branch_id, patient_ref, patient_name_temp, patient_phone, doctor_ref,
                  appointment_at, duration_minutes, status, source, note, created_at, updated_at)
             VALUES
-                (@tenantId, @patientRef, @patientNameTemp, @patientPhone, @doctorRef,
+                (@tenantId, @branchId, @patientRef, @patientNameTemp, @patientPhone, @doctorRef,
                  @appointmentAt, @duration, 'PENDING', @source, @note, @now, @now);
             SELECT LAST_INSERT_ID();";
 
@@ -170,6 +188,7 @@ public class CreateAppointmentCommandHandler : IRequestHandler<CreateAppointment
         var newId = await conn.ExecuteScalarAsync<int>(insertSql, new
         {
             tenantId,
+            branchId,
             patientRef = req.PatientRef,
             patientNameTemp = req.PatientNameTemp,
             patientPhone = req.PatientPhone,
@@ -195,20 +214,23 @@ public class UpdateAppointmentCommandHandler : IRequestHandler<UpdateAppointment
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IAuditService _audit;
 
-    public UpdateAppointmentCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IAuditService audit)
-    { _db = db; _tenant = tenant; _audit = audit; }
+    public UpdateAppointmentCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IAuditService audit)
+    { _db = db; _tenant = tenant; _branch = branch; _audit = audit; }
 
     public async Task<Result<AppointmentResponse>> Handle(UpdateAppointmentCommand command, CancellationToken ct)
     {
         var req = command.Request;
         using var conn = (IDbConnection)_db.CreateConnection();
         var tenantId = _tenant.TenantId;
+        var branchId = _branch.BranchId;
+        var ignoreBranch = _branch.IgnoreBranchFilter;
 
         var existsCount = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM diab_his_sch_appointments WHERE id=@id AND tenant_id=@tenantId AND deleted_at IS NULL",
-            new { id = command.Id, tenantId });
+            $"SELECT COUNT(*) FROM diab_his_sch_appointments WHERE id=@id AND tenant_id=@tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = command.Id, tenantId, branchId, ignoreBranch });
         if (existsCount == 0)
             return Result<AppointmentResponse>.Failure("APPOINTMENT_NOT_FOUND", "Không tìm thấy lịch hẹn");
 
@@ -267,19 +289,26 @@ public class UpdateAppointmentStatusCommandHandler : IRequestHandler<UpdateAppoi
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IAuditService _audit;
+    private readonly IPackageEntitlementService _packageEntitlement;
+    private readonly Microsoft.Extensions.Logging.ILogger<UpdateAppointmentStatusCommandHandler> _logger;
 
-    public UpdateAppointmentStatusCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IAuditService audit)
-    { _db = db; _tenant = tenant; _audit = audit; }
+    public UpdateAppointmentStatusCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch,
+        IAuditService audit, IPackageEntitlementService packageEntitlement,
+        Microsoft.Extensions.Logging.ILogger<UpdateAppointmentStatusCommandHandler> logger)
+    { _db = db; _tenant = tenant; _branch = branch; _audit = audit; _packageEntitlement = packageEntitlement; _logger = logger; }
 
     public async Task<Result<AppointmentResponse>> Handle(UpdateAppointmentStatusCommand command, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
         var tenantId = _tenant.TenantId;
+        var branchId = _branch.BranchId;
+        var ignoreBranch = _branch.IgnoreBranchFilter;
 
         var existsCount = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM diab_his_sch_appointments WHERE id=@id AND tenant_id=@tenantId AND deleted_at IS NULL",
-            new { id = command.Id, tenantId });
+            $"SELECT COUNT(*) FROM diab_his_sch_appointments WHERE id=@id AND tenant_id=@tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = command.Id, tenantId, branchId, ignoreBranch });
         if (existsCount == 0)
             return Result<AppointmentResponse>.Failure("APPOINTMENT_NOT_FOUND", "Không tìm thấy lịch hẹn");
 
@@ -294,30 +323,89 @@ public class UpdateAppointmentStatusCommandHandler : IRequestHandler<UpdateAppoi
             $"{AppointmentSql.SelectBase} WHERE a.id=@id AND a.tenant_id=@tenantId",
             new { id = command.Id, tenantId });
 
+        // FR-1204 (D7) - tru dinh muc "lan kham" (item_type=VISIT) khi check-in thanh cong.
+        // Best-effort: khong duoc chan luong tiep don neu goi dinh muc loi/khong co (giong pattern
+        // da ap dung o CreatePrescriptionHandler). ConsumeAsync idempotent theo (source_type,
+        // source_id, balance_id) nen goi lai (retry, doi trang thai nhieu lan) khong tru trung.
+        if (row != null && string.Equals(command.Status, AppointmentStatus.CheckedIn, StringComparison.Ordinal)
+            && Guid.TryParse(row.PatientRef, out var patientGuid))
+        {
+            try
+            {
+                var visitBalance = await conn.QueryFirstOrDefaultAsync<string?>(
+                    @"SELECT b.item_ref_id
+                      FROM diab_his_pkg_entitlement_balances b
+                      JOIN diab_his_pkg_subscriptions s ON s.id = b.subscription_id
+                      WHERE s.tenant_id=@tenantId AND s.patient_id=@patientId AND s.status='active'
+                        AND s.expiry_date >= CURDATE()
+                        AND b.item_type='VISIT' AND b.remaining_quantity > 0
+                      ORDER BY s.expiry_date ASC, s.purchase_date ASC, b.id ASC
+                      LIMIT 1",
+                    new { tenantId, patientId = patientGuid.ToString() });
+
+                if (visitBalance != null && Guid.TryParse(visitBalance, out var visitItemRefId))
+                {
+                    await _packageEntitlement.ConsumeAsync(
+                        new PackageCoverageRequest(
+                            patientGuid, "APPOINTMENT", AppointmentIdToGuid(command.Id),
+                            new[] { new PackageCoverageLineRequest(PackageItemType.VISIT, visitItemRefId, 1) },
+                            null, branchId > 0 ? branchId : null),
+                        ct);
+                }
+            }
+            catch (PackageBalanceConflictException ex)
+            {
+                _logger.LogWarning(ex, "PackageEntitlement conflict khi check-in appointment {Id}, bo qua tru dinh muc lan nay", command.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Khong the tru dinh muc goi khi check-in appointment {Id}, bo qua (khong chan tiep don)", command.Id);
+            }
+        }
+
         return Result<AppointmentResponse>.Success(AppointmentSql.ToResponse(row!));
     }
+
+    /// <summary>
+    /// diab_his_sch_appointments.id la INT (auto-increment), nhung IPackageEntitlementService.SourceId
+    /// yeu cau Guid (chuan theo cac nguon khac deu dung CHAR36). Sinh Guid tat dinh (deterministic)
+    /// tu int id de dam bao idempotency_key on dinh giua cac lan goi cho cung 1 appointment.
+    /// </summary>
+    private static Guid AppointmentIdToGuid(int id) => new Guid(id, 0, 0, new byte[8]);
 }
 
 public class ListDoctorOptionsQueryHandler : IRequestHandler<ListDoctorOptionsQuery, List<OptionDto>>
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public ListDoctorOptionsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
-    { _db = db; _tenant = tenant; }
+    public ListDoctorOptionsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
+    { _db = db; _tenant = tenant; _branch = branch; }
 
     public async Task<List<OptionDto>> Handle(ListDoctorOptionsQuery request, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
-        var sql = @"
+        // Bac si duoc gan qua diab_his_sec_user_branches (N-N) -> uu tien loc theo bang nay;
+        // fallback u.branch_id (chi nhanh mac dinh) cho du lieu cu chua co dong user_branches.
+        var sql = $@"
             SELECT DISTINCT u.id AS Value, u.full_name AS Label
             FROM diab_his_sec_users u
             JOIN diab_his_sec_user_roles ur ON ur.user_id = u.id AND ur.tenant_id = @tenantId
             JOIN diab_his_sec_roles r ON r.id = ur.role_id AND r.code = 'bac_si'
+            LEFT JOIN diab_his_sec_user_branches ub ON ub.user_id = u.id AND ub.deleted_at IS NULL
             WHERE u.tenant_id = @tenantId AND u.deleted_at IS NULL
+              AND (@ignoreBranch = 1
+                   OR ub.branch_id = @branchId
+                   OR (ub.branch_id IS NULL AND {BranchSql.Condition("u")}))
             ORDER BY u.full_name ASC";
 
-        var rows = await conn.QueryAsync<OptionDto>(sql, new { tenantId = _tenant.TenantId });
+        var rows = await conn.QueryAsync<OptionDto>(sql, new
+        {
+            tenantId = _tenant.TenantId,
+            branchId = _branch.BranchId,
+            ignoreBranch = _branch.IgnoreBranchFilter
+        });
         return rows.ToList();
     }
 }

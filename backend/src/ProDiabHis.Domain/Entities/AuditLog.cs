@@ -1,10 +1,13 @@
+using ProDiabHis.Domain.Common;
+
 namespace ProDiabHis.Domain.Entities;
 
 /// <summary>Nhat ky thao tac he thong. Map bang sec_audit_logs</summary>
-public class AuditLog
+public class AuditLog : IBranchScoped
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public Guid? UserId { get; set; }
     public string? UserEmail { get; set; }
     public string Action { get; set; } = string.Empty;

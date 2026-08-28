@@ -1,4 +1,5 @@
 using Dapper;
+using ProDiabHis.Application.Common;
 using ProDiabHis.Application.Reports.Engine;
 
 namespace ProDiabHis.Infrastructure.Reports;
@@ -1828,8 +1829,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     ts                                                     AS date,
                     loai                                                   AS type,
@@ -1854,6 +1857,7 @@ public class ReportRegistry : IReportRegistry
                       AND pay.method = 'CASH'
                       AND (pay.status IS NULL OR pay.status <> 'VOID')
                       AND pay.paid_at BETWEEN @from AND @to
+                      AND {BranchSql.Condition("pay")}
 
                     UNION ALL
 
@@ -1869,6 +1873,7 @@ public class ReportRegistry : IReportRegistry
                     WHERE c.tenant_id = @tenantId
                       AND c.deleted_at IS NULL
                       AND c.paid_at BETWEEN @from AND @to
+                      AND {BranchSql.Condition("c")}
                 ) t
                 ORDER BY ts, idSort
                 LIMIT 3000";

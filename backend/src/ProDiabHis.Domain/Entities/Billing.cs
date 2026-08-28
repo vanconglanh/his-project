@@ -3,9 +3,10 @@ using ProDiabHis.Domain.Common;
 namespace ProDiabHis.Domain.Entities;
 
 /// <summary>Hoa don. Map bang diab_his_bil_billing</summary>
-public class Billing : BaseEntity
+public class Billing : BaseEntity, IBranchScoped
 {
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public Guid PatientId { get; set; }
     public Guid? EncounterId { get; set; }
     public string? BillNo { get; set; }
@@ -53,6 +54,13 @@ public class BillingItem
     public bool BhytApplicable { get; set; }
     public decimal BhytAmount { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>D11 (docs/erd/goi-dich-vu-dinh-muc.md) - dong nay duoc goi dinh muc tra truoc chi tra.
+    /// Map cot covered_by_subscription_id (migration 9093).</summary>
+    public Guid? CoveredBySubscriptionId { get; set; }
+
+    /// <summary>Truy vet ve dong pkg_usage_logs da tru dinh muc tuong ung. Map cot covered_by_usage_log_id.</summary>
+    public Guid? CoveredByUsageLogId { get; set; }
 
     public Billing? Billing { get; set; }
 }

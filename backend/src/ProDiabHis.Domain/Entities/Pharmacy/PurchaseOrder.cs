@@ -3,9 +3,10 @@ using ProDiabHis.Domain.Common;
 namespace ProDiabHis.Domain.Entities.Pharmacy;
 
 /// <summary>Don dat hang nhap duoc. Map bang diab_his_pha_purchase_orders</summary>
-public class PurchaseOrder : BaseEntity, ITenantScoped
+public class PurchaseOrder : BaseEntity, ITenantScoped, IBranchScoped
 {
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public string PoNo { get; set; } = string.Empty;
     public Guid SupplierId { get; set; }
     public string Status { get; set; } = PurchaseOrderStatus.Draft;

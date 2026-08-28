@@ -41,7 +41,8 @@ public record PatientOptionDto(string Value, string Label, string? Phone);
 /// <summary>Cac gia tri hop le cho cot status (ENUM trong diab_his_sch_appointments)</summary>
 public static class AppointmentStatus
 {
-    public static readonly string[] All = { "PENDING", "CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW" };
+    public const string CheckedIn = "CHECKED_IN";
+    public static readonly string[] All = { "PENDING", "CONFIRMED", CheckedIn, "CANCELLED", "NO_SHOW" };
     public static bool IsValid(string status) => All.Contains(status);
 }
 

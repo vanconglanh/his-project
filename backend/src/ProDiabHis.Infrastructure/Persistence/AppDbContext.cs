@@ -13,14 +13,22 @@ public class AppDbContext : DbContext, IApplicationDbContext
 {
     private readonly ITenantProvider _tenantProvider;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options, ITenantProvider tenantProvider)
+    // QUAN TRONG (R4): _branchProvider PHAI la field cua AppDbContext (khong duoc capture bien local
+    // trong HasQueryFilter) de EF Core re-evaluate dung gia tri per-request. Neu capture local, gia tri
+    // se bi "dong bang" theo request dau tien -> ro ri du lieu cheo chi nhanh.
+    private readonly IBranchProvider _branchProvider;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, ITenantProvider tenantProvider, IBranchProvider branchProvider)
         : base(options)
     {
         _tenantProvider = tenantProvider;
+        _branchProvider = branchProvider;
     }
 
     // Auth / Security
     public DbSet<User> Users => Set<User>();
+    public DbSet<Branch> Branches => Set<Branch>();
+    public DbSet<UserBranch> UserBranches => Set<UserBranch>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
@@ -35,6 +43,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<Insurance> Insurances => Set<Insurance>();
     public DbSet<EmergencyContact> EmergencyContacts => Set<EmergencyContact>();
     public DbSet<Consent> Consents => Set<Consent>();
+    public DbSet<PatientGuardian> PatientGuardians => Set<PatientGuardian>();
 
     // Encounter
     public DbSet<Encounter> Encounters => Set<Encounter>();
@@ -49,8 +58,11 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<LabOrder> LabOrders => Set<LabOrder>();
     public DbSet<RadOrder> RadOrders => Set<RadOrder>();
     public DbSet<ClsUpload> ClsUploads => Set<ClsUpload>();
+    public DbSet<FileAnnotation> FileAnnotations => Set<FileAnnotation>();
     public DbSet<LabResult> LabResults => Set<LabResult>();
     public DbSet<LabPartner> LabPartners => Set<LabPartner>();
+    public DbSet<LabPartnerCost> LabPartnerCosts => Set<LabPartnerCost>();
+    public DbSet<LabPartnerReconciliation> LabPartnerReconciliations => Set<LabPartnerReconciliation>();
 
     // Pharmacy
     public DbSet<Drug> Drugs => Set<Drug>();
@@ -114,7 +126,8 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
         // Auth / Security
         modelBuilder.Entity<User>()
-            .HasQueryFilter(u => u.DeletedAt == null && u.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(u => u.DeletedAt == null && u.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || u.BranchId == null || u.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<Role>()
             .HasQueryFilter(r => r.DeletedAt == null &&
@@ -123,8 +136,15 @@ public class AppDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<Tenant>()
             .HasQueryFilter(t => t.DeletedAt == null);
 
+        modelBuilder.Entity<Branch>()
+            .HasQueryFilter(b => b.DeletedAt == null && b.TenantId == _tenantProvider.TenantId);
+
+        modelBuilder.Entity<UserBranch>()
+            .HasQueryFilter(ub => ub.DeletedAt == null && ub.TenantId == _tenantProvider.TenantId);
+
         modelBuilder.Entity<AuditLog>()
-            .HasQueryFilter(a => a.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(a => a.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || a.BranchId == null || a.BranchId == _branchProvider.BranchId));
 
         // Patient
         modelBuilder.Entity<Patient>()
@@ -142,9 +162,13 @@ public class AppDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<Consent>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
+        modelBuilder.Entity<PatientGuardian>()
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+
         // Encounter
         modelBuilder.Entity<Encounter>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<EncounterDiagnosis>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
@@ -167,52 +191,74 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
         // Lab / Rad
         modelBuilder.Entity<LabOrder>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<RadOrder>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<ClsUpload>()
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
+
+        modelBuilder.Entity<FileAnnotation>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<LabResult>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<LabPartner>()
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+
+        modelBuilder.Entity<LabPartnerCost>()
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
+
+        modelBuilder.Entity<LabPartnerReconciliation>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
         // Pharmacy
         modelBuilder.Entity<Drug>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
+        // R1: ton kho tach theo chi nhanh — filter branch bat buoc (khong co dieu khoan bo qua ngoai cross_view)
         modelBuilder.Entity<Stock>()
-            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<Prescription>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<PrescriptionItem>()
             .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<Dispense>()
-            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<Supplier>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<PurchaseOrder>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<Grn>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         // Billing
         modelBuilder.Entity<BillingEntity>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<BillingItem>()
             .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
 
+        // Quyet dinh nghiep vu #2: bang gia dich vu dung chung toan tenant, KHONG filter theo branch
         modelBuilder.Entity<BillingService>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
@@ -220,10 +266,16 @@ public class AppDbContext : DbContext, IApplicationDbContext
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<Payment>()
-            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<CashierShift>()
-            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
+
+        modelBuilder.Entity<EInvoice>()
+            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         // Notifications
         modelBuilder.Entity<Notification>()
@@ -258,10 +310,12 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
         // BHYT
         modelBuilder.Entity<BhytExport>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<BhytReconcileUpload>()
-            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
+                && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
 
         modelBuilder.Entity<BhytReconcileItem>()
             .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);

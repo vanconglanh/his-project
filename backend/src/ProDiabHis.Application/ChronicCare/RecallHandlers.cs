@@ -19,11 +19,13 @@ public class ListRecallQueryHandler : IRequestHandler<ListRecallQuery, Result<Pa
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public ListRecallQueryHandler(IDapperConnectionFactory db, ICurrentUser currentUser)
+    public ListRecallQueryHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch)
     {
         _db = db;
         _currentUser = currentUser;
+        _branch = branch;
     }
 
     public async Task<Result<PagedResult<RecallItem>>> Handle(ListRecallQuery q, CancellationToken ct)
@@ -31,9 +33,11 @@ public class ListRecallQueryHandler : IRequestHandler<ListRecallQuery, Result<Pa
         using var conn = (IDbConnection)_db.CreateConnection();
         var tenantId = _currentUser.TenantId!.Value;
 
-        var where = new List<string> { "r.tenant_id = @tenantId", "r.deleted_at IS NULL" };
+        var where = new List<string> { "r.tenant_id = @tenantId", "r.deleted_at IS NULL", BranchSql.Condition("r") };
         var prm = new DynamicParameters();
         prm.Add("tenantId", tenantId);
+        prm.Add("branchId", _branch.BranchId);
+        prm.Add("ignoreBranch", _branch.IgnoreBranchFilter);
 
         if (!string.IsNullOrWhiteSpace(q.Status)) { where.Add("r.status = @status"); prm.Add("status", q.Status); }
         if (q.DueBefore.HasValue) { where.Add("r.due_date <= @dueBefore"); prm.Add("dueBefore", q.DueBefore.Value); }
@@ -89,13 +93,15 @@ public class UpdateRecallStatusCommandHandler : IRequestHandler<UpdateRecallStat
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
     private static readonly string[] ValidStatuses = ["PENDING", "CONTACTED", "SCHEDULED", "DONE", "DISMISSED"];
 
-    public UpdateRecallStatusCommandHandler(IDapperConnectionFactory db, ICurrentUser currentUser)
+    public UpdateRecallStatusCommandHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch)
     {
         _db = db;
         _currentUser = currentUser;
+        _branch = branch;
     }
 
     public async Task<Result<bool>> Handle(UpdateRecallStatusCommand cmd, CancellationToken ct)
@@ -110,16 +116,17 @@ public class UpdateRecallStatusCommandHandler : IRequestHandler<UpdateRecallStat
         var isContactAction = cmd.Status is "CONTACTED" or "SCHEDULED" or "DONE";
 
         var affected = await conn.ExecuteAsync(
-            @"UPDATE diab_his_cli_followup_recall SET
+            $@"UPDATE diab_his_cli_followup_recall SET
                 status = @status, note = COALESCE(@note, note), channel = COALESCE(@channel, channel),
                 contacted_at = CASE WHEN @isContactAction THEN NOW(3) ELSE contacted_at END,
                 contacted_by = CASE WHEN @isContactAction THEN @userId ELSE contacted_by END,
                 updated_at = NOW(3)
-              WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+              WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
             new
             {
                 id = cmd.Id.ToString(), tenantId, status = cmd.Status, note = cmd.Note, channel = cmd.Channel,
-                isContactAction, userId = userId?.ToString()
+                isContactAction, userId = userId?.ToString(),
+                branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter
             });
 
         if (affected == 0) return Result<bool>.Failure("RECALL_NOT_FOUND", "Không tìm thấy recall");

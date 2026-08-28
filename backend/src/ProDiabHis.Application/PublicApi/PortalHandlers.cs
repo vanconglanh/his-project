@@ -319,6 +319,14 @@ public class CreatePortalAppointmentHandler : IRequestHandler<CreatePortalAppoin
         if (!cmd.Request.DoctorId.HasValue)
             throw new AppointmentDoctorRequiredException();
 
+        // BranchId da duoc FluentValidation chan neu <= 0; xac thuc them branch thuoc dung tenant
+        // va con hoat dong (khong trust mu client - phong truong hop client tu sua id chi nhanh).
+        var branchValid = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM diab_his_sys_branches WHERE id=@BranchId AND tenant_id=@TenantId AND is_active=1 AND deleted_at IS NULL",
+            new { cmd.Request.BranchId, cmd.TenantId });
+        if (branchValid == 0)
+            throw new BranchNotFoundException();
+
         if (cmd.Request.DoctorId.HasValue)
         {
             var doctorRef = cmd.Request.DoctorId.Value.ToString();
@@ -373,15 +381,18 @@ public class CreatePortalAppointmentHandler : IRequestHandler<CreatePortalAppoin
         var code = $"LH{DateTime.UtcNow:yyyyMMdd}{apptUuid.ToString("N")[..6].ToUpper()}";
 
         // id INT AUTO_INCREMENT — chi set uuid/patient_ref/doctor_ref (CHAR36), status PENDING (khop ENUM 0016)
+        // branch_id bat buoc (FluentValidation da chan neu <=0) — benh nhan Portal phai chon ro
+        // chi nhanh muon kham de tranh lich hen "mo coi" khong xac dinh co so (Nhom A).
         await conn.ExecuteAsync(
             @"INSERT INTO diab_his_sch_appointments
-                (tenant_id, uuid, appointment_code, patient_ref, doctor_ref,
+                (tenant_id, branch_id, uuid, appointment_code, patient_ref, doctor_ref,
                  appointment_at, note, status, source, created_at, updated_at)
-              VALUES (@TenantId, @Uuid, @Code, @PatientRef, @DoctorRef,
+              VALUES (@TenantId, @BranchId, @Uuid, @Code, @PatientRef, @DoctorRef,
                       @AppointmentAt, @Note, 'PENDING', 'APP', UTC_TIMESTAMP(), UTC_TIMESTAMP())",
             new
             {
                 cmd.TenantId,
+                BranchId = cmd.Request.BranchId,
                 Uuid = apptUuid.ToString(),
                 Code = code,
                 PatientRef = cmd.PatientId.ToString(),
@@ -425,3 +436,4 @@ public class AppointmentNotFoundException : Exception { public AppointmentNotFou
 public class AppointmentCancelTooLateException : Exception { public AppointmentCancelTooLateException() : base("APPOINTMENT_CANCEL_TOO_LATE") { } }
 public class AppointmentInPastException : Exception { public AppointmentInPastException() : base("APPOINTMENT_IN_PAST") { } }
 public class AppointmentDoctorRequiredException : Exception { public AppointmentDoctorRequiredException() : base("APPOINTMENT_DOCTOR_REQUIRED") { } }
+public class BranchNotFoundException : Exception { public BranchNotFoundException() : base("BRANCH_NOT_FOUND") { } }

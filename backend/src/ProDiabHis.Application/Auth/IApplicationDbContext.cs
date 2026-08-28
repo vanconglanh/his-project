@@ -10,6 +10,8 @@ public interface IApplicationDbContext
 {
     // Auth / Security
     DbSet<User> Users { get; }
+    DbSet<Branch> Branches { get; }
+    DbSet<UserBranch> UserBranches { get; }
     DbSet<Role> Roles { get; }
     DbSet<Permission> Permissions { get; }
     DbSet<RolePermission> RolePermissions { get; }
@@ -24,6 +26,7 @@ public interface IApplicationDbContext
     DbSet<Insurance> Insurances { get; }
     DbSet<EmergencyContact> EmergencyContacts { get; }
     DbSet<Consent> Consents { get; }
+    DbSet<PatientGuardian> PatientGuardians { get; }
 
     // Encounter
     DbSet<Encounter> Encounters { get; }
@@ -40,6 +43,8 @@ public interface IApplicationDbContext
     DbSet<ClsUpload> ClsUploads { get; }
     DbSet<LabResult> LabResults { get; }
     DbSet<LabPartner> LabPartners { get; }
+    DbSet<LabPartnerCost> LabPartnerCosts { get; }
+    DbSet<LabPartnerReconciliation> LabPartnerReconciliations { get; }
 
     // Pharmacy
     DbSet<Drug> Drugs { get; }

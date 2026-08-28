@@ -11,7 +11,10 @@ public interface IJwtService
     /// nhung tinh nang can so sanh chinh xac (chia se bao cao theo role...) nen dung claim "role_code" nay
     /// thay vi Roles (ten hien thi, co the trung/doi theo ngon ngu).
     /// </summary>
-    string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null);
+    /// <param name="overrideBranchId">Dung khi doi chi nhanh (POST /me/switch-branch) — ep branch_id claim
+    /// ve gia tri nay thay vi branch mac dinh/is_primary cua user (van phai validate thuoc branch_ids truoc khi goi).</param>
+    string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null,
+        int? overrideBranchId = null);
     string GenerateRefreshToken();
     bool ValidateRefreshToken(string token);
 

@@ -15,15 +15,23 @@ public class ListReconcileItemsHandler : IRequestHandler<ListReconcileItemsQuery
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public ListReconcileItemsHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public ListReconcileItemsHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result<PagedResult<ReconcileItemResponse>>> Handle(ListReconcileItemsQuery q, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+
+        // Nhom B: reconcile_items khong co branch_id rieng -> ke thua branch tu export cha (Nhom A).
+        var exportOwned = await conn.ExecuteScalarAsync<int>(
+            $"SELECT COUNT(*) FROM diab_his_int_bhyt_exports WHERE id=@eid AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { eid = q.ExportId, t = _tenant.TenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
+        if (exportOwned == 0)
+            return Result<PagedResult<ReconcileItemResponse>>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
 
         var where = new StringBuilder("WHERE export_id=@eid AND tenant_id=@t");
         var p = new DynamicParameters();
@@ -59,10 +67,11 @@ public class GetReconcileSummaryHandler : IRequestHandler<GetReconcileSummaryQue
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public GetReconcileSummaryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public GetReconcileSummaryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result<ReconcileSummaryResponse>> Handle(GetReconcileSummaryQuery q, CancellationToken ct)
@@ -70,8 +79,8 @@ public class GetReconcileSummaryHandler : IRequestHandler<GetReconcileSummaryQue
         using var conn = (IDbConnection)_db.CreateConnection();
 
         var export = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, period_month FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = q.ExportId, t = _tenant.TenantId });
+            $"SELECT id, period_month FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = q.ExportId, t = _tenant.TenantId, branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter });
 
         if (export == null)
             return Result<ReconcileSummaryResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");

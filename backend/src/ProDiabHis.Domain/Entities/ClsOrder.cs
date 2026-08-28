@@ -3,9 +3,10 @@ using ProDiabHis.Domain.Common;
 namespace ProDiabHis.Domain.Entities;
 
 /// <summary>Lab order. Maps diab_his_cli_lab_orders</summary>
-public class LabOrder : BaseEntity, ITenantScoped
+public class LabOrder : BaseEntity, ITenantScoped, IBranchScoped
 {
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public string EncounterId { get; set; } = string.Empty;
     public string TestCode { get; set; } = string.Empty;
     public string TestName { get; set; } = string.Empty;
@@ -20,9 +21,10 @@ public class LabOrder : BaseEntity, ITenantScoped
 }
 
 /// <summary>Rad order. Maps diab_his_cli_rad_orders</summary>
-public class RadOrder : BaseEntity, ITenantScoped
+public class RadOrder : BaseEntity, ITenantScoped, IBranchScoped
 {
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public string EncounterId { get; set; } = string.Empty;
     public string Modality { get; set; } = string.Empty;
     public string? BodyPart { get; set; }

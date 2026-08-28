@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Minio;
 using ProDiabHis.Application.Auth;
@@ -48,6 +50,7 @@ public static class DependencyInjection
     {
         // Tenant provider (Scoped — moi request 1 instance)
         services.AddScoped<ITenantProvider, TenantProvider>();
+        services.AddScoped<IBranchProvider, BranchProvider>();
         services.AddScoped<ICurrentUser, CurrentUser>();
 
         // EF Core
@@ -91,6 +94,12 @@ public static class DependencyInjection
 
         // Audit
         services.AddScoped<IAuditService, AuditService>();
+
+        // Goi dinh muc tra truoc (FR-1201..1206)
+        services.AddScoped<ProDiabHis.Application.Common.Interfaces.IPackageEntitlementService,
+            ProDiabHis.Infrastructure.Services.PackageEntitlementService>();
+        services.AddScoped<ProDiabHis.Application.Common.ISettingsProvider,
+            ProDiabHis.Infrastructure.Services.SettingsProvider>();
 
         // MinIO / File storage
         var minioEndpoint = configuration["Minio:Endpoint"] ?? "localhost:9000";
@@ -144,8 +153,57 @@ public static class DependencyInjection
                 ConnectionMultiplexer.Connect(redisConnectionString));
         }
 
+        // FR-302/FR-402: Ky so bao mat (chu ky so remote-signing - VNPT SmartCA / Viettel-CA).
+        // Chon provider qua config "SignatureProvider:Type" = Mock | VnptSmartCa.
+        var signatureProviderType = configuration["SignatureProvider:Type"] ?? "Mock";
+        var environmentName = configuration["ASPNETCORE_ENVIRONMENT"]
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? "Development";
+
+        if (string.Equals(signatureProviderType, "VnptSmartCa", StringComparison.OrdinalIgnoreCase))
+        {
+            var vnptOptions = new Security.VnptSmartCaOptions
+            {
+                BaseUrl = configuration["SignatureProvider:VnptSmartCa:BaseUrl"],
+                ApiKey = configuration["SignatureProvider:VnptSmartCa:ApiKey"],
+                SecretKey = configuration["SignatureProvider:VnptSmartCa:SecretKey"],
+            };
+            if (int.TryParse(configuration["SignatureProvider:VnptSmartCa:TimeoutSeconds"], out var sigTimeout))
+                vnptOptions.TimeoutSeconds = sigTimeout;
+
+            services.AddSingleton(vnptOptions);
+            services.AddHttpClient(Security.VnptSmartCaSignatureProvider.HttpClientName, c =>
+            {
+                if (!string.IsNullOrWhiteSpace(vnptOptions.BaseUrl))
+                    c.BaseAddress = new Uri(vnptOptions.BaseUrl);
+                c.Timeout = TimeSpan.FromSeconds(vnptOptions.TimeoutSeconds);
+                if (!string.IsNullOrWhiteSpace(vnptOptions.ApiKey))
+                    c.DefaultRequestHeaders.Add("X-Api-Key", vnptOptions.ApiKey);
+            });
+            services.AddScoped<Application.Common.IDigitalSignatureProvider>(sp =>
+            {
+                var httpClient = sp.GetRequiredService<IHttpClientFactory>()
+                    .CreateClient(Security.VnptSmartCaSignatureProvider.HttpClientName);
+                var logger = sp.GetRequiredService<ILogger<Security.VnptSmartCaSignatureProvider>>();
+                return new Security.VnptSmartCaSignatureProvider(httpClient, vnptOptions, logger);
+            });
+        }
+        else
+        {
+            if (string.Equals(environmentName, "Production", StringComparison.OrdinalIgnoreCase))
+            {
+                // Log canh bao ngay tai thoi diem dang ky DI - Production khong nen dung Mock signer
+                // cho chu ky so bao mat (FR-302/FR-402, muc 5.1 SRS).
+                Console.Error.WriteLine(
+                    "[CANH_BAO_BAO_MAT] SignatureProvider:Type=Mock dang duoc dung o moi truong Production. "
+                    + "Chu ky so bao mat (FR-302/FR-402) se KHONG duoc xac thuc PKI that. "
+                    + "Hay cau hinh SignatureProvider:Type=VnptSmartCa (hoac CA khac) truoc khi go-live.");
+            }
+            services.AddScoped<Application.Common.IDigitalSignatureProvider, Security.MockDigitalSignatureProvider>();
+        }
+
         // EMR services
-        services.AddScoped<IEmrSignatureVerifier, MockEmrSignatureVerifier>();
+        services.AddScoped<IEmrSignatureVerifier, EmrSignatureVerifierAdapter>();
         services.AddScoped<IEmrPdfExporter, QuestPdfEmrExporter>();
 
         // Hangfire (MySQL storage)
@@ -183,7 +241,7 @@ public static class DependencyInjection
 
         // Pharmacy services (Sprint 6-7 EPIC 5)
         services.AddScoped<IDdiChecker, DdiCheckerImpl>();
-        services.AddScoped<IUsbTokenSigner, MockUsbTokenSigner>();
+        services.AddScoped<IUsbTokenSigner, UsbTokenSignerAdapter>();
         services.AddScoped<IFefoStrategy, FefoStrategyImpl>();
         // Builder du lieu don_thuoc cho payload DTQG (doc canonical schema + giai ma the BHYT)
         services.AddScoped<IDtqgPrescriptionPayloadBuilder, DtqgPrescriptionPayloadBuilder>();
@@ -219,6 +277,57 @@ public static class DependencyInjection
         services.AddScoped<IDrugCucQldSync, MockDrugCucQldSync>();
         services.AddScoped<ICucQldLienThong, MockCucQldLienThong>();
         services.AddScoped<IExcelImporter, ClosedXmlImporter>();
+
+        // Telehealth (FR-801..803) - tich hop Docosan, xem docs/erd/telehealth-docosan.md
+        {
+            var docosanOptions = new ProDiabHis.Infrastructure.Integrations.Docosan.DocosanOptions();
+            configuration.GetSection(ProDiabHis.Infrastructure.Integrations.Docosan.DocosanOptions.SectionName).Bind(docosanOptions);
+            services.AddSingleton(docosanOptions);
+            ProDiabHis.Application.Telehealth.DocosanEnvironment.Current = docosanOptions.Environment;
+
+            services.AddHttpClient(ProDiabHis.Infrastructure.Integrations.Docosan.HttpDocosanClient.ClientName, c =>
+            {
+                c.BaseAddress = new Uri(docosanOptions.BaseUrl);
+                c.Timeout = TimeSpan.FromSeconds(docosanOptions.TimeoutSeconds);
+            });
+            services.AddScoped<ProDiabHis.Application.Telehealth.Integration.IDocosanClient,
+                ProDiabHis.Infrastructure.Integrations.Docosan.HttpDocosanClient>();
+            services.AddScoped<ProDiabHis.Infrastructure.Jobs.DocosanSessionSyncJob>();
+            services.AddScoped<ProDiabHis.Infrastructure.Jobs.DocosanOutboxRetryJob>();
+        }
+
+        // FR-711 [P2]: Ket noi thiet bi do duong huyet/CGM qua API (Dexcom/LibreView/...).
+        // Chon provider qua config "CgmProvider:Type" = None | Dexcom. Mac dinh None (chua cau hinh).
+        {
+            var cgmProviderType = configuration["CgmProvider:Type"] ?? "None";
+            var dexcomOptions = new Integrations.Cgm.DexcomCgmOptions();
+            configuration.GetSection(Integrations.Cgm.DexcomCgmOptions.SectionName).Bind(dexcomOptions);
+            services.AddSingleton(dexcomOptions);
+
+            services.AddHttpClient(Integrations.Cgm.DexcomCgmProvider.HttpClientName, c =>
+            {
+                if (!string.IsNullOrWhiteSpace(dexcomOptions.BaseUrl))
+                    c.BaseAddress = new Uri(dexcomOptions.BaseUrl);
+                c.Timeout = TimeSpan.FromSeconds(dexcomOptions.TimeoutSeconds);
+            });
+
+            if (string.Equals(cgmProviderType, "Dexcom", StringComparison.OrdinalIgnoreCase))
+            {
+                services.AddScoped<Application.Diabetes.Cgm.ICgmDeviceProvider>(sp =>
+                {
+                    var httpClient = sp.GetRequiredService<IHttpClientFactory>()
+                        .CreateClient(Integrations.Cgm.DexcomCgmProvider.HttpClientName);
+                    var logger = sp.GetRequiredService<ILogger<Integrations.Cgm.DexcomCgmProvider>>();
+                    return new Integrations.Cgm.DexcomCgmProvider(httpClient, dexcomOptions, logger);
+                });
+            }
+            else
+            {
+                services.AddScoped<Application.Diabetes.Cgm.ICgmDeviceProvider, Integrations.Cgm.NoneCgmProvider>();
+            }
+
+            services.AddScoped<Jobs.CgmReadingsSyncJob>();
+        }
 
         // Sprint 8: Billing + Cashier + Payment services
         services.AddScoped<Application.Billing.IServiceExcelParser, Billing.ServiceExcelParserImpl>();

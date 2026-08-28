@@ -3,9 +3,10 @@ using ProDiabHis.Domain.Common;
 namespace ProDiabHis.Domain.Entities.Pharmacy;
 
 /// <summary>Don thuoc ke cho benh nhan. Map bang diab_his_pha_prescriptions</summary>
-public class Prescription : BaseEntity, ITenantScoped
+public class Prescription : BaseEntity, ITenantScoped, IBranchScoped
 {
     public int TenantId { get; set; }
+    public int? BranchId { get; set; }
     public Guid EncounterId { get; set; }
     public Guid PatientId { get; set; }
     public Guid DoctorId { get; set; }

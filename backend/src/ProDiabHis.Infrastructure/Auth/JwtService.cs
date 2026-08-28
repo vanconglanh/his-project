@@ -18,7 +18,8 @@ public class JwtService : IJwtService
         _configuration = configuration;
     }
 
-    public string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null)
+    public string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null,
+        int? overrideBranchId = null)
     {
         var secret = _configuration["JWT__SECRET"]
             ?? _configuration["Jwt:Secret"]
@@ -56,8 +57,18 @@ public class JwtService : IJwtService
             claims.Add(new Claim("is_super_admin", "true"));
 
         // Load permissions tu user_roles -> role_permissions
-        foreach (var perm in LoadPermissions(user.Id))
+        var permissions = LoadPermissions(user.Id).ToList();
+        foreach (var perm in permissions)
             claims.Add(new Claim("permissions", perm));
+
+        // Branch context (D7): branch_id (dang lam viec), branch_ids (CSV cac branch duoc gan),
+        // branch_cross_view (bool). is_super_admin bypass toan bo filter chi nhanh.
+        var hasCrossView = isAdmin || permissions.Contains("branch.cross_view");
+        var (defaultBranchId, allowedBranchIds) = LoadBranchContext(user.Id, user.TenantId);
+        var branchId = overrideBranchId ?? defaultBranchId;
+        claims.Add(new Claim("branch_id", branchId?.ToString() ?? "0"));
+        claims.Add(new Claim("branch_ids", string.Join(',', allowedBranchIds)));
+        claims.Add(new Claim("branch_cross_view", hasCrossView ? "true" : "false"));
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"] ?? "ProDiabHis",
@@ -141,6 +152,52 @@ public class JwtService : IJwtService
             return list;
         }
         catch { return Array.Empty<string>(); }
+    }
+
+    /// <summary>Tra ve (branch_id mac dinh khi dang nhap, danh sach branch_id duoc gan) cho user.
+    /// Neu user chua duoc gan branch nao (du lieu cu chua backfill) -> fallback branch mac dinh cua tenant.</summary>
+    private (int? DefaultBranchId, List<int> AllowedBranchIds) LoadBranchContext(Guid userId, int tenantId)
+    {
+        try
+        {
+            var connStr = _configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connStr)) return (null, new List<int>());
+            using var conn = new MySqlConnector.MySqlConnection(connStr);
+            conn.Open();
+
+            var allowed = new List<int>();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"SELECT branch_id, is_primary FROM diab_his_sec_user_branches
+                                     WHERE user_id = @uid AND deleted_at IS NULL";
+                cmd.Parameters.AddWithValue("@uid", userId.ToString());
+                using var rd = cmd.ExecuteReader();
+                int? primary = null;
+                while (rd.Read())
+                {
+                    var bid = rd.GetInt32(0);
+                    allowed.Add(bid);
+                    var isPrimary = !rd.IsDBNull(1) && Convert.ToInt64(rd.GetValue(1)) != 0;
+                    if (isPrimary) primary = bid;
+                }
+                if (primary.HasValue)
+                    return (primary, allowed);
+                if (allowed.Count > 0)
+                    return (allowed[0], allowed);
+            }
+
+            // Fallback: chua co dong nao trong user_branches -> lay branch mac dinh cua tenant
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"SELECT id FROM diab_his_sys_branches
+                                     WHERE tenant_id = @tid AND is_default = 1 AND deleted_at IS NULL LIMIT 1";
+                cmd.Parameters.AddWithValue("@tid", tenantId);
+                var result = cmd.ExecuteScalar();
+                var defaultBranchId = result != null && result != DBNull.Value ? Convert.ToInt32(result) : (int?)null;
+                return (defaultBranchId, defaultBranchId.HasValue ? new List<int> { defaultBranchId.Value } : new List<int>());
+            }
+        }
+        catch { return (null, new List<int>()); }
     }
 
     private (SymmetricSecurityKey, SigningCredentials) GetSigningCredentials()

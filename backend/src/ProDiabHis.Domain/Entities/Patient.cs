@@ -13,6 +13,8 @@ public class Patient : BaseEntity, ITenantScoped
     /// <summary>CMND/CCCD da ma hoa AES-256-GCM</summary>
     public string? IdNumberEnc { get; set; }
     public string? IdNumberMasked { get; set; }
+    /// <summary>SHA-256 cua CCCD/CMND da chuan hoa — dung de tim trung nhanh (khong hoi phuc plaintext)</summary>
+    public string? IdNumberHash { get; set; }
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? ProvinceCode { get; set; }

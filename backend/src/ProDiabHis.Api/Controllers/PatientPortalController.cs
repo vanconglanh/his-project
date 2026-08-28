@@ -272,6 +272,10 @@ public class PatientPortalController : ControllerBase
         {
             return BadRequest(new { error = new { code = "APPOINTMENT_DOCTOR_REQUIRED", message = "Vui lòng chọn bác sĩ" } });
         }
+        catch (BranchNotFoundException)
+        {
+            return BadRequest(new { error = new { code = "BRANCH_NOT_FOUND", message = "Không tìm thấy chi nhánh, vui lòng chọn lại" } });
+        }
     }
 
     [HttpDelete("me/appointments/{id:guid}")]

@@ -15,12 +15,14 @@ public class GenericReportDataService : IGenericReportDataService
     private readonly IReportRegistry _registry;
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public GenericReportDataService(IReportRegistry registry, IDapperConnectionFactory db, ITenantProvider tenant)
+    public GenericReportDataService(IReportRegistry registry, IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _registry = registry;
         _db = db;
         _tenant = tenant;
+        _branch = branch;
     }
 
     public async Task<ReportDataResult> GetDataAsync(
@@ -45,7 +47,7 @@ public class GenericReportDataService : IGenericReportDataService
         // Tran tren 5000 — khop voi LIMIT trong descriptor.BuildQuery (an toan bo nho khi export toan bo).
         pageSize = pageSize <= 0 ? 100 : Math.Min(pageSize, 5000);
 
-        var ctx = new ReportQueryContext(_tenant.TenantId, from, to, filters);
+        var ctx = new ReportQueryContext(_tenant.TenantId, from, to, filters, _branch.BranchId, _branch.IgnoreBranchFilter);
         var (sql, parameters) = descriptor.BuildQuery(ctx);
 
         using var conn = (IDbConnection)_db.CreateConnection();
