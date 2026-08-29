@@ -89,6 +89,7 @@ export function useAddPrescriptionItems(prescriptionId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: prescriptionKeys.detail(prescriptionId) });
       qc.invalidateQueries({ queryKey: prescriptionKeys.ddi(prescriptionId) });
+      toast.success("Đã lưu thuốc vào đơn");
     },
     onError: () => toast.error("Thêm thuốc thất bại"),
   });

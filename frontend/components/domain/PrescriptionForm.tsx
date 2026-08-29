@@ -19,6 +19,7 @@ import {
   useRemovePrescriptionItem,
   useCancelPrescription,
   useDdiCheck,
+  useUpdatePrescription,
 } from "@/lib/hooks/use-prescriptions";
 import type { DrugMasterResponse } from "@/lib/api/drugs";
 import type { PrescriptionItemRequest } from "@/lib/api/prescriptions";
@@ -53,6 +54,7 @@ export function PrescriptionForm({ encounterId, patientId, existingPrescriptionI
   const [signWizardOpen, setSignWizardOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [removingItemId, setRemovingItemId] = useState<string | undefined>();
+  const [noteDraft, setNoteDraft] = useState<string | undefined>(undefined);
 
   const createPrescription = useCreatePrescription();
 
@@ -65,6 +67,7 @@ export function PrescriptionForm({ encounterId, patientId, existingPrescriptionI
   const addItems = useAddPrescriptionItems(prescriptionId);
   const removeItem = useRemovePrescriptionItem(prescriptionId);
   const cancelPrescription = useCancelPrescription(prescriptionId);
+  const updatePrescription = useUpdatePrescription(prescriptionId);
 
   const isDraft = !prescription || prescription.status === "DRAFT";
   const canEdit = isDraft && !!prescriptionId;
@@ -97,22 +100,28 @@ export function PrescriptionForm({ encounterId, patientId, existingPrescriptionI
   const hasContraindicated = ddiData?.has_contraindicated ?? false;
 
   if (!prescriptionId && !createPrescription.isPending) {
+    // Lưu ý: KHÔNG đặt DrugAutocomplete bên trong <Card>/<CardContent> — Card mặc định có
+    // class "overflow-hidden" (components/ui/card.tsx) nên sẽ CẮT dropdown gợi ý thuốc
+    // (chỉ còn hiển thị vài px). Tách phần header thông báo ra Card riêng, còn ô tìm thuốc
+    // (và dropdown absolute của nó) đặt ở ngoài, trong một div overflow visible bình thường.
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Đơn thuốc</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Chưa có đơn thuốc. Tìm thuốc để bắt đầu tạo đơn.
-          </p>
-          <DrugAutocomplete onSelect={async (drug) => {
-            const id = await ensurePrescription();
-            setPrescriptionId(id);
-            setSelectedDrug(drug);
-          }} />
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Đơn thuốc</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Chưa có đơn thuốc. Tìm thuốc để bắt đầu tạo đơn.
+            </p>
+          </CardContent>
+        </Card>
+        <DrugAutocomplete onSelect={async (drug) => {
+          const id = await ensurePrescription();
+          setPrescriptionId(id);
+          setSelectedDrug(drug);
+        }} />
+      </div>
     );
   }
 
@@ -142,6 +151,19 @@ export function PrescriptionForm({ encounterId, patientId, existingPrescriptionI
               >
                 <XCircle className="h-4 w-4 mr-1" />
                 Hủy đơn
+              </Button>
+            )}
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={updatePrescription.isPending}
+                onClick={() =>
+                  updatePrescription.mutate({ note: noteDraft ?? prescription?.note ?? "" })
+                }
+              >
+                <Save className="h-4 w-4 mr-1" />
+                {updatePrescription.isPending ? "Đang lưu..." : "Lưu đơn"}
               </Button>
             )}
             {canSign && (
@@ -195,7 +217,8 @@ export function PrescriptionForm({ encounterId, patientId, existingPrescriptionI
           <Textarea
             id="presc-note"
             placeholder="Ghi chú thêm..."
-            defaultValue={prescription.note ?? ""}
+            value={noteDraft ?? prescription.note ?? ""}
+            onChange={(e) => setNoteDraft(e.target.value)}
             disabled={!canEdit}
             className="resize-none h-16"
           />

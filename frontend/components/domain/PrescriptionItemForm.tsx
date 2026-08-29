@@ -95,7 +95,7 @@ export function PrescriptionItemForm({ drug, onSubmit, onCancel, loading }: Prop
     <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-medium">{drug.name_vi}</p>
+          <p className="font-medium">{drug.name_vi || drug.generic_name || drug.name_en || drug.code}</p>
           <p className="text-sm text-muted-foreground">
             {drug.strength} · {drug.form} · {drug.unit}
           </p>

@@ -82,7 +82,9 @@ export function DrugAutocomplete({ onSelect, placeholder = "Tìm thuốc theo t�
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm truncate">{drug.name_vi}</span>
+                        <span className="font-medium text-sm truncate">
+                          {drug.name_vi || drug.generic_name || drug.name_en || drug.code}
+                        </span>
                         {drug.strength && (
                           <span className="text-xs text-muted-foreground">{drug.strength}</span>
                         )}
