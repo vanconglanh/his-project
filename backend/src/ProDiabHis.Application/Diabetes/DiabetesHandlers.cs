@@ -264,7 +264,7 @@ public class ListDiabetesTemplatesQueryHandler
 
             return new DiabetesTemplateResponse(
                 Guid.Parse((string)r.id), (int?)r.tenant_id, (string)r.name,
-                (string?)r.default_values, checklist, (bool)((sbyte)r.is_system == 1), (DateTime)r.created_at);
+                (string?)r.default_values, checklist, r.is_system is bool sb ? sb : (sbyte)r.is_system == 1, (DateTime)r.created_at);
         }).ToList();
 
         return Result<IReadOnlyList<DiabetesTemplateResponse>>.Success(result.AsReadOnly());

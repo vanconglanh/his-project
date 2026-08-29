@@ -113,7 +113,7 @@ public class EncryptionKeyStoreImpl : IEncryptionKeyStore
             KeyVersion: (int)r.key_version,
             Purpose: Enum.Parse<KeyPurpose>((string)r.key_purpose),
             Algorithm: (string)r.algorithm,
-            IsActive: (bool)((sbyte)r.is_active == 1),
+            IsActive: r.is_active is bool ib ? ib : (sbyte)r.is_active == 1,
             RotatedAt: (DateTime?)r.rotated_at,
             CreatedAt: (DateTime)r.created_at
         )).ToList();

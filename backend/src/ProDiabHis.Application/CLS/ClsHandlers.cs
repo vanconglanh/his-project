@@ -471,7 +471,7 @@ public class ListRadOrdersQueryHandler : IRequestHandler<ListRadOrdersQuery, Res
 
         var result = rows.Select(r => new RadOrderResponse(
             Guid.Parse((string)r.id), Guid.Parse((string)r.encounter_id),
-            (string)r.modality, (string?)r.body_part, (bool)((sbyte)r.contrast == 1),
+            (string)r.modality, (string?)r.body_part, r.contrast is bool cb ? cb : (sbyte)r.contrast == 1,
             (string)r.procedure_code, (string)r.procedure_name,
             (string)r.priority, (string)r.status, (DateTime)r.ordered_at,
             string.IsNullOrEmpty((string?)r.ordered_by) ? null : Guid.Parse((string)r.ordered_by),
