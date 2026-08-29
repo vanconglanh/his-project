@@ -64,6 +64,16 @@ public class PackageSubscriptionsController : ControllerBase
         return Ok(new { data = result.Value });
     }
 
+    /// <summary>H-14 (FR-1211): Gia han goi da het han nhung con dinh muc (them X ngay cau hinh).</summary>
+    [HttpPost("package-subscriptions/{id:guid}/extend")]
+    [RequirePermission("package_subscription.extend")]
+    public async Task<IActionResult> Extend(Guid id, [FromBody] ExtendSubscriptionRequest request, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ExtendSubscriptionCommand(id, request), ct);
+        if (!result.IsSuccess) return MapError(result.ErrorCode, result.ErrorMessage, result.ErrorDetails);
+        return Ok(new { data = result.Value });
+    }
+
     // GET /api/v1/patients/{patientId}/package-summary - FR-1205
     [HttpGet("patients/{patientId:guid}/package-summary")]
     [RequirePermission("package_subscription.read")]

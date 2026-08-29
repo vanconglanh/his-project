@@ -44,3 +44,13 @@ export async function getPatientPackageSummary(
   );
   return data.data;
 }
+
+/** H-14 (FR-1211): Gia hạn gói đã hết hạn nhưng còn định mức — POST /package-subscriptions/{id}/extend. */
+export async function extendPackageSubscription(
+  subscriptionId: string,
+  note?: string
+): Promise<void> {
+  await apiClient.post(`/package-subscriptions/${subscriptionId}/extend`, {
+    note: note ?? null,
+  });
+}

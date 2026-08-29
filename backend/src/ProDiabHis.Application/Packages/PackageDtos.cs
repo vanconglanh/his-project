@@ -28,6 +28,7 @@ public record CreateSubscriptionRequest(
 public record AddPaymentRequest(decimal Amount, string Method, bool IssueEinvoice, string? Note);
 
 public record CancelSubscriptionRequest(string Reason);
+public record ExtendSubscriptionRequest(string? Note);
 
 public record BalanceResponse(
     Guid Id, string ItemType, string ItemCode, string ItemName, string Unit,

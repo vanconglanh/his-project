@@ -439,3 +439,72 @@ public class CancelSubscriptionHandler : IRequestHandler<CancelSubscriptionComma
         catch { tx.Rollback(); throw; }
     }
 }
+
+/// <summary>H-14 (FR-1211) - Gia han goi da het han nhung con dinh muc.
+/// Chinh sach BO da chot: cho phep keo dai expiry_date them X ngay (cau hinh
+/// package_expiry_extension_days, default 0 = tat) tren CHINH subscription do,
+/// khong mua goi moi, khong cong don sang subscription khac. Chi ap dung khi
+/// status='expired' VA con it nhat 1 entitlement remaining_quantity > 0.</summary>
+public class ExtendSubscriptionHandler : IRequestHandler<ExtendSubscriptionCommand, Result<SubscriptionResponse>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+    private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
+    private readonly ISettingsProvider _settings;
+
+    public ExtendSubscriptionHandler(IDapperConnectionFactory db, ITenantProvider tenant, ICurrentUser user,
+        IAuditService audit, ISettingsProvider settings)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; _settings = settings; }
+
+    public async Task<Result<SubscriptionResponse>> Handle(ExtendSubscriptionCommand cmd, CancellationToken ct)
+    {
+        using var conn = _db.CreateConnection();
+        conn.Open();
+        var tenantId = _tenant.TenantId;
+        var subId = cmd.SubscriptionId.ToString();
+
+        var extensionDays = await _settings.GetIntAsync("package_expiry_extension_days", 0, ct);
+        if (extensionDays <= 0)
+            return Result<SubscriptionResponse>.Failure("PACKAGE_EXTENSION_DISABLED",
+                "Tính năng gia hạn gói chưa được bật (package_expiry_extension_days = 0)");
+
+        var sub = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT * FROM diab_his_pkg_subscriptions WHERE id=@subId AND tenant_id=@tenantId AND deleted_at IS NULL",
+            new { subId, tenantId });
+        if (sub == null)
+            return Result<SubscriptionResponse>.Failure("PACKAGE_SUBSCRIPTION_NOT_FOUND", "Không tìm thấy gói định mức đã mua");
+
+        var status = (string)sub.status;
+        if (status != "expired")
+            return Result<SubscriptionResponse>.Failure("PACKAGE_NOT_EXPIRED",
+                "Chỉ gia hạn được gói đang ở trạng thái hết hạn (expired)");
+
+        var remainingTotal = await conn.ExecuteScalarAsync<decimal>(
+            "SELECT COALESCE(SUM(remaining_quantity),0) FROM diab_his_pkg_entitlement_balances WHERE subscription_id=@subId AND deleted_at IS NULL",
+            new { subId });
+        if (remainingTotal <= 0)
+            return Result<SubscriptionResponse>.Failure("PACKAGE_NO_REMAINING_ENTITLEMENT",
+                "Gói không còn định mức để gia hạn");
+
+        using var tx = conn.BeginTransaction();
+        try
+        {
+            // Keo dai tu moc muon hon giua expiry_date cu va hom nay de dinh muc thuc su dung duoc
+            await conn.ExecuteAsync(
+                @"UPDATE diab_his_pkg_subscriptions
+                  SET expiry_date = DATE_ADD(GREATEST(COALESCE(expiry_date, CURDATE()), CURDATE()), INTERVAL @days DAY),
+                      status = 'active',
+                      updated_at = UTC_TIMESTAMP(), updated_by = @updatedBy
+                  WHERE id=@subId",
+                new { days = extensionDays, subId, updatedBy = _user.UserId?.ToString() }, tx);
+
+            tx.Commit();
+            await _audit.LogAsync("UPDATE", "diab_his_pkg_subscriptions", subId,
+                new { action = "extend", extension_days = extensionDays, remaining_before = remainingTotal, note = cmd.Request.Note }, ct);
+
+            return Result<SubscriptionResponse>.Success(await SubscriptionMapper.LoadAsync(conn, subId, tenantId));
+        }
+        catch { tx.Rollback(); throw; }
+    }
+}

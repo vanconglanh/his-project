@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { HisStatusBadge, type HisStatusVariant } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { usePatient, useUpdateReceptionNote, usePatientEncounters } from "@/lib/hooks/use-patients";
-import { usePatientPackageSummary } from "@/lib/hooks/use-packages";
+import { usePatientPackageSummary, useExtendPackageSubscription } from "@/lib/hooks/use-packages";
+import { getErrorMessage } from "@/lib/utils/errors";
 import { formatCurrency } from "@/lib/utils/format";
 import { PatientAvatar } from "@/components/domain/PatientAvatar";
 import { AllergyList } from "@/components/domain/AllergyList";
@@ -56,6 +58,23 @@ export default function PatientDetailPage() {
     packageSummary?.subscriptions.some((s) => s.balances.some((b) => b.is_low)) ?? false;
   const outstandingDebt = packageSummary?.total_outstanding_debt ?? 0;
   const hasOutstandingDebt = outstandingDebt > 0;
+
+  // [H-14/FR-1211] Gói đã hết hạn nhưng còn định mức -> cho phép gia hạn (nếu tenant đã bật)
+  const extendableSubs =
+    packageSummary?.subscriptions.filter(
+      (s) => s.status === "expired" && s.balances.some((b) => b.remaining_quantity > 0)
+    ) ?? [];
+  const extendMutation = useExtendPackageSubscription(id);
+  const handleExtend = (subscriptionId: string, subNo: string) => {
+    extendMutation.mutate(
+      { subscriptionId },
+      {
+        onSuccess: () => toast.success(`Đã gia hạn gói ${subNo}`),
+        onError: (e) =>
+          toast.error(getErrorMessage(e, "Không gia hạn được gói dịch vụ")),
+      }
+    );
+  };
 
   const currentNote = noteValue ?? patient?.reception_note ?? "";
 
@@ -168,6 +187,25 @@ export default function PatientDetailPage() {
               </Badge>
             )}
           </div>
+          {extendableSubs.length > 0 && (
+            <div className="flex flex-col gap-1.5 rounded-md border border-amber-200 bg-amber-50/60 p-2 dark:border-amber-900 dark:bg-amber-950/20">
+              {extendableSubs.map((s) => (
+                <div key={s.id} className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-xs text-amber-800 dark:text-amber-200">
+                    Gói <b>{s.package_name}</b> ({s.subscription_no}) đã hết hạn nhưng còn định mức
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={extendMutation.isPending}
+                    onClick={() => handleExtend(s.id, s.subscription_no)}
+                  >
+                    Gia hạn
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="text-muted-foreground text-sm">
             {patient.code}
             {patient.gender ? ` • ${GENDER_LABELS[patient.gender]}` : ""}

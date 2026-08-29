@@ -36,6 +36,7 @@ public record CreateSubscriptionCommand(CreateSubscriptionRequest Request) : IRe
 public record AddSubscriptionPaymentCommand(Guid SubscriptionId, AddPaymentRequest Request) : IRequest<Result<SubscriptionResponse>>;
 
 public record CancelSubscriptionCommand(Guid SubscriptionId, CancelSubscriptionRequest Request) : IRequest<Result<SubscriptionResponse>>;
+public record ExtendSubscriptionCommand(Guid SubscriptionId, ExtendSubscriptionRequest Request) : IRequest<Result<SubscriptionResponse>>;
 
 // ═══════════════════════════════════════════════════════════════
 // Validators
