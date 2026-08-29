@@ -303,7 +303,7 @@ public class PackageEntitlementService : IPackageEntitlementService
             @"SELECT id, subscription_no, package_name_snapshot, status, payment_status, expiry_date, amount_due
               FROM diab_his_pkg_subscriptions
               WHERE tenant_id=@tenantId AND patient_id=@patientId AND deleted_at IS NULL
-                AND status IN ('active','suspended','exhausted','pending_payment')
+                AND status IN ('active','suspended','exhausted','pending_payment','expired')
               ORDER BY expiry_date ASC",
             new { tenantId, patientId = patientId.ToString() });
 
