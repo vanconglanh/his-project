@@ -579,8 +579,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
             p.Add("doctorId", ctx.Filter("doctorId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     COALESCE(e.started_at, e.created_at)                AS date,
                     pt.code                                             AS patientCode,
@@ -606,6 +608,7 @@ public class ReportRegistry : IReportRegistry
                   AND e.deleted_at IS NULL
                   AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
                   AND (@doctorId IS NULL OR e.doctor_id = @doctorId)
+                  AND {BranchSql.Condition("e")}
                 ORDER BY date DESC
                 LIMIT 3000";
 
@@ -653,8 +656,10 @@ public class ReportRegistry : IReportRegistry
                 p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
                 p.Add("doctorId", ctx.Filter("doctorId"));
                 p.Add("modality", modality);
+                p.Add("branchId", ctx.BranchId);
+                p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-                const string sql = @"
+                var sql = $@"
                     SELECT
                         ro.ordered_at                                        AS date,
                         pt.code                                              AS patientCode,
@@ -674,6 +679,7 @@ public class ReportRegistry : IReportRegistry
                       AND ro.modality = @modality
                       AND ro.ordered_at BETWEEN @from AND @to
                       AND (@doctorId IS NULL OR ro.ordered_by = @doctorId)
+                      AND {BranchSql.Condition("ro")}
                     ORDER BY ro.ordered_at DESC
                     LIMIT 3000";
 
@@ -721,8 +727,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
             p.Add("doctorId", ctx.Filter("doctorId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     b.created_at                                  AS date,
                     pt.code                                       AS patientCode,
@@ -740,6 +748,7 @@ public class ReportRegistry : IReportRegistry
                   AND b.deleted_at IS NULL
                   AND b.created_at BETWEEN @from AND @to
                   AND (@doctorId IS NULL OR e.doctor_id = @doctorId)
+                  AND {BranchSql.Condition("b")}
                 ORDER BY b.created_at DESC
                 LIMIT 3000";
 
@@ -782,8 +791,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
             p.Add("doctorId", ctx.Filter("doctorId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     lo.ordered_at                                  AS date,
                     pt.code                                        AS patientCode,
@@ -804,6 +815,7 @@ public class ReportRegistry : IReportRegistry
                   AND lo.deleted_at IS NULL
                   AND lo.ordered_at BETWEEN @from AND @to
                   AND (@doctorId IS NULL OR lo.ordered_by = @doctorId)
+                  AND {BranchSql.Condition("lo")}
                 ORDER BY lo.ordered_at DESC
                 LIMIT 3000";
 
@@ -852,10 +864,12 @@ public class ReportRegistry : IReportRegistry
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
             p.Add("doctorId", ctx.Filter("doctorId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
             // TODO schema: pat_patients khong co cot dia chi day du (chi co province/district/ward_code + street,
             // khong co bang danh muc dia gioi hanh chinh de resolve ten) — dung tam pt.street lam Dia chi.
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     ROW_NUMBER() OVER (ORDER BY COALESCE(e.started_at, e.created_at)) AS stt,
                     COALESCE(e.started_at, e.created_at)          AS date,
@@ -878,6 +892,7 @@ public class ReportRegistry : IReportRegistry
                   AND e.deleted_at IS NULL
                   AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
                   AND (@doctorId IS NULL OR e.doctor_id = @doctorId)
+                  AND {BranchSql.Condition("e")}
                 ORDER BY date
                 LIMIT 5000";
 
@@ -922,8 +937,10 @@ public class ReportRegistry : IReportRegistry
                 p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
                 p.Add("doctorId", ctx.Filter("doctorId"));
                 p.Add("modality", modality);
+                p.Add("branchId", ctx.BranchId);
+                p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-                const string sql = @"
+                var sql = $@"
                     SELECT
                         ROW_NUMBER() OVER (ORDER BY ro.ordered_at)          AS stt,
                         ro.ordered_at                                       AS date,
@@ -942,6 +959,7 @@ public class ReportRegistry : IReportRegistry
                       AND ro.modality = @modality
                       AND ro.ordered_at BETWEEN @from AND @to
                       AND (@doctorId IS NULL OR ro.ordered_by = @doctorId)
+                      AND {BranchSql.Condition("ro")}
                     ORDER BY ro.ordered_at
                     LIMIT 5000";
 
@@ -989,8 +1007,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
             p.Add("doctorId", ctx.Filter("doctorId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     ROW_NUMBER() OVER (ORDER BY b.created_at)     AS stt,
                     b.created_at                                  AS date,
@@ -1008,6 +1028,7 @@ public class ReportRegistry : IReportRegistry
                   AND b.deleted_at IS NULL
                   AND b.created_at BETWEEN @from AND @to
                   AND (@doctorId IS NULL OR e.doctor_id = @doctorId)
+                  AND {BranchSql.Condition("b")}
                 ORDER BY b.created_at
                 LIMIT 5000";
 
@@ -1049,8 +1070,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
             p.Add("doctorId", ctx.Filter("doctorId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     ROW_NUMBER() OVER (ORDER BY lo.ordered_at)    AS stt,
                     lo.ordered_at                                  AS date,
@@ -1074,6 +1097,7 @@ public class ReportRegistry : IReportRegistry
                   AND lo.deleted_at IS NULL
                   AND lo.ordered_at BETWEEN @from AND @to
                   AND (@doctorId IS NULL OR lo.ordered_by = @doctorId)
+                  AND {BranchSql.Condition("lo")}
                 ORDER BY lo.ordered_at
                 LIMIT 5000";
 
@@ -1120,9 +1144,11 @@ public class ReportRegistry : IReportRegistry
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
             p.Add("doctorId", ctx.Filter("doctorId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
             // "So BN moi" = luot kham co encounter_type = FIRST_VISIT (truong co san tren diab_his_enc_encounters).
-            const string sql = @"
+            var sql = $@"
                 WITH enc_agg AS (
                     SELECT
                         e.id AS encounter_id, e.doctor_id, e.encounter_type,
@@ -1136,6 +1162,7 @@ public class ReportRegistry : IReportRegistry
                       AND e.deleted_at IS NULL
                       AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
                       AND (@doctorId IS NULL OR e.doctor_id = @doctorId)
+                      AND {BranchSql.Condition("e")}
                 )
                 SELECT
                     COALESCE(u.full_name, N'Chưa xác định')                          AS doctorName,
@@ -1182,8 +1209,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 WITH room_agg AS (
                     SELECT
                         COALESCE(r.name, N'Chưa xếp phòng') AS roomName,
@@ -1196,6 +1225,7 @@ public class ReportRegistry : IReportRegistry
                     WHERE e.tenant_id = @tenantId
                       AND e.deleted_at IS NULL
                       AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
+                      AND {BranchSql.Condition("e")}
                     GROUP BY r.id, r.name, e.id
                 ),
                 room_sum AS (
@@ -1254,11 +1284,13 @@ public class ReportRegistry : IReportRegistry
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
             p.Add("patientId", ctx.Filter("patientId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
             // TODO schema: chua co bang treatment_monitoring rieng (theo doi dien tien man tinh) —
             // best-effort ghep tu diab_his_enc_encounters + diab_his_enc_diagnoses + diab_his_enc_vital_signs
             // (HA/Glucose/BMI) + cli_lab_orders/cli_lab_results (HbA1c, test_code = 'HBA1C').
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     COALESCE(e.started_at, e.created_at)                          AS date,
                     COALESCE(
@@ -1287,6 +1319,7 @@ public class ReportRegistry : IReportRegistry
                   AND e.deleted_at IS NULL
                   AND (@patientId IS NULL OR e.patient_id = @patientId)
                   AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
+                  AND {BranchSql.Condition("e")}
                 ORDER BY date
                 LIMIT 2000";
 
@@ -1391,8 +1424,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     ROW_NUMBER() OVER (ORDER BY t.visitCount DESC) AS stt,
                     t.icd10Code                                    AS icd10Code,
@@ -1415,6 +1450,7 @@ public class ReportRegistry : IReportRegistry
                         WHERE e.tenant_id = @tenantId
                           AND e.deleted_at IS NULL
                           AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
+                          AND {BranchSql.Condition("e")}
                     ) diag
                     LEFT JOIN diab_his_ref_icd10 r ON r.code = diag.icd10Code
                     WHERE diag.icd10Code IS NOT NULL
@@ -1461,8 +1497,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     ROW_NUMBER() OVER (ORDER BY t.revenue DESC) AS stt,
                     t.drugCode                                  AS drugCode,
@@ -1484,6 +1522,7 @@ public class ReportRegistry : IReportRegistry
                       AND bi.item_type = 'DRUG'
                       AND b.deleted_at IS NULL
                       AND b.created_at BETWEEN @from AND @to
+                      AND {BranchSql.Condition("b")}
                     GROUP BY bi.code, bi.name
                 ) t
                 ORDER BY t.revenue DESC
@@ -1522,8 +1561,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     ROW_NUMBER() OVER (ORDER BY t.revenue DESC) AS stt,
                     t.svcCode                                   AS svcCode,
@@ -1542,6 +1583,7 @@ public class ReportRegistry : IReportRegistry
                       AND bi.item_type = 'SERVICE'
                       AND b.deleted_at IS NULL
                       AND b.created_at BETWEEN @from AND @to
+                      AND {BranchSql.Condition("b")}
                     GROUP BY bi.code, bi.name
                 ) t
                 ORDER BY t.revenue DESC
@@ -1587,8 +1629,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 WITH billing_month AS (
                     SELECT
                         b.id, b.paid_amount,
@@ -1607,6 +1651,7 @@ public class ReportRegistry : IReportRegistry
                       AND b.deleted_at IS NULL
                       AND b.status IN ('FINALIZED','PARTIAL_PAID','PAID')
                       AND b.created_at BETWEEN @from AND @to
+                      AND {BranchSql.Condition("b")}
                 )
                 SELECT
                     ym                       AS month,
@@ -1715,8 +1760,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT clsType, groupName, COUNT(*) AS orderCount
                 FROM (
                     SELECT N'Xét nghiệm' AS clsType, lo.test_name AS groupName
@@ -1724,6 +1771,7 @@ public class ReportRegistry : IReportRegistry
                     WHERE lo.tenant_id = @tenantId
                       AND lo.deleted_at IS NULL
                       AND lo.ordered_at BETWEEN @from AND @to
+                      AND {BranchSql.Condition("lo")}
                     UNION ALL
                     SELECT
                         CASE ro.modality
@@ -1738,6 +1786,7 @@ public class ReportRegistry : IReportRegistry
                     WHERE ro.tenant_id = @tenantId
                       AND ro.deleted_at IS NULL
                       AND ro.ordered_at BETWEEN @from AND @to
+                      AND {BranchSql.Condition("ro")}
                 ) x
                 GROUP BY clsType, groupName
                 ORDER BY clsType, orderCount DESC
@@ -1999,9 +2048,11 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
             // Snapshot theo lo — khong loc theo khoang ngay.
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     d.code                                          AS code,
                     COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
@@ -2020,6 +2071,7 @@ public class ReportRegistry : IReportRegistry
                 INNER JOIN diab_his_pha_drugs d ON d.id = s.drug_id AND d.tenant_id = s.tenant_id
                 WHERE s.tenant_id = @tenantId
                   AND s.quantity > 0
+                  AND {BranchSql.Condition("s")}
                 ORDER BY drugName, s.exp_date
                 LIMIT 3000";
 
@@ -2057,9 +2109,11 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
             // Snapshot — loc exp_date <= hom nay + 90 ngay (bao gom ca da het han).
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
                     s.lot_number                                    AS lotNumber,
@@ -2072,6 +2126,7 @@ public class ReportRegistry : IReportRegistry
                 WHERE s.tenant_id = @tenantId
                   AND s.quantity > 0
                   AND s.exp_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)
+                  AND {BranchSql.Condition("s")}
                 ORDER BY s.exp_date ASC
                 LIMIT 2000";
 
@@ -2111,8 +2166,12 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            // Ghi chu branch filter: st/mv la LEFT JOIN (drug co the chua co ton kho) -> dieu kien branch
+            // dat trong ON (khong phai WHERE) de khong bien LEFT JOIN thanh INNER JOIN ngoai y muon.
+            var sql = $@"
                 SELECT
                     d.code                                          AS code,
                     COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
@@ -2122,7 +2181,7 @@ public class ReportRegistry : IReportRegistry
                     COALESCE(cur.stockQty, 0)                       AS currentStock
                 FROM diab_his_pha_drugs d
                 LEFT JOIN diab_his_pha_stock st
-                    ON st.drug_id = d.id AND st.tenant_id = d.tenant_id
+                    ON st.drug_id = d.id AND st.tenant_id = d.tenant_id AND {BranchSql.Condition("st")}
                 LEFT JOIN diab_his_pha_stock_movements mv
                     ON mv.stock_id = st.id AND mv.tenant_id = d.tenant_id
                    AND mv.deleted_at IS NULL
@@ -2130,7 +2189,7 @@ public class ReportRegistry : IReportRegistry
                 LEFT JOIN (
                     SELECT drug_id, SUM(quantity) AS stockQty
                     FROM diab_his_pha_stock
-                    WHERE tenant_id = @tenantId AND quantity > 0
+                    WHERE tenant_id = @tenantId AND quantity > 0 AND {BranchSql.Condition("")}
                     GROUP BY drug_id
                 ) cur ON cur.drug_id = d.id
                 WHERE d.tenant_id = @tenantId
@@ -2234,10 +2293,12 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
             // Snapshot — chi lay thuoc gan co it nhat 1 trong 3 co: gay nghien/huong than/kiem soat.
             // Neu chua co thuoc nao gan co (data hien tai) thi tra ve rong an toan (khong loi).
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     COALESCE(NULLIF(d.name_vi, ''), d.name)             AS drugName,
                     CASE
@@ -2254,6 +2315,7 @@ public class ReportRegistry : IReportRegistry
                 WHERE d.tenant_id = @tenantId
                   AND (d.is_narcotic = 1 OR d.is_psychotropic = 1 OR d.is_controlled = 1)
                   AND s.quantity > 0
+                  AND {BranchSql.Condition("s")}
                 ORDER BY drugName, s.exp_date
                 LIMIT 2000";
 
@@ -2291,9 +2353,12 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
             // Snapshot — gop ton kho theo thuoc, loc SUM(quantity) < reorder_level (reorder_level > 0).
-            const string sql = @"
+            // s la LEFT JOIN (thuoc co the chua co lo nao) -> dieu kien branch dat trong ON.
+            var sql = $@"
                 SELECT
                     d.code                                          AS code,
                     COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
@@ -2303,7 +2368,7 @@ public class ReportRegistry : IReportRegistry
                     GREATEST(d.reorder_level - COALESCE(SUM(s.quantity), 0), 0) AS needMore
                 FROM diab_his_pha_drugs d
                 LEFT JOIN diab_his_pha_stock s
-                    ON s.drug_id = d.id AND s.tenant_id = d.tenant_id AND s.quantity > 0
+                    ON s.drug_id = d.id AND s.tenant_id = d.tenant_id AND s.quantity > 0 AND {BranchSql.Condition("s")}
                 WHERE d.tenant_id = @tenantId
                   AND d.reorder_level > 0
                   AND d.deleted_at IS NULL
@@ -2347,8 +2412,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     t.hr                                                              AS hourOrder,
                     CONCAT(LPAD(t.hr, 2, '0'), N':00')                                AS hourLabel,
@@ -2360,6 +2427,7 @@ public class ReportRegistry : IReportRegistry
                     WHERE e.tenant_id = @tenantId
                       AND e.deleted_at IS NULL
                       AND COALESCE(e.started_at, e.created_at) BETWEEN @from AND @to
+                      AND {BranchSql.Condition("e")}
                     GROUP BY hr
                 ) t
                 ORDER BY hourOrder
@@ -2402,8 +2470,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     t.status                                                       AS statusCode,
                     t.statusLabel                                                   AS statusLabel,
@@ -2425,6 +2495,7 @@ public class ReportRegistry : IReportRegistry
                     WHERE a.tenant_id = @tenantId
                       AND a.deleted_at IS NULL
                       AND a.appointment_at BETWEEN @from AND @to
+                      AND {BranchSql.Condition("a")}
                     GROUP BY a.status
                 ) t
                 ORDER BY t.cnt DESC
@@ -2464,8 +2535,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     d.code                                          AS code,
                     COALESCE(NULLIF(d.name_vi, ''), d.name)         AS drugName,
@@ -2478,6 +2551,7 @@ public class ReportRegistry : IReportRegistry
                   AND pi.deleted_at IS NULL
                   AND d.is_antibiotic = 1
                   AND pr.created_at BETWEEN @from AND @to
+                  AND {BranchSql.Condition("pr")}
                 GROUP BY d.id, d.code, d.name_vi, d.name
                 ORDER BY prescribedTimes DESC
                 LIMIT 500";
@@ -2516,8 +2590,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     lo.test_name                                                              AS testName,
                     COUNT(*)                                                                  AS sampleCount,
@@ -2530,6 +2606,7 @@ public class ReportRegistry : IReportRegistry
                   AND lo.deleted_at IS NULL
                   AND COALESCE(lr.performed_at, lr.verified_at) IS NOT NULL
                   AND lo.ordered_at BETWEEN @from AND @to
+                  AND {BranchSql.Condition("lo")}
                 GROUP BY lo.test_name
                 ORDER BY avgTatHours DESC
                 LIMIT 500";
@@ -2571,8 +2648,10 @@ public class ReportRegistry : IReportRegistry
             p.Add("tenantId", ctx.TenantId);
             p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
             p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
 
-            const string sql = @"
+            var sql = $@"
                 SELECT
                     st.stocktake_date                                       AS stocktakeDate,
                     st.code                                                 AS stocktakeCode,
@@ -2591,6 +2670,7 @@ public class ReportRegistry : IReportRegistry
                 WHERE it.tenant_id = @tenantId
                   AND it.deleted_at IS NULL
                   AND st.stocktake_date BETWEEN @from AND @to
+                  AND {BranchSql.Condition("st")}
                 ORDER BY st.stocktake_date DESC, drugName, lotNumber
                 LIMIT 3000";
 
