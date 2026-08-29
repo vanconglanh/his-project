@@ -8,6 +8,9 @@ public class LabResult : BaseEntity, ITenantScoped, IBranchScoped
     public int TenantId { get; set; }
     public int? BranchId { get; set; }
     public string LabOrderId { get; set; } = string.Empty;
+    /// <summary>Cot legacy order_id (NOT NULL) trong diab_his_lab_results, dung boi cac report join.
+    /// Luon set = LabOrderId (id chi dinh XN) de dam bao NOT NULL va nhat quan voi du lieu cu.</summary>
+    public string OrderId { get; set; } = string.Empty;
     public string? LabOrderItemId { get; set; }
     public string PatientId { get; set; } = string.Empty;
     public string EncounterId { get; set; } = string.Empty;

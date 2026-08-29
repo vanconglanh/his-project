@@ -14,6 +14,7 @@ public class LabResultConfiguration : IEntityTypeConfiguration<LabResult>
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
         builder.Property(e => e.BranchId).HasColumnName("branch_id");
         builder.Property(e => e.LabOrderId).HasColumnName("lab_order_id").HasMaxLength(36).IsRequired();
+        builder.Property(e => e.OrderId).HasColumnName("order_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.LabOrderItemId).HasColumnName("lab_order_item_id").HasMaxLength(36);
         builder.Property(e => e.PatientId).HasColumnName("patient_id").HasMaxLength(36).IsRequired();
         builder.Property(e => e.EncounterId).HasColumnName("encounter_id").HasMaxLength(36).IsRequired();
@@ -151,7 +152,13 @@ public class LabOrderConfiguration : IEntityTypeConfiguration<LabOrder>
 {
     public void Configure(EntityTypeBuilder<LabOrder> builder)
     {
-        builder.ToTable("diab_his_lab_orders");
+        // FIX: entity LabOrder truoc day map nham sang bang CHET "diab_his_lab_orders"
+        // (khong ai insert vao), trong khi chi dinh XN that duoc tao vao "diab_his_cli_lab_orders"
+        // (ClsHandlers.CreateLabOrdersCommandHandler). Hau qua: khi nhap ket qua XN,
+        // CreateLabResultCommandHandler lookup _db.LabOrders (bang chet) -> luon "Khong tim thay chi dinh XN".
+        // Remap ve dung bang live. Cot deleted_by duoc bo sung vao bang live qua migration
+        // 0043_cli_lab_orders_add_deleted_by.sql de dong bo audit columns voi BaseEntity.
+        builder.ToTable("diab_his_cli_lab_orders");
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();

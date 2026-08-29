@@ -71,6 +71,20 @@ export interface LabResultListResponse {
   meta: ApiMeta;
 }
 
+export interface PendingLabOrderItem {
+  lab_order_item_id: string;
+  encounter_id: string;
+  patient_id: string | null;
+  patient_name: string | null;
+  patient_code: string | null;
+  test_code: string;
+  test_name: string;
+  status: string;
+  ordered_at: string;
+  sample_type: string | null;
+  priority: string | null;
+}
+
 export interface LabTrendPoint {
   performed_at: string;
   value_numeric: number;
@@ -104,6 +118,16 @@ export interface BatchVerifyResult {
 export async function listLabResults(params?: LabResultListParams): Promise<LabResultListResponse> {
   const res = await apiClient.get<LabResultListResponse>("/lab-results", { params });
   return res.data;
+}
+
+export async function listPendingLabOrderItems(params?: {
+  q?: string;
+  limit?: number;
+}): Promise<PendingLabOrderItem[]> {
+  const res = await apiClient.get<ApiResponse<PendingLabOrderItem[]>>("/lab-results/pending-items", {
+    params,
+  });
+  return res.data.data;
 }
 
 export async function createLabResult(body: LabResultCreateRequest): Promise<LabResultResponse> {

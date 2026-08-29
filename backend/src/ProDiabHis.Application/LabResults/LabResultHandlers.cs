@@ -185,6 +185,7 @@ public class CreateLabResultCommandHandler
         {
             TenantId      = _tenant.TenantId,
             LabOrderId    = labOrder.Id.ToString(),
+            OrderId       = labOrder.Id.ToString(),
             LabOrderItemId = req.LabOrderItemId.ToString(),
             PatientId     = patientId,
             EncounterId   = encounterId,
@@ -406,6 +407,7 @@ public class ImportLabResultsCommandHandler
                 {
                     TenantId     = _tenant.TenantId,
                     LabOrderId   = order.Id.ToString(),
+                    OrderId      = order.Id.ToString(),
                     LabOrderItemId = orderId,
                     PatientId    = encounter?.PatientId ?? string.Empty,
                     EncounterId  = order.EncounterId,

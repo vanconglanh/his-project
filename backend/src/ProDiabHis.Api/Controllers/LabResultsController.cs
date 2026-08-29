@@ -41,6 +41,21 @@ public class LabResultsController : ControllerBase
         return Ok(new { data = items, meta = new { page, page_size, total } });
     }
 
+    // GET /api/v1/lab-results/pending-items
+    // Danh sach chi dinh XN dang cho ket qua (chua co ket qua), de chon khi nhap ket qua moi.
+    [HttpGet("api/v1/lab-results/pending-items")]
+    [RequirePermission("lab_result.write")]
+    public async Task<IActionResult> PendingItems(
+        [FromQuery] string? q,
+        [FromQuery] int limit = 50,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ListPendingLabOrderItemsQuery(q, limit), ct);
+        if (!result.IsSuccess)
+            return BadRequest(Error(result.ErrorCode!, result.ErrorMessage!));
+        return Ok(new { data = result.Value });
+    }
+
     // POST /api/v1/lab-results
     [HttpPost("api/v1/lab-results")]
     [RequirePermission("lab_result.write")]
