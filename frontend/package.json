@@ -32,6 +32,7 @@
     "@tiptap/extension-table-cell": "^3.23.6",
     "@tiptap/extension-table-header": "^3.23.6",
     "@tiptap/extension-table-row": "^3.23.6",
+    "fabric": "^6.9.1",
     "@tiptap/react": "^3.23.6",
     "@tiptap/starter-kit": "^3.23.6",
     "axios": "^1.16.1",

@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { HisStatusBadge, type HisStatusVariant } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 import { usePatient, useUpdateReceptionNote, usePatientEncounters } from "@/lib/hooks/use-patients";
+import { usePatientPackageSummary } from "@/lib/hooks/use-packages";
+import { formatCurrency } from "@/lib/utils/format";
 import { PatientAvatar } from "@/components/domain/PatientAvatar";
 import { AllergyList } from "@/components/domain/AllergyList";
 import { BhytForm } from "@/components/domain/BhytForm";
@@ -46,6 +48,14 @@ export default function PatientDetailPage() {
 
   const { data: patient, isLoading, error } = usePatient(id);
   const updateNoteMutation = useUpdateReceptionNote(id);
+  const { data: packageSummary } = usePatientPackageSummary(id);
+
+  // [FR-1206] Cảnh báo gói dịch vụ: sắp hết hạn / định mức sắp hết / công nợ tồn đọng
+  const hasExpiringSoon = packageSummary?.has_expiring_soon ?? false;
+  const hasLowEntitlement =
+    packageSummary?.subscriptions.some((s) => s.balances.some((b) => b.is_low)) ?? false;
+  const outstandingDebt = packageSummary?.total_outstanding_debt ?? 0;
+  const hasOutstandingDebt = outstandingDebt > 0;
 
   const currentNote = noteValue ?? patient?.reception_note ?? "";
 
@@ -136,6 +146,27 @@ export default function PatientDetailPage() {
               </Badge>
             )}
             <Badge variant="outline">{patient.status === "ACTIVE" ? "Hoạt động" : patient.status}</Badge>
+            {hasExpiringSoon && (
+              <Badge
+                variant="outline"
+                className="border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+              >
+                Gói sắp hết hạn
+              </Badge>
+            )}
+            {hasLowEntitlement && (
+              <Badge
+                variant="outline"
+                className="border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+              >
+                Định mức sắp hết
+              </Badge>
+            )}
+            {hasOutstandingDebt && (
+              <Badge variant="destructive">
+                Công nợ tồn đọng: {formatCurrency(outstandingDebt)}
+              </Badge>
+            )}
           </div>
           <p className="text-muted-foreground text-sm">
             {patient.code}

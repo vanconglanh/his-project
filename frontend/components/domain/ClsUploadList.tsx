@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Trash2, FileText, Image, ExternalLink, X } from "lucide-react";
+import { Upload, Trash2, FileText, Image, ExternalLink, X, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
+import { ImageAnnotationDialog } from "@/components/domain/ImageAnnotationDialog";
 import { useClsUploads, useUploadCls, useDeleteClsUpload } from "@/lib/hooks/use-cls-uploads";
 import { formatDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
+import type { ClsUploadResponse } from "@/lib/api/types";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -41,9 +43,10 @@ const CLS_DOC_CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
 
 interface ClsUploadListProps {
   patientId: string;
+  encounterId?: string;
 }
 
-export function ClsUploadList({ patientId }: ClsUploadListProps) {
+export function ClsUploadList({ patientId, encounterId }: ClsUploadListProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [category, setCategory] = useState("");
@@ -51,6 +54,7 @@ export function ClsUploadList({ patientId }: ClsUploadListProps) {
   const [note, setNote] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [annotatingItem, setAnnotatingItem] = useState<ClsUploadResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useClsUploads(patientId);
@@ -82,6 +86,19 @@ export function ClsUploadList({ patientId }: ClsUploadListProps) {
     setCategory("");
     setDocName("");
     setNote("");
+  };
+
+  const handleSaveAnnotation = async (blob: Blob) => {
+    if (!annotatingItem) return;
+    const baseName = annotatingItem.file_name.replace(/\.[^.]+$/, "");
+    const annotatedFile = new File([blob], `${baseName}-chu-thich.png`, { type: "image/png" });
+    await uploadMutation.mutateAsync({
+      file: annotatedFile,
+      docType: `Ảnh có chú thích: ${annotatingItem.doc_type}`,
+      encounterId,
+      note: `Chú thích trên ảnh gốc "${annotatingItem.file_name}"`,
+    });
+    setAnnotatingItem(null);
   };
 
   const isImage = (mime: string) => mime.startsWith("image/");
@@ -230,6 +247,16 @@ export function ClsUploadList({ patientId }: ClsUploadListProps) {
               </div>
               {/* Actions overlay */}
               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {isImage(item.mime_type) && item.signed_url && (
+                  <button
+                    className="bg-background/80 rounded p-1 hover:bg-background"
+                    onClick={() => setAnnotatingItem(item)}
+                    aria-label={`Chú thích ảnh ${item.file_name}`}
+                    title="Chú thích ảnh"
+                  >
+                    <PenLine className="h-3 w-3" />
+                  </button>
+                )}
                 {item.signed_url && (
                   <a
                     href={item.signed_url}
@@ -279,6 +306,17 @@ export function ClsUploadList({ patientId }: ClsUploadListProps) {
             onClick={(e) => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {annotatingItem?.signed_url && (
+        <ImageAnnotationDialog
+          open={!!annotatingItem}
+          onOpenChange={(open) => { if (!open) setAnnotatingItem(null); }}
+          imageUrl={annotatingItem.signed_url}
+          fileName={annotatingItem.file_name}
+          isSaving={uploadMutation.isPending}
+          onSave={handleSaveAnnotation}
+        />
       )}
 
       <ConfirmDialog

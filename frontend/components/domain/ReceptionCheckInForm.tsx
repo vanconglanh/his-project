@@ -18,8 +18,12 @@ import {
 } from "@/components/ui/select";
 import { useCheckIn, useRooms } from "@/lib/hooks/use-reception";
 import { usePatient, usePatientSearch } from "@/lib/hooks/use-patients";
+import { usePatientPackageSummary } from "@/lib/hooks/use-packages";
 import type { PatientResponse, TicketPriority } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/utils/format";
+import { PackageCheck } from "lucide-react";
 
 const checkInSchema = z.object({
   patient_id: z.string().min(1, "Chọn bệnh nhân"),
@@ -51,6 +55,9 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
   const { data: rooms } = useRooms();
   const checkInMutation = useCheckIn();
   const { data: preselectedPatient } = usePatient(preselectPatientId ?? "");
+  const { data: packageSummary, isLoading: isPackageLoading } = usePatientPackageSummary(
+    selectedPatient?.id
+  );
 
   const { data: searchResults, isFetching: isSearching } = usePatientSearch(
     { q: debouncedQ, page_size: 8 },
@@ -212,6 +219,40 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
             <span className="text-muted-foreground ml-2 text-xs">
               {selectedPatient.code} • {selectedPatient.phone}
             </span>
+          </div>
+        )}
+
+        {/* [FR-1205] Tóm tắt gói dịch vụ bệnh nhân đang có, hiển thị real-time định mức còn lại */}
+        {selectedPatient && !isPackageLoading && (
+          <div className="space-y-1.5">
+            {packageSummary && packageSummary.subscriptions.length > 0 ? (
+              packageSummary.subscriptions.map((sub) => (
+                <div
+                  key={sub.id}
+                  className="flex items-start gap-2 rounded-md border px-3 py-2 text-xs"
+                >
+                  <PackageCheck className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+                  <div className="space-y-1">
+                    <p className="font-medium">
+                      Gói: {sub.package_name} — HSD {formatDate(sub.expiry_date)}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {sub.balances.map((b) => (
+                        <Badge
+                          key={b.item_code}
+                          variant={b.is_low ? "destructive" : "secondary"}
+                          className="font-normal"
+                        >
+                          {b.item_name}: {b.display}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground">Không có gói dịch vụ</p>
+            )}
           </div>
         )}
       </div>

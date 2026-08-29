@@ -149,7 +149,7 @@ export function EncounterTabs({
         </TabsContent>
 
         <TabsContent value="files">
-          <FileTabPanel patientId={encounter.patient_id} />
+          <FileTabPanel patientId={encounter.patient_id} encounterId={encounter.id} />
         </TabsContent>
       </div>
     </Tabs>
