@@ -15,6 +15,12 @@ SET NAMES utf8mb4;
 -- Hash duoc sinh 1 lan, dan lai y nguyen o day de idempotent giua cac moi truong.
 SET @pwd_hash = '$2b$12$pgNFQMZv44ickqoeAFzvtOMxU0jhVuTcrXxsUQd9aqXesvGYH/DKC';
 
+-- Dong bo lai mat khau tai khoan admin da tao truoc do (qc.admin@prodiab.test tung
+-- dung rieng 'Admin@123') ve chung 'Test@123' - panel "Dang nhap nhanh" gui 1 mat
+-- khau duy nhat cho ca 6 nut role, khong tach rieng ngoai le cho admin.
+UPDATE diab_his_sec_users SET password_hash = @pwd_hash
+WHERE email = 'qc.admin@prodiab.test';
+
 INSERT IGNORE INTO diab_his_sec_users (id, tenant_id, email, password_hash, full_name, user_status, is_active)
 VALUES
     ('e210a28b-062d-4d90-98f9-693936cbcc5d', 1, 'bacsi.test@prodiab.test',  @pwd_hash, N'BS. Test Demo',  'ACTIVE', 1),
