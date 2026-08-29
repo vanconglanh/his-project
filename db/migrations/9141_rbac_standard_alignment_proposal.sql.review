@@ -1,0 +1,201 @@
+-- =============================================================================
+-- 9141_rbac_standard_alignment_proposal.sql.review
+--
+-- !!! ĐÂY LÀ ĐỀ XUẤT — CHƯA ÁP DỤNG !!!
+-- Đuôi file .review để migrator KHÔNG tự động chạy.
+-- Chỉ đổi tên thành 9141_rbac_standard_alignment.sql khi leader đã duyệt.
+--
+-- Căn cứ: docs/prd/rbac-doi-chieu-chuan-20260829.md
+-- Mục tiêu: khắc phục các điểm lệch nguyên tắc segregation of duties (SoD)
+--           và least privilege phát hiện khi đối chiếu migration 9139 với
+--           TT 13/2025/TT-BYT, Luật KCB 2023 Đ.69, Luật BVDLCN 2025 (NĐ 356/2025).
+--
+-- CẤU TRÚC: 3 phần, ĐỘC LẬP nhau, có thể áp từng phần.
+--   PHẦN A — chỉ THÊM quyền, rủi ro regression = 0  → khuyến nghị áp ngay
+--   PHẦN B — THU HỒI quyền, cần xác nhận nghiệp vụ  → mặc định bị comment
+--   PHẦN C — mã quyền mới cho tính năng chưa có code → mặc định bị comment
+--
+-- Idempotent: dùng INSERT IGNORE / DELETE theo code. Chạy lại nhiều lần an toàn.
+-- =============================================================================
+
+SET @admin  = '00000000-0000-0000-0000-000000000001';
+SET @bacsi  = '00000000-0000-0000-0000-000000000002';
+SET @letan  = '00000000-0000-0000-0000-000000000003';
+SET @duocsi = '00000000-0000-0000-0000-000000000004';
+SET @ketoan = '00000000-0000-0000-0000-000000000005';
+SET @ktv    = '00000000-0000-0000-0000-000000000006';
+
+
+-- =============================================================================
+-- PHẦN A — CHỈ THÊM QUYỀN (an toàn, khuyến nghị áp dụng ngay)
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- A1. [P1-02] Kế toán phải nhìn thấy và chốt được vòng CLS.
+--     Hiện tại ke_toan KHÔNG có bất kỳ mã cls_round.* nào => không thể thu tiền
+--     CLS đúng quy trình, buộc bác sĩ phải tự bấm PAID (vi phạm SoD).
+--     Cấp quyền này là ĐIỀU KIỆN TIÊN QUYẾT để sau đó thu hồi được của bác sĩ (B1).
+-- ---------------------------------------------------------------------------
+INSERT IGNORE INTO diab_his_sec_role_permissions (role_id, permission_id)
+SELECT @ketoan, id FROM diab_his_sec_permissions WHERE code IN (
+  'cls_round.read',
+  'cls_round.pay',
+  'cls_round.waive'
+);
+
+-- ---------------------------------------------------------------------------
+-- A2. [P1-03] Bác sĩ phải duyệt được kết quả CLS.
+--     Hiện tại chỉ ky_thuat_vien có *.verify => KTV tự nhập rồi tự duyệt kết quả
+--     của chính mình (LabResultHandlers.cs không so sánh VerifiedBy vs PerformedBy).
+--     Cấp verify cho bác sĩ để luôn tồn tại "mắt thứ hai" có chuyên môn.
+-- ---------------------------------------------------------------------------
+INSERT IGNORE INTO diab_his_sec_role_permissions (role_id, permission_id)
+SELECT @bacsi, id FROM diab_his_sec_permissions WHERE code IN (
+  'lab_result.verify',
+  'rad_result.verify'
+);
+
+-- ---------------------------------------------------------------------------
+-- A3. [P3-09] Nếu nghiệp vụ cho phép lễ tân thu tiền gói dịch vụ
+--     (le_tan đang có package_subscription.collect + billing.create) thì tiền
+--     phải nằm trong một ca quỹ, nếu không sẽ không đối soát được cuối ngày.
+--     >>> BỎ COMMENT nếu chủ phòng khám xác nhận lễ tân ĐƯỢC thu tiền.
+--     >>> Nếu KHÔNG, xem mục B4 để thu hồi quyền thu tiền của lễ tân.
+-- ---------------------------------------------------------------------------
+-- INSERT IGNORE INTO diab_his_sec_role_permissions (role_id, permission_id)
+-- SELECT @letan, id FROM diab_his_sec_permissions WHERE code IN (
+--   'cashier.shift_open',
+--   'cashier.shift_close',
+--   'cashier.print_receipt'
+-- );
+
+
+-- =============================================================================
+-- PHẦN B — THU HỒI QUYỀN
+-- CẢNH BÁO: mỗi lệnh dưới đây có thể gây 403 trên màn hình đang hoạt động.
+-- MẶC ĐỊNH TOÀN BỘ BỊ COMMENT. Chỉ bỏ comment sau khi:
+--   (1) đã hỏi chủ phòng khám về quy trình thực tế,
+--   (2) đã chạy PHẦN A và QC xác nhận luồng thay thế hoạt động.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- B1. [P1-02] Thu hồi quyền chốt thanh toán / miễn phí CLS khỏi BÁC SĨ.
+--     Bác sĩ giữ nguyên cls_round.create / submit / read.
+--     ĐIỀU KIỆN: A1 đã chạy và kế toán đã quen luồng thu tiền CLS.
+--     CÂU HỎI CHO USER: bác sĩ có thu tiền CLS trực tiếp của bệnh nhân không?
+--       - Nếu CÓ  -> chỉ chạy phần WAIVE (miễn phí phải do quản lý quyết định).
+--       - Nếu KHÔNG -> chạy cả PAY và WAIVE.
+-- ---------------------------------------------------------------------------
+-- DELETE rp FROM diab_his_sec_role_permissions rp
+--   JOIN diab_his_sec_permissions p ON p.id = rp.permission_id
+--  WHERE rp.role_id = @bacsi AND p.code IN ('cls_round.pay', 'cls_round.waive');
+
+-- Biến thể tối thiểu — chỉ thu hồi quyền MIỄN PHÍ, giữ quyền thu tiền tại chỗ:
+-- DELETE rp FROM diab_his_sec_role_permissions rp
+--   JOIN diab_his_sec_permissions p ON p.id = rp.permission_id
+--  WHERE rp.role_id = @bacsi AND p.code = 'cls_round.waive';
+
+-- ---------------------------------------------------------------------------
+-- B2. [P2-05] Thu hồi stock.adjust khỏi DƯỢC SĨ (SoD kho dược).
+--     Dược sĩ hiện vừa nhập hàng (drug.import), vừa quản lý NCC (supplier.write),
+--     vừa tự điều chỉnh tồn (stock.adjust) => thất thoát có thể tự che.
+--     CÂU HỎI CHO USER: phòng khám có người kiểm kê kho độc lập với dược sĩ không?
+--       - Nếu KHÔNG (chỉ 1 dược sĩ) -> ĐỪNG chạy lệnh này; thay vào đó yêu cầu
+--         backend bắt buộc field `reason` + audit Severity=WARN cho mọi lần adjust.
+-- ---------------------------------------------------------------------------
+-- DELETE rp FROM diab_his_sec_role_permissions rp
+--   JOIN diab_his_sec_permissions p ON p.id = rp.permission_id
+--  WHERE rp.role_id = @duocsi AND p.code = 'stock.adjust';
+
+-- ---------------------------------------------------------------------------
+-- B3. [P1-04] Thu hồi report.build khỏi DƯỢC SĨ.
+--     report.build dùng chung GenericReportDataService — engine này tự động
+--     GIẢI MÃ mọi cột PII (*_enc) trong kết quả, và registry có dataset chứa
+--     địa chỉ bệnh nhân + chẩn đoán ICD-10. Dược sĩ không cần need-to-know này.
+--     Dược sĩ vẫn giữ report.read (báo cáo kho dựng sẵn).
+--     LƯU Ý: đây chỉ là giảm thiểu tạm; fix gốc là sửa report engine (backlog).
+-- ---------------------------------------------------------------------------
+-- DELETE rp FROM diab_his_sec_role_permissions rp
+--   JOIN diab_his_sec_permissions p ON p.id = rp.permission_id
+--  WHERE rp.role_id = @duocsi AND p.code = 'report.build';
+
+-- ---------------------------------------------------------------------------
+-- B4. [P3-09] Thu hồi quyền thu tiền gói của LỄ TÂN (loại trừ với A3).
+--     Chỉ chạy nếu chủ phòng khám xác nhận CHỈ kế toán được thu tiền.
+-- ---------------------------------------------------------------------------
+-- DELETE rp FROM diab_his_sec_role_permissions rp
+--   JOIN diab_his_sec_permissions p ON p.id = rp.permission_id
+--  WHERE rp.role_id = @letan AND p.code IN ('package_subscription.sell',
+--                                           'package_subscription.collect');
+
+-- ---------------------------------------------------------------------------
+-- B5. [P2-07] Thu hồi user.read khỏi LỄ TÂN và BÁC SĨ.
+--     !!! KHÔNG CHẠY TRƯỚC KHI backend có endpoint thay thế
+--         GET /api/v1/doctors/lookup (bảo vệ bằng appointment.read).
+--     Chạy sớm sẽ làm HỎNG chức năng chọn bác sĩ khi đặt lịch / tạo lượt khám.
+-- ---------------------------------------------------------------------------
+-- DELETE rp FROM diab_his_sec_role_permissions rp
+--   JOIN diab_his_sec_permissions p ON p.id = rp.permission_id
+--  WHERE rp.role_id IN (@letan, @bacsi) AND p.code = 'user.read';
+
+
+-- =============================================================================
+-- PHẦN C — MÃ QUYỀN MỚI (cần backend implement trước, KHÔNG chạy độc lập)
+-- Các mã dưới đây hiện KHÔNG có controller nào enforce. Thêm vào DB trước khi
+-- có code sẽ tạo ra đúng loại "mã chết" mà migration 9139 vừa dọn sạch.
+-- Chỉ chạy ĐỒNG THỜI với PR backend tương ứng.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- C1. [P2-06] Tách quyền sửa dữ liệu LÂM SÀNG của bệnh nhân (dị ứng, tiền sử)
+--     khỏi patient.write (hành chính). Hiện PatientsController dùng chung
+--     patient.write cho cả 14 endpoint => lễ tân sửa được danh sách dị ứng.
+--     Backend cần đổi [RequirePermission("patient.write")] -> "patient.clinical.write"
+--     tại các endpoint dị ứng/tiền sử trước khi chạy phần này.
+-- ---------------------------------------------------------------------------
+-- INSERT IGNORE INTO diab_his_sec_permissions (id, code, name, description, module)
+-- VALUES (UUID(), 'patient.clinical.write',
+--         'Sửa dữ liệu lâm sàng bệnh nhân',
+--         'Cập nhật dị ứng, tiền sử bệnh — chỉ dành cho người hành nghề',
+--         'Patient');
+--
+-- INSERT IGNORE INTO diab_his_sec_role_permissions (role_id, permission_id)
+-- SELECT r.rid, p.id FROM diab_his_sec_permissions p
+--   JOIN (SELECT @bacsi AS rid UNION ALL SELECT @ktv) r
+--  WHERE p.code = 'patient.clinical.write';
+
+-- ---------------------------------------------------------------------------
+-- C2. [P1-04] Quyền xem PII dạng plaintext trong báo cáo.
+--     Backend cần sửa GenericReportDataService: mặc định MASK, chỉ giải mã
+--     đầy đủ khi descriptor khai báo AllowPiiPlaintext=true VÀ user có mã này.
+--     Chỉ cấp cho admin (admin bypass sẵn, nên không cần dòng INSERT mapping).
+-- ---------------------------------------------------------------------------
+-- INSERT IGNORE INTO diab_his_sec_permissions (id, code, name, description, module)
+-- VALUES (UUID(), 'report.pii_plaintext',
+--         'Xem PII đầy đủ trong báo cáo',
+--         'Cho phép báo cáo hiển thị CCCD/số BHYT/địa chỉ dạng plaintext',
+--         'Report');
+
+-- ---------------------------------------------------------------------------
+-- C3. [P0-01] Quyền xem PII đầy đủ của bệnh nhân (nếu sau này cần chức năng
+--     "hiện số CCCD" khi đối chiếu giấy tờ). Hiện KHÔNG role nào xem được —
+--     đang ĐẠT chuẩn, chỉ thêm mã này nếu nghiệp vụ thực sự yêu cầu.
+--     Bắt buộc đi kèm audit VIEW (P0-01).
+-- ---------------------------------------------------------------------------
+-- INSERT IGNORE INTO diab_his_sec_permissions (id, code, name, description, module)
+-- VALUES (UUID(), 'patient.pii.reveal',
+--         'Xem PII đầy đủ của bệnh nhân',
+--         'Bỏ mask CCCD/số BHYT — mọi lần sử dụng đều bị ghi audit',
+--         'Patient');
+
+
+-- =============================================================================
+-- GHI CHÚ: các điểm KHÔNG sửa được bằng SQL (thuộc backlog code, xem PRD)
+--   P0-01  Bổ sung AuditAction.View + ghi audit khi ĐỌC hồ sơ bệnh nhân/EMR/
+--          kết quả CLS/đơn thuốc. YÊU CẦU TUÂN THỦ, ưu tiên cao nhất.
+--   P1-03  Chặn self-verify (VerifiedBy == PerformedBy) trong
+--          VerifyLabResultCommandHandler; bỏ hoặc siết cờ AutoVerify khi import.
+--   P1-04  Sửa GenericReportDataService: mask PII mặc định thay vì Unprotect.
+--   P2-08  Giới hạn IgnoreBranchFilter (branch.cross_view) chỉ áp cho dataset
+--          tài chính, không áp cho Patients/Encounters.
+-- =============================================================================
