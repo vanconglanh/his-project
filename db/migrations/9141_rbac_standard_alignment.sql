@@ -1,9 +1,10 @@
 -- =============================================================================
--- 9141_rbac_standard_alignment_proposal.sql.review
+-- 9141_rbac_standard_alignment.sql
 --
--- !!! ĐÂY LÀ ĐỀ XUẤT — CHƯA ÁP DỤNG !!!
--- Đuôi file .review để migrator KHÔNG tự động chạy.
--- Chỉ đổi tên thành 9141_rbac_standard_alignment.sql khi leader đã duyệt.
+-- ĐÃ ÁP DỤNG (2026-08-29) — CHỈ PHẦN A (chỉ thêm quyền, rủi ro regression = 0).
+-- PHẦN B (thu hồi quyền) và PHẦN C (mã quyền mới cần code) vẫn giữ nguyên dạng
+-- COMMENT trong file này — không tự chạy. Đổi tên file gốc từ đuôi .review sau
+-- khi verify JWT (kích thước, danh sách quyền) qua API thật.
 --
 -- Căn cứ: docs/prd/rbac-doi-chieu-chuan-20260829.md
 -- Mục tiêu: khắc phục các điểm lệch nguyên tắc segregation of duties (SoD)
