@@ -26,6 +26,10 @@ const schema = z.object({
   note: z.string().optional(),
 });
 
+// Ô số bỏ trống -> undefined (KHÔNG để valueAsNumber sinh NaN làm z.number() fail,
+// chặn submit khi bác sĩ/điều dưỡng chỉ nhập vài chỉ số). Dùng thay numReg.
+const numReg = { setValueAs: (v: unknown) => (v === "" || v === null || v === undefined ? undefined : Number(v)) };
+
 type FormValues = z.infer<typeof schema>;
 
 interface Props {
@@ -91,42 +95,42 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
             type="number"
             step="0.1"
             placeholder="36.5"
-            {...register("temperature_c", { valueAsNumber: true })}
+            {...register("temperature_c", numReg)}
           />
         </Field>
         <Field label="Mạch (lần/phút)" error={errors.heart_rate_bpm?.message}>
           <Input
             type="number"
             placeholder="80"
-            {...register("heart_rate_bpm", { valueAsNumber: true })}
+            {...register("heart_rate_bpm", numReg)}
           />
         </Field>
         <Field label="HA tâm thu (mmHg)" error={errors.bp_systolic?.message}>
           <Input
             type="number"
             placeholder="120"
-            {...register("bp_systolic", { valueAsNumber: true })}
+            {...register("bp_systolic", numReg)}
           />
         </Field>
         <Field label="HA tâm trương (mmHg)" error={errors.bp_diastolic?.message}>
           <Input
             type="number"
             placeholder="80"
-            {...register("bp_diastolic", { valueAsNumber: true })}
+            {...register("bp_diastolic", numReg)}
           />
         </Field>
         <Field label="SpO2 (%)" error={errors.spo2_percent?.message}>
           <Input
             type="number"
             placeholder="98"
-            {...register("spo2_percent", { valueAsNumber: true })}
+            {...register("spo2_percent", numReg)}
           />
         </Field>
         <Field label="Nhịp thở (lần/phút)" error={errors.respiratory_rate?.message}>
           <Input
             type="number"
             placeholder="16"
-            {...register("respiratory_rate", { valueAsNumber: true })}
+            {...register("respiratory_rate", numReg)}
           />
         </Field>
         <Field label="Cân nặng (kg)" error={errors.weight_kg?.message}>
@@ -134,7 +138,7 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
             type="number"
             step="0.1"
             placeholder="60"
-            {...register("weight_kg", { valueAsNumber: true })}
+            {...register("weight_kg", numReg)}
           />
         </Field>
         <Field label="Chiều cao (cm)" error={errors.height_cm?.message}>
@@ -142,7 +146,7 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
             type="number"
             step="0.1"
             placeholder="165"
-            {...register("height_cm", { valueAsNumber: true })}
+            {...register("height_cm", numReg)}
           />
         </Field>
         <Field label="Đau (0-10)" error={errors.pain_scale?.message}>
@@ -151,7 +155,7 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
             min={0}
             max={10}
             placeholder="0"
-            {...register("pain_scale", { valueAsNumber: true })}
+            {...register("pain_scale", numReg)}
           />
         </Field>
         <Field label="Đường huyết (mg/dL)" error={errors.glucose_mg_dl?.message}>
@@ -159,7 +163,7 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
             type="number"
             step="0.1"
             placeholder="100"
-            {...register("glucose_mg_dl", { valueAsNumber: true })}
+            {...register("glucose_mg_dl", numReg)}
           />
         </Field>
       </div>
