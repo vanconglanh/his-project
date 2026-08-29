@@ -22,7 +22,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # NEXT_PUBLIC_* duoc bake luc build → tro ve URL cong khai (nginx route /api)
 ARG NEXT_PUBLIC_API_BASE_URL
+# Panel dang nhap nhanh theo role - CHI bat khi build local/dev tuong minh truyen
+# --build-arg NEXT_PUBLIC_TEST_LOGIN_PANEL=true. Mac dinh KHONG bat (production/
+# staging build binh thuong khong truyen arg nay → panel khong bao gio xuat hien).
+ARG NEXT_PUBLIC_TEST_LOGIN_PANEL=""
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
+    NEXT_PUBLIC_TEST_LOGIN_PANEL=$NEXT_PUBLIC_TEST_LOGIN_PANEL \
     NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

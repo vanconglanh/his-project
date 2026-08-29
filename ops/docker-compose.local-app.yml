@@ -41,6 +41,9 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: http://localhost:5000
+        # Panel dang nhap nhanh theo role o man login - CHI bat cho local test,
+        # KHONG duoc bat o docker-compose.deploy.yml/prod.yml.
+        NEXT_PUBLIC_TEST_LOGIN_PANEL: "true"
     container_name: prodiab-frontend
     restart: unless-stopped
     ports:
