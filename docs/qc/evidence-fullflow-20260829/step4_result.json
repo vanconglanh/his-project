@@ -1,0 +1,114 @@
+{
+ "vitalsAllFilled": {
+  "numInputs": 10,
+  "toast": [
+   "Đã lưu sinh hiệu"
+  ],
+  "dialogStillOpen": false,
+  "postCalls": [
+   {
+    "status": 201,
+    "method": "POST",
+    "url": "/api/v1/encounters/aacfe286-5ea2-4030-af8b-70cf8ac439b5/vital-signs"
+   }
+  ]
+ },
+ "labResults": {
+  "pageText": "Kết quả cận lâm sàng\n\nDanh sách kết quả xét nghiệm + chẩn đoán hình ảnh\n\nTất cả trạng thái\nTất cả\n+ Nhập kết quả\nBệnh nhân\tChỉ số\tGiá trị\tĐơn vị\tKTTC\tCờ\tTrạng thái\tThực hiện\tThao tác\n\nLe Thi Huong\nBNT01000020\n\t\nCông thức máu toàn phần\nCBC\n\t5.6\tg/L\t—\tBình thường\tNháp\t29/08/2026 09:20\t\nChi tiết\nNhập KQ\nXác thực\n\n\nLe Thi Huong\nBNT01000020\n\t\nALT (SGPT)\nALT\n\t32\t\t—\tBình thường\tNháp\t29/08/2026 02:23\t\nChi tiết\nNhập KQ\nXác thực\n\n\nLê Minh Tuấn\nBN00003\n\t\nCholesterol toàn phần\nCHOL\n\t5.9\tmmol/L\t—\tCao\tPRELIMINARY\t25/08/2026 08:06\t\nChi tiết\n\n\nLê Minh Tuấn\nBN00003\n\t\nLDL-Cholesterol\nLDL\n\t3.8\tmmol/L\t—\tCao\tPRELIMINARY\t25/08/2026 08:06\t\nChi tiết\n\n\nLê Minh Tuấn\nBN00003\n\t\nHDL-Cholesterol\nHDL\n\t1.1\tmmol/L\t—\tBình thường\tPRELIMINARY\t25/08/2026 08:06\t\nChi tiết\n\n\nLê Minh Tuấn\nBN00003\n\t\nLDL-Cholesterol\nLDL\n\t3.8\tmmol/L\t—\tCao\tPRELIMINARY\t24/08/2026 16:18\t\nChi tiết\n\n\nLê Minh Tuấn\nBN00003\n\t\nHDL-Cholesterol\nHDL\n\t1.1\tmmol",
+  "hasAddBtn": true,
+  "dialogOpen": true,
+  "dialogText": "Nhập kết quả XN\nChỉ định XN cần nhập kết quả *\nTrần Quốc Hưng 005752 · BNT01000023\nĐường huyết đói (Fasting Glucose) (GLU_F) · Chỉ định 29/8/2026\nGiá trị kết quả *\nGiá trị số\nĐơn vị\nPhương pháp\nThời gian thực hiện *\nGhi chú\nHuỷ\nNhập kết quả\nClose",
+  "controls": [
+   {
+    "tag": "input",
+    "id": "lr-order-search",
+    "ph": "Tìm theo tên bệnh nhân, mã BN hoặc tên XN...",
+    "type": "text",
+    "txt": ""
+   },
+   {
+    "tag": "button",
+    "id": "",
+    "ph": "",
+    "type": "button",
+    "txt": "Trần Quốc Hưng 005752 · BNT01000023\nĐườn"
+   },
+   {
+    "tag": "input",
+    "id": "lr-value",
+    "ph": "Vd: 6.2, Âm tính...",
+    "type": "text",
+    "txt": ""
+   },
+   {
+    "tag": "input",
+    "id": "lr-value-num",
+    "ph": "Vd: 6.2",
+    "type": "number",
+    "txt": ""
+   },
+   {
+    "tag": "input",
+    "id": "lr-unit",
+    "ph": "mmol/L, mg/dL...",
+    "type": "text",
+    "txt": ""
+   },
+   {
+    "tag": "input",
+    "id": "lr-method",
+    "ph": "Enzymatic...",
+    "type": "text",
+    "txt": ""
+   },
+   {
+    "tag": "input",
+    "id": "lr-performed",
+    "ph": "",
+    "type": "datetime-local",
+    "txt": ""
+   },
+   {
+    "tag": "textarea",
+    "id": "lr-note",
+    "ph": "Ghi chú thêm...",
+    "type": "textarea",
+    "txt": ""
+   },
+   {
+    "tag": "button",
+    "id": "",
+    "ph": "",
+    "type": "button",
+    "txt": "Huỷ"
+   },
+   {
+    "tag": "button",
+    "id": "",
+    "ph": "",
+    "type": "submit",
+    "txt": "Nhập kết quả"
+   },
+   {
+    "tag": "button",
+    "id": "",
+    "ph": "",
+    "type": "button",
+    "txt": "Close"
+   }
+  ]
+ },
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 201,
+   "method": "POST",
+   "url": "/api/v1/encounters/aacfe286-5ea2-4030-af8b-70cf8ac439b5/vital-signs"
+  }
+ ],
+ "consoleErrs": []
+}

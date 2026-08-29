@@ -1,0 +1,47 @@
+{
+ "prescription": {
+  "hasSearch": true,
+  "searchArea": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\n\nTrần Quốc Hưng 005752\n\nNam · 51 tuổi\n\nBNT01000023\n\n0912005752\n\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\n\nGhi sinh hiệu để theo dõi trong suốt ca khám.\n\nGhi sinh hiệu\nTiền sử\n\nChưa ghi nhận tiền sử bệnh.\n\nXem chi tiết\nLịch sử khám\n\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\n\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\n1\nKết quả CLS\nChẩn đoán\n1\nĐơn thuốc\nTái khám\nTập tin\nĐơn thuốc\n\nChưa có đơn thuốc. Tìm thuốc để bắt đầu tạo đơn.\n\n500mg\nOTC\n· 500đ/Viên\nTH001",
+  "hasItem": false,
+  "afterPick": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\n\nTrần Quốc Hưng 005752\n\nNam · 51 tuổi\n\nBNT01000023\n\n0912005752\n\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\n\nGhi sinh hiệu để theo dõi trong suốt ca khám.\n\nGhi sinh hiệu\nTiền sử\n\nChưa ghi nhận tiền sử bệnh.\n\nXem chi tiết\nLịch sử khám\n\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\n\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\n1\nKết quả CLS\nChẩn đoán\n1\nĐơn thuốc\nTái khám\nTập tin\nĐơn thuốc\n\nChưa có đơn thuốc. Tìm thuốc để bắt đầu tạo đơn.\n\n500mg\nOTC\n· 500đ/Viên\nTH001",
+  "hasSaveBtn": false,
+  "blocked": "Khong tim thay nut luu don thuoc trong tab Don thuoc"
+ },
+ "dispense": {
+  "pageText": "Phát thuốc\n\nHàng chờ phát thuốc, lịch sử phát, hoàn trả thuốc\n\nHàng chờ\n2\nLịch sử\nHoàn trả\nTự động 10 giây\n\nHoàng Văn Đức\n\nBS:\n\n2 thuốc\n16:18\n0đ\nPhát thuốc\nTừ chối\n\nNguyễn Thị Lan\n\nBS:\n\n2 thuốc\n16:18\n0đ\nPhát thuốc\nTừ chối",
+  "hasOurPatient": false,
+  "btnText": "Phát thuốc",
+  "after": "KHÁM BỆNH\n\nTiếp đón\nLịch hẹn\nBệnh nhân\nKhám bệnh\nCLS\nKết quả CLS\nĐối tác lab\nĐiều dưỡng\nDanh sách nguy cơ ĐTĐ\nNhắc tái khám\n\nDƯỢC\n\nKê đơn\nKho dược\nPhát thuốc\nDanh mục thuốc\n\nTÀI CHÍNH\n\nThu ngân\nHoá đơn\nCông nợ\nDịch vụ\nBHYT\n\nPHÂN TÍCH\n\nTổng quan\nBáo cáo\nTrình tạo báo cáo\nBảng điều khiển\nLịch báo cáo\n\nHỆ THỐNG\n\nQuản trị\nPhòng khám\nNgười dùng\nVai trò\nNhật ký\nMẫu bệnh án\nĐTQG\nNhà cung cấp\nHĐĐT\nAPI Partners\nCấu hình thông báo\nKho dược\nTìm kiếm...\n⌘K\nAT\nQC Admin Test\nPhát thuốc\n\nHàng chờ phát thuốc, lịch sử phát, hoàn trả thuốc\n\nHàng chờ\n2\nLịch sử\nHoàn trả\nTự động 10 giây\n\nHoàng Văn Đức\n\nBS:\n\n2 thuốc\n16:18\n0đ\nPhát thuốc\nTừ chối\n\nNguyễn Thị Lan\n\nBS:\n\n2 thuốc\n16:18\n0đ\nPhát thuốc\nTừ chối\nPhát thuốc — Hoàng Văn Đức\n\nDanh sách thuốc (FEFO auto-pick):\n\nAmlodipine 5mg1 viên/ngày · 1 lần/ngày\n30 Viên\nAmlodipine 5mg1 viên/ngày · 1 lần/ngày\n30 Viên\nKho phát thuốc\n-- Chọn kho --\nGhi chú\nHủy\nXác nhận phát thuốc\nClose"
+ },
+ "cashierPay": {
+  "rowCount": 6,
+  "patientColEmpty": true,
+  "url": "http://localhost:3000/billings/2ffe93bd-ae07-42c2-ae29-21e1adea03c9",
+  "detailText": "Không tìm thấy hoá đơn",
+  "buttons": [],
+  "hasPayBtn": false
+ },
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 404,
+   "method": "GET",
+   "url": "/api/v1/warehouses",
+   "body": ""
+  },
+  {
+   "status": 404,
+   "method": "GET",
+   "url": "/api/v1/warehouses",
+   "body": ""
+  }
+ ],
+ "consoleErrs": [
+  "Failed to load resource: the server responded with a status of 404 (Not Found)",
+  "Failed to load resource: the server responded with a status of 404 (Not Found)"
+ ]
+}

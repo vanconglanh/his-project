@@ -1,0 +1,26 @@
+{
+ "steps": {
+  "A1": {
+   "name": "Tiep don - tao benh nhan moi",
+   "ok": true,
+   "toast": [
+    "Tạo bệnh nhân thành công"
+   ],
+   "url": "http://localhost:3000/patients/d88b8a19-e43f-4361-99fd-ae11189efb10",
+   "patientId": "d88b8a19-e43f-4361-99fd-ae11189efb10"
+  }
+ },
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 201,
+   "method": "POST",
+   "url": "/api/v1/patients"
+  }
+ ],
+ "consoleErrs": []
+}

@@ -1,0 +1,109 @@
+{
+ "step": "1-reception-create-patient",
+ "patient": {
+  "full_name": "Nguyễn Thị Bích Trâm",
+  "phone": "0974868512",
+  "id_number": "079074868599",
+  "dob": "1988-03-14",
+  "street": "Số 27 Ngõ 15 Đường Láng"
+ },
+ "notes": [],
+ "urlAfterSubmit": "http://localhost:3000/patients/new",
+ "toast": [
+  "Bạn không có quyền thực hiện thao tác này",
+  ""
+ ],
+ "foundInList": false,
+ "patientHref": "/patients",
+ "apiCalls": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/reports/diabetes/cohort?dm_type=ALL"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/dashboard/charts/encounters-trend?range=30d",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/dashboard/charts/top-drugs?range=30d&top=10",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/dashboard/charts/revenue-trend?range=30d",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/dashboard/charts/top-doctors?range=30d&top=10",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/dashboard/overview",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/dashboard/alerts",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/dashboard/charts/diabetes-hba1c",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "POST",
+   "url": "/api/v1/patients",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/patients?page=1&page_size=20"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/patients"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/patients/search?q=Nguy%E1%BB%85n+Th%E1%BB%8B+B%C3%ADch+Tr%C3%A2m&page_size=20"
+  }
+ ],
+ "consoleErrs": [
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+ ]
+}

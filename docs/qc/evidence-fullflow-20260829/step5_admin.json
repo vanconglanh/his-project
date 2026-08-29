@@ -1,0 +1,28 @@
+{
+ "listVisible": true,
+ "hasAddBtn": true,
+ "orderFound": true,
+ "orderText": "Trần Quốc Hưng 005752 · BNT01000023 | Đường huyết đói (Fasting Glucose) (GLU_F) · Chỉ định 29/8/2026",
+ "toast": [
+  "Đợt chỉ định chưa thanh toán"
+ ],
+ "dialogStillOpen": true,
+ "foundInList": false,
+ "listExcerpt": "Kết quả cận lâm sàng\n\nDanh sách kết quả xét nghiệm + chẩn đoán hình ảnh\n\nTất cả trạng thái\nTất cả\n+ Nhập kết quả\nBệnh nhân\tChỉ số\tGiá trị\tĐơn vị\tKTTC\tCờ\tTrạng thái\tThực hiện\tThao tác\n\nLe Thi Huong\nBNT01000020\n\t\nCông thức máu toàn phần\nCBC\n\t5.6\tg/L\t—\tBình thường\tNháp\t29/08/2026 09:20\t\nChi tiết\nNhập KQ\nXác thực\n\n\nLe Thi Huong\nBNT01000020\n\t\nALT (SGPT)\nALT\n\t32\t\t—\tBình thường\tNháp\t29/08/2026 02:23\t\nChi tiết\nNhập KQ\nXác thực\n\n\nLê Minh Tuấn\nBN00003\n\t\nCholesterol toàn phần\nCHOL\n\t5.9\tmmol/L\t—\tCao\tPRELIMINARY\t25/08/2026 08:06\t\nChi tiết\n\n\nLê Minh Tuấn\nBN00003\n\t\nLDL-Cholesterol\nLDL\n\t3.8\tmmol/L\t—\tCao\tPRELI",
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 400,
+   "method": "POST",
+   "url": "/api/v1/lab-results",
+   "body": "{\"error\":{\"code\":\"CLS_ORDER_UNPAID\",\"message\":\"Đợt chỉ định chưa thanh toán\"}}"
+  }
+ ],
+ "consoleErrs": [
+  "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+ ]
+}

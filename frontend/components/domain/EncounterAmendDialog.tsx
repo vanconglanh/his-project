@@ -49,7 +49,7 @@ export function EncounterAmendDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Tạo bản đính chính</DialogTitle>
           <DialogDescription>

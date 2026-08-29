@@ -1,0 +1,108 @@
+{
+ "patientOptionCount": 1,
+ "createdEncounter": "/encounters/764e58fe-d048-4765-bb0e-8b3e0ac3b75b",
+ "searchInputFound": true,
+ "dropdownVisible": true,
+ "dropdownBox": {
+  "x": 558,
+  "y": 394,
+  "width": 858,
+  "height": 56
+ },
+ "dropdownHeightOk": true,
+ "dropdownText": "Paracetamol\n500mg\nOTC\n· 300đ/Viên\nTH004",
+ "hasOption": true,
+ "firstOptionText": "Paracetamol\n500mg\nOTC\n· 300đ/Viên\nTH004",
+ "saveButtonFound": true,
+ "toasts": [
+  "Đã cập nhật đơn thuốc",
+  "Đã lưu thuốc vào đơn"
+ ],
+ "apiErrors": [
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/users?role=bac_si&page_size=100",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/users?role=bac_si&page_size=100",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  },
+  {
+   "status": 403,
+   "method": "GET",
+   "url": "/api/v1/users?role=bac_si&page_size=100",
+   "body": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}}"
+  }
+ ],
+ "apiAll": [
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/dashboard/charts/top-drugs?range=30d&top=10"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/prescriptions?encounter_id=764e58fe-d048-4765-bb0e-8b3e0ac3b75b&page_size=1"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/drugs/search?q=para&limit=20"
+  },
+  {
+   "status": 201,
+   "method": "POST",
+   "url": "/api/v1/prescriptions"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/prescriptions?encounter_id=764e58fe-d048-4765-bb0e-8b3e0ac3b75b&page_size=1"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/prescriptions/b435a1e8-5275-44bb-82c7-c4fddb4650e2"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/prescriptions/b435a1e8-5275-44bb-82c7-c4fddb4650e2/ddi-check"
+  },
+  {
+   "status": 201,
+   "method": "POST",
+   "url": "/api/v1/prescriptions/b435a1e8-5275-44bb-82c7-c4fddb4650e2/items"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/prescriptions/b435a1e8-5275-44bb-82c7-c4fddb4650e2"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/prescriptions/b435a1e8-5275-44bb-82c7-c4fddb4650e2/ddi-check"
+  },
+  {
+   "status": 200,
+   "method": "PUT",
+   "url": "/api/v1/prescriptions/b435a1e8-5275-44bb-82c7-c4fddb4650e2"
+  },
+  {
+   "status": 200,
+   "method": "GET",
+   "url": "/api/v1/prescriptions/b435a1e8-5275-44bb-82c7-c4fddb4650e2"
+  }
+ ],
+ "consoleErrs": [
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+ ]
+}

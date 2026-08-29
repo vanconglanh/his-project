@@ -1,0 +1,31 @@
+{
+ "chotDot": {
+  "hasBtn": true,
+  "dialog": null,
+  "toast": [
+   "Đã chốt đợt chỉ định, chuyển thu ngân"
+  ],
+  "after": "\n0912005752\n\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\n\nGhi sinh hiệu để theo dõi trong suốt ca khám.\n\nGhi sinh hiệu\nTiền sử\n\nChưa ghi nhận tiền sử bệnh.\n\nXem chi tiết\nLịch sử khám\n\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\n\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\n1\nKết quả CLS\nChẩn đoán\n1\nĐơn thuốc\nTái khám\nTập tin\nĐợt chỉ định cận lâm sàng\nTạo đợt chỉ định mới\nĐợt #1\n09:24 29/08/2026 · 1 dịch vụ\nChưa thanh toán\n35.000 ₫\nIn phiếu\nDanh sách dịch vụ chỉ định Đợt #1\nMã\tDịch vụ\tLoại\tTrạng thái\tGiá\nGLU_F\tĐường huyết đói (Fasting Glucose)\tXN\t\nChờ thực hiện\n\t35.000 ₫"
+ },
+ "cashier": {
+  "pageText": "Thu ngân\n\nQuản lý thu phí, hoá đơn, công nợ bệnh nhân\n\nĐóng ca\nCa đang mở\nTổng thu hôm nay\n\n0 ₫\n\nSố giao dịch\n\n0\n\nRefund / Void\n\n0 ₫\n\nCông nợ\n\n54.200 ₫\n\nHoá đơn chờ thu\nLịch sử hôm nay\nCông nợ\nCa làm việc\nSố HĐ\tBệnh nhân\tTổng tiền\tĐã thu\tCòn lại\tTrạng thái\tHạn TT\t\nHD-202608-B956C\t\n\n\t4.200 ₫\t0 ₫\t4.200 ₫\tĐã xác nhận\t—\t",
+  "hasOurPatient": false
+ },
+ "billings": {
+  "pageText": "Hoá đơn\n\nQuản lý hoá đơn khám bệnh\n\nTất cả trạng thái\nSố HĐ\tBệnh nhân\tPhải trả\tĐã thu\tCòn lại\tTrạng thái\tNgày tạo\t\nHD-202608-F7919\t\n\n\t53.025 ₫\t0 ₫\t53.025 ₫\tNháp\t29/08/2026\t\n\nHD-202608-0EC5D\t\n\n\t0 ₫\t0 ₫\t0 ₫\tNháp\t29/08/2026\t\n\nHD-202608-EF29D\t\n\n\t0 ₫\t0 ₫\t0 ₫\tĐã thanh toán\t29/08/2026\t\n\nHD-202608-08854\t\n\n\t0 ₫\t0 ₫\t0 ₫\tNháp\t29/08/2026\t\n\nHD-202608-52834\t\n\n\t0 ₫\t0 ₫\t0 ₫\tĐã thanh toán\t29/08/2026\t\n\nHD-202608-B956C\t\n\n\t4.200 ₫\t0 ₫\t4.200 ₫\tĐã xác nhận\t29/08/2026\t",
+  "hasOurPatient": false
+ },
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/cls-rounds/fb23d2c4-5484-4b67-b175-f614f99bc0e0/submit"
+  }
+ ],
+ "consoleErrs": []
+}

@@ -181,7 +181,7 @@ export function ScheduleFormDialog({ open, onOpenChange, catalog, editing }: Sch
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? "Sửa lịch gửi báo cáo" : "Tạo lịch gửi báo cáo"}</DialogTitle>
         </DialogHeader>

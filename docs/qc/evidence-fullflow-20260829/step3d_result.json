@@ -1,0 +1,45 @@
+{
+ "nurseQueue": {
+  "containsOurPatient": false,
+  "queueExcerpt": "Điều dưỡng\n\nQuản lý sinh hiệu bệnh nhân\n\nDanh sách chờ\nSinh hiệu hôm nay\nBệnh nhân\tTrạng thái\tBác sĩ\tLý do khám\tThao tác\n\nNA\n\nNguyen Van An\n\n1985\n\n\t\nChờ khám\n\tChưa phân công\tKham noi khoa\t\nNhập sinh hiệu\n\nPK\n\nPhan Thi Kim\n\n1968\n\n\t\nChờ khám\n\tChưa phân công\tKham noi khoa\t\nNhập sinh hiệu\n\nLH\n\nLe Thi Huong\n\n1972\n\n\t\nChờ khám\n\tChưa phân công\tKham noi khoa\t\nNhập sinh hiệu\n\nVL\n\nVo Thanh Long\n\n1955\n\n\t\nChờ khám\n\tChưa phân công\tKham tong quat\t\nNhập sinh hiệu\n\nNM\n\nNguyen Thi Mai\n\n1960\n\n\t\nChờ khám\n\tChưa phân công\tKham BHYT\t\nNhập sinh hiệu\n\nPD\n\nPham Van Duc\n\n1980\n\n\t\nChờ khám\n\tChưa phân công\tKham noi tiet\t\nNhập sinh hiệu\n\nLC\n\nLe Van Cuong\n\n1970\n\n\t\nChờ khám\n\tChưa phân công\tTai kham sau 1 thang\t\nNhập sinh hiệu\n\nLC\n\nLe Van Cuong\n\n1970\n\n\t\nChờ khám\n\tChưa phân công\tKham benh dinh ky\t\nNhập sinh hiệu\n\nTB\n\nTest E2E BugFix\n\n1990\n\n\t\nChờ khám\n\tChưa phân công\tKham dinh ky\t\nNhập sinh hiệu"
+ },
+ "vitals": {
+  "note": "BN dang kham KHONG co trong hang cho dieu duong -> khong the nhap sinh hieu dung BN",
+  "dialogTitle": "Nhập sinh hiệu — Nguyen Van An",
+  "filled": [
+   "36.5->37.2",
+   "80->88",
+   "120->145",
+   "80->92",
+   "98->97",
+   "16->18",
+   "60->78",
+   "165->168",
+   "100->168"
+  ],
+  "toast": []
+ },
+ "cls": {
+  "afterSearch": "Tạo đợt chỉ định cận lâm sàng\n\nChọn dịch vụ xét nghiệm / chẩn đoán hình ảnh cho đợt chỉ định này.\n\nTìm dịch vụ\nGLU_F\nĐường huyết đói (Fasting Glucose)\nXN\n35.000 ₫\nDịch vụ đã chọn (0)\n\nChưa chọn dịch vụ nào.\n\nTổng tiền\n0 ₫\nGhi chú\nHuỷ\nLưu đợt chỉ định\nClose",
+  "hasItem": true,
+  "itemText": "GLU_F | Đường huyết đói (Fasting Glucose) | XN | 35.000 ₫",
+  "beforeSave": "Tạo đợt chỉ định cận lâm sàng\n\nChọn dịch vụ xét nghiệm / chẩn đoán hình ảnh cho đợt chỉ định này.\n\nTìm dịch vụ\nGLU_F\nĐường huyết đói (Fasting Glucose)\nXN\n35.000 ₫\nDịch vụ đã chọn (1)\nGLU_F\nĐường huyết đói (Fasting Glucose)\n35.000 ₫\nTổng tiền\n35.000 ₫\nGhi chú\nHuỷ\nLưu đợt chỉ định\nClose",
+  "toast": [
+   "Đã tạo đợt chỉ định cận lâm sàng"
+  ],
+  "afterSave": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\n\nTrần Quốc Hưng 005752\n\nNam · 51 tuổi\n\nBNT01000023\n\n0912005752\n\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\n\nGhi sinh hiệu để theo dõi trong suốt ca khám.\n\nGhi sinh hiệu\nTiền sử\n\nChưa ghi nhận tiền sử bệnh.\n\nXem chi tiết\nLịch sử khám\n\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\n\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\n1\nKết quả CLS\nChẩn đoán\n1\nĐơn thuốc\nTái khám\nTập tin\nĐợt chỉ định cận lâm sàng\nTạo đợt chỉ định mới\nĐợt #1\n09:24 29/08/2026 · 1 dịch vụ\nChưa thanh toán\n35.000 ₫\nIn phiếu\nChốt đợt\nDanh sách dịch vụ chỉ định Đợt #1\nMã\tDịch vụ\tLoại\tTrạng thái\tGiá\nGLU_F\tĐường huyết đói (Fasting Glucose)\tXN\t\nChờ thực hiện\n\t35.000 ₫"
+ },
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 201,
+   "method": "POST",
+   "url": "/api/v1/encounters/1c49b2c1-3f08-40a8-abbe-f3034553b0bd/cls-rounds"
+  }
+ ],
+ "consoleErrs": []
+}

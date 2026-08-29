@@ -132,7 +132,7 @@ export default function NotificationsConfigPage() {
 
       {/* Test Dialog */}
       <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Gửi thông báo test</DialogTitle>
           </DialogHeader>

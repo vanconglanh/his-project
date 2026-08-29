@@ -1,0 +1,24 @@
+{
+ "steps": {
+  "A2": {
+   "name": "Tao luot kham (encounter)",
+   "ok": true,
+   "pickedExact": true,
+   "toast": [],
+   "url": "http://localhost:3000/encounters/1c49b2c1-3f08-40a8-abbe-f3034553b0bd"
+  }
+ },
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 201,
+   "method": "POST",
+   "url": "/api/v1/encounters"
+  }
+ ],
+ "consoleErrs": []
+}

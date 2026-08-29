@@ -1,0 +1,10 @@
+{
+ "patient": {
+  "full_name": "Nguyễn Thị Bích Trâm",
+  "phone": "0974868512",
+  "id_number": "079074868599",
+  "dob": "1988-03-14",
+  "street": "Số 27 Ngõ 15 Đường Láng"
+ },
+ "patientHref": "/patients"
+}

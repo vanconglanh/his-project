@@ -80,7 +80,7 @@ export function QrPaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-sm text-center">
+      <DialogContent className="sm:max-w-sm text-center">
         <DialogHeader>
           <DialogTitle>Quét mã {PROVIDER_LABEL[provider]} để thanh toán</DialogTitle>
         </DialogHeader>

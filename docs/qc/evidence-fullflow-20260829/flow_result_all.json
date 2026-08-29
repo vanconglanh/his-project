@@ -1,0 +1,35 @@
+{
+ "steps": {
+  "A1": {
+   "name": "Tiep don - tao benh nhan moi",
+   "ok": false,
+   "toast": [
+    "Dữ liệu đầu vào không hợp lệ"
+   ],
+   "url": "http://localhost:3000/patients/new"
+  },
+  "A2": {
+   "name": "Tao luot kham (encounter)",
+   "ok": false,
+   "pickErr": "Khong co goi y benh nhan nao",
+   "toast": [],
+   "url": "http://localhost:3000/encounters/new"
+  }
+ },
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 400,
+   "method": "POST",
+   "url": "/api/v1/patients",
+   "body": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Dữ liệu đầu vào không hợp lệ\",\"details\":{\"request\":[\"request là bắt buộc\"],\"$.id_card_issued_date\":[\"id_card_issued_date không đúng định dạng\"]}}}"
+  }
+ ],
+ "consoleErrs": [
+  "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+ ]
+}

@@ -1,0 +1,56 @@
+{
+ "BUG02_patient": {
+  "role": "Lễ tân",
+  "postStatus": 201,
+  "pass": true,
+  "api403": [],
+  "posts": [
+   "/api/v1/auth/login 200",
+   "/api/v1/patients 201"
+  ]
+ },
+ "BUG03_vitals": {
+  "role": "Bác sĩ",
+  "pass": false,
+  "api403": [],
+  "posts": [
+   "/api/v1/auth/login 200"
+  ]
+ },
+ "BUG05_pay": {
+  "role": "Bác sĩ",
+  "hasPayButton": false,
+  "pass": true,
+  "note": "Khong con round SUBMITTED+UNPAID (da PAID tu truoc)",
+  "api403": [],
+  "posts": [
+   "/api/v1/auth/login 200"
+  ]
+ },
+ "BUG05_ktv_result": {
+  "role": "Kỹ thuật viên",
+  "orderText": "KHONG CHON DUOC",
+  "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^Nhập kết quả$/ }).last()\u001b[22m\n\u001b[2m    - locator resolved to <button disabled tabindex=\"0\" type=\"sub"
+ },
+ "BUG07_warehouse": {
+  "role": "Dược sĩ",
+  "warehouseCallStatus": 200,
+  "badWarehouseCall": false,
+  "dialogHasKho": true,
+  "pass": true,
+  "api403": [],
+  "posts": [
+   "/api/v1/auth/login 200"
+  ]
+ },
+ "BUG08_billing": {
+  "role": "Kế toán",
+  "notFound": false,
+  "detailStatus": 200,
+  "pass": true,
+  "api403": [],
+  "posts": [
+   "/api/v1/auth/login 200"
+  ]
+ }
+}

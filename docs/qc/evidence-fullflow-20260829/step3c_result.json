@@ -1,0 +1,129 @@
+{
+ "vitalsNurse": {
+  "rowFound": false,
+  "dialog": {
+   "text": "Nhập sinh hiệu\n— Nguyen Van An\nNhiệt độ (°C)\nMạch (lần/phút)\nHA tâm thu (mmHg)\nHA tâm trương (mmHg)\nSpO2 (%)\nNhịp thở (lần/phút)\nCân nặng (kg)\nChiều cao (cm)\nĐau (0-10)\nĐường huyết (mg/dL)\nGhi chú\nLưu sinh hiệu\nLưu và nhập tiếp\nClose",
+   "controls": [
+    {
+     "id": "base-ui-_r_7_",
+     "ph": "36.5",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_8_",
+     "ph": "80",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_9_",
+     "ph": "120",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_a_",
+     "ph": "80",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_b_",
+     "ph": "98",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_c_",
+     "ph": "16",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_d_",
+     "ph": "60",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_e_",
+     "ph": "165",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_f_",
+     "ph": "0",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "base-ui-_r_g_",
+     "ph": "100",
+     "type": "number",
+     "label": ""
+    },
+    {
+     "id": "",
+     "ph": "Ghi chú thêm...",
+     "type": "textarea",
+     "label": ""
+    }
+   ],
+   "buttons": [
+    "Lưu sinh hiệu",
+    "Lưu và nhập tiếp",
+    "Close"
+   ]
+  },
+  "filled": [],
+  "hasSave": true,
+  "toast": []
+ },
+ "diagnosis": {
+  "tabClicked": true,
+  "hasSuggest": true,
+  "suggestText": "E11Đái tháo đường typ 2Không thanh toán",
+  "toast": [],
+  "listCount": "1"
+ },
+ "clsOrder": {
+  "tabClicked": true,
+  "dialog": {
+   "text": "Tạo đợt chỉ định cận lâm sàng\nChọn dịch vụ xét nghiệm / chẩn đoán hình ảnh cho đợt chỉ định này.\nTìm dịch vụ\nNhập từ khoá để tìm dịch vụ.\nDịch vụ đã chọn (0)\nChưa chọn dịch vụ nào.\nTổng tiền\n0 ₫\nGhi chú\nHuỷ\nLưu đợt chỉ định\nClose",
+   "controls": [
+    {
+     "id": "cls-search",
+     "ph": "Nhập mã hoặc tên dịch vụ...",
+     "type": "text",
+     "label": "Tìm dịch vụ"
+    },
+    {
+     "id": "cls-round-note",
+     "ph": "Ghi chú cho đợt chỉ định...",
+     "type": "textarea",
+     "label": "Ghi chú"
+    }
+   ],
+   "buttons": [
+    "Huỷ",
+    "Lưu đợt chỉ định",
+    "Close"
+   ]
+  }
+ },
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 201,
+   "method": "POST",
+   "url": "/api/v1/encounters/1c49b2c1-3f08-40a8-abbe-f3034553b0bd/diagnoses"
+  }
+ ],
+ "consoleErrs": []
+}

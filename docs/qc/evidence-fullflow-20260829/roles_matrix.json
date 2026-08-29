@@ -1,0 +1,68 @@
+[
+ {
+  "tag": "letan_reception",
+  "role": "Lễ tân",
+  "url": "/reception",
+  "label": "Buoc 1 - Le tan: man Tiep don",
+  "text": "Tiếp đón bệnh nhân\n\nQuản lý danh sách bệnh nhân chờ khám\n\nThêm bệnh nhân\nF2\nĐang chờ\n\n0\n\nĐang khám\n\n0\n\nĐã khám hôm nay\n\n0\n\nĐã huỷ\n\n0\n\nTiếp đón bệnh nhân\nBệnh nhân\n*\nPhòng khám\n*\nPhòng khám số 1\nChờ: 0\nPhòng khám số 2\nChờ: 0\nQuầy thu ngân\nChờ: 0\nPhòng xét nghiệm\nChờ: 0\nƯu tiên\nThông thường\nLý do khám\nGhi chú cho lễ tân\nTiếp đón (F4)\nBảng hàng đợi\n\nTự động làm mới mỗi 5 giây\n\nTải lại\nPhòng khám số 1\n0 BN\nKhông có bệnh nhân\nPhòng khám số 2\n0 BN\nKhôn",
+  "deniedInUi": false,
+  "api403": [],
+  "api404": [],
+  "consoleErrs": []
+ },
+ {
+  "tag": "bacsi_encounter",
+  "role": "Bác sĩ",
+  "url": "/encounters/1c49b2c1-3f08-40a8-abbe-f3034553b0bd",
+  "label": "Buoc 2 - Bac si: man Kham benh",
+  "text": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\n\nTrần Quốc Hưng 005752\n\nNam · 51 tuổi\n\nBNT01000023\n\n0912005752\n\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\n\nGhi sinh hiệu để theo dõi trong suốt ca khám.\n\nGhi sinh hiệu\nTiền sử\n\nChưa ghi nhận tiền sử bệnh.\n\nXem chi tiết\nLịch sử k",
+  "deniedInUi": false,
+  "api403": [],
+  "api404": [],
+  "consoleErrs": []
+ },
+ {
+  "tag": "ktv_labresults",
+  "role": "Kỹ thuật viên",
+  "url": "/labrad/results",
+  "label": "Buoc 3 - KTV: man Ket qua CLS",
+  "text": "Kết quả cận lâm sàng\n\nDanh sách kết quả xét nghiệm + chẩn đoán hình ảnh\n\nTất cả trạng thái\nTất cả\n+ Nhập kết quả\nBệnh nhân\tChỉ số\tGiá trị\tĐơn vị\tKTTC\tCờ\tTrạng thái\tThực hiện\tThao tác\n\nLe Thi Huong\nBNT01000020\n\t\nCông thức máu toàn phần\nCBC\n\t5.6\tg/L\t—\tBình thường\tNháp\t29/08/2026 09:20\t\nChi tiết\nNhập KQ\nXác thực\n\n\nTrần Quốc Hưng 005752\nBNT01000023\n\t\nĐường huyết đói (Fasting Glucose)\nGLU_F\n\t5.6\t\t—\tBình thường\tNháp\t29/08/2026 03:16\t\nChi tiết\nNhập KQ\nX",
+  "deniedInUi": false,
+  "api403": [],
+  "api404": [],
+  "consoleErrs": []
+ },
+ {
+  "tag": "bacsi_rx",
+  "role": "Bác sĩ",
+  "url": "/prescriptions",
+  "label": "Buoc 4 - Bac si: man Ke don",
+  "text": "Kê đơn thuốc\n\nQuản lý đơn thuốc bệnh nhân\n\nKê đơn thuốc\n\nQuản lý đơn thuốc bệnh nhân\n\nTạo đơn mới\nTất cả TT\nBệnh nhân\tBác sĩ\tNgày kê\tTrạng thái\tMã ĐTQG\tSố thuốc\tTổng tiền\t\n\n\n\t\t29/08/2026 10:04\tNháp\t-\t0\t0đ\t\nThêm thuốc\n\n\n\n\t\t29/08/2026 09:59\tNháp\t-\t0\t0đ\t\nThêm thuốc\n\n\n\n\t\t29/08/2026 02:42\tĐã phát\t-\t0\t0đ\t\n\n\n\n\t\t29/08/2026 02:39\tNháp\t-\t0\t0đ\t\nThêm thuốc\n\n\n\n\t\t29/08/2026 02:38\tĐã phát\t-\t0\t0đ\t\n\n\n\n\t\t29/08/2026 02:37\tĐã phát\t-\t0\t0đ\t\n\n\n\n\t\t29/08/2026 01:53\tĐã ph",
+  "deniedInUi": false,
+  "api403": [],
+  "api404": [],
+  "consoleErrs": []
+ },
+ {
+  "tag": "duocsi_dispense",
+  "role": "Dược sĩ",
+  "url": "/pharmacy/dispense",
+  "label": "Buoc 5 - Duoc si: man Phat thuoc",
+  "text": "Phát thuốc\n\nHàng chờ phát thuốc, lịch sử phát, hoàn trả thuốc\n\nHàng chờ\n2\nLịch sử\nHoàn trả\nTự động 10 giây\n\nHoàng Văn Đức\n\nBS:\n\n2 thuốc\n16:18\n0đ\nPhát thuốc\nTừ chối\n\nNguyễn Thị Lan\n\nBS:\n\n2 thuốc\n16:18\n0đ\nPhát thuốc\nTừ chối",
+  "deniedInUi": false,
+  "api403": [],
+  "api404": [],
+  "consoleErrs": []
+ },
+ {
+  "tag": "ketoan_cashier",
+  "role": "Kế toán",
+  "url": "/cashier",
+  "label": "Buoc 6 - Ke toan: man Thu ngan",
+  "text": "Thu ngân\n\nQuản lý thu phí, hoá đơn, công nợ bệnh nhân\n\nĐóng ca\nCa đang mở\nTổng thu hôm nay\n\n0 ₫\n\nSố giao dịch\n\n0\n\nRefund / Void\n\n0 ₫\n\nCông nợ\n\n54.200 ₫\n\nHoá đơn chờ thu\nLịch sử hôm nay\nCông nợ\nCa làm việc\nSố HĐ\tBệnh nhân\tTổng tiền\tĐã thu\tCòn lại\tTrạng thái\tHạn TT\t\nHD-202608-B956C\t\n\n\t4.200 ₫\t0 ₫\t4.200 ₫\tĐã xác nhận\t—\t",
+  "deniedInUi": false,
+  "api403": [],
+  "api404": [],
+  "consoleErrs": []
+ }
+]

@@ -36,7 +36,7 @@ export function CashierShiftOpenDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Mở ca thu ngân</DialogTitle>
         </DialogHeader>

@@ -1,0 +1,268 @@
+{
+ "tabs": {
+  "Bệnh án": {
+   "controls": [
+    {
+     "tag": "button",
+     "id": "base-ui-_r_5_",
+     "name": "",
+     "ph": "",
+     "label": ""
+    },
+    {
+     "tag": "input",
+     "id": "base-ui-_r_5_-hidden-input",
+     "name": "",
+     "ph": "",
+     "label": ""
+    }
+   ],
+   "buttons": [
+    "Chọn phòng khám",
+    "Chờ kết quả CLS",
+    "Ký số bệnh án",
+    "In",
+    "Kết thúc khám",
+    "Xem tất cả",
+    "Ghi sinh hiệu",
+    "Xem chi tiết",
+    "Xem tất cả",
+    "Bệnh án",
+    "Tiền sử",
+    "Cận lâm sàng",
+    "Kết quả CLS",
+    "Chẩn đoán",
+    "Đơn thuốc",
+    "Tái khám",
+    "Tập tin",
+    "Mẫu bệnh án",
+    "Lưu nháp"
+   ],
+   "text": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\nTrần Quốc Hưng 005752\nNam · 51 tuổi\nBNT01000023\n0912005752\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\nGhi sinh hiệu để theo dõi trong suốt ca khám.\nGhi sinh hiệu\nTiền sử\nChưa ghi nhận tiền sử bệnh.\nXem chi tiết\nLịch sử khám\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\nKết quả CLS\nChẩn đoán\nĐơn thuốc\nTái khám\nTập tin\nMẫu bệnh án\nChưa lưu\nLưu nháp\n"
+  },
+  "Cận lâm sàng": {
+   "controls": [
+    {
+     "tag": "button",
+     "id": "base-ui-_r_5_",
+     "name": "",
+     "ph": "",
+     "label": ""
+    },
+    {
+     "tag": "input",
+     "id": "base-ui-_r_5_-hidden-input",
+     "name": "",
+     "ph": "",
+     "label": ""
+    }
+   ],
+   "buttons": [
+    "Chọn phòng khám",
+    "Chờ kết quả CLS",
+    "Ký số bệnh án",
+    "In",
+    "Kết thúc khám",
+    "Xem tất cả",
+    "Ghi sinh hiệu",
+    "Xem chi tiết",
+    "Xem tất cả",
+    "Bệnh án",
+    "Tiền sử",
+    "Cận lâm sàng",
+    "Kết quả CLS",
+    "Chẩn đoán",
+    "Đơn thuốc",
+    "Tái khám",
+    "Tập tin",
+    "Tạo đợt chỉ định mới",
+    "Tạo đợt chỉ định mới"
+   ],
+   "text": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\nTrần Quốc Hưng 005752\nNam · 51 tuổi\nBNT01000023\n0912005752\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\nGhi sinh hiệu để theo dõi trong suốt ca khám.\nGhi sinh hiệu\nTiền sử\nChưa ghi nhận tiền sử bệnh.\nXem chi tiết\nLịch sử khám\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\nKết quả CLS\nChẩn đoán\nĐơn thuốc\nTái khám\nTập tin\nĐợt chỉ định cận lâm sàng\nTạo đợt chỉ định mới\nChưa có chỉ định cận lâm sàng\nTạo đợt chỉ định để gửi yêu cầu XN/CĐHA cho bệnh nhân.\nTạo đợt chỉ định mới"
+  },
+  "Chẩn đoán": {
+   "controls": [
+    {
+     "tag": "button",
+     "id": "base-ui-_r_5_",
+     "name": "",
+     "ph": "",
+     "label": ""
+    },
+    {
+     "tag": "input",
+     "id": "base-ui-_r_5_-hidden-input",
+     "name": "",
+     "ph": "",
+     "label": ""
+    },
+    {
+     "tag": "input",
+     "id": "base-ui-_r_13_",
+     "name": "",
+     "ph": "Tìm ICD-10 (VD: đái tháo đường, E11...)",
+     "label": ""
+    },
+    {
+     "tag": "input",
+     "id": "diag-code-0",
+     "name": "",
+     "ph": "VD: E11, I10...",
+     "label": "Mã ICD-10"
+    },
+    {
+     "tag": "input",
+     "id": "diag-name-0",
+     "name": "",
+     "ph": "Tên chẩn đoán",
+     "label": "Tên bệnh"
+    },
+    {
+     "tag": "button",
+     "id": "diag-type-0",
+     "name": "",
+     "ph": "",
+     "label": "Loại"
+    },
+    {
+     "tag": "input",
+     "id": "base-ui-_r_16_-hidden-input",
+     "name": "",
+     "ph": "",
+     "label": ""
+    },
+    {
+     "tag": "textarea",
+     "id": "diag-note-0",
+     "name": "",
+     "ph": "Ghi chú...",
+     "label": "Mô tả thêm"
+    }
+   ],
+   "buttons": [
+    "Chọn phòng khám",
+    "Chờ kết quả CLS",
+    "Ký số bệnh án",
+    "In",
+    "Kết thúc khám",
+    "Xem tất cả",
+    "Ghi sinh hiệu",
+    "Xem chi tiết",
+    "Xem tất cả",
+    "Bệnh án",
+    "Tiền sử",
+    "Cận lâm sàng",
+    "Kết quả CLS",
+    "Chẩn đoán",
+    "Đơn thuốc",
+    "Tái khám",
+    "Tập tin",
+    "Chính",
+    "Phụ",
+    "Chính",
+    "Thêm dòng",
+    "Lưu chẩn đoán"
+   ],
+   "text": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\nTrần Quốc Hưng 005752\nNam · 51 tuổi\nBNT01000023\n0912005752\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\nGhi sinh hiệu để theo dõi trong suốt ca khám.\nGhi sinh hiệu\nTiền sử\nChưa ghi nhận tiền sử bệnh.\nXem chi tiết\nLịch sử khám\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\nKết quả CLS\nChẩn đoán\nĐơn thuốc\nTái khám\nTập tin\nThêm chẩn đoán ICD-10\nChính\nPhụ\nNhập tên bệnh hoặc mã ICD-10 để tìm kiếm\nNhập nhanh nhiều chẩn đoán\nMã ICD-10\nTên bệnh\nLoại\nChính\nMô tả thêm\nThêm dòng\nLưu chẩn đoán\nDanh sách chẩn đoán (0)\nChưa có chẩn đoán\nThêm mã ICD-10 để hoàn tất bệnh án."
+  },
+  "Đơn thuốc": {
+   "controls": [
+    {
+     "tag": "button",
+     "id": "base-ui-_r_5_",
+     "name": "",
+     "ph": "",
+     "label": ""
+    },
+    {
+     "tag": "input",
+     "id": "base-ui-_r_5_-hidden-input",
+     "name": "",
+     "ph": "",
+     "label": ""
+    },
+    {
+     "tag": "input",
+     "id": "base-ui-_r_19_",
+     "name": "",
+     "ph": "Tìm thuốc theo tên hoặc mã...",
+     "label": ""
+    }
+   ],
+   "buttons": [
+    "Chọn phòng khám",
+    "Chờ kết quả CLS",
+    "Ký số bệnh án",
+    "In",
+    "Kết thúc khám",
+    "Xem tất cả",
+    "Ghi sinh hiệu",
+    "Xem chi tiết",
+    "Xem tất cả",
+    "Bệnh án",
+    "Tiền sử",
+    "Cận lâm sàng",
+    "Kết quả CLS",
+    "Chẩn đoán",
+    "Đơn thuốc",
+    "Tái khám",
+    "Tập tin"
+   ],
+   "text": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\nTrần Quốc Hưng 005752\nNam · 51 tuổi\nBNT01000023\n0912005752\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\nGhi sinh hiệu để theo dõi trong suốt ca khám.\nGhi sinh hiệu\nTiền sử\nChưa ghi nhận tiền sử bệnh.\nXem chi tiết\nLịch sử khám\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\nKết quả CLS\nChẩn đoán\nĐơn thuốc\nTái khám\nTập tin\nĐơn thuốc\nChưa có đơn thuốc. Tìm thuốc để bắt đầu tạo đơn."
+  },
+  "Kết quả CLS": {
+   "controls": [
+    {
+     "tag": "button",
+     "id": "base-ui-_r_5_",
+     "name": "",
+     "ph": "",
+     "label": ""
+    },
+    {
+     "tag": "input",
+     "id": "base-ui-_r_5_-hidden-input",
+     "name": "",
+     "ph": "",
+     "label": ""
+    }
+   ],
+   "buttons": [
+    "Chọn phòng khám",
+    "Chờ kết quả CLS",
+    "Ký số bệnh án",
+    "In",
+    "Kết thúc khám",
+    "Xem tất cả",
+    "Ghi sinh hiệu",
+    "Xem chi tiết",
+    "Xem tất cả",
+    "Bệnh án",
+    "Tiền sử",
+    "Cận lâm sàng",
+    "Kết quả CLS",
+    "Chẩn đoán",
+    "Đơn thuốc",
+    "Tái khám",
+    "Tập tin"
+   ],
+   "text": "Khám bệnh\n/\nTrần Quốc Hưng 005752\nĐang khám\nChọn phòng khám\nChờ kết quả CLS\nKý số bệnh án\nIn\nKết thúc khám\nT0\nTrần Quốc Hưng 005752\nNam · 51 tuổi\nBNT01000023\n0912005752\nKhông có BHYT\nBác sĩ\nQC Admin Test\nPhòng\nChưa phân phòng\nLý do khám\nKhát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2\nSinh hiệu\nXem tất cả\nChưa có sinh hiệu\nGhi sinh hiệu để theo dõi trong suốt ca khám.\nGhi sinh hiệu\nTiền sử\nChưa ghi nhận tiền sử bệnh.\nXem chi tiết\nLịch sử khám\nLần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.\nXem tất cả\nBệnh án\nTiền sử\nCận lâm sàng\nKết quả CLS\nChẩn đoán\nĐơn thuốc\nTái khám\nTập tin\nChưa có kết quả\nKết quả sẽ hiện tại đây khi khoa cận lâm sàng trả về."
+  }
+ },
+ "afterStartToast": [
+  "Bắt đầu khám"
+ ],
+ "api": [
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/auth/login"
+  },
+  {
+   "status": 200,
+   "method": "POST",
+   "url": "/api/v1/encounters/1c49b2c1-3f08-40a8-abbe-f3034553b0bd/start"
+  }
+ ],
+ "consoleErrs": []
+}
