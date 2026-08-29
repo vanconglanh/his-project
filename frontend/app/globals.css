@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* BUG FIX: class "prose" (dung trong EmrEditor.tsx cho bien soan benh an rich-text)
+   khong co hieu luc vi plugin @tailwindcss/typography chua duoc dang ky - heading/list
+   trong benh an hien thi giong het text thuong (font-size/weight 16/400, list-style: none).
+   Tailwind v4 dang ky plugin qua @plugin trong CSS (khong con tailwind.config.js). */
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
