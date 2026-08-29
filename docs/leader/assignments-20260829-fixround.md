@@ -34,7 +34,23 @@ Nguồn: `docs/qc/evidence-fullflow-20260829/README.md`. Branch develop.
 - => Là bài toán hợp nhất 2 họ bảng (cần migration + sửa join đồng bộ), rủi ro cao, KHÔNG
   fix ẩu trong vòng này. Đã tạo task chip theo dõi.
 
-## Bước còn lại
-1. Chờ agent BUG-06 xong.
-2. Rebuild frontend image 1 lần (cả fix của leader + BUG-06).
-3. Verify UI full-flow: BUG-02/03/05/06/07/08 + qc-roles.
+## KẾT QUẢ CUỐI — verified UI thật (rebuild frontend image + Playwright)
+| Hạng mục | Verify | Kết quả |
+|---|---|---|
+| P1 RBAC | qc-roles.js | 6/6 role 403=0 |
+| BUG-02 | POST /patients (bỏ CCCD) | 201 |
+| BUG-03 | POST /vital-signs | 201, DB +1 dòng |
+| BUG-05 | pay 200 + KTV POST /lab-results | 201, hết CLS_ORDER_UNPAID |
+| BUG-06 | agent frontend | dropdown đủ + nút Lưu, API 200/201 |
+| BUG-07 | GET /pharmacy/warehouses | 200, dropdown có 'Kho chính'/'Kho lẻ' |
+| BUG-08 | /billings/{id} | load OK, hết 'Không tìm thấy' |
+
+Bug phát sinh sửa thêm: VitalSignsForm chặn submit khi field số bỏ trống (NaH→NaN);
+thiếu warehouse data (seed 9140); /users?role 403 (cấp user.read).
+
+LƯU Ý HẠ TẦNG: frontend là baked image (docker-compose.local-app.yml, KHÔNG bind-mount)
+=> mọi sửa .tsx phải `docker compose build frontend` + `up -d --force-recreate frontend`.
+Cạm bẫy: `build ... | tail && echo DONE` che exit code — build fail vẫn in DONE. Phải
+grep 'failed to solve' trong log.
+
+Ưu tiên 3 (schema debt lab/rad orders): KHÔNG fix, đã tạo task chip riêng.
