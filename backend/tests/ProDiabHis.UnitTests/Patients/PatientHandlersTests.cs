@@ -16,12 +16,18 @@ public class PatientHandlersTests
     private readonly IEncryptionService _enc = new FakeEncryptionService();
     private readonly IPiiProtector _pii = new FakePiiProtector();
     private readonly IAuditService _audit;
+    private readonly IBranchProvider _branchProvider;
+    private readonly IPermissionChecker _permissionChecker;
 
     public PatientHandlersTests()
     {
         _currentUser = Substitute.For<ICurrentUser>();
         _currentUser.UserId.Returns(Guid.NewGuid());
         _audit = Substitute.For<IAuditService>();
+        // Mac dinh: coi nhu co quyen cross-branch search de giu nguyen ngu nghia cac test tim kiem cu
+        _branchProvider = Substitute.For<IBranchProvider>();
+        _permissionChecker = Substitute.For<IPermissionChecker>();
+        _permissionChecker.HasPermission(Arg.Any<string>()).Returns(true);
     }
 
     // ──────────────────────────────────────────
@@ -332,7 +338,7 @@ public class PatientHandlersTests
         db.Patients.Add(new Patient { TenantId = 1, Code = "BNT01000002", FullName = "Tran Thi Beta" });
         await db.SaveChangesAsync();
 
-        var handler = new SearchPatientsQueryHandler(db, _pii);
+        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit);
         var result = await handler.Handle(new SearchPatientsQuery("alpha", 1, 20), CancellationToken.None);
 
         result.Items.Should().HaveCount(1);
@@ -357,7 +363,7 @@ public class PatientHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new SearchPatientsQueryHandler(db, _pii);
+        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit);
 
         // Nhap SDT chua chuan hoa van tim thay (blind index chuan hoa truoc khi bam)
         var result = await handler.Handle(new SearchPatientsQuery("+84 912 345 678", 1, 20), CancellationToken.None);
@@ -378,7 +384,7 @@ public class PatientHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new SearchPatientsQueryHandler(db, _pii);
+        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit);
 
         // "345678" la MOT PHAN so dien thoai -> sau khi ma hoa khong the LIKE '%...%' nua
         var result = await handler.Handle(new SearchPatientsQuery("345678", 1, 20), CancellationToken.None);

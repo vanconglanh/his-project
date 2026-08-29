@@ -29,6 +29,10 @@ public class BranchScopeMiddleware
 
         var isSuperAdmin = user.FindFirst("is_super_admin")?.Value == "true";
         var hasCrossView = isSuperAdmin || user.FindAll("permissions").Any(c => c.Value == "branch.cross_view");
+        // BR-33 (S2 - pham vi nhom/khu vuc): "branch.group_view" mo rong AllowedBranchIds sang cac chi
+        // nhanh cung nhom (diab_his_sys_branch_groups.group_id) voi branch mac dinh cua user, KHONG bat
+        // IgnoreBranchFilter (van la S2, khac S3 = cross_view/super admin).
+        var hasGroupView = !hasCrossView && user.FindAll("permissions").Any(c => c.Value == "branch.group_view");
 
         var branchIdClaim = user.FindFirst("branch_id")?.Value;
         int.TryParse(branchIdClaim, out var defaultBranchId);
@@ -44,10 +48,23 @@ public class BranchScopeMiddleware
         // R5: JWT cu khong co claim branch_id -> tra ve DB branch mac dinh cua tenant
         if (defaultBranchId == 0 && tenantProvider.TenantId > 0)
         {
-            var conn = dapper.CreateConnection();
-            defaultBranchId = await conn.ExecuteScalarAsync<int?>(
+            var conn0 = dapper.CreateConnection();
+            defaultBranchId = await conn0.ExecuteScalarAsync<int?>(
                 "SELECT id FROM diab_his_sys_branches WHERE tenant_id = @tid AND is_default = 1 AND deleted_at IS NULL LIMIT 1",
                 new { tid = tenantProvider.TenantId }) ?? 0;
+        }
+
+        // BR-33 (S2): mo rong allowedBranchIds sang toan bo chi nhanh cung nhom (group_id) voi
+        // defaultBranchId, neu user co quyen branch.group_view.
+        if (hasGroupView && defaultBranchId > 0 && tenantProvider.TenantId > 0)
+        {
+            var connGroup = dapper.CreateConnection();
+            var siblingIds = (await connGroup.QueryAsync<int>(@"
+                SELECT b2.id FROM diab_his_sys_branches b1
+                JOIN diab_his_sys_branches b2 ON b2.group_id = b1.group_id AND b2.tenant_id = b1.tenant_id
+                WHERE b1.id = @branchId AND b1.tenant_id = @tid AND b1.group_id IS NOT NULL AND b2.deleted_at IS NULL",
+                new { branchId = defaultBranchId, tid = tenantProvider.TenantId })).ToList();
+            allowedBranchIds = allowedBranchIds.Union(siblingIds).Distinct().ToList();
         }
 
         // Doc branch dich tu header hoac query string

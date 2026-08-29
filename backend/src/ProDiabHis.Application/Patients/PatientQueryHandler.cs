@@ -42,10 +42,15 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
 {
     private readonly IApplicationDbContext _db;
     private readonly IPiiProtector _pii;
+    private readonly IBranchProvider _branchProvider;
+    private readonly IPermissionChecker _permissionChecker;
+    private readonly IAuditService _audit;
 
-    public SearchPatientsQueryHandler(IApplicationDbContext db, IPiiProtector pii)
+    public SearchPatientsQueryHandler(
+        IApplicationDbContext db, IPiiProtector pii, IBranchProvider branchProvider,
+        IPermissionChecker permissionChecker, IAuditService audit)
     {
-        _db = db; _pii = pii;
+        _db = db; _pii = pii; _branchProvider = branchProvider; _permissionChecker = permissionChecker; _audit = audit;
     }
 
     public async Task<PagedResult<PatientResponse>> Handle(SearchPatientsQuery request, CancellationToken cancellationToken)
@@ -57,6 +62,8 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
         // khong con tim theo mot phan so dien thoai / CMND.
         var phoneBidx = _pii.BlindIndex(request.Q, PiiField.Phone);
         var idBidx = _pii.BlindIndex(request.Q, PiiField.IdNumber);
+        var trimmed = request.Q.Trim();
+        var digitsOnly = new string(trimmed.Where(char.IsDigit).ToArray());
 
         var query = _db.Patients.AsNoTracking()
             .Where(p =>
@@ -65,10 +72,39 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
                 (phoneBidx != null && p.PhoneBidx == phoneBidx) ||
                 (idBidx != null && p.IdNumberBidx == idBidx));
 
+        // BR-25/BR-33 - guard: user KHONG co quyen patient.cross_branch_search / branch.group_view /
+        // branch.cross_view thi tim kiem MO (theo ten/danh sach) chi tra ve benh nhan da tung kham tai
+        // branch hien tai. Khi nhap dinh danh CHINH XAC (CCCD/SDT du 10 so/ma BN) van duoc tra cross-branch.
+        var hasCrossBranchSearch = _branchProvider.IgnoreBranchFilter
+            || _permissionChecker.HasPermission("patient.cross_branch_search")
+            || _permissionChecker.HasPermission("branch.group_view")
+            || _permissionChecker.HasPermission("cross_branch_view");
+
+        var isExactMatch = phoneBidx != null || idBidx != null
+            || (digitsOnly.Length == 10 && digitsOnly.Length == trimmed.Length);
+
+        if (!hasCrossBranchSearch && !isExactMatch)
+        {
+            // Encounters da co Global Query Filter theo branch hien tai (xem AppDbContext) nen chi can
+            // lay danh sach PatientId tu Encounters (tuong duong "da tung kham tai branch hien tai").
+            var seenPatientIds = _db.Encounters.AsNoTracking().Select(e => e.PatientId);
+            query = query.Where(p => seenPatientIds.Contains(p.Id.ToString()));
+        }
+
         var total = await query.CountAsync(cancellationToken);
         var offset = (request.Page - 1) * request.PageSize;
         var patients = await query.OrderBy(p => p.FullName)
             .Skip(offset).Take(request.PageSize).ToListAsync(cancellationToken);
+
+        // BR-24: ghi audit khi cross-branch xem benh nhan (dinh danh chinh xac hoac co quyen mo khoa)
+        // va dang khong o che do IgnoreBranchFilter mac dinh (tuc la dang "vuot" pham vi branch hien tai).
+        if ((isExactMatch || hasCrossBranchSearch) && !_branchProvider.IgnoreBranchFilter && patients.Count > 0)
+        {
+            await _audit.LogAsync(
+                AuditAction.View, "Patient", null, AuditSeverity.INFO, crossTenantAttempt: false, requestId: null,
+                details: new { action = "cross_branch_patient_search", query_type = isExactMatch ? "EXACT_IDENTIFIER" : "GROUP_OR_ALL", result_count = patients.Count },
+                cancellationToken);
+        }
 
         var items = patients.Select(PatientEntityMapper.ToResponse).ToList();
         return new PagedResult<PatientResponse>(items, request.Page, request.PageSize, total);
