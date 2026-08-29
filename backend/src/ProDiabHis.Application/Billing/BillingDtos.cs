@@ -79,7 +79,10 @@ public record BillingItemDto(
     decimal DiscountPercent,
     decimal LineTotal,
     bool BhytApplicable,
-    decimal BhytAmount);
+    decimal BhytAmount,
+    decimal? BaseUnitPrice = null,
+    string? PriceSource = null,
+    Guid? PriceOverrideId = null);
 
 public record BillingResponse(
     Guid Id,
@@ -191,6 +194,15 @@ public record CardChargeApiRequest(
     string? ThreeDsNonce = null);
 
 public record PaymentMethodDto(string Method, bool IsActive, string? Provider);
+
+/// <summary>FR-911 H-9 - QR thanh toan DONG theo so tien phai thu cua hoa don</summary>
+public record DynamicBillingQrResponse(
+    Guid BillingId,
+    decimal Amount,
+    string QrPayload,
+    string QrPayloadImageBase64,
+    string? QrUrl,
+    string TransactionRef);
 
 // ---- eInvoice ----
 

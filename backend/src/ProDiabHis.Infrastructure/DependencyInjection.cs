@@ -359,12 +359,16 @@ public static class DependencyInjection
         services.AddScoped<IBillingCalculator, BillingCalculatorImpl>();
         services.AddScoped<IBhytCoPayCalculator, BhytCoPayCalculatorImpl>();
         services.AddScoped<ICashierShiftService, CashierShiftServiceImpl>();
+        // E/Dot3 - gia override 3 tang (BR-70..BR-76)
+        services.AddScoped<Application.Billing.IServicePriceResolver, Billing.ServicePriceResolverImpl>();
         // Payment gateways (IEnumerable<IPaymentGateway> injected)
         services.AddScoped<IPaymentGateway, CashGateway>();
         services.AddScoped<IPaymentGateway, VietQrGateway>();
         services.AddScoped<IPaymentGateway, MomoGateway>();
         services.AddScoped<IPaymentGateway, VnpayGateway>();
         services.AddScoped<IPaymentGateway, VisaMasterGateway>();
+        // FR-911 H-9 - QR thanh toan DONG theo hoa don, tai khoan nhan tien doc tu cau hinh tenant
+        services.AddScoped<Application.Billing.IVietQrBuilder, Billing.VietQrBuilderImpl>();
         // eInvoice providers
         services.AddScoped<IEInvoiceProvider, MisaEInvoiceProvider>();
         services.AddScoped<IEInvoiceProvider, VnptEInvoiceProvider>();

@@ -129,7 +129,36 @@ public class BillingItemConfiguration : IEntityTypeConfiguration<BillingItem>
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Property(x => x.CoveredBySubscriptionId).HasColumnName("covered_by_subscription_id").HasMaxLength(36);
         builder.Property(x => x.CoveredByUsageLogId).HasColumnName("covered_by_usage_log_id").HasMaxLength(36);
+        builder.Property(x => x.BaseUnitPrice).HasColumnName("base_unit_price").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.PriceSource).HasColumnName("price_source").HasMaxLength(20);
+        builder.Property(x => x.PriceOverrideId).HasColumnName("price_override_id").HasMaxLength(36);
         builder.Ignore(x => x.Billing);
+    }
+}
+
+public class ServiceBranchPriceConfiguration : IEntityTypeConfiguration<ServiceBranchPrice>
+{
+    public void Configure(EntityTypeBuilder<ServiceBranchPrice> builder)
+    {
+        builder.ToTable("diab_his_bil_service_branch_prices");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.ServiceId).HasColumnName("service_id").HasMaxLength(36);
+        builder.Property(x => x.Scope).HasColumnName("scope").HasMaxLength(10);
+        builder.Property(x => x.BranchId).HasColumnName("branch_id");
+        builder.Property(x => x.GroupId).HasColumnName("group_id");
+        builder.Property(x => x.Price).HasColumnName("price").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.EffectiveFrom).HasColumnName("effective_from");
+        builder.Property(x => x.EffectiveTo).HasColumnName("effective_to");
+        builder.Property(x => x.Note).HasColumnName("note").HasMaxLength(300);
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(36);
+        builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+        builder.Ignore(x => x.DeletedBy); // bang khong co cot deleted_by
+        builder.HasIndex(x => new { x.TenantId, x.ServiceId, x.Scope, x.BranchId, x.GroupId, x.EffectiveFrom });
     }
 }
 

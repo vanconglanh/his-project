@@ -62,5 +62,15 @@ public class BillingItem
     /// <summary>Truy vet ve dong pkg_usage_logs da tru dinh muc tuong ung. Map cot covered_by_usage_log_id.</summary>
     public Guid? CoveredByUsageLogId { get; set; }
 
+    /// <summary>Snapshot BR-73: gia goc dich vu (TRUOC khi ap override) tai thoi diem lap hoa don.
+    /// Map cot base_unit_price (migration 9152). Null neu dong khong qua resolver gia (vd LAB/RAD/DRUG cu).</summary>
+    public decimal? BaseUnitPrice { get; set; }
+
+    /// <summary>Nguon gia da ap: TENANT|GROUP|BRANCH - xem <see cref="PriceSource"/>. Map cot price_source.</summary>
+    public string? PriceSource { get; set; }
+
+    /// <summary>FK diab_his_bil_service_branch_prices.id neu unit_price lay tu override. Map cot price_override_id.</summary>
+    public Guid? PriceOverrideId { get; set; }
+
     public Billing? Billing { get; set; }
 }

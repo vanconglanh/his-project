@@ -56,6 +56,13 @@ public class VietQrGateway : IPaymentGateway
 
     /// <summary>Build VietQR EMV QR string (simplified EMVCo format)</summary>
     public static string BuildVietQrString(decimal amount, string addInfo)
+        => BuildVietQrString(amount, addInfo, BankBin, AccountNo, AccountName);
+
+    /// <summary>
+    /// Overload dung bank_bin/account_no/account_name DONG (doc tu cau hinh tenant - FR-911 H-9),
+    /// khong dung hang so demo (BankBin/AccountNo/AccountName) o tren.
+    /// </summary>
+    public static string BuildVietQrString(decimal amount, string addInfo, string bankBin, string accountNo, string accountName)
     {
         // EMVCo QR Code Specification for Payment Systems
         // ID 00: Payload Format Indicator = "01"
@@ -72,8 +79,8 @@ public class VietQrGateway : IPaymentGateway
 
         // ID 38: Merchant Account Information (NAPAS)
         var napas = "A000000727"; // NAPAS AID
-        var binTag = $"0006{BankBin}";
-        var accTag = $"01{AccountNo.Length:D2}{AccountNo}";
+        var binTag = $"0006{bankBin}";
+        var accTag = $"01{accountNo.Length:D2}{accountNo}";
         var merchantInfo = $"0010{napas}{binTag}{accTag}";
         sb.Append($"38{merchantInfo.Length:D2}{merchantInfo}");
 
@@ -83,7 +90,7 @@ public class VietQrGateway : IPaymentGateway
         sb.Append("5802VN"); // Country Code
 
         // Merchant name
-        var merName = AccountName[..Math.Min(AccountName.Length, 25)];
+        var merName = accountName[..Math.Min(accountName.Length, 25)];
         sb.Append($"59{merName.Length:D2}{merName}");
         sb.Append("6007HANOI");
 
@@ -118,6 +125,22 @@ public class VietQrGateway : IPaymentGateway
         var qrData = gen.CreateQrCode(data, QRCodeGenerator.ECCLevel.M);
         using var qrCode = new PngByteQRCode(qrData);
         return qrCode.GetGraphic(10);
+    }
+}
+
+/// <summary>Impl IVietQrBuilder - dung lai logic build chuoi EMVCo + PNG cua VietQrGateway (FR-911 H-9)</summary>
+public class VietQrBuilderImpl : IVietQrBuilder
+{
+    public VietQrBuildResult Build(decimal amount, string addInfo, string bankBin, string accountNo, string accountName)
+    {
+        var qrString = VietQrGateway.BuildVietQrString(amount, addInfo, bankBin, accountNo, accountName);
+        using var gen = new QRCodeGenerator();
+        var qrData = gen.CreateQrCode(qrString, QRCodeGenerator.ECCLevel.M);
+        using var qrCode = new PngByteQRCode(qrData);
+        var png = qrCode.GetGraphic(10);
+        var base64 = Convert.ToBase64String(png);
+        var deepLink = $"https://img.vietqr.io/image/{bankBin}-{accountNo}-compact2.jpg?amount={(long)amount}&addInfo={Uri.EscapeDataString(addInfo)}&accountName={Uri.EscapeDataString(accountName)}";
+        return new VietQrBuildResult(base64, qrString, deepLink);
     }
 }
 

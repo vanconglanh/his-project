@@ -69,6 +69,7 @@ public interface IApplicationDbContext
     DbSet<QrCode> QrCodes { get; }
     DbSet<EInvoice> EInvoices { get; }
     DbSet<CashierShift> CashierShifts { get; }
+    DbSet<ServiceBranchPrice> ServiceBranchPrices { get; }
 
     // Notifications
     DbSet<Notification> Notifications { get; }

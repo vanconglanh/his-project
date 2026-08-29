@@ -164,6 +164,27 @@ public class BillingsController : ControllerBase
         return Ok(new { data = result.Value });
     }
 
+    /// <summary>FR-911 H-9: sinh QR VietQR DONG theo tong phai thu that su cua hoa don (server tinh
+    /// so tien, khong nhan tu client). Tra loi ro rang neu chua cau hinh tai khoan nhan tien.</summary>
+    // POST /api/v1/billings/{id}/qr-dynamic
+    [HttpPost("{id:guid}/qr-dynamic")]
+    [RequirePermission("billing.read")]
+    public async Task<IActionResult> GenerateDynamicQr(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProDiabHis.Application.Billing.GenerateDynamicBillingQrCommand(id), ct);
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode switch
+            {
+                "BILLING_NOT_FOUND" => NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } }),
+                "BANK_ACCOUNT_NOT_CONFIGURED" => UnprocessableEntity(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } }),
+                "BILLING_VOID" or "BILLING_NO_AMOUNT_DUE" => Conflict(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } }),
+                _ => Problem(result.ErrorMessage, statusCode: 400)
+            };
+        }
+        return Ok(new { data = result.Value });
+    }
+
     /// <summary>In hoa don A5 (PDF) + archive vao MinIO + ghi audit log</summary>
     // POST /api/v1/billings/{id}/print
     [HttpPost("{id:guid}/print")]

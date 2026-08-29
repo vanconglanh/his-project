@@ -84,6 +84,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<QrCode> QrCodes => Set<QrCode>();
     public DbSet<EInvoice> EInvoices => Set<EInvoice>();
     public DbSet<CashierShift> CashierShifts => Set<CashierShift>();
+    public DbSet<ServiceBranchPrice> ServiceBranchPrices => Set<ServiceBranchPrice>();
 
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();

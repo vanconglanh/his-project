@@ -24,6 +24,7 @@ public record GetQrStatusQuery(Guid QrId) : IRequest<Result<QrCodeResponseDto>>;
 public record ProcessQrWebhookCommand(string Provider, string Payload, string Signature)
     : IRequest<Result>;
 public record CardChargeCommand(CardChargeApiRequest Request) : IRequest<Result<PaymentResponse>>;
+public record GenerateDynamicBillingQrCommand(Guid BillingId) : IRequest<Result<DynamicBillingQrResponse>>;
 
 // ---- Validators ----
 
@@ -402,6 +403,55 @@ public class ProcessQrWebhookHandler : IRequestHandler<ProcessQrWebhookCommand, 
             }
         }
         return Result.Success();
+    }
+}
+
+/// <summary>
+/// FR-911 H-9: sinh QR VietQR DONG theo tong phai thu THAT SU cua hoa don (khong tin so tien tu
+/// client). Tai khoan nhan tien doc tu cau hinh tenant (ISettingsProvider, key bil.qr_bank_bin /
+/// bil.qr_bank_account_no / bil.qr_bank_account_name) - neu chua cau hinh, tra loi ro rang thay vi
+/// dung tai khoan demo cung.
+/// </summary>
+public class GenerateDynamicBillingQrHandler : IRequestHandler<GenerateDynamicBillingQrCommand, Result<DynamicBillingQrResponse>>
+{
+    private readonly IApplicationDbContext _db;
+    private readonly ITenantProvider _tenant;
+    private readonly ISettingsProvider _settings;
+    private readonly IVietQrBuilder _qrBuilder;
+
+    public GenerateDynamicBillingQrHandler(
+        IApplicationDbContext db, ITenantProvider tenant, ISettingsProvider settings, IVietQrBuilder qrBuilder)
+    {
+        _db = db; _tenant = tenant; _settings = settings; _qrBuilder = qrBuilder;
+    }
+
+    public async Task<Result<DynamicBillingQrResponse>> Handle(GenerateDynamicBillingQrCommand cmd, CancellationToken ct)
+    {
+        var billing = await _db.Billings
+            .FirstOrDefaultAsync(b => b.Id == cmd.BillingId && b.TenantId == _tenant.TenantId, ct);
+        if (billing == null)
+            return Result<DynamicBillingQrResponse>.Failure("BILLING_NOT_FOUND", "Khong tim thay hoa don");
+        if (billing.Status == BillingStatus.Void)
+            return Result<DynamicBillingQrResponse>.Failure("BILLING_VOID", "Hoa don da huy");
+
+        var amount = billing.Balance > 0 ? billing.Balance : billing.PatientPayable - billing.PaidAmount;
+        if (amount <= 0)
+            return Result<DynamicBillingQrResponse>.Failure("BILLING_NO_AMOUNT_DUE", "Hoa don khong con so tien phai thu");
+
+        var bankBin = await _settings.GetRawAsync("bil.qr_bank_bin", ct);
+        var accountNo = await _settings.GetRawAsync("bil.qr_bank_account_no", ct);
+        var accountName = await _settings.GetRawAsync("bil.qr_bank_account_name", ct);
+        if (string.IsNullOrWhiteSpace(bankBin) || string.IsNullOrWhiteSpace(accountNo))
+            return Result<DynamicBillingQrResponse>.Failure(
+                "BANK_ACCOUNT_NOT_CONFIGURED", "Chưa cấu hình tài khoản nhận thanh toán");
+
+        var txnRef = $"PD{DateTime.Now:yyyyMMddHHmmss}{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
+        var addInfo = $"TT HOA DON {billing.BillNo ?? txnRef}";
+        var qr = _qrBuilder.Build(amount, addInfo, bankBin, accountNo,
+            string.IsNullOrWhiteSpace(accountName) ? "PHONG KHAM" : accountName);
+
+        return Result<DynamicBillingQrResponse>.Success(new DynamicBillingQrResponse(
+            billing.Id, amount, qr.QrPayloadString, qr.QrPayloadBase64, qr.QrUrl, txnRef));
     }
 }
 

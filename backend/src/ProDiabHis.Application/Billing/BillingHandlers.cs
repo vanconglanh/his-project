@@ -36,7 +36,8 @@ internal static class BillingMapper
     public static BillingItemDto ToItemDto(BillingItem i) => new(
         i.Id, i.ItemType, i.RefId, i.Code, i.Name,
         i.Quantity, i.UnitPrice, i.VatRate, i.DiscountPercent,
-        i.LineTotal, i.BhytApplicable, i.BhytAmount);
+        i.LineTotal, i.BhytApplicable, i.BhytAmount,
+        i.BaseUnitPrice, i.PriceSource, i.PriceOverrideId);
 
     public static BillingResponse ToDto(Domain.Entities.Billing b, PatientSummaryDto? patient = null)
     {
@@ -306,10 +307,11 @@ public class AddBillingItemHandler : IRequestHandler<AddBillingItemCommand, Resu
 {
     private readonly IApplicationDbContext _db;
     private readonly ITenantProvider _tenant;
+    private readonly IServicePriceResolver _priceResolver;
 
-    public AddBillingItemHandler(IApplicationDbContext db, ITenantProvider tenant)
+    public AddBillingItemHandler(IApplicationDbContext db, ITenantProvider tenant, IServicePriceResolver priceResolver)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _priceResolver = priceResolver;
     }
 
     public async Task<Result<BillingResponse>> Handle(AddBillingItemCommand cmd, CancellationToken ct)
@@ -321,7 +323,29 @@ public class AddBillingItemHandler : IRequestHandler<AddBillingItemCommand, Resu
             return Result<BillingResponse>.Failure("BILLING_ALREADY_FINALIZED", "Hoa don da finalized");
 
         var req = cmd.Request;
-        var lineTotal = req.Quantity * req.UnitPrice * (1 - req.DiscountPercent / 100);
+
+        // BR-73: khi dong hoa don la dich vu tham chieu danh muc (Type=SERVICE, RefId=service_id),
+        // KHONG tin gia tu client - luon resolve server-side qua IServicePriceResolver (BR-70..76)
+        // roi snapshot base_unit_price/price_source/price_override_id de doi soat, khong join lai
+        // bang gia khi in lai hoa don cu.
+        var unitPrice = req.UnitPrice;
+        decimal? baseUnitPrice = null;
+        string? priceSource = null;
+        Guid? priceOverrideId = null;
+        if (req.Type == "SERVICE" && req.RefId.HasValue)
+        {
+            var resolved = await _priceResolver.ResolveAsync(
+                b.TenantId, req.RefId.Value, b.BranchId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+            if (resolved != null)
+            {
+                unitPrice = resolved.Price;
+                baseUnitPrice = resolved.Price;
+                priceSource = resolved.PriceSource;
+                priceOverrideId = resolved.PriceOverrideId;
+            }
+        }
+
+        var lineTotal = req.Quantity * unitPrice * (1 - req.DiscountPercent / 100);
         var item = new BillingItem
         {
             BillingId = b.Id,
@@ -331,11 +355,14 @@ public class AddBillingItemHandler : IRequestHandler<AddBillingItemCommand, Resu
             Code = req.Code,
             Name = req.Name,
             Quantity = req.Quantity,
-            UnitPrice = req.UnitPrice,
+            UnitPrice = unitPrice,
             VatRate = req.VatRate,
             DiscountPercent = req.DiscountPercent,
             LineTotal = lineTotal,
-            BhytApplicable = req.BhytApplicable
+            BhytApplicable = req.BhytApplicable,
+            BaseUnitPrice = baseUnitPrice,
+            PriceSource = priceSource,
+            PriceOverrideId = priceOverrideId
         };
         b.Items.Add(item);
         // Do BillingItemConfiguration.Ignore(x => x.Billing) khien navigation dependent->principal
