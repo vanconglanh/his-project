@@ -34,7 +34,8 @@ public record PatientResponse(
     string Nationality,
     string PatientType,
     string? MaritalStatus,
-    string? VisitType);
+    string? VisitType,
+    List<GuardianResponse>? Guardians = null);
 
 public record EncounterSummaryDto(
     Guid Id,
@@ -74,6 +75,15 @@ public record EmergencyContactResponse(
     string Relationship,
     string Phone,
     string? Address);
+
+public record GuardianResponse(
+    Guid Id,
+    string PatientId,
+    string FullName,
+    string Relationship,
+    string? Phone,
+    string? IdNumberMasked,
+    DateTime CreatedAt);
 
 public record ConsentResponse(
     Guid Id,

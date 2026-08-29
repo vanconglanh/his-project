@@ -37,3 +37,6 @@ public record ListEmergencyContactsQuery(Guid PatientId)
 
 public record ListConsentsQuery(Guid PatientId)
     : IRequest<List<ConsentResponse>>;
+
+public record ListGuardiansQuery(Guid PatientId)
+    : IRequest<List<GuardianResponse>>;

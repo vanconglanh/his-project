@@ -88,7 +88,16 @@ public class GetPatientQueryHandler : IRequestHandler<GetPatientQuery, Result<Pa
         if (patient is null)
             return Result<PatientResponse>.Failure("PATIENT_NOT_FOUND", "Không tìm thấy bệnh nhân");
 
-        return Result<PatientResponse>.Success(PatientEntityMapper.ToResponse(patient));
+        var guardians = await _db.PatientGuardians.AsNoTracking()
+            .Where(g => g.PatientId == request.PatientId && g.DeletedAt == null)
+            .OrderBy(g => g.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var guardianDtos = guardians.Select(g => new GuardianResponse(
+            g.Id, g.PatientId.ToString(), g.FullName, g.Relationship, g.Phone, g.IdNumberMasked, g.CreatedAt)).ToList();
+
+        var response = PatientEntityMapper.ToResponse(patient) with { Guardians = guardianDtos };
+        return Result<PatientResponse>.Success(response);
     }
 }
 
@@ -188,6 +197,24 @@ public class ListEmergencyContactsQueryHandler : IRequestHandler<ListEmergencyCo
 
         return contacts.Select(c => new EmergencyContactResponse(
             c.Id, c.PatientId, c.FullName, c.Relationship, c.Phone, c.Address)).ToList();
+    }
+}
+
+public class ListGuardiansQueryHandler : IRequestHandler<ListGuardiansQuery, List<GuardianResponse>>
+{
+    private readonly IApplicationDbContext _db;
+
+    public ListGuardiansQueryHandler(IApplicationDbContext db) => _db = db;
+
+    public async Task<List<GuardianResponse>> Handle(ListGuardiansQuery request, CancellationToken cancellationToken)
+    {
+        var guardians = await _db.PatientGuardians.AsNoTracking()
+            .Where(g => g.PatientId == request.PatientId && g.DeletedAt == null)
+            .OrderBy(g => g.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return guardians.Select(g => new GuardianResponse(
+            g.Id, g.PatientId.ToString(), g.FullName, g.Relationship, g.Phone, g.IdNumberMasked, g.CreatedAt)).ToList();
     }
 }
 

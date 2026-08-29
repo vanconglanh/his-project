@@ -10,13 +10,7 @@ public record GuardianRequest(
     string Phone,
     string? IdNumber);
 
-public record GuardianResponse(
-    Guid Id,
-    Guid PatientId,
-    string FullName,
-    string Relationship,
-    string Phone,
-    string? IdNumber);
+// GuardianResponse dung chung duoc dinh nghia trong PatientDto.cs (dung cho GET /patients/{id}/guardians)
 
 // ── Create ──
 public record CreatePatientRequest(

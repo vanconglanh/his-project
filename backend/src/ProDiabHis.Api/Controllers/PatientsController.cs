@@ -197,6 +197,15 @@ public class PatientsController : ControllerBase
         return NoContent();
     }
 
+    // GET /api/v1/patients/{id}/guardians
+    [HttpGet("{id:guid}/guardians")]
+    [RequirePermission("patient.read")]
+    public async Task<IActionResult> GetGuardians(Guid id, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ListGuardiansQuery(id), ct);
+        return Ok(new { data = result });
+    }
+
     // GET /api/v1/patients/{id}/insurance
     [HttpGet("{id:guid}/insurance")]
     [RequirePermission("patient.read")]

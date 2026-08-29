@@ -305,6 +305,11 @@ public class AddBillingItemHandler : IRequestHandler<AddBillingItemCommand, Resu
             BhytApplicable = req.BhytApplicable
         };
         b.Items.Add(item);
+        // Do BillingItemConfiguration.Ignore(x => x.Billing) khien navigation dependent->principal
+        // khong duoc EF theo doi, graph-detection khi SaveChanges khong the tu suy ra item moi la
+        // Added (item.Id da duoc client set = Guid.NewGuid() nen EF khong the tu phan biet Added/Modified
+        // dua tren key). Phai add tuong minh vao DbSet de dam bao state = Added -> phat sinh INSERT dung.
+        _db.BillingItems.Add(item);
         BillingMapper.Recalculate(b);
         await _db.SaveChangesAsync(ct);
         return Result<BillingResponse>.Success(BillingMapper.ToDto(b));
