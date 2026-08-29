@@ -17,15 +17,20 @@ public class GenericReportDataService : IGenericReportDataService
     private readonly ITenantProvider _tenant;
     private readonly IAuditService _audit;
     private readonly IBranchProvider _branch;
+    private readonly IPermissionChecker _permissions;
+
+    // P1-04: gia tri thay the khi mask cot PII cho user khong duoc phep xem plaintext.
+    private const string PiiMask = "••••••";
 
     public GenericReportDataService(IReportRegistry registry, IDapperConnectionFactory db,
-        ITenantProvider tenant, IAuditService audit, IBranchProvider branch)
+        ITenantProvider tenant, IAuditService audit, IBranchProvider branch, IPermissionChecker permissions)
     {
         _registry = registry;
         _db = db;
         _tenant = tenant;
         _audit = audit;
         _branch = branch;
+        _permissions = permissions;
     }
 
     public async Task<ReportDataResult> GetDataAsync(
@@ -56,27 +61,49 @@ public class GenericReportDataService : IGenericReportDataService
         using var conn = (IDbConnection)_db.CreateConnection();
         var rawRows = await conn.QueryAsync(sql, parameters);
 
+        // P1-04: mac dinh MASK cot PII (*_enc). Chi giai ma plaintext khi descriptor cho phep
+        // (AllowPiiPlaintext) VA user co quyen 'report.pii_plaintext' (super admin bypass).
+        var revealPii = descriptor.AllowPiiPlaintext && _permissions.HasPermission("report.pii_plaintext");
+        var maskedAny = false;
+
         var rows = rawRows
             .Select(r =>
             {
                 var src = (IDictionary<string, object>)r;
                 var dict = new Dictionary<string, object?>(src.Count);
-                // Hang muc 6: cot PII duoc SELECT o dang *_enc -> giai ma theo tien to marker.
-                // PiiCrypto.Unprotect la pass-through voi gia tri khong ma hoa nen an toan cho moi cot.
                 foreach (var kv in src)
-                    dict[kv.Key] = kv.Value is string sv ? PiiCrypto.Unprotect(sv) : kv.Value;
+                {
+                    if (kv.Value is string sv && PiiCrypto.Current?.IsProtected(sv) == true)
+                    {
+                        if (revealPii)
+                        {
+                            dict[kv.Key] = PiiCrypto.Unprotect(sv);
+                        }
+                        else
+                        {
+                            dict[kv.Key] = PiiMask;
+                            maskedAny = true;
+                        }
+                    }
+                    else
+                    {
+                        // Gia tri khong ma hoa: giu nguyen (Unprotect la pass-through cho chuoi thuong).
+                        dict[kv.Key] = kv.Value;
+                    }
+                }
                 return (IDictionary<string, object?>)dict;
             })
             .ToList();
 
-        // Hang muc 6: neu bao cao co chua PII da ma hoa -> ghi 1 audit cho ca lo (khong ghi tung dong)
-        if (rawRows.Cast<IDictionary<string, object>>()
+        // Audit: chi ghi khi THUC SU giai ma PII plaintext (co rui ro lo lot). Mask thi khong can.
+        if (revealPii && rawRows.Cast<IDictionary<string, object>>()
                    .Any(r => r.Values.Any(v => v is string sv && PiiCrypto.Current?.IsProtected(sv) == true)))
         {
-            await _audit.LogAsync("PII_BULK_DECRYPT", "Report", reportCode,
+            await _audit.LogAsync("PII_PLAINTEXT_REVEAL", "Report", reportCode,
                 AuditSeverity.WARN, false, null,
                 new { tenantId = _tenant.TenantId, rowCount = rows.Count }, ct);
         }
+        _ = maskedAny;
 
         var subtotalKeys = descriptor.Columns.Where(c => c.IsGroupSubtotal).Select(c => c.Key).ToList();
 

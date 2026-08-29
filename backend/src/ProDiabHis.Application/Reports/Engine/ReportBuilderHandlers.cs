@@ -128,13 +128,15 @@ public class PreviewReportDefinitionHandler : IRequestHandler<PreviewReportDefin
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
     private readonly IBranchProvider _branch;
+    private readonly IPermissionChecker _permissions;
 
-    public PreviewReportDefinitionHandler(IDatasetRegistry datasets, IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
+    public PreviewReportDefinitionHandler(IDatasetRegistry datasets, IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IPermissionChecker permissions)
     {
         _datasets = datasets;
         _db = db;
         _branch = branch;
         _tenant = tenant;
+        _permissions = permissions;
     }
 
     public async Task<ReportDataResult> Handle(PreviewReportDefinitionQuery request, CancellationToken ct)
@@ -163,14 +165,21 @@ public class PreviewReportDefinitionHandler : IRequestHandler<PreviewReportDefin
         using var conn = (IDbConnection)_db.CreateConnection();
         var rawRows = await conn.QueryAsync(new CommandDefinition(sql, parameters, cancellationToken: ct));
 
+        // P1-04: Report Builder la truy van ad-hoc do nguoi dung tu dinh nghia -> mac dinh MASK
+        // moi cot PII (*_enc); chi hien plaintext khi user co quyen 'report.pii_plaintext' (admin bypass).
+        var revealPii = _permissions.HasPermission("report.pii_plaintext");
         var rows = rawRows
             .Select(r =>
             {
                 var src = (IDictionary<string, object>)r;
                 var dict = new Dictionary<string, object?>(src.Count);
-                // Hang muc 6: giai ma cot PII (*_enc) — pass-through voi gia tri khong ma hoa
                 foreach (var kv in src)
-                    dict[kv.Key] = kv.Value is string sv ? PiiCrypto.Unprotect(sv) : kv.Value;
+                {
+                    if (kv.Value is string sv && PiiCrypto.Current?.IsProtected(sv) == true)
+                        dict[kv.Key] = revealPii ? PiiCrypto.Unprotect(sv) : "••••••";
+                    else
+                        dict[kv.Key] = kv.Value;
+                }
                 return (IDictionary<string, object?>)dict;
             })
             .ToList();

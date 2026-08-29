@@ -136,6 +136,11 @@ public record ReportDescriptor
     /// <summary>Hien thi dong dem so phieu/dong trong tung nhom.</summary>
     public bool ShowGroupCount { get; init; }
 
+    /// <summary>P1-04: mac dinh MASK moi cot PII da ma hoa (*_enc) trong ket qua bao cao.
+    /// Chi hien plaintext khi descriptor nay khai bao true VA user co quyen 'report.pii_plaintext'
+    /// (super admin bypass). Mac dinh false = luon mask, khong ro ri PII qua duong bao cao.</summary>
+    public bool AllowPiiPlaintext { get; init; }
+
     public IReadOnlyList<ReportKpiSpec> Kpis { get; init; } = Array.Empty<ReportKpiSpec>();
 
     public IReadOnlyList<ReportFilter> Filters { get; init; } = Array.Empty<ReportFilter>();
