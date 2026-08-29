@@ -226,6 +226,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         permissions: ["tenant.read"],
       },
       {
+        href: "/admin/branches",
+        labelKey: "branches",
+        icon: Building2,
+        permissions: ["tenant.read"],
+      },
+      {
         href: "/admin/users",
         labelKey: "users",
         icon: Users,

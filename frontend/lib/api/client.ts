@@ -42,7 +42,7 @@ function processQueue(error: unknown, token: string | null = null) {
   refreshQueue = [];
 }
 
-// Request interceptor: inject access token
+// Request interceptor: inject access token + chi nhánh đang làm việc
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Read token from store at request time (avoid circular import)
@@ -54,6 +54,23 @@ apiClient.interceptors.request.use(
           const token = parsed?.state?.accessToken;
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch {
+          // ignore parse error
+        }
+      }
+
+      // Gắn header X-Branch-Id theo chi nhánh đang chọn (Zustand store persist
+      // key "prodiab.activeBranchId" — xem lib/stores/branch-store.ts).
+      // Đổi chi nhánh KHÔNG cần đăng nhập lại (quyết định Q10): chỉ cần đổi
+      // header này, backend BranchScopeMiddleware tự set lại context mỗi request.
+      const branchRaw = localStorage.getItem("prodiab.activeBranchId");
+      if (branchRaw) {
+        try {
+          const parsedBranch = JSON.parse(branchRaw);
+          const branchId = parsedBranch?.state?.activeBranchId;
+          if (branchId !== null && branchId !== undefined) {
+            config.headers["X-Branch-Id"] = String(branchId);
           }
         } catch {
           // ignore parse error

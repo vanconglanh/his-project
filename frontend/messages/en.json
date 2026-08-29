@@ -96,6 +96,7 @@
     "labrad": "Lab/Rad",
     "bhyt": "Health Insurance",
     "tenants": "Clinics",
+    "branches": "Branches",
     "users": "Users",
     "roles": "Roles",
     "audit": "Audit Log",

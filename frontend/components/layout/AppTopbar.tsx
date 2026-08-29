@@ -8,6 +8,7 @@ import { UserMenu } from "./UserMenu";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { NotificationDropdown } from "@/components/domain/NotificationDropdown";
+import { BranchSwitcher } from "./BranchSwitcher";
 
 const BREADCRUMB_MAP: Record<string, string> = {
   "/": "Tổng quan",
@@ -79,6 +80,7 @@ export function AppTopbar() {
         >
           <Search className="h-5 w-5" aria-hidden="true" />
         </Button>
+        <BranchSwitcher />
         <NotificationDropdown />
         <ThemeToggle />
         <Separator orientation="vertical" className="h-6 mx-1" />
