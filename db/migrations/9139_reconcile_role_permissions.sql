@@ -45,6 +45,8 @@ SELECT @letan, id FROM diab_his_sec_permissions WHERE code IN (
   'billing.read','billing.create','billing.print',
   'icd10.read','recall.read','recall.manage',
   'bhyt.read','risk.read','report.read',
+  -- xem danh bạ nhân sự để chọn bác sĩ khi tạo lượt khám (/users?role=bac_si)
+  'user.read',
   'dashboard.read','notification.read'
 );
 
@@ -70,6 +72,8 @@ SELECT @bacsi, id FROM diab_his_sec_permissions WHERE code IN (
   'appointment.read','appointment.write','room.read',
   -- widget hàng chờ / phòng trên màn khám: bác sĩ gọi bệnh nhân vào khám + xem phòng
   'reception.queue.manage','reception.rooms.read',
+  -- xem danh bạ nhân sự (chọn bác sĩ khi tạo lượt khám)
+  'user.read',
   'recall.read','recall.manage','report.read','report.build',
   'file.upload','file_annotation.read','file_annotation.write','file_annotation.delete',
   'dashboard.read','notification.read'
