@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Cdss;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Application.Telehealth;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Pharmacy.Prescriptions;
@@ -267,6 +268,41 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
         var userId = _currentUser.UserId;
+
+        // FR-803: ke don tu context telehealth BAT BUOC gan voi 1 encounter loai telehealth
+        // (diab_his_enc_encounters.telehealth_session_id KHONG NULL) - khong tin co client, luon
+        // kiem tra lai o server truoc khi tao don.
+        if (cmd.Request.IsTelehealthContext)
+        {
+            var encounter = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                @"SELECT id, telehealth_session_id FROM diab_his_enc_encounters
+                  WHERE id=@EncId AND tenant_id=@TenantId AND deleted_at IS NULL",
+                new { EncId = cmd.Request.EncounterId.ToString(), TenantId = tenantId });
+
+            if (encounter is null || encounter.telehealth_session_id is null)
+            {
+                return Result<PrescriptionResponse>.Failure("TELEHEALTH_ENCOUNTER_REQUIRED",
+                    "Đơn thuốc tư vấn từ xa bắt buộc phải gắn với một lượt khám telehealth hợp lệ (thiếu encounterId hoặc lượt khám không phải telehealth)");
+            }
+
+            // FR-804: chan cung neu chan doan chinh cua encounter nam ngoai danh muc ICD-10
+            // duoc phep tu van tu xa (danh muc configurable qua Admin API, khong hardcode).
+            var primaryIcd10 = await conn.ExecuteScalarAsync<string?>(
+                @"SELECT icd10_code FROM diab_his_enc_diagnoses
+                  WHERE encounter_id=@EncId AND tenant_id=@TenantId AND type='PRIMARY' AND deleted_at IS NULL
+                  ORDER BY created_at DESC LIMIT 1",
+                new { EncId = cmd.Request.EncounterId.ToString(), TenantId = tenantId });
+
+            if (!string.IsNullOrWhiteSpace(primaryIcd10))
+            {
+                var allowed = await TelehealthIcd10Guard.IsAllowedAsync(_db, tenantId, primaryIcd10, ct);
+                if (!allowed)
+                {
+                    return Result<PrescriptionResponse>.Failure("TELEHEALTH_ICD10_NOT_ALLOWED",
+                        $"Mã chẩn đoán '{primaryIcd10}' không nằm trong danh mục được phép tư vấn từ xa. Vui lòng chỉ định bệnh nhân khám trực tiếp.");
+                }
+            }
+        }
 
         var presId = Guid.NewGuid().ToString();
         await conn.ExecuteAsync(

@@ -26,6 +26,34 @@ public record GetTelehealthSessionQuery(Guid PatientId, Guid SessionId)
 public record GetTelehealthJoinLinkQuery(Guid PatientId, Guid SessionId)
     : IRequest<Result<TelehealthJoinLinkResponse>>;
 
+// ── FR-804: Danh muc ICD-10 duoc phep tu van tu xa (Admin) ──
+public record ListAllowedIcd10Query() : IRequest<Result<IReadOnlyList<AllowedIcd10Response>>>;
+
+public record CreateAllowedIcd10Command(AllowedIcd10Request Request) : IRequest<Result<AllowedIcd10Response>>;
+
+public record UpdateAllowedIcd10Command(Guid Id, AllowedIcd10Request Request) : IRequest<Result<AllowedIcd10Response>>;
+
+public record DeleteAllowedIcd10Command(Guid Id) : IRequest<Result<bool>>;
+
+// ═══════════════════════════════════════════════
+// FR-804: helper dung chung — kiem tra ICD-10 co nam trong danh muc duoc phep
+// tu van tu xa (active) cua tenant hay khong. Dung o ca 2 diem: dat lich (canh bao mem)
+// va ke don telehealth (chan cung, xem PrescriptionHandlers.CreatePrescriptionHandler).
+// ═══════════════════════════════════════════════
+public static class TelehealthIcd10Guard
+{
+    public static async Task<bool> IsAllowedAsync(
+        IDapperConnectionFactory dbFactory, int tenantId, string icd10Code, CancellationToken ct)
+    {
+        using var conn = dbFactory.CreateConnection();
+        var count = await conn.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(*) FROM diab_his_tel_allowed_icd10
+            WHERE tenant_id=@TId AND icd10_code=@Code AND is_active=1 AND deleted_at IS NULL",
+            new { TId = tenantId, Code = icd10Code });
+        return count > 0;
+    }
+}
+
 // ═══════════════════════════════════════════════
 // FR-801: kiem tra dieu kien dat lich tu van tu xa
 // ═══════════════════════════════════════════════
@@ -331,9 +359,19 @@ public class CreateTelehealthAppointmentCommandHandler
         await _audit.LogAsync("CREATE_TELEHEALTH_SESSION", "TelehealthSession", id.ToString(),
             new { docosan_appointment_id = apt.AppointmentId }, ct);
 
+        // FR-804: canh bao MEM neu da co ICD-10 luc dat lich nhung nam ngoai danh muc duoc phep
+        // tu van tu xa - KHONG chan dat lich (thuong chua co chan doan o buoc nay).
+        string? icd10Warning = null;
+        if (!string.IsNullOrWhiteSpace(cmd.Request.DiagnosisIcd10))
+        {
+            var allowed = await TelehealthIcd10Guard.IsAllowedAsync(_db, _tenant.TenantId, cmd.Request.DiagnosisIcd10.Trim(), ct);
+            if (!allowed)
+                icd10Warning = $"Mã ICD-10 '{cmd.Request.DiagnosisIcd10}' chưa nằm trong danh mục được phép tư vấn từ xa. Vui lòng cân nhắc chỉ định khám trực tiếp nếu phù hợp.";
+        }
+
         return Result<TelehealthSessionResponse>.Success(new TelehealthSessionResponse(
             id, cmd.PatientId, cmd.Request.DoctorUserId, apt.Status ?? "request", hisStatus,
-            scheduledStart, scheduledEnd, apt.PaymentStatus, now));
+            scheduledStart, scheduledEnd, apt.PaymentStatus, now, icd10Warning));
     }
 
     public static string MapHisStatus(string? docosanStatus) => docosanStatus switch

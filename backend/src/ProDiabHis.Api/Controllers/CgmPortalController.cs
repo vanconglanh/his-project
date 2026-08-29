@@ -29,10 +29,24 @@ public class CgmPortalController : ControllerBase
         return Ok(new { data = result.Value });
     }
 
+    /// <summary>
+    /// FR-711: Đồng bộ (push) batch dữ liệu đo đường huyết liên tục (CGM) từ thiết bị/app của bệnh nhân.
+    /// Bổ sung cho CgmReadingsSyncJob (pull định kỳ) — dùng khi thiết bị/app chủ động đẩy dữ liệu về
+    /// (thay vì chờ HIS poll theo lịch). Idempotent theo (tenant_id, patient_id, provider, device_id, reading_at).
+    /// </summary>
+    [HttpPost("sync")]
+    public async Task<IActionResult> Sync([FromBody] CgmSyncRequest request, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new SyncCgmReadingsCommand(PatientId, request), ct);
+        if (!result.IsSuccess)
+            return StatusCode(MapErrorStatus(result.ErrorCode!), Error(result.ErrorCode!, result.ErrorMessage!));
+        return Ok(new { data = result.Value });
+    }
+
     private static int MapErrorStatus(string code) => code switch
     {
-        "PATIENT_NOT_FOUND" => 404,
-        "CGM_PROVIDER_NOT_SUPPORTED" or "CGM_AUTH_CODE_REQUIRED" or "CGM_LINK_FAILED" => 400,
+        "PATIENT_NOT_FOUND" or "CGM_ACCOUNT_NOT_LINKED" => 404,
+        "CGM_PROVIDER_NOT_SUPPORTED" or "CGM_AUTH_CODE_REQUIRED" or "CGM_LINK_FAILED" or "CGM_SYNC_EMPTY_BATCH" => 400,
         "CGM_PROVIDER_NOT_CONFIGURED" or "CGM_PROVIDER_UNAVAILABLE" => 502,
         _ => 400
     };

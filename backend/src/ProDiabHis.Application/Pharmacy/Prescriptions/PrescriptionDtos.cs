@@ -1,11 +1,17 @@
 namespace ProDiabHis.Application.Pharmacy.Prescriptions;
 
 // ── Request DTOs ──────────────────────────────────────────────────────────────
+/// <param name="IsTelehealthContext">
+/// FR-803: bao FE/client dang ke don tu luong tu van tu xa (telehealth). Khi true, handler BAT BUOC
+/// kiem tra EncounterId tra ve tu diab_his_enc_encounters phai co telehealth_session_id (khong null) -
+/// neu khong se tra loi TELEHEALTH_ENCOUNTER_REQUIRED. Mac dinh false (ke don thuong tai phong kham).
+/// </param>
 public record PrescriptionCreateRequest(
     Guid EncounterId,
     Guid PatientId,
     string? Note,
-    IReadOnlyList<PrescriptionItemRequest>? Items);
+    IReadOnlyList<PrescriptionItemRequest>? Items,
+    bool IsTelehealthContext = false);
 
 public record PrescriptionUpdateRequest(string? Note);
 

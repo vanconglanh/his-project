@@ -22,3 +22,24 @@ public record CgmStatusResponse(
     DateTime? LinkedAt,
     DateTime? LastSyncedAt,
     string? LastSyncError);
+
+// ═══════════════════════════════════════════════
+// FR-711: Dong bo (push) du lieu do lien tuc CGM tu thiet bi/portal — bo sung POST /cgm/sync
+// canh voi CgmReadingsSyncJob (pull dinh ky). Dung khi thiet bi/app cua benh nhan chu dong day
+// du lieu ve (webhook/portal) thay vi cho job poll theo lich.
+// ═══════════════════════════════════════════════
+
+/// <summary>1 ban ghi do duong huyet trong batch dong bo tu thiet bi/portal.</summary>
+/// <param name="Timestamp">Thời điểm đo (UTC, theo đồng hồ thiết bị).</param>
+/// <param name="GlucoseValueMgDl">Giá trị đường huyết, đơn vị mg/dL.</param>
+/// <param name="TrendDirection">Xu hướng: flat|rising|rising_rapidly|falling|falling_rapidly|not_computable|unknown.</param>
+/// <param name="DeviceId">ID thiết bị (sensor/transmitter) — 1 phần khóa idempotency khi ghi DB.</param>
+public record CgmSyncReadingItem(DateTime Timestamp, decimal GlucoseValueMgDl, string? TrendDirection, string? DeviceId);
+
+/// <summary>Request đồng bộ batch dữ liệu CGM (POST /api/v1/portal/cgm/sync).</summary>
+/// <param name="Provider">Mã nhà cung cấp CGM đã liên kết (vd "Dexcom") — phải khớp liên kết ACTIVE của bệnh nhân.</param>
+/// <param name="Readings">Danh sách bản ghi đo trong batch.</param>
+public record CgmSyncRequest(string Provider, IReadOnlyList<CgmSyncReadingItem> Readings);
+
+/// <summary>Kết quả đồng bộ batch — tổng số nhận, số bản ghi mới (sau idempotency), số bị bỏ qua.</summary>
+public record CgmSyncResponse(int Received, int Inserted, int Skipped, DateTime SyncedAt);

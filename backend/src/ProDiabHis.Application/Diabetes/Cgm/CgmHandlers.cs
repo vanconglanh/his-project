@@ -16,6 +16,9 @@ public record LinkCgmAccountCommand(Guid PatientId, CgmLinkRequest Request) : IR
 /// <summary>FR-711: Bác sĩ xem trạng thái liên kết CGM của bệnh nhân.</summary>
 public record GetCgmStatusQuery(Guid PatientId) : IRequest<Result<CgmStatusResponse>>;
 
+/// <summary>FR-711: Portal — thiết bị/app CGM chủ động đẩy batch dữ liệu đo về (push, bổ sung cho job pull định kỳ).</summary>
+public record SyncCgmReadingsCommand(Guid PatientId, CgmSyncRequest Request) : IRequest<Result<CgmSyncResponse>>;
+
 // ═══════════════════════════════════════════════
 // Link tai khoan CGM (POST /api/v1/portal/cgm/link)
 // ═══════════════════════════════════════════════
@@ -163,5 +166,98 @@ public class GetCgmStatusQueryHandler : IRequestHandler<GetCgmStatusQuery, Resul
             LinkedAt: (DateTime?)link.linked_at,
             LastSyncedAt: (DateTime?)link.last_synced_at,
             LastSyncError: (string?)link.last_sync_error));
+    }
+}
+
+// ═══════════════════════════════════════════════
+// FR-711: Dong bo (push) batch du lieu do CGM (POST /api/v1/portal/cgm/sync)
+// Bo sung cho CgmReadingsSyncJob (pull dinh ky) — dung khi thiet bi/app CGM cua benh nhan
+// chu dong day du lieu ve thay vi cho HIS poll theo lich.
+// Idempotency: INSERT IGNORE theo UNIQUE KEY (tenant_id, patient_id, provider, device_id, reading_at)
+// cua bang diab_his_dev_cgm_readings — trung khoang thoi gian/gia tri se tu dong bo qua, KHONG loi.
+// ═══════════════════════════════════════════════
+public class SyncCgmReadingsCommandHandler : IRequestHandler<SyncCgmReadingsCommand, Result<CgmSyncResponse>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+    private readonly IAuditService _audit;
+    private readonly ILogger<SyncCgmReadingsCommandHandler> _logger;
+
+    public SyncCgmReadingsCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
+        IAuditService audit, ILogger<SyncCgmReadingsCommandHandler> logger)
+    { _db = db; _tenant = tenant; _audit = audit; _logger = logger; }
+
+    public async Task<Result<CgmSyncResponse>> Handle(SyncCgmReadingsCommand cmd, CancellationToken ct)
+    {
+        var providerCode = (cmd.Request.Provider ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(providerCode))
+            return Result<CgmSyncResponse>.Failure("CGM_PROVIDER_NOT_SUPPORTED", "Thiếu thông tin nhà cung cấp CGM (provider)");
+
+        var readings = cmd.Request.Readings;
+        if (readings is null || readings.Count == 0)
+            return Result<CgmSyncResponse>.Failure("CGM_SYNC_EMPTY_BATCH", "Batch dữ liệu đo CGM rỗng, không có gì để đồng bộ");
+
+        using var conn = _db.CreateConnection();
+        var tenantId = _tenant.TenantId;
+
+        var patient = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT id FROM diab_his_pat_patients WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            new { Id = cmd.PatientId.ToString(), TId = tenantId });
+        if (patient is null)
+            return Result<CgmSyncResponse>.Failure("PATIENT_NOT_FOUND", "Không tìm thấy bệnh nhân");
+
+        // Chi cho phep dong bo neu benh nhan da lien ket tai khoan CGM voi provider nay (bat ky trang thai
+        // nao tru REVOKED) - tranh nhan du lieu "ma" tu thiet bi chua tung link.
+        var link = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+            SELECT id, status FROM diab_his_dev_cgm_links
+            WHERE tenant_id=@TId AND patient_id=@PId AND provider=@Provider AND deleted_at IS NULL
+            ORDER BY status='ACTIVE' DESC, updated_at DESC LIMIT 1",
+            new { TId = tenantId, PId = cmd.PatientId.ToString(), Provider = providerCode });
+
+        if (link is null || (string)link.status == "REVOKED")
+            return Result<CgmSyncResponse>.Failure("CGM_ACCOUNT_NOT_LINKED",
+                "Bệnh nhân chưa liên kết tài khoản CGM với nhà cung cấp này, vui lòng liên kết trước khi đồng bộ");
+
+        string linkId = (string)link.id;
+        var now = DateTime.UtcNow;
+        int inserted = 0, skipped = 0;
+
+        foreach (var r in readings)
+        {
+            if (r.GlucoseValueMgDl <= 0)
+            {
+                skipped++;
+                continue;
+            }
+
+            var rows = await conn.ExecuteAsync(@"
+                INSERT IGNORE INTO diab_his_dev_cgm_readings
+                    (id, tenant_id, patient_id, cgm_link_id, provider, device_id, reading_at,
+                     glucose_value_mg_dl, trend_direction, created_at, updated_at)
+                VALUES
+                    (UUID(), @TenantId, @PatientId, @LinkId, @Provider, @DeviceId, @ReadingAt,
+                     @Value, @Trend, @Now, @Now)",
+                new
+                {
+                    TenantId = tenantId, PatientId = cmd.PatientId.ToString(), LinkId = linkId,
+                    Provider = providerCode, DeviceId = r.DeviceId, ReadingAt = r.Timestamp,
+                    Value = r.GlucoseValueMgDl, Trend = r.TrendDirection, Now = now
+                });
+
+            if (rows > 0) inserted++; else skipped++;
+        }
+
+        await conn.ExecuteAsync(
+            "UPDATE diab_his_dev_cgm_links SET status='ACTIVE', last_sync_error=NULL, last_synced_at=@Now, updated_at=@Now WHERE id=@Id",
+            new { Now = now, Id = linkId });
+
+        _logger.LogInformation(
+            "SyncCgmReadingsCommand: patient {PatientId} provider {Provider} - nhan {Received}, moi {Inserted}, bo qua {Skipped}",
+            cmd.PatientId, providerCode, readings.Count, inserted, skipped);
+
+        await _audit.LogAsync("SYNC_CGM_READINGS", "Patient", cmd.PatientId.ToString(),
+            new { provider = providerCode, received = readings.Count, inserted, skipped }, ct);
+
+        return Result<CgmSyncResponse>.Success(new CgmSyncResponse(readings.Count, inserted, skipped, now));
     }
 }
