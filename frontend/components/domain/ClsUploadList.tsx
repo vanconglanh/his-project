@@ -5,6 +5,13 @@ import { Upload, Trash2, FileText, Image, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { useClsUploads, useUploadCls, useDeleteClsUpload } from "@/lib/hooks/use-cls-uploads";
@@ -17,6 +24,21 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// Danh muc co dinh cho tai lieu CLS (backend chi luu 1 cot doc_type dang free-text,
+// khong co enum rieng - danh sach nay chi ton tai o FE de chuan hoa lua chon).
+const CLS_DOC_CATEGORIES = [
+  { value: "XET_NGHIEM", label: "Xét nghiệm" },
+  { value: "X_QUANG", label: "X-quang" },
+  { value: "SIEU_AM", label: "Siêu âm" },
+  { value: "CT_MRI", label: "CT / MRI" },
+  { value: "NOI_SOI", label: "Nội soi" },
+  { value: "DIEN_TIM", label: "Điện tâm đồ (ECG)" },
+  { value: "KHAC", label: "Khác" },
+] as const;
+const CLS_DOC_CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
+  CLS_DOC_CATEGORIES.map((c) => [c.value, c.label])
+);
+
 interface ClsUploadListProps {
   patientId: string;
 }
@@ -24,7 +46,8 @@ interface ClsUploadListProps {
 export function ClsUploadList({ patientId }: ClsUploadListProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [docType, setDocType] = useState("");
+  const [category, setCategory] = useState("");
+  const [docName, setDocName] = useState("");
   const [note, setNote] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -49,10 +72,15 @@ export function ClsUploadList({ patientId }: ClsUploadListProps) {
   };
 
   const handleUpload = async () => {
-    if (!pendingFile || !docType.trim()) return;
-    await uploadMutation.mutateAsync({ file: pendingFile, docType: docType.trim(), note: note || undefined });
+    if (!pendingFile || !category || !docName.trim()) return;
+    // Backend chi co 1 cot doc_type (free-text) - ghep "Loai: Ten" de van hien
+    // dep trong luoi (item.doc_type dung lam tieu de chinh) ma khong can sua BE.
+    const categoryLabel = CLS_DOC_CATEGORY_LABEL[category] ?? category;
+    const composedDocType = `${categoryLabel}: ${docName.trim()}`;
+    await uploadMutation.mutateAsync({ file: pendingFile, docType: composedDocType, note: note || undefined });
     setPendingFile(null);
-    setDocType("");
+    setCategory("");
+    setDocName("");
     setNote("");
   };
 
@@ -108,33 +136,60 @@ export function ClsUploadList({ patientId }: ClsUploadListProps) {
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="doc_type">Loại hồ sơ *</Label>
-            <Input
-              id="doc_type"
-              value={docType}
-              onChange={(e) => setDocType(e.target.value)}
-              placeholder="VD: X-quang phổi - BV Bạch Mai 20/05/2026"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="doc_category">Loại *</Label>
+              <Select
+                items={Object.fromEntries(CLS_DOC_CATEGORIES.map((c) => [c.value, c.label]))}
+                value={category}
+                onValueChange={(v) => setCategory(v ?? "")}
+              >
+                <SelectTrigger id="doc_category" className="w-full" aria-label="Loại hồ sơ">
+                  <SelectValue placeholder="Chọn loại hồ sơ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLS_DOC_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="doc_name">Tên *</Label>
+              <Input
+                id="doc_name"
+                value={docName}
+                onChange={(e) => setDocName(e.target.value)}
+                placeholder="VD: Phổi trái - BV Bạch Mai 20/05/2026"
+              />
+            </div>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="cls_note">Ghi chú</Label>
+            <Label htmlFor="cls_note">Mô tả</Label>
             <Input
               id="cls_note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Ghi chú thêm (tuỳ chọn)"
+              placeholder="Mô tả thêm (tuỳ chọn)"
             />
           </div>
           <div className="flex gap-2">
             <Button
               size="sm"
               onClick={handleUpload}
-              disabled={!docType.trim() || uploadMutation.isPending}
+              disabled={!category || !docName.trim() || uploadMutation.isPending}
             >
               {uploadMutation.isPending ? "Đang tải lên..." : "Tải lên"}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setPendingFile(null)}>Huỷ</Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setPendingFile(null); setCategory(""); setDocName(""); setNote(""); }}
+            >
+              Huỷ
+            </Button>
           </div>
         </div>
       )}
