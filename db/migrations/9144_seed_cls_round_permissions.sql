@@ -1,5 +1,5 @@
 -- ============================================================
--- Migration: 9082_seed_cls_round_permissions
+-- Migration: 9144_seed_cls_round_permissions
 -- Story refs: G01 + G02 - quyen thao tac dot chi dinh CLS
 -- Mo ta: seed quyen cls_round.* vao catalog + cap het cho role 'admin'
 --   (theo dung pattern 9066_seed_all_gated_permissions.sql: cot

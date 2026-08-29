@@ -313,11 +313,11 @@ erDiagram
 - FHIR R4: `ClsOrderRound` ≈ `ServiceRequest` với `ServiceRequest.requisition` (Identifier nhóm) —
   các LabOrder/RadOrder là `ServiceRequest` con chia sẻ cùng `requisition` = round id.
 
-## B3. Migration `db/migrations/9081_create_cls_order_rounds.sql`
+## B3. Migration `db/migrations/9143_create_cls_order_rounds.sql`
 
 ```sql
 -- ============================================================
--- Migration: 9081_create_cls_order_rounds
+-- Migration: 9143_create_cls_order_rounds
 -- Engine: MySQL 8.0+, InnoDB, utf8mb4
 -- Generated: 2026-08-18
 -- Story refs: G01 + G02 — Chuoi CLS theo dot chi dinh + gate thanh toan
@@ -383,11 +383,11 @@ CALL add_col_if_missing('diab_his_rcp_queue_tickets', 'waiting_cls_at',
     'DATETIME NULL COMMENT ''Thoi diem chuyen sang cho ket qua CLS''');
 ```
 
-### Migration `db/migrations/9082_seed_cls_round_permissions.sql`
+### Migration `db/migrations/9144_seed_cls_round_permissions.sql`
 
 ```sql
 -- ============================================================
--- Migration: 9082_seed_cls_round_permissions
+-- Migration: 9144_seed_cls_round_permissions
 -- Story refs: G01 + G02 — quyen thao tac dot CLS
 -- Idempotent: YES (INSERT IGNORE theo code)
 -- ============================================================
@@ -718,8 +718,8 @@ sequenceDiagram
 
 | File | Thao tác |
 |---|---|
-| `db/migrations/9081_create_cls_order_rounds.sql` | **TẠO MỚI** |
-| `db/migrations/9082_seed_cls_round_permissions.sql` | **TẠO MỚI** |
+| `db/migrations/9143_create_cls_order_rounds.sql` | **TẠO MỚI** |
+| `db/migrations/9144_seed_cls_round_permissions.sql` | **TẠO MỚI** |
 | `db/migrations/APPLY_ORDER.md` | SỬA — bổ sung 9080/9081/9082 |
 | `backend/src/ProDiabHis.Domain/Entities/ClsOrderRound.cs` | **TẠO MỚI** — entity + `ClsRoundStatus` + `ClsRoundPaymentStatus` (kèm `CanTransition`) |
 | `backend/src/ProDiabHis.Domain/Entities/ClsOrder.cs` | SỬA — `LabOrder.RoundId`, `RadOrder.RoundId` (`string?`) |

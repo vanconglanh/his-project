@@ -1,5 +1,5 @@
 -- =============================================================
--- 9080_diagnosis_primary_g06.sql
+-- 9145_diagnosis_primary_g06.sql
 -- G06: Chan doan CHINH vs KEM THEO (map MA_BENH / MA_BENH_KHAC - QD 4750)
 -- Bang: diab_his_enc_diagnoses (cot `type` ENUM PRIMARY/SECONDARY)
 -- Idempotent: dung add_col_if_missing / add_index_if_missing (0000_helpers.sql)
