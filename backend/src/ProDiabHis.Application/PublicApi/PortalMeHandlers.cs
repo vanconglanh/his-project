@@ -38,7 +38,7 @@ public class GetPortalPrescriptionsHandler : IRequestHandler<GetPortalPrescripti
             string id = (string)r.id;
             var itemRows = await conn.QueryAsync<dynamic>(
                 @"SELECT d.name AS drug_name, d.strength AS drug_strength, d.unit,
-                         i.dosage, i.frequency, i.duration_days, i.quantity, i.instructions AS note
+                         i.dosage, i.frequency, i.duration_days, i.quantity, i.note AS note
                   FROM diab_his_pha_prescription_items i
                   JOIN diab_his_pha_drugs d ON d.id = i.drug_id
                   WHERE i.prescription_id = @Id AND i.tenant_id = @TenantId",
@@ -168,7 +168,7 @@ public class GetPortalEncounterDetailHandler
         if (presc != null)
         {
             var itemRows = await conn.QueryAsync<dynamic>(
-                @"SELECT d.name AS drug_name, i.dosage, i.frequency, i.duration_days, i.instructions AS note
+                @"SELECT d.name AS drug_name, i.dosage, i.frequency, i.duration_days, i.note AS note
                   FROM diab_his_pha_prescription_items i
                   JOIN diab_his_pha_drugs d ON d.id = i.drug_id
                   WHERE i.prescription_id = @Id AND i.tenant_id = @TenantId",
