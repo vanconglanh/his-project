@@ -34,8 +34,14 @@ export interface PatientEditorLayoutProps {
 
 function buildPayload(values: PatientFormValues): CreatePatientRequest {
   const { province_code, district_code, ward_code, street, email, ...rest } = values;
+  // Chuẩn hoá: ô optional bỏ trống -> undefined (không gửi chuỗi rỗng "" khiến BE parse date/field lỗi 400)
+  const emptyToUndef = <T,>(v: T): T | undefined =>
+    typeof v === "string" && v.trim() === "" ? undefined : v;
+  const normalized = Object.fromEntries(
+    Object.entries(rest).map(([k, v]) => [k, emptyToUndef(v)]),
+  ) as typeof rest;
   return {
-    ...rest,
+    ...normalized,
     email: email || undefined,
     address:
       province_code || district_code || ward_code || street
