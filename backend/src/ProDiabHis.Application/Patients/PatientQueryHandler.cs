@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Patients;
 
@@ -77,8 +78,12 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
 public class GetPatientQueryHandler : IRequestHandler<GetPatientQuery, Result<PatientResponse>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly IAuditService _audit;
 
-    public GetPatientQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetPatientQueryHandler(IApplicationDbContext db, IAuditService audit)
+    {
+        _db = db; _audit = audit;
+    }
 
     public async Task<Result<PatientResponse>> Handle(GetPatientQuery request, CancellationToken cancellationToken)
     {
@@ -87,6 +92,9 @@ public class GetPatientQueryHandler : IRequestHandler<GetPatientQuery, Result<Pa
 
         if (patient is null)
             return Result<PatientResponse>.Failure("PATIENT_NOT_FOUND", "Không tìm thấy bệnh nhân");
+
+        // P0-01: ghi nhat ky truy cap (doc) ho so benh nhan - yeu cau tuan thu TT 13/2025/TT-BYT
+        await _audit.LogAsync(AuditAction.View, "Patient", patient.Id.ToString(), null, cancellationToken);
 
         var guardians = await _db.PatientGuardians.AsNoTracking()
             .Where(g => g.PatientId == request.PatientId && g.DeletedAt == null)

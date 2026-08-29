@@ -65,7 +65,8 @@ public class RadResultsController : ControllerBase
         var result = await _mediator.Send(new VerifyRadResultCommand(id), ct);
         if (!result.IsSuccess)
         {
-            var code = result.ErrorCode == "RAD_RESULT_NOT_FOUND" ? 404 : 400;
+            var code = result.ErrorCode == "RAD_RESULT_NOT_FOUND" ? 404 :
+                       result.ErrorCode == "VERIFY_SELF_FORBIDDEN" ? 403 : 400;
             return StatusCode(code, Error(result.ErrorCode!, result.ErrorMessage!));
         }
         return Ok(new { data = new { signed_pdf_url = result.Value } });

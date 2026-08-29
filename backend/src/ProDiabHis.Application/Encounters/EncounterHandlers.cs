@@ -559,6 +559,9 @@ public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetail
         if (enc is null)
             return Result<EncounterDetailResponse>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
+        // P0-01: ghi nhat ky truy cap (doc) benh an - yeu cau tuan thu TT 13/2025/TT-BYT
+        await _audit.LogAsync(AuditAction.View, "Encounter", enc.Id.ToString(), null, ct);
+
         var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit);
         var base_ = await helper.BuildEncounterResponse(enc, ct);
 

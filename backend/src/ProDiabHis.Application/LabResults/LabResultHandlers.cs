@@ -285,6 +285,15 @@ public class VerifyLabResultCommandHandler
         if (entity.Status == LabResultStatus.Verified)
             return Result<bool>.Failure("LAB_RESULT_ALREADY_VERIFIED", "Kết quả đã được xác thực");
 
+        // P1-03: chan tu duyet - nguoi thuc hien khong duoc tu duyet ket qua cua chinh minh (SoD)
+        if (!string.IsNullOrEmpty(entity.PerformedBy) &&
+            _user.UserId is not null &&
+            string.Equals(entity.PerformedBy, _user.UserId.Value.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<bool>.Failure("VERIFY_SELF_FORBIDDEN",
+                "Người thực hiện không được tự duyệt kết quả của chính mình");
+        }
+
         var now = DateTime.UtcNow;
         entity.Status     = LabResultStatus.Verified;
         entity.VerifiedAt = now;
@@ -375,7 +384,6 @@ public class ImportLabResultsCommandHandler
 
         var errors  = new List<ImportErrorItem>();
         var success = 0;
-        var now     = DateTime.UtcNow;
 
         for (int i = 0; i < rows.Count; i++)
         {
@@ -401,7 +409,13 @@ public class ImportLabResultsCommandHandler
                     .FirstOrDefaultAsync(e => e.Id.ToString() == order.EncounterId, ct);
 
                 var flag   = _flagCalc.Calculate(valNum, null, null);
-                var status = cmd.AutoVerify ? LabResultStatus.Verified : LabResultStatus.Draft;
+
+                // P1-03: import file thu cong (khong phai ket noi may XN da ky) -> PerformedBy
+                // luon la nguoi import (_user.UserId). Neu cho phep AutoVerify o day thi
+                // nguoi import se tu duyet ket qua cua chinh minh (VerifiedBy == PerformedBy),
+                // vi pham SoD. SIET LAI: bo qua cmd.AutoVerify, luon tao o trang thai Draft,
+                // bat buoc mot nguoi khac (bac si/KTV khac) duyet qua endpoint /verify rieng.
+                var status = LabResultStatus.Draft;
 
                 var entity = new LabResult
                 {
@@ -421,8 +435,8 @@ public class ImportLabResultsCommandHandler
                     PerformedBy  = _user.UserId?.ToString(),
                     Status       = status,
                     Source       = LabResultSource.Import,
-                    VerifiedAt   = cmd.AutoVerify ? now : null,
-                    VerifiedBy   = cmd.AutoVerify ? _user.UserId?.ToString() : null,
+                    VerifiedAt   = null,
+                    VerifiedBy   = null,
                     CreatedBy    = _user.UserId,
                 };
 
@@ -555,9 +569,10 @@ public class ExportLabResultPdfQueryHandler
 {
     private readonly IApplicationDbContext _db;
     private readonly ILabResultPdfExporter _pdfExporter;
+    private readonly IAuditService _audit;
 
-    public ExportLabResultPdfQueryHandler(IApplicationDbContext db, ILabResultPdfExporter pdfExporter)
-    { _db = db; _pdfExporter = pdfExporter; }
+    public ExportLabResultPdfQueryHandler(IApplicationDbContext db, ILabResultPdfExporter pdfExporter, IAuditService audit)
+    { _db = db; _pdfExporter = pdfExporter; _audit = audit; }
 
     public async Task<Result<byte[]>> Handle(ExportLabResultPdfQuery q, CancellationToken ct)
     {
@@ -566,6 +581,9 @@ public class ExportLabResultPdfQueryHandler
             return Result<byte[]>.Failure("LAB_RESULT_NOT_FOUND", "Không tìm thấy kết quả XN");
         if (entity.Status != LabResultStatus.Verified)
             return Result<byte[]>.Failure("LAB_RESULT_NOT_VERIFIED", "Chỉ xuất PDF khi kết quả đã xác thực");
+
+        // P0-01: ghi nhat ky truy cap (doc) ket qua XN - yeu cau tuan thu TT 13/2025/TT-BYT
+        await _audit.LogAsync(AuditAction.View, "LabResult", entity.Id.ToString(), null, ct);
 
         var pdf = await _pdfExporter.ExportLabResultAsync(entity, ct);
         return Result<byte[]>.Success(pdf);

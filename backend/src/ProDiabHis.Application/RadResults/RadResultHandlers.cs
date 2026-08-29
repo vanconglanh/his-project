@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using MediatR;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.RadResults;
 
@@ -295,6 +296,16 @@ public class VerifyRadResultCommandHandler
         if (row is null)
             return Result<string>.Failure("RAD_RESULT_NOT_FOUND", "Không tìm thấy kết quả CĐHA");
 
+        // P1-03: chan tu duyet - nguoi thuc hien khong duoc tu duyet ket qua cua chinh minh (SoD)
+        string? performedBy = row.performed_by?.ToString();
+        if (!string.IsNullOrEmpty(performedBy) &&
+            _user.UserId is not null &&
+            string.Equals(performedBy, _user.UserId.Value.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<string>.Failure("VERIFY_SELF_FORBIDDEN",
+                "Người thực hiện không được tự duyệt kết quả của chính mình");
+        }
+
         var pdfBytes = await _pdfExporter.ExportRadResultAsync(row, ct);
 
         // Upload to MinIO
@@ -379,10 +390,11 @@ public class ExportRadResultPdfQueryHandler
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
     private readonly ILabResultPdfExporter _pdfExporter;
+    private readonly IAuditService _audit;
 
     public ExportRadResultPdfQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant,
-        ILabResultPdfExporter pdfExporter)
-    { _db = db; _tenant = tenant; _pdfExporter = pdfExporter; }
+        ILabResultPdfExporter pdfExporter, IAuditService audit)
+    { _db = db; _tenant = tenant; _pdfExporter = pdfExporter; _audit = audit; }
 
     public async Task<Result<byte[]>> Handle(ExportRadResultPdfQuery q, CancellationToken ct)
     {
@@ -411,6 +423,9 @@ public class ExportRadResultPdfQueryHandler
 
         if (row is null)
             return Result<byte[]>.Failure("RAD_RESULT_NOT_FOUND", "Không tìm thấy kết quả CĐHA");
+
+        // P0-01: ghi nhat ky truy cap (doc) ket qua CDHA - yeu cau tuan thu TT 13/2025/TT-BYT
+        await _audit.LogAsync(AuditAction.View, "RadResult", q.Id.ToString(), null, ct);
 
         var pdf = await _pdfExporter.ExportRadResultAsync(row, ct);
         return Result<byte[]>.Success(pdf);

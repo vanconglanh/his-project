@@ -7,6 +7,7 @@ import { Building2, ChevronDown, Check } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -86,7 +87,9 @@ export function BranchSwitcher() {
         <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel>Chi nhánh đang làm việc</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Chi nhánh đang làm việc</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {canViewAllBranches && (
           <>
@@ -110,7 +113,7 @@ export function BranchSwitcher() {
               <span className={activeBranchId === b.id ? "font-medium" : ""}>
                 {b.name}
                 {b.is_default && (
-                  <span className="ml-1.5 text-[10px] text-muted-foreground">(mặc định)</span>
+                  <span className="ml-1.5 text-xs text-muted-foreground">(mặc định)</span>
                 )}
               </span>
             </DropdownMenuItem>

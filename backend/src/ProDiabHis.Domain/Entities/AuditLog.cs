@@ -38,4 +38,7 @@ public static class AuditAction
     public const string EncryptionRotate = "ENCRYPTION_ROTATE";
     public const string FailedLogin = "FAILED_LOGIN";
     public const string CrossTenantAttempt = "CROSS_TENANT_ATTEMPT";
+    /// <summary>Doc chi tiet 1 ho so nhay cam (benh nhan/benh an/ket qua CLS/don thuoc).
+    /// Yeu cau tuan thu TT 13/2025/TT-BYT + Luat KCB 2023 D.69 + Luat BVDLCN 2025 (P0-01).</summary>
+    public const string View = "VIEW";
 }

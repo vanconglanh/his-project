@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Cdss;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Pharmacy.Prescriptions;
 
@@ -178,11 +179,13 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IAuditService _audit;
 
-    public GetPrescriptionHandler(IDapperConnectionFactory db, ICurrentUser currentUser)
+    public GetPrescriptionHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IAuditService audit)
     {
         _db = db;
         _currentUser = currentUser;
+        _audit = audit;
     }
 
     public async Task<Result<PrescriptionResponse>> Handle(GetPrescriptionQuery q, CancellationToken ct)
@@ -218,6 +221,10 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
 
         var itemResponses = items.Select(MapItem).ToList();
         var response = MapPresRow(pres, itemResponses, []);
+
+        // P0-01: ghi nhat ky truy cap (doc) don thuoc - yeu cau tuan thu TT 13/2025/TT-BYT
+        await _audit.LogAsync(AuditAction.View, "Prescription", response.Id.ToString(), null, ct);
+
         return Result<PrescriptionResponse>.Success(response);
     }
 

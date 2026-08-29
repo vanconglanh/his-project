@@ -176,8 +176,10 @@ public class PatientsController : ControllerBase
     }
 
     // POST /api/v1/patients/{id}/allergies
+    // P2-06: du lieu LAM SANG (di ung thuoc - dau vao canh bao DDI khi ke don) -> tach
+    // khoi patient.write (hanh chinh). Chi bac_si/ky_thuat_vien co patient.clinical.write.
     [HttpPost("{id:guid}/allergies")]
-    [RequirePermission("patient.write")]
+    [RequirePermission("patient.clinical.write")]
     public async Task<IActionResult> AddAllergy(Guid id, [FromBody] AddAllergyRequest request, CancellationToken ct = default)
     {
         var result = await _mediator.Send(new AddAllergyCommand(id, request), ct);
@@ -187,8 +189,9 @@ public class PatientsController : ControllerBase
     }
 
     // DELETE /api/v1/patients/{id}/allergies/{allergyId}
+    // P2-06: du lieu LAM SANG - xem ghi chu tren AddAllergy.
     [HttpDelete("{id:guid}/allergies/{allergyId:guid}")]
-    [RequirePermission("patient.write")]
+    [RequirePermission("patient.clinical.write")]
     public async Task<IActionResult> DeleteAllergy(Guid id, Guid allergyId, CancellationToken ct = default)
     {
         var result = await _mediator.Send(new DeleteAllergyCommand(id, allergyId), ct);

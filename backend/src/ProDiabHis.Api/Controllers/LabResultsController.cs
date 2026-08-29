@@ -91,7 +91,8 @@ public class LabResultsController : ControllerBase
         if (!result.IsSuccess)
         {
             var code = result.ErrorCode == "LAB_RESULT_ALREADY_VERIFIED" ? 409 :
-                       result.ErrorCode == "LAB_RESULT_NOT_FOUND" ? 404 : 400;
+                       result.ErrorCode == "LAB_RESULT_NOT_FOUND" ? 404 :
+                       result.ErrorCode == "VERIFY_SELF_FORBIDDEN" ? 403 : 400;
             return StatusCode(code, Error(result.ErrorCode!, result.ErrorMessage!));
         }
         return Ok();

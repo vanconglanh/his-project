@@ -86,6 +86,33 @@ public class LabResultHandlersTests
         entity.VerifiedBy.Should().NotBeNullOrEmpty();
     }
 
+    // ─── Verify self-verify forbidden (P1-03) ───
+    [Fact]
+    public async Task VerifyLabResult_PerformerEqualsVerifier_ReturnsForbidden()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var labResultId = Guid.NewGuid();
+        // Nguoi thuc hien XN chinh la _user (currentUser) dang co gang tu duyet
+        db.LabResults.Add(new LabResult
+        {
+            Id = labResultId, TenantId = 1, TestCode = "GLU", TestName = "Glucose",
+            Value = "100", Status = "PRELIMINARY", Source = "MANUAL", Flag = "NORMAL",
+            LabOrderId = Guid.NewGuid().ToString(), PatientId = Guid.NewGuid().ToString(),
+            EncounterId = Guid.NewGuid().ToString(), PerformedAt = DateTime.UtcNow,
+            PerformedBy = _user.UserId!.Value.ToString()
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new VerifyLabResultCommandHandler(db, _user, _audit);
+        var result = await handler.Handle(new VerifyLabResultCommand(labResultId), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("VERIFY_SELF_FORBIDDEN");
+
+        var entity = await db.LabResults.AsNoTracking().FirstAsync(e => e.Id == labResultId);
+        entity.Status.Should().Be("PRELIMINARY");
+    }
+
     // ─── Verify already verified ───
     [Fact]
     public async Task VerifyLabResult_AlreadyVerified_ReturnsFailure()

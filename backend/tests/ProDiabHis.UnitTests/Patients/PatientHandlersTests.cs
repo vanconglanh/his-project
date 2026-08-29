@@ -66,7 +66,7 @@ public class PatientHandlersTests
     public async Task GetPatient_NotFound_ReturnsFailure()
     {
         using var db = TestDbContextFactory.Create(tenantId: 1);
-        var handler = new GetPatientQueryHandler(db);
+        var handler = new GetPatientQueryHandler(db, _audit);
         var result = await handler.Handle(new GetPatientQuery(Guid.NewGuid()), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
@@ -82,12 +82,44 @@ public class PatientHandlersTests
         db.Patients.Add(new Patient { Id = id, TenantId = 1, Code = "BNT01000001", FullName = "Nguyen Van A" });
         await db.SaveChangesAsync();
 
-        var handler = new GetPatientQueryHandler(db);
+        var handler = new GetPatientQueryHandler(db, _audit);
         var result = await handler.Handle(new GetPatientQuery(id), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value!.FullName.Should().Be("Nguyen Van A");
         result.Value.Code.Should().Be("BNT01000001");
+    }
+
+    // ──────────────────────────────────────────
+    // P0-01: doc chi tiet benh nhan phai ghi audit VIEW
+    // ──────────────────────────────────────────
+    [Fact]
+    public async Task GetPatient_Found_WritesViewAuditLog()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var id = Guid.NewGuid();
+        db.Patients.Add(new Patient { Id = id, TenantId = 1, Code = "BNT01000002", FullName = "Le Van C" });
+        await db.SaveChangesAsync();
+
+        var handler = new GetPatientQueryHandler(db, _audit);
+        await handler.Handle(new GetPatientQuery(id), CancellationToken.None);
+
+        await _audit.Received(1).LogAsync(
+            AuditAction.View, "Patient", id.ToString(),
+            Arg.Any<object?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetPatient_NotFound_DoesNotWriteViewAuditLog()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var handler = new GetPatientQueryHandler(db, _audit);
+
+        await handler.Handle(new GetPatientQuery(Guid.NewGuid()), CancellationToken.None);
+
+        await _audit.DidNotReceive().LogAsync(
+            Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<object?>(), Arg.Any<CancellationToken>());
     }
 
     // ──────────────────────────────────────────
@@ -272,7 +304,7 @@ public class PatientHandlersTests
         result.IsSuccess.Should().BeTrue();
 
         // HasQueryFilter se loc ra khi deleted_at IS NOT NULL
-        var getHandler = new GetPatientQueryHandler(db);
+        var getHandler = new GetPatientQueryHandler(db, _audit);
         var found = await getHandler.Handle(new GetPatientQuery(id), CancellationToken.None);
         found.IsSuccess.Should().BeFalse();
         found.ErrorCode.Should().Be("PATIENT_NOT_FOUND");
