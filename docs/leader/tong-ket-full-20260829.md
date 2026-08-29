@@ -48,6 +48,33 @@
 - Migration mới: `9161` (cross_branch permission), `9165` (service.price_override + billing branch), `9170` (telehealth_allowed_icd10) — đều idempotent theo convention.
 
 ## 👉 Cần user/BO quyết
-- H-14: chính sách định mức gói hết hạn (cộng dồn/mất/gia hạn).
 - 5 giả định ở mục ⚠️ ở trên (đặc biệt: role QL chi nhánh, verify 2FA lúc login, UI cấu hình QR).
-- Xác nhận trên DB thật để DROP 2 bảng chết lab/rad_orders.
+
+---
+
+# BỔ SUNG (2026-08-30) — 3 việc BO đã chốt
+
+## 1. C bước 3 — ĐÃ DROP 2 bảng chết ✅
+- Verify DB thật trước drop: `lab_results`/`rad_results` LEFT JOIN `cli_*_orders` = **0 orphan**; cột `cli_rad_orders` khớp đủ 10 cột `RadOrderConfiguration` map; `rad_results` 0 dòng.
+- Migration `9171`: drop FK `fk_rad_results_order` (trỏ bảng chết) → re-point sang `cli_rad_orders` → `DROP TABLE IF EXISTS` lab_orders/rad_orders. Idempotent (pass 2 sạch). Build 0 error + 747 test xanh sau drop. commit `0d18ff9`.
+
+## 2. H-14 (FR-1211) — gia hạn gói ✅
+- BO chốt: gói hết hạn còn định mức → cho **gia hạn thêm X ngày** (không mua mới, không cộng dồn). Số ngày cấu hình `package_expiry_extension_days` (default 0 = tắt).
+- Backend `ExtendSubscriptionHandler` (guard status=expired + còn remaining>0), endpoint `POST /package-subscriptions/{id}/extend`, permission `package_subscription.extend` (mig `9172`, cấp admin), audit log. FE nút "Gia hạn". commit `ac97bf6`.
+- Bug phụ đã sửa: summary loại `expired` khiến nút không hiện → thêm `expired` vào query (commit `343c4cc`).
+
+## 3. Rebuild + redeploy docker + Browser E2E ✅
+- Rebuild cả backend + frontend từ code mới (no-cache cho backend do NuGet restore layer lỗi NETSDK1064). Apply đủ migration 9161/9165/9170/9171/9172.
+- Verify browser thật + API live (chi tiết `docs/qc/evidence-leader-full-20260829/README.md` mục 6):
+  - **H-10**: admin login KHÔNG bị khoá + `mfaSetupRequired=true`; bac_si `false`. ✅
+  - **H-14**: nút Gia hạn hiện → click → toast success → gói về active (expired→active). Guard active→400. ✅
+  - **H-9**: QR động `amount=53025.00` + payload VietQR hợp lệ + ảnh PNG; guard chưa cấu hình → 400 tiếng Việt. ✅
+
+## ❌ Không còn tồn (đã đóng hết)
+- H-14: đã làm (BO chốt chính sách gia hạn).
+- C DROP bảng chết: đã DROP an toàn (0 orphan verified).
+- Browser E2E: đã chạy trên docker rebuild, có evidence.
+
+## ⚠️ Ghi chú thêm sau E2E
+- Data test cho H-14 (package `PKG-TEST` + subscription `SUB-TEST-0001` + setting bank QR + `package_expiry_extension_days=30` tenant 1) đang nằm trong **DB docker local test** (không commit) — dọn nếu cần môi trường sạch.
+- H-10: verify TOTP tại thời điểm login (khi user đã bật 2FA) vẫn là gap có sẵn ngoài phạm vi — nên lên lịch bổ sung.

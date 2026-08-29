@@ -38,5 +38,21 @@ diab_his_tel_allowed_icd10 rows: 6 (seed ICD-10 telehealth)             [migrati
 ## 5. H-4 (rủi ro pháp lý P0) — verify bằng đọc code
 `DeletePatientCommandHandler` (`PatientCommandHandler.cs:262`) là **soft-delete**: set `DeletedAt`/`DeletedBy` + audit log, KHÔNG `DELETE FROM`. Query filter loại `DeletedAt != null`. KHÔNG vi phạm yêu cầu lưu trữ pháp lý.
 
-## Giới hạn — Browser E2E
-Stack docker đang chạy là **production build của code TRƯỚC** (frontend `node server.js` standalone, không mount source; backend đã compile). Các feature MỚI chưa được deploy vào container đang chạy → chụp browser lúc này KHÔNG phản ánh code mới (sẽ gây hiểu lầm). Browser E2E cho từng feature mới cần **rebuild + redeploy 2 container** — để riêng bước deploy. Verification hiện tại dựa trên: build 0 error + 747 unit test pass + tsc 0 error + 3 migration apply/idempotent trên DB thật.
+## 6. Browser E2E trên docker REBUILD (bổ sung 2026-08-30)
+Đã rebuild + redeploy cả backend + frontend (`ops/docker-compose.yml` + `docker-compose.local-app.yml`, images `prodiab-dev-*`) với TOÀN BỘ code mới, apply đủ migration 9161/9165/9170/9171/9172. Verify qua browser thật (login panel dev) + API live:
+
+- **H-10 (2FA bắt buộc theo role)** — CRITICAL "không khoá nhầm tài khoản":
+  - Login `qc.admin` (role admin) → `accessToken` PRESENT + `mfaSetupRequired=true` + message tiếng Việt → vào được Dashboard, **KHÔNG bị khoá** (soft-gate đúng thiết kế).
+  - Login `bacsi.test` (role bac_si, không bắt buộc) → `accessToken` PRESENT + `mfaSetupRequired=false`, không message.
+- **H-14 (gia hạn gói)** — E2E browser đầy đủ:
+  - Seed 1 subscription `SUB-TEST-0001` status=expired còn định mức 3/5 + bật setting tenant 1 = 30 ngày.
+  - Màn chi tiết bệnh nhân hiện block amber "Gói ... đã hết hạn nhưng còn định mức" + nút **Gia hạn**.
+  - Click Gia hạn → toast "Đã gia hạn gói SUB-TEST-0001" → block biến mất (status → active). API xác nhận: expired 2026-06-30 → active 2026-09-28.
+  - Guard: gọi extend khi status=active → 400 "Chỉ gia hạn được gói đang ở trạng thái hết hạn (expired)".
+- **H-9 (QR thanh toán động)**:
+  - `POST /billings/{id}/qr-dynamic` chưa cấu hình → 400 "Chưa cấu hình tài khoản nhận thanh toán" (guard đúng).
+  - Sau khi cấu hình `bil.qr_bank_bin/account_no/account_name` → trả `amount=53025.00` (ĐỘNG theo hoá đơn) + `qr_payload` VietQR/EMVCo hợp lệ (BIN 970436, nội dung "TT HOA DON HD-...") + `qr_payload_image_base64` (PNG QR).
+- **Endpoint mới khác** (deploy OK, trả 401 auth thay vì 404): `/stock-transfers`, `/service-price-overrides`, `/package-subscriptions/{id}/extend`.
+
+### Bug phát hiện & sửa trong lúc E2E
+`PackageEntitlementService.GetPatientSummaryAsync` lọc `status IN (active/suspended/exhausted/pending_payment)` → gói **expired** không bao giờ vào summary → nút Gia hạn (H-14) + badge "Gói sắp hết hạn" (H-13) không thể hiện. Đã thêm `'expired'` vào IN list (commit `343c4cc`), rebuild backend (no-cache do NuGet restore layer cache lỗi NETSDK1064), verify lại button hiện đúng.
