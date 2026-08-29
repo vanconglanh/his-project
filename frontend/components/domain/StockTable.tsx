@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   Table,
@@ -71,12 +71,12 @@ export function StockTable({ stocks }: Props) {
               <TableCell>
                 <div className="flex gap-1 flex-wrap">
                   {s.is_low_stock && (
-                    <Badge variant="destructive" className="text-[10px]">Tồn thấp</Badge>
+                    <Badge variant="destructive" className="text-xs">Tồn thấp</Badge>
                   )}
                   {s.is_near_expiry && (
                     <Badge
                       className={cn(
-                        "text-[10px]",
+                        "text-xs",
                         s.days_to_expiry <= 30
                           ? "bg-red-100 text-red-800 border-red-300"
                           : "bg-yellow-100 text-yellow-800 border-yellow-300"

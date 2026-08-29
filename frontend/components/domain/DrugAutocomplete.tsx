@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -54,11 +54,14 @@ export function DrugAutocomplete({ onSelect, placeholder = "Tìm thuốc theo t�
           aria-label="Tìm thuốc"
           aria-autocomplete="list"
           aria-expanded={open}
+          aria-controls="drug-autocomplete-listbox"
+          role="combobox"
         />
       </div>
 
       {open && query.length >= 1 && (
         <div
+          id="drug-autocomplete-listbox"
           className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-72 overflow-y-auto"
           role="listbox"
         >
@@ -77,6 +80,7 @@ export function DrugAutocomplete({ onSelect, placeholder = "Tìm thuốc theo t�
                   <button
                     type="button"
                     role="option"
+                    aria-selected={false}
                     className="w-full text-left px-3 py-2 hover:bg-accent transition-colors flex items-start gap-2"
                     onClick={() => handleSelect(drug)}
                   >
@@ -89,13 +93,13 @@ export function DrugAutocomplete({ onSelect, placeholder = "Tìm thuốc theo t�
                           <span className="text-xs text-muted-foreground">{drug.strength}</span>
                         )}
                         {drug.is_psychotropic && (
-                          <Badge variant="destructive" className="text-[10px] px-1 py-0">Hướng thần</Badge>
+                          <Badge variant="destructive" className="text-xs px-1 py-0">Hướng thần</Badge>
                         )}
                         {drug.is_narcotic && (
-                          <Badge variant="destructive" className="text-[10px] px-1 py-0">Gây nghiện</Badge>
+                          <Badge variant="destructive" className="text-xs px-1 py-0">Gây nghiện</Badge>
                         )}
                         {!drug.requires_prescription && (
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0">OTC</Badge>
+                          <Badge variant="secondary" className="text-xs px-1 py-0">OTC</Badge>
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground flex gap-2 mt-0.5">

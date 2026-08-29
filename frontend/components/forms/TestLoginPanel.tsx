@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // Panel dang nhap nhanh CHI DUNG CHO DEV/TEST LOCAL - KHONG bao gio hien tren
 // production/staging (env NEXT_PUBLIC_TEST_LOGIN_PANEL phai duoc bat tuong minh
@@ -50,7 +50,7 @@ export function TestLoginPanel() {
   return (
     <div className="mt-6 rounded-lg border border-dashed border-amber-500/50 bg-amber-500/5 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
           Dev only
         </span>
         <p className="text-sm font-medium">Đăng nhập nhanh theo vai trò (test)</p>

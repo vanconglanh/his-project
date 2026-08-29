@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -43,7 +43,7 @@ export function NotificationDropdown() {
             <Bell className="h-4 w-4" />
             {unreadCount !== null && unreadCount > 0 && (
               <Badge
-                className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 text-[10px] leading-none flex items-center justify-center"
+                className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 text-xs leading-none flex items-center justify-center"
                 aria-label={`${unreadCount} thông báo chưa đọc`}
               >
                 {unreadCount > 99 ? "99+" : unreadCount}
@@ -102,7 +102,7 @@ export function NotificationDropdown() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium leading-tight truncate">{notif.title}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.body}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {notif.created_at
                         ? format(parseISO(notif.created_at), "HH:mm dd/MM/yyyy", { locale: vi })
                         : "—"}

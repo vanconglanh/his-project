@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Sparkles, ThumbsUp, ThumbsDown, Pencil, AlertTriangle } from "lucide-react";
@@ -69,7 +69,7 @@ export function AiSuggestionPanel({ patientId, encounterId }: Props) {
               </Alert>
 
               {suggestion.fallback_used && (
-                <Badge variant="secondary" className="text-[11px]">
+                <Badge variant="secondary" className="text-xs">
                   Dùng gợi ý theo phác đồ (fallback) — AI không khả dụng
                 </Badge>
               )}

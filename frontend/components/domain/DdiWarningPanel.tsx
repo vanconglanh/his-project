@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -79,12 +79,12 @@ export function DdiWarningPanel({ warnings, hasContraindicated }: Props) {
                     {w.drug1_name} + {w.drug2_name}
                   </span>
                   <Badge
-                    className={cn("text-[10px] px-1.5 py-0 border", cfg.badgeClass)}
+                    className={cn("text-xs px-1.5 py-0 border", cfg.badgeClass)}
                     variant="outline"
                   >
                     {cfg.label}
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground">Bằng chứng: {w.evidence_level}</span>
+                  <span className="text-xs text-muted-foreground">Bằng chứng: {w.evidence_level}</span>
                 </div>
                 <p className="text-xs text-foreground/80">{w.description}</p>
               </div>

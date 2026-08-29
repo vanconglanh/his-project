@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ export function LowStockAlertCard({ stock }: Props) {
           <span className="text-xs text-orange-700 font-semibold">
             Tồn: {stock.quantity_available}
           </span>
-          <Badge className="text-[10px] bg-orange-100 text-orange-800 border-orange-300" variant="outline">
+          <Badge className="text-xs bg-orange-100 text-orange-800 border-orange-300" variant="outline">
             Tồn thấp
           </Badge>
         </div>

@@ -53,9 +53,14 @@ export function useSubmitClsRound(encounterId: string) {
   const invalidate = useRoundMutationInvalidate(encounterId);
   return useMutation({
     mutationFn: (roundId: string) => roundsApi.submitClsRound(roundId),
-    onSuccess: () => {
+    onSuccess: (round) => {
       invalidate();
-      toast.success("Đã chốt đợt chỉ định, chuyển thu ngân");
+      // BUG-05/UX#2: chỉ báo "chuyển thu ngân" khi thực sự có khoản phải thu (total_amount > 0
+      // và chưa thanh toán). Đợt CLS không phát sinh phí (miễn phí/0đ) thì không chuyển thu ngân.
+      const hasPayable = (round?.total_amount ?? 0) > 0 && round?.payment_status === "UNPAID";
+      toast.success(
+        hasPayable ? "Đã chốt đợt chỉ định, chuyển thu ngân" : "Đã chốt đợt chỉ định"
+      );
     },
     onError: (err) => toast.error(extractErrorMessage(err, "Chốt đợt chỉ định thất bại")),
   });

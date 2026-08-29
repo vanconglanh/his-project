@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertOctagon, AlertTriangle, Info, ShieldAlert } from "lucide-react";
@@ -129,11 +129,11 @@ export function CdssAlertBanner({ items, patientId, encounterId, prescriptionId,
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium">{alert.title}</span>
-                  <Badge className={cn("text-[10px] px-1.5 py-0 border", cfg.badgeClass)} variant="outline">
+                  <Badge className={cn("text-xs px-1.5 py-0 border", cfg.badgeClass)} variant="outline">
                     {cfg.label}
                   </Badge>
                   {isOverridden && (
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-xs">
                       Đã bỏ qua
                     </Badge>
                   )}

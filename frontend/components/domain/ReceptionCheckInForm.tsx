@@ -148,6 +148,10 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
             onFocus={() => setShowSearchList(true)}
             className="pl-9"
             placeholder="Tìm tên, SĐT, CMND, BHYT..."
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={showSearchList && debouncedQ.length >= 2}
+            aria-controls="patient-search-listbox"
           />
           {isSearching && (
             <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
@@ -159,13 +163,20 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
 
         {/* Search dropdown */}
         {showSearchList && debouncedQ.length >= 2 && (
-          <div className="border rounded-md shadow-lg bg-popover z-10 absolute w-full max-w-sm">
+          <div
+            id="patient-search-listbox"
+            role="listbox"
+            aria-label="Kết quả tìm bệnh nhân"
+            className="border rounded-md shadow-lg bg-popover z-10 absolute w-full max-w-sm"
+          >
             {searchResults?.data && searchResults.data.length > 0 ? (
               <ul className="max-h-52 overflow-y-auto divide-y">
                 {searchResults.data.map((p) => (
                   <li key={p.id}>
                     <button
                       type="button"
+                      role="option"
+                      aria-selected={selectedPatient?.id === p.id}
                       className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
                       onClick={() => selectPatient(p)}
                     >

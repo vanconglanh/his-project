@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -208,8 +208,8 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
                     )}
                   >
                     <span className="text-lg">{m.icon}</span>
-                    <span className="mt-0.5 text-[10px]">{m.label}</span>
-                    <span className="text-[9px] text-muted-foreground">({m.key})</span>
+                    <span className="mt-0.5 text-xs">{m.label}</span>
+                    <span className="text-xs text-muted-foreground">({m.key})</span>
                   </button>
                 ))}
               </div>

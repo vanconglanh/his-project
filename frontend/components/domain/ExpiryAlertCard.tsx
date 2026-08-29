@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ export function ExpiryAlertCard({ stock, onCreatePo }: Props) {
             HSD: {stock.expiry_date ? format(parseISO(stock.expiry_date), "dd/MM/yyyy", { locale: vi }) : "—"}
           </span>
           <Badge
-            className={cn("text-[10px]", isUrgent ? "bg-red-100 text-red-800 border-red-300" : "bg-yellow-100 text-yellow-800 border-yellow-300")}
+            className={cn("text-xs", isUrgent ? "bg-red-100 text-red-800 border-red-300" : "bg-yellow-100 text-yellow-800 border-yellow-300")}
             variant="outline"
           >
             còn {stock.days_to_expiry} ngày

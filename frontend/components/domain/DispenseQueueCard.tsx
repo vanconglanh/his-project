@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,7 @@ export function DispenseQueueCard({ item, onDispense, onReject }: Props) {
           </div>
           <div className="flex gap-1">
             {item.is_bhyt && (
-              <Badge variant="outline" className="text-[10px] flex items-center gap-1">
+              <Badge variant="outline" className="text-xs flex items-center gap-1">
                 <ShieldCheck className="h-3 w-3" />
                 BHYT
               </Badge>

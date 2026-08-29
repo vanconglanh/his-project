@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -278,7 +278,7 @@ export function PatientEditorLayout({
               >
                 {tab.label}
                 {errCount > 0 && (
-                  <span className="bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
+                  <span className="bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-xs">
                     {errCount}
                   </span>
                 )}

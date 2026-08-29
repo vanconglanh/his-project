@@ -101,7 +101,7 @@ export function ClsRoundCreateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
           {/* Trái — tìm dịch vụ */}
           <div className="space-y-2">
             <Label htmlFor="cls-search">Tìm dịch vụ</Label>
@@ -118,7 +118,7 @@ export function ClsRoundCreateDialog({
                 className="min-h-[44px] pl-9"
               />
             </div>
-            <div className="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-border p-1">
+            <div className="max-h-96 space-y-1 overflow-y-auto rounded-lg border border-border p-1">
               {isLoading ? (
                 [1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)
               ) : !catalog || catalog.length === 0 ? (
@@ -137,8 +137,8 @@ export function ClsRoundCreateDialog({
                   >
                     <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
                     <span className="font-mono text-xs tabular-nums text-primary">{item.code}</span>
-                    <span className="flex-1 truncate text-sm">{item.name}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="flex-1 line-clamp-2 text-sm">{item.name}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {item.kind === "LAB" ? "XN" : "CĐHA"}
                     </span>
                     <span className="font-mono text-xs tabular-nums">
@@ -160,7 +160,7 @@ export function ClsRoundCreateDialog({
                 cart.map((item) => (
                   <div key={item.code} className="flex items-center gap-2 rounded-md px-2 py-1">
                     <span className="font-mono text-xs tabular-nums text-primary">{item.code}</span>
-                    <span className="flex-1 truncate text-sm">{item.name}</span>
+                    <span className="flex-1 line-clamp-2 text-sm">{item.name}</span>
                     <span className="font-mono text-xs tabular-nums">
                       {formatVnd(item.default_price)} ₫
                     </span>

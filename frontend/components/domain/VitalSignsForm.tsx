@@ -90,67 +90,76 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
       noValidate
     >
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Nhiệt độ (°C)" error={errors.temperature_c?.message}>
+        <Field id="vital-temperature" label="Nhiệt độ (°C)" error={errors.temperature_c?.message}>
           <Input
+            id="vital-temperature"
             type="number"
             step="0.1"
             placeholder="36.5"
             {...register("temperature_c", numReg)}
           />
         </Field>
-        <Field label="Mạch (lần/phút)" error={errors.heart_rate_bpm?.message}>
+        <Field id="vital-heart-rate" label="Mạch (lần/phút)" error={errors.heart_rate_bpm?.message}>
           <Input
+            id="vital-heart-rate"
             type="number"
             placeholder="80"
             {...register("heart_rate_bpm", numReg)}
           />
         </Field>
-        <Field label="HA tâm thu (mmHg)" error={errors.bp_systolic?.message}>
+        <Field id="vital-bp-systolic" label="HA tâm thu (mmHg)" error={errors.bp_systolic?.message}>
           <Input
+            id="vital-bp-systolic"
             type="number"
             placeholder="120"
             {...register("bp_systolic", numReg)}
           />
         </Field>
-        <Field label="HA tâm trương (mmHg)" error={errors.bp_diastolic?.message}>
+        <Field id="vital-bp-diastolic" label="HA tâm trương (mmHg)" error={errors.bp_diastolic?.message}>
           <Input
+            id="vital-bp-diastolic"
             type="number"
             placeholder="80"
             {...register("bp_diastolic", numReg)}
           />
         </Field>
-        <Field label="SpO2 (%)" error={errors.spo2_percent?.message}>
+        <Field id="vital-spo2" label="SpO2 (%)" error={errors.spo2_percent?.message}>
           <Input
+            id="vital-spo2"
             type="number"
             placeholder="98"
             {...register("spo2_percent", numReg)}
           />
         </Field>
-        <Field label="Nhịp thở (lần/phút)" error={errors.respiratory_rate?.message}>
+        <Field id="vital-respiratory-rate" label="Nhịp thở (lần/phút)" error={errors.respiratory_rate?.message}>
           <Input
+            id="vital-respiratory-rate"
             type="number"
             placeholder="16"
             {...register("respiratory_rate", numReg)}
           />
         </Field>
-        <Field label="Cân nặng (kg)" error={errors.weight_kg?.message}>
+        <Field id="vital-weight" label="Cân nặng (kg)" error={errors.weight_kg?.message}>
           <Input
+            id="vital-weight"
             type="number"
             step="0.1"
             placeholder="60"
             {...register("weight_kg", numReg)}
           />
         </Field>
-        <Field label="Chiều cao (cm)" error={errors.height_cm?.message}>
+        <Field id="vital-height" label="Chiều cao (cm)" error={errors.height_cm?.message}>
           <Input
+            id="vital-height"
             type="number"
             step="0.1"
             placeholder="165"
             {...register("height_cm", numReg)}
           />
         </Field>
-        <Field label="Đau (0-10)" error={errors.pain_scale?.message}>
+        <Field id="vital-pain-scale" label="Đau (0-10)" error={errors.pain_scale?.message}>
           <Input
+            id="vital-pain-scale"
             type="number"
             min={0}
             max={10}
@@ -158,8 +167,9 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
             {...register("pain_scale", numReg)}
           />
         </Field>
-        <Field label="Đường huyết (mg/dL)" error={errors.glucose_mg_dl?.message}>
+        <Field id="vital-glucose" label="Đường huyết (mg/dL)" error={errors.glucose_mg_dl?.message}>
           <Input
+            id="vital-glucose"
             type="number"
             step="0.1"
             placeholder="100"
@@ -174,8 +184,8 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
         </p>
       )}
 
-      <Field label="Ghi chú" error={errors.note?.message}>
-        <Textarea placeholder="Ghi chú thêm..." rows={2} {...register("note")} />
+      <Field id="vital-note" label="Ghi chú" error={errors.note?.message}>
+        <Textarea id="vital-note" placeholder="Ghi chú thêm..." rows={2} {...register("note")} />
       </Field>
 
       <div className="flex gap-3 pt-2">
@@ -199,17 +209,19 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
 }
 
 function Field({
+  id,
   label,
   children,
   error,
 }: {
+  id: string;
   label: string;
   children: React.ReactNode;
   error?: string;
 }) {
   return (
     <div className="space-y-1">
-      <Label className="text-sm">{label}</Label>
+      <Label htmlFor={id} className="text-sm">{label}</Label>
       {children}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
