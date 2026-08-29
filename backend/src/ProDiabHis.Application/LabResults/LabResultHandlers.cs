@@ -108,12 +108,30 @@ public class ListLabResultsQueryHandler
 
         var total = await query.CountAsync(ct);
 
-        var items = await query
+        var entities = await query
             .OrderByDescending(e => e.PerformedAt)
             .Skip((q.Page - 1) * q.PageSize)
             .Take(q.PageSize)
-            .Select(e => Mapper.Map(e))
             .ToListAsync(ct);
+
+        // BUG FIX (UX): nap ten benh nhan cho tung ket qua - truoc day list/form nhap KQ
+        // chi co PatientId (GUID) khien nhan vien XN khong biet dang thao tac cho ai.
+        // LabResult.PatientId la string, Patient.Id la Guid -> phai parse truoc khi so khop.
+        var patientGuids = entities
+            .Select(e => Guid.TryParse(e.PatientId, out var g) ? g : (Guid?)null)
+            .Where(g => g.HasValue).Select(g => g!.Value).Distinct().ToList();
+        var patientMap = await _db.Patients.AsNoTracking()
+            .Where(p => patientGuids.Contains(p.Id))
+            .Select(p => new { p.Id, p.FullName, p.Code })
+            .ToDictionaryAsync(p => p.Id, ct);
+
+        var items = entities.Select(e =>
+        {
+            var resp = Mapper.Map(e);
+            return Guid.TryParse(e.PatientId, out var pg) && patientMap.TryGetValue(pg, out var p)
+                ? resp with { PatientName = p.FullName, PatientCode = p.Code }
+                : resp;
+        }).ToList();
 
         return Result<(IReadOnlyList<LabResultResponse>, int)>.Success((items, total));
     }

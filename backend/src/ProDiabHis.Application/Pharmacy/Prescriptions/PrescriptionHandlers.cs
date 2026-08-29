@@ -1046,14 +1046,26 @@ public class GetPrintHistoryHandler : IRequestHandler<GetPrintHistoryQuery, Resu
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
 
-        var items = await conn.QueryAsync<PrintHistoryItem>(
+        // BUG FIX: Dapper KHONG tu convert string -> Guid non-nullable (Convert.ChangeType khong
+        // ho tro Guid IConvertible) -> QueryAsync<PrintHistoryItem> voi Id kieu Guid nem
+        // InvalidCastException khi cot id la string (GuidFormat=None). Truoc day khong lo ra vi
+        // ban ghi test chua co du lieu print-history that (query rong -> khong deserialize dong nao).
+        var rawItems = await conn.QueryAsync<(string Id, DateTime PrintedAt, int? PrintedBy, string? PrinterName)>(
             @"SELECT id as Id, printed_at as PrintedAt, printed_by as PrintedBy, printer_name as PrinterName
               FROM diab_his_pha_prescription_print_history
               WHERE prescription_id = @presId AND tenant_id = @tenantId
               ORDER BY printed_at DESC",
             new { presId = q.PrescriptionId.ToString(), tenantId });
 
-        return Result<IReadOnlyList<PrintHistoryItem>>.Success(items.ToList());
+        var items = rawItems.Select(r => new PrintHistoryItem
+        {
+            Id = Guid.TryParse(r.Id, out var g) ? g : Guid.Empty,
+            PrintedAt = r.PrintedAt,
+            PrintedBy = r.PrintedBy,
+            PrinterName = r.PrinterName
+        }).ToList();
+
+        return Result<IReadOnlyList<PrintHistoryItem>>.Success(items);
     }
 }
 

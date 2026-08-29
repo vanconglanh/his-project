@@ -49,7 +49,13 @@ public record LabResultResponse(
     string?  Note,
     string   Source,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    // BUG FIX (UX): danh sach/form nhap ket qua XN truoc day KHONG co ten benh nhan,
+    // nhan vien XN khong biet dang nhap/xem ket qua cua ai neu chi nhin PatientId (GUID).
+    // Them 2 field cuoi (append, khong chen giua) de khong pha vo cac noi goi constructor
+    // positional cu.
+    string?  PatientName = null,
+    string?  PatientCode = null);
 
 // ─────────── Request DTOs ───────────
 public record LabResultCreateRequest(

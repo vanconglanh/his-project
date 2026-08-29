@@ -81,4 +81,13 @@ public record DdiCheckResponse(
     IReadOnlyList<DdiWarning> Warnings,
     bool HasContraindicated);
 
-public record PrintHistoryItem(Guid Id, DateTime PrintedAt, int? PrintedBy, string? PrinterName);
+// BUG FIX: Dapper QueryAsync<T> khong map duoc record positional constructor trong truong
+// hop nay (loi 500 GET /prescriptions/{id}/print-history) -> doi sang class + property setter,
+// pattern Dapper luon ho tro on dinh (default parameterless ctor + set tung property).
+public class PrintHistoryItem
+{
+    public Guid Id { get; set; }
+    public DateTime PrintedAt { get; set; }
+    public int? PrintedBy { get; set; }
+    public string? PrinterName { get; set; }
+}

@@ -73,6 +73,7 @@ export function LabResultTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Bệnh nhân</TableHead>
             <TableHead>Chỉ số</TableHead>
             <TableHead>Giá trị</TableHead>
             <TableHead>Đơn vị</TableHead>
@@ -91,6 +92,12 @@ export function LabResultTable({
                 key={row.id}
                 className={cn(isAbnormal && "bg-red-50/50 dark:bg-red-900/10")}
               >
+                <TableCell>
+                  <div className="font-medium">{row.patient_name ?? "(chưa rõ tên)"}</div>
+                  {row.patient_code && (
+                    <div className="text-xs text-muted-foreground">{row.patient_code}</div>
+                  )}
+                </TableCell>
                 <TableCell className="font-medium">
                   <div>{row.test_name}</div>
                   <div className="text-xs text-muted-foreground">{row.test_code}</div>

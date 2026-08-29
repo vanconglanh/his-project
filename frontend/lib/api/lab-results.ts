@@ -31,6 +31,8 @@ export interface LabResultResponse {
   source: LabResultSource;
   created_at: string;
   updated_at: string;
+  patient_name: string | null;
+  patient_code: string | null;
 }
 
 export interface LabResultCreateRequest {

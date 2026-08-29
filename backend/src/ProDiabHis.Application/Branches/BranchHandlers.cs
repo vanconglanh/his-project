@@ -433,7 +433,11 @@ public class ListBranchUsersHandler : IRequestHandler<ListBranchUsersQuery, Resu
         if (branchExists == 0)
             return Result<List<UserBranchDto>>.Failure("BRANCH_NOT_FOUND", "Không tìm thấy chi nhánh");
 
-        var rows = await conn.QueryAsync<UserBranchDto>(
+        // BUG FIX: Dapper KHONG tu convert string -> Guid non-nullable (Convert.ChangeType khong
+        // ho tro Guid IConvertible) -> QueryAsync<UserBranchDto> voi UserId kieu Guid nem
+        // InvalidCastException khi cot tra ve la string (GuidFormat=None, xem
+        // Infrastructure/DependencyInjection.cs). Doc UserId dang string roi Guid.Parse thu cong.
+        var rawRows = await conn.QueryAsync<(string UserId, string FullName, string Email, bool IsPrimary)>(
             @"SELECT u.id AS UserId, u.full_name AS FullName, u.email AS Email, ub.is_primary AS IsPrimary
                 FROM diab_his_sec_user_branches ub
                 JOIN diab_his_sec_users u ON u.id = ub.user_id
@@ -442,7 +446,15 @@ public class ListBranchUsersHandler : IRequestHandler<ListBranchUsersQuery, Resu
                ORDER BY u.full_name",
             new { branchId = q.BranchId, tenantId });
 
-        return Result<List<UserBranchDto>>.Success(rows.ToList());
+        var rows = rawRows.Select(r => new UserBranchDto
+        {
+            UserId = Guid.TryParse(r.UserId, out var uid) ? uid : Guid.Empty,
+            FullName = r.FullName,
+            Email = r.Email,
+            IsPrimary = r.IsPrimary
+        }).ToList();
+
+        return Result<List<UserBranchDto>>.Success(rows);
     }
 }
 

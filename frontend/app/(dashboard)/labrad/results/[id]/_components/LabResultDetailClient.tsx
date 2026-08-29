@@ -84,6 +84,10 @@ export function LabResultDetailClient({ id }: Props) {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
+          <p className="text-sm font-medium">
+            {result.patient_name ?? "(chưa rõ tên)"}
+            {result.patient_code ? ` · ${result.patient_code}` : ""}
+          </p>
           <h2 className="text-xl font-bold">{result.test_name}</h2>
           <p className="text-sm text-muted-foreground">
             Mã chỉ số: {result.test_code} &middot; Nguồn: {result.source}
@@ -184,6 +188,15 @@ export function LabResultDetailClient({ id }: Props) {
         <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle>Sửa kết quả (Amend)</SheetTitle>
+            <p className="text-sm text-muted-foreground">
+              Bệnh nhân:{" "}
+              <span className="font-medium text-foreground">
+                {result.patient_name ?? "(chưa rõ tên)"}
+              </span>
+              {result.patient_code ? ` · ${result.patient_code}` : ""}
+              {" · "}
+              {result.test_name}
+            </p>
           </SheetHeader>
           <div className="mt-6">
             <LabResultForm

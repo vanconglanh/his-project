@@ -153,6 +153,17 @@ export function LabResultsTab() {
         <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
           <SheetHeader>
             <SheetTitle>{editing ? "Cập nhật kết quả XN" : "Nhập kết quả XN"}</SheetTitle>
+            {editing && (
+              <p className="text-sm text-muted-foreground">
+                Bệnh nhân:{" "}
+                <span className="font-medium text-foreground">
+                  {editing.patient_name ?? "(chưa rõ tên)"}
+                </span>
+                {editing.patient_code ? ` · ${editing.patient_code}` : ""}
+                {" · "}
+                {editing.test_name}
+              </p>
+            )}
           </SheetHeader>
           <div className="mt-6">
             <LabResultForm

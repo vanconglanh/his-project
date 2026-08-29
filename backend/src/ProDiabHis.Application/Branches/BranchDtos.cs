@@ -43,7 +43,15 @@ public record UpdateBranchRequest(
 
 public record AssignUsersToBranchRequest(List<Guid> UserIds, bool? IsPrimary);
 
-public record UserBranchDto(Guid UserId, string FullName, string Email, bool IsPrimary);
+// BUG FIX: cung loi Dapper positional-record nhu PrintHistoryItem
+// (loi 500 GET /branches/{id}/users) -> doi sang class + property setter.
+public class UserBranchDto
+{
+    public Guid UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public bool IsPrimary { get; set; }
+}
 
 public record BranchContextResponse(
     int CurrentBranchId,
