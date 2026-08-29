@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ProDiabHis.Application.Auth;
@@ -14,6 +15,7 @@ public class LoginCommandHandlerTests
     private readonly IJwtService _jwtService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ILogger<LoginCommandHandler> _logger;
+    private readonly IConfiguration _configuration;
     private readonly LoginCommandHandler _handler;
 
     public LoginCommandHandlerTests()
@@ -22,7 +24,8 @@ public class LoginCommandHandlerTests
         _jwtService = Substitute.For<IJwtService>();
         _passwordHasher = Substitute.For<IPasswordHasher>();
         _logger = Substitute.For<ILogger<LoginCommandHandler>>();
-        _handler = new LoginCommandHandler(_db, _jwtService, _passwordHasher, _logger);
+        _configuration = new ConfigurationBuilder().Build();
+        _handler = new LoginCommandHandler(_db, _jwtService, _passwordHasher, _logger, _configuration);
     }
 
     [Fact]
@@ -70,6 +73,84 @@ public class LoginCommandHandlerTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.ErrorCode.Should().Be("AUTH_INVALID_CREDENTIALS");
+    }
+
+    [Fact]
+    public async Task Handle_WhenAdminWithout2FA_ReturnsMfaSetupRequiredTrue()
+    {
+        // Arrange: FR-1011 - role "admin" nam trong danh sach bat buoc 2FA mac dinh
+        var role = new Role { Id = Guid.NewGuid(), Code = "admin", Name = "Quản trị viên" };
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "admin@clinic.vn",
+            PasswordHash = "hashed_password",
+            FullName = "Admin Test",
+            TenantId = 1,
+            IsActive = true,
+            Status = UserStatus.Active,
+            TwoFaEnabled = false,
+            UserRoles = new List<UserRole> { new() { RoleId = role.Id, Role = role } }
+        };
+
+        var users = new List<User> { user }.AsQueryable();
+        var usersSet = CreateMockDbSet(users);
+        var rpSet = CreateMockDbSet(new List<RolePermission>().AsQueryable());
+        _db.Users.Returns(usersSet);
+        _db.RolePermissions.Returns(rpSet);
+        _passwordHasher.Verify("password123", user.PasswordHash).Returns(true);
+        _jwtService.GenerateAccessToken(user, Arg.Any<IEnumerable<string>>(), Arg.Any<IEnumerable<string>>(), null)
+            .Returns("fake-access-token");
+        _jwtService.GenerateRefreshToken().Returns("fake-refresh-token");
+
+        var command = new LoginCommand("admin@clinic.vn", "password123");
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.MfaSetupRequired.Should().BeTrue();
+        result.Value!.MfaSetupMessage.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Handle_WhenNonMandatoryRoleWithout2FA_ReturnsMfaSetupRequiredFalse()
+    {
+        // Arrange: role "bac_si" khong thuoc danh sach bat buoc 2FA -> van optional
+        var role = new Role { Id = Guid.NewGuid(), Code = "bac_si", Name = "Bác sĩ" };
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "bacsi@clinic.vn",
+            PasswordHash = "hashed_password",
+            FullName = "Bac Si Test",
+            TenantId = 1,
+            IsActive = true,
+            Status = UserStatus.Active,
+            TwoFaEnabled = false,
+            UserRoles = new List<UserRole> { new() { RoleId = role.Id, Role = role } }
+        };
+
+        var users = new List<User> { user }.AsQueryable();
+        var usersSet = CreateMockDbSet(users);
+        var rpSet = CreateMockDbSet(new List<RolePermission>().AsQueryable());
+        _db.Users.Returns(usersSet);
+        _db.RolePermissions.Returns(rpSet);
+        _passwordHasher.Verify("password123", user.PasswordHash).Returns(true);
+        _jwtService.GenerateAccessToken(user, Arg.Any<IEnumerable<string>>(), Arg.Any<IEnumerable<string>>(), null)
+            .Returns("fake-access-token");
+        _jwtService.GenerateRefreshToken().Returns("fake-refresh-token");
+
+        var command = new LoginCommand("bacsi@clinic.vn", "password123");
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.MfaSetupRequired.Should().BeFalse();
+        result.Value!.MfaSetupMessage.Should().BeNull();
     }
 
     // EF Core DbSet mock helper dung InMemory thay cho Substitute vi DbSet phuc tap
