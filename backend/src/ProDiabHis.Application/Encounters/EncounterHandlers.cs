@@ -110,7 +110,7 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
             enc.EncounterType, enc.ReasonForVisit, enc.ChiefComplaint,
             enc.Status, enc.StartedAt, enc.FinishedAt, alertOver12h,
             Array.Empty<DiagnosisResponse>(), null,
-            emrSignedCnt > 0, false, enc.CreatedAt);
+            emrSignedCnt > 0, false, enc.CreatedAt, enc.BranchId);
     }
 }
 

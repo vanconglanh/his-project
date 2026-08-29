@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEncounters, useOver12hAlerts } from "@/lib/hooks/use-encounters";
+import { useBranches } from "@/lib/hooks/use-branches";
 import { EncounterStatusBadge } from "@/components/domain/EncounterStatusBadge";
 import { SimpleAvatar } from "@/components/domain/SimpleAvatar";
 import { Button } from "@/components/ui/button";
@@ -173,6 +174,7 @@ export function EncountersPageClient() {
             <tr className="border-b bg-muted/40">
               <th className="text-left px-4 py-2 font-medium">Bệnh nhân</th>
               <th className="text-left px-4 py-2 font-medium">Bác sĩ</th>
+              <th className="text-left px-4 py-2 font-medium">Chi nhánh</th>
               <th className="text-left px-4 py-2 font-medium">Loại khám</th>
               <th className="text-left px-4 py-2 font-medium">Trạng thái</th>
               <th className="text-left px-4 py-2 font-medium">Bắt đầu</th>
@@ -193,7 +195,7 @@ export function EncountersPageClient() {
               ))
             ) : displayList.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
                   <Stethoscope className="mx-auto h-10 w-10 opacity-30 mb-2" />
                   Không có lượt khám nào
                 </td>
@@ -252,6 +254,12 @@ function EncounterRow({
 }) {
   const router = useRouter();
   const isInProgress = encounter.status === "IN_PROGRESS";
+  // BR-26: hiển thị chi nhánh của lượt khám, map từ danh sách chi nhánh đã cache
+  const { data: branchData } = useBranches({ is_active: true });
+  const branchName =
+    encounter.branch_id != null
+      ? branchData?.data?.find((b) => b.id === encounter.branch_id)?.name ?? `#${encounter.branch_id}`
+      : "—";
 
   return (
     <tr
@@ -277,6 +285,7 @@ function EncounterRow({
       <td className="px-4 py-2 text-muted-foreground">
         {encounter.doctor_name ?? "Chưa phân công"}
       </td>
+      <td className="px-4 py-2 text-muted-foreground">{branchName}</td>
       <td className="px-4 py-2">
         <Badge variant="outline" className="text-xs">
           {ENCOUNTER_TYPE_LABELS[encounter.encounter_type] ?? encounter.encounter_type}

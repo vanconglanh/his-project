@@ -559,6 +559,7 @@ export interface EncounterResponse {
   has_emr_signed: boolean;
   has_prescription: boolean;
   created_at: string;
+  branch_id?: number | null;
 }
 
 export interface EncounterDetailResponse extends EncounterResponse {

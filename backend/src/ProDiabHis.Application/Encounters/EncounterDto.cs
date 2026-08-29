@@ -35,7 +35,9 @@ public record EncounterResponse(
     object? VitalSignsLatest,
     bool HasEmrSigned,
     bool HasPrescription,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    // BR-26: chi nhanh cua luot kham (FE map branch_id -> ten tu danh sach chi nhanh da cache)
+    int? BranchId = null);
 
 public record EncounterDetailResponse(
     Guid Id,
