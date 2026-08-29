@@ -129,7 +129,7 @@ internal static class PackageMapper
             var refId = (string)d.item_ref_id;
             var qty = (decimal)d.quantity;
             var price = itemType == "DRUG"
-                ? await conn.ExecuteScalarAsync<decimal?>("SELECT sale_price FROM diab_his_pha_drugs WHERE id=@refId", new { refId }, tx)
+                ? await conn.ExecuteScalarAsync<decimal?>("SELECT price FROM diab_his_pha_drugs WHERE id=@refId", new { refId }, tx)
                 : await conn.ExecuteScalarAsync<decimal?>("SELECT price FROM diab_his_bil_services WHERE id=@refId", new { refId }, tx);
             estimatedValue += (price ?? 0) * qty;
         }
@@ -163,7 +163,7 @@ internal static class PackageMapper
     public static async Task<decimal> ResolveCurrentPriceAsync(IDbConnection conn, string itemType, string refId, IDbTransaction? tx = null)
     {
         decimal? price = itemType == "DRUG"
-            ? await conn.ExecuteScalarAsync<decimal?>("SELECT sale_price FROM diab_his_pha_drugs WHERE id=@refId", new { refId }, tx)
+            ? await conn.ExecuteScalarAsync<decimal?>("SELECT price FROM diab_his_pha_drugs WHERE id=@refId", new { refId }, tx)
             : await conn.ExecuteScalarAsync<decimal?>("SELECT price FROM diab_his_bil_services WHERE id=@refId", new { refId }, tx);
         return price ?? 0;
     }

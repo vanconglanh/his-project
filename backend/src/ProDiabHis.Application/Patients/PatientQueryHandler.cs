@@ -149,7 +149,9 @@ public class ListAllergiesQueryHandler : IRequestHandler<ListAllergiesQuery, Lis
         var patientExists = await _db.Patients.AnyAsync(p => p.Id == request.PatientId, cancellationToken);
         if (!patientExists) return new List<AllergyResponse>();
 
+        var patientIdStr = request.PatientId.ToString();
         var allergies = await _db.Allergies.AsNoTracking()
+            .Where(a => a.PatientId == patientIdStr)
             .OrderByDescending(a => a.Severity)
             .ThenByDescending(a => a.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -170,7 +172,9 @@ public class ListInsuranceQueryHandler : IRequestHandler<ListInsuranceQuery, Lis
         var patientExists = await _db.Patients.AnyAsync(p => p.Id == request.PatientId, cancellationToken);
         if (!patientExists) return new List<InsuranceResponse>();
 
+        var patientIdStr = request.PatientId.ToString();
         var insurances = await _db.Insurances.AsNoTracking()
+            .Where(i => i.PatientId == patientIdStr)
             .OrderByDescending(i => i.ValidTo)
             .ToListAsync(cancellationToken);
 
@@ -191,7 +195,9 @@ public class ListEmergencyContactsQueryHandler : IRequestHandler<ListEmergencyCo
         var patientExists = await _db.Patients.AnyAsync(p => p.Id == request.PatientId, cancellationToken);
         if (!patientExists) return new List<EmergencyContactResponse>();
 
+        var patientIdStr = request.PatientId.ToString();
         var contacts = await _db.EmergencyContacts.AsNoTracking()
+            .Where(c => c.PatientId == patientIdStr)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -229,7 +235,9 @@ public class ListConsentsQueryHandler : IRequestHandler<ListConsentsQuery, List<
         var patientExists = await _db.Patients.AnyAsync(p => p.Id == request.PatientId, cancellationToken);
         if (!patientExists) return new List<ConsentResponse>();
 
+        var patientIdStr = request.PatientId.ToString();
         var consents = await _db.Consents.AsNoTracking()
+            .Where(c => c.PatientId == patientIdStr)
             .OrderByDescending(c => c.SignedAt)
             .ToListAsync(cancellationToken);
 
