@@ -47,15 +47,13 @@ public class CrossBranchPatientSearchGuardTests
         => new(db, _pii, _branch, _perm, _audit);
 
     // UTC-H02-01 — khong quyen + tim mo (theo ten) -> chi thay benh nhan da tung kham
-    // ⚠️ BUG-01 (High) — HIEN DANG FAIL THAT: guard bi vo hieu hoa hoan toan.
-    // SearchPatientsQueryHandler tinh isExactMatch = (phoneBidx != null || idBidx != null || ...).
-    // idBidx = _pii.BlindIndex(q, PiiField.IdNumber) -> PiiNormalizer.NormalizeDigitsOrUpper giu lai
-    // MOI ky tu chu-hoac-so, nen voi q = "Nguyễn" van tra ve chuoi hash != null => isExactMatch = true
-    // => nhanh han che "chi thay benh nhan da tung kham" KHONG BAO GIO chay. Le tan chi nhanh A go
-    // bat ky manh ten nao la liet ke duoc benh nhan chi nhanh B (vi pham BR-25/BR-33, FR-203).
-    // Giu nguyen assert theo DUNG SPEC; bo Skip ngay sau khi dev vá (goi y: chi coi la exact match khi
-    // chuoi tim chi gom chu so / dung do dai CCCD, khong dung idBidx != null lam dieu kien).
-    [Fact(Skip = "BUG-01 (High): guard cross-branch bi vo hieu do idBidx luon != null — xem bao cao 2026-08-30")]
+    // BUG-01 (High) — DA FIX 2026-08-30: SearchPatientsQueryHandler truoc day tinh
+    // isExactMatch = (phoneBidx != null || idBidx != null || ...). idBidx = _pii.BlindIndex(q, PiiField.IdNumber)
+    // -> PiiNormalizer.NormalizeDigitsOrUpper giu lai MOI ky tu chu-hoac-so, nen voi q = "Nguyễn" van tra ve
+    // chuoi hash != null => isExactMatch = true => nhanh han che "chi thay benh nhan da tung kham" KHONG BAO GIO
+    // chay. Da sua: isExactMatch chi dung digitsOnly (thuan chu so, dung do dai 10 SDT / 12 CCCD), khong con
+    // dung "idBidx != null" lam dieu kien. Verify: test nay PASS that sau fix (khong con Skip).
+    [Fact]
     public async Task Search_KhongQuyen_TimTheoTen_ChiThayBenhNhanDaTungKham()
     {
         _branch.IgnoreBranchFilter.Returns(false);

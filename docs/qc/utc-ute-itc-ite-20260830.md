@@ -265,7 +265,7 @@ Evidence: `ITE-H1_step1_man-cau-hinh-kenh.png`
 
 ## 5. Bug phát hiện
 
-### 🔴 BUG-01 — Guard tìm bệnh nhân xuyên chi nhánh bị vô hiệu hoàn toàn (High)
+### ✅ BUG-01 — Guard tìm bệnh nhân xuyên chi nhánh bị vô hiệu hoàn toàn (High) — ĐÃ FIX 2026-08-30
 
 - **Case ID**: UTC-H02-01, ITC-H02-02 · **Liên quan**: H-2 (FR-203), E/Đợt2 (BR-25, BR-33)
 - **Severity**: **High** — rò rỉ dữ liệu bệnh nhân giữa các chi nhánh, vi phạm quy định bảo mật hồ sơ y tế
@@ -288,8 +288,14 @@ Evidence: `ITE-H1_step1_man-cau-hinh-kenh.png`
 - **Suggested fix area**: chỉ coi là "tìm chính xác theo giấy tờ" khi chuỗi tìm **thuần chữ số** và đúng độ dài
   CMND/CCCD/thẻ BHYT — không dùng `idBidx != null` làm dấu hiệu. Sau khi vá, **bỏ `Skip`** ở
   `CrossBranchPatientSearchGuardTests.Search_KhongQuyen_TimTheoTen_ChiThayBenhNhanDaTungKham`.
+- **Đã fix**: `backend/src/ProDiabHis.Application/Patients/PatientQueryHandler.cs` — `isExactMatch` giờ chỉ dựa
+  trên `digitsOnly.Length == trimmed.Length && (digitsOnly.Length == 10 || digitsOnly.Length == 12)` (SĐT 10 số
+  hoặc CCCD 12 số, thuần chữ số), không còn dùng `idBidx != null`/`phoneBidx != null` làm điều kiện mở khoá.
+  Đã bỏ `Skip` ở `Search_KhongQuyen_TimTheoTen_ChiThayBenhNhanDaTungKham` — chạy `dotnet test` xác nhận **834/834
+  PASS, 0 SKIP** (toàn bộ suite, bao gồm 12/12 case nhóm H-2). UTC-H02-06 (9 chữ số) vẫn PASS đúng theo spec —
+  không bị coi là tìm chính xác.
 
-### 🔴 BUG-02 — Danh sách chỉ định CĐHA trả HTTP 500, màn CLS mất dữ liệu âm thầm (Blocker)
+### ✅ BUG-02 — Danh sách chỉ định CĐHA trả HTTP 500, màn CLS mất dữ liệu âm thầm (Blocker) — ĐÃ FIX 2026-08-30
 
 - **Case ID**: ITC-C-08, ITC-C-10 · **Liên quan**: mục C (rewrite CLS)
 - **Severity**: **Blocker** — an toàn người bệnh: bác sĩ mở tab Cận lâm sàng **không thấy chỉ định CĐHA đã kê**,
@@ -310,15 +316,26 @@ Evidence: `ITE-H1_step1_man-cau-hinh-kenh.png`
 - **Ghi chú**: tôi **để lại** chỉ định CĐHA test trên encounter `6f750284-41c8-4625-9d41-587ba0c149a6` để dev
   tái lập ngay. Xoá dòng đó sẽ làm màn CLS "hết lỗi" một cách giả tạo.
 - **Evidence**: `ITE-C_step3_tab-CLS-loi-tai-danh-sach-CDHA.png` + log container ở mục 4.1.
+- **Đã fix**: `ClsHandlers.cs:474` đổi sang pattern `r.contrast is bool cb ? cb : (sbyte)r.contrast == 1` (giống
+  `Icd10Handlers.cs:116`). Verify thật qua API: rebuild + redeploy container `prodiab-backend` từ code đã vá,
+  gọi `GET /api/v1/encounters/6f750284-41c8-4625-9d41-587ba0c149a6/rad-orders` → **HTTP 200**, trả đúng 1 chỉ
+  định CĐHA (`CT_ABD`, `contrast:false`) — dữ liệu test vẫn giữ nguyên trên encounter đó để tái lập/verify.
 
-### 🟠 BUG-03 — Cùng lỗi ép kiểu `tinyint(1)` ở 2 chỗ khác, đang tiềm ẩn (Medium)
+### ✅ BUG-03 — Cùng lỗi ép kiểu `tinyint(1)` ở các chỗ khác, đang tiềm ẩn (Medium) — ĐÃ FIX 2026-08-30
 
 - **Severity**: Medium (chưa nổ vì bảng đang rỗng, sẽ nổ ngay khi có dữ liệu thật)
-- **Vị trí**: `DiabetesHandlers.cs:267` (`is_system`, bảng `diab_his_cli_diabetes_templates` — hiện 0 dòng),
-  `EncryptionKeyStoreImpl.cs:116` (`is_active`)
-- **Bằng chứng**: `GET /api/v1/diabetes-templates` hiện trả 200 với `{"data":[]}`; cột `is_system` là `tinyint(1)`,
-  mã nguồn giống hệt mẫu đã gây BUG-02.
-- **Suggested fix area**: sửa cùng lúc với BUG-02, dùng chung pattern `is bool b ? b : ...`.
+- **Vị trí đã sửa**: `DiabetesHandlers.cs:267` (`is_system`, bảng `diab_his_cli_diabetes_templates` — hiện 0 dòng),
+  `EncryptionKeyStoreImpl.cs:116` (`is_active`), và thêm 1 chỗ phát hiện khi grep mở rộng toàn backend:
+  `DtqgHandlers.cs:354` (`row.is_active == 1`, `row.last_test_ok == 1` trên `dynamic` — cùng lỗi RuntimeBinder
+  khi cột đã map sẵn thành `bool`).
+- **Bằng chứng**: `GET /api/v1/diabetes-templates` và `GET /api/v1/dtqg/credentials` hiện trả 200 sau khi vá
+  (verify qua container đã rebuild); cột `is_system`/`is_active`/`last_test_ok` là `tinyint(1)`, mã nguồn giống
+  hệt mẫu đã gây BUG-02.
+- **Đã fix**: cả 3 chỗ đổi sang pattern `x is bool b ? b : (sbyte)x == 1` (hoặc `== 1` cho `dynamic` không ép
+  sbyte). Đã grep rộng toàn backend `\(sbyte\)`, `\(bool\)\(`, `== 1\)` để xác nhận không còn chỗ nào khác dùng
+  pattern ép kiểu sai này trên biến `dynamic` (các chỗ còn lại như `SupplierHandlers.cs` dùng `(bool)(x ?? true)`
+  — an toàn vì `x` đã là `bool?`; `NotificationChannelHandlers.cs` dùng lớp `ChannelRow` có field `int`, Dapper tự
+  convert bool→int khi map sang class có kiểu tường minh nên không lỗi).
 
 ### 🟠 GAP-01 — Điều chuyển kho không có giao diện người dùng (Medium)
 

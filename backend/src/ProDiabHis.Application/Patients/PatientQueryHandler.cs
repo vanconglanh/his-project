@@ -80,8 +80,13 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
             || _permissionChecker.HasPermission("branch.group_view")
             || _permissionChecker.HasPermission("cross_branch_view");
 
-        var isExactMatch = phoneBidx != null || idBidx != null
-            || (digitsOnly.Length == 10 && digitsOnly.Length == trimmed.Length);
+        // BUG-01 fix: KHONG dung "idBidx != null" lam dau hieu tim chinh xac theo giay to -
+        // PiiNormalizer.NormalizeDigitsOrUpper giu lai ca chu cai nen chuoi ten thuan chu (vd "Nguyễn")
+        // cung sinh ra blind-index hash khac null, khien guard cross-branch bi vo hieu hoa hoan toan.
+        // Chi coi la "tim chinh xac theo giay to" khi chuoi nhap la THUAN CHU SO va dung do dai:
+        // SDT = 10 so, CCCD = 12 so (khong tinh CMND 9 so theo dung spec UTC-H02-06).
+        var isExactMatch = digitsOnly.Length == trimmed.Length
+            && (digitsOnly.Length == 10 || digitsOnly.Length == 12);
 
         if (!hasCrossBranchSearch && !isExactMatch)
         {
