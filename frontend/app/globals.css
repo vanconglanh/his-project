@@ -7,6 +7,17 @@
    Tailwind v4 dang ky plugin qua @plugin trong CSS (khong con tailwind.config.js). */
 @plugin "@tailwindcss/typography";
 
+/* BUG FIX: trinh duyet tu dong ve outline mac dinh (outline-style:auto,
+   thuong hien mau xam/trang) tren phan tu contenteditable khi focus -
+   day chinh la "vien trang" nguoi dung thay long trong vien teal cua
+   container (EmrEditor.tsx da co focus-within:ring rieng lam dau hieu
+   focus, khong can outline mac dinh cua trinh duyet nua - thua va gay
+   roi mat vi 2 lop vien chong nhau). */
+.ProseMirror:focus,
+.ProseMirror:focus-visible {
+  outline: none;
+}
+
 /* BUG FIX: @tiptap/extension-placeholder chi gan class "is-empty" +
    attribute "data-placeholder" o dong trong qua JS - PHAI tu viet rule
    ::before { content: attr(data-placeholder) } thi text goi y moi thuc
