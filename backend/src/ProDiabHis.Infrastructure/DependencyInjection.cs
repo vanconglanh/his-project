@@ -32,6 +32,7 @@ using ProDiabHis.Infrastructure.Jobs;
 using ProDiabHis.Infrastructure.Lab;
 using ProDiabHis.Infrastructure.FeatureFlags;
 using ProDiabHis.Infrastructure.Notifications;
+using ProDiabHis.Application.Notifications;
 using ProDiabHis.Infrastructure.Persistence;
 using ProDiabHis.Infrastructure.RateLimit;
 using ProDiabHis.Infrastructure.Security;
@@ -386,6 +387,15 @@ public static class DependencyInjection
         services.AddScoped<RecallNotifyJob>();
         services.AddScoped<MedReminderJob>();
         services.AddScoped<QueueTurnNotifyJob>();
+
+        // FR-112 (H-1): Kenh gui thong bao ngoai (SMS / Zalo ZNS) per-tenant/branch, config ma hoa.
+        services.AddScoped<INotificationChannelCredentialProvider, NotificationChannelCredentialProvider>();
+        services.AddScoped<IChannelSender, SmsSender>();
+        services.AddScoped<IChannelSender, ZaloZnsSender>();
+        services.AddScoped<INotificationSender, NotificationSender>();
+        services.AddScoped<AppointmentReminderNotifyJob>();
+        services.AddHttpClient(SmsSender.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30));
+        services.AddHttpClient(ZaloZnsSender.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30));
 
         // SMS Gateway — dung Mock cho dev, override bang DI extension khi can
         var smsProvider = configuration["Sms:Provider"] ?? "mock";

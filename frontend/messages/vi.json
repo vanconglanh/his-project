@@ -115,6 +115,7 @@
     "einvoice": "HĐĐT",
     "apiPartners": "API Partners",
     "notificationsConfig": "Cấu hình thông báo",
+    "notificationChannels": "Kênh nhắc lịch (SMS/Zalo)",
     "riskList": "Danh sách nguy cơ ĐTĐ",
     "recall": "Nhắc tái khám"
   },

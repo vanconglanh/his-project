@@ -265,6 +265,11 @@ try
         "portal-recall-notify",
         j => j.ExecuteAsync(default),
         "0 8 * * *");
+    // FR-112 (H-1): nhac lich hen qua SMS/Zalo ZNS (moi gio, nguong gio cau hinh o Notifications:AppointmentReminderHours)
+    RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.AppointmentReminderNotifyJob>(
+        "appointment-reminder-notify",
+        j => j.ExecuteAsync(default),
+        "0 * * * *");
     // Patient Portal: nhac uong thuoc (moi 30 phut)
     RecurringJob.AddOrUpdate<ProDiabHis.Infrastructure.Jobs.MedReminderJob>(
         "portal-med-reminder",

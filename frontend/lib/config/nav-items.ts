@@ -285,6 +285,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         icon: Bell,
         permissions: ["tenant.read"],
       },
+      {
+        href: "/admin/notification-channels",
+        labelKey: "notificationChannels",
+        icon: BellRing,
+        permissions: ["notification_channel.read"],
+      },
     ],
   },
 ];
