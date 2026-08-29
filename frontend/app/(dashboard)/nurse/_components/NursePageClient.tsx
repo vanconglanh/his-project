@@ -21,8 +21,10 @@ export function NursePageClient() {
   const [selectedEncounter, setSelectedEncounter] = useState<EncounterResponse | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // BUG-11: hàng chờ Điều dưỡng phải giữ cả bệnh nhân đã chuyển "Đang khám" (IN_PROGRESS),
+  // vì điều dưỡng vẫn cần nhập sinh hiệu cho họ; lọc riêng WAITING làm mất bệnh nhân.
   const { data: todayEncounters, isLoading } = useEncounters({
-    status: "WAITING",
+    status: "WAITING,IN_PROGRESS",
     date_from: today,
     date_to: today,
     page_size: 50,

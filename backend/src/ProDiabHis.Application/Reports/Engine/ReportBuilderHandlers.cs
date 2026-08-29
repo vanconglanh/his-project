@@ -127,11 +127,13 @@ public class PreviewReportDefinitionHandler : IRequestHandler<PreviewReportDefin
     private readonly IDatasetRegistry _datasets;
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public PreviewReportDefinitionHandler(IDatasetRegistry datasets, IDapperConnectionFactory db, ITenantProvider tenant)
+    public PreviewReportDefinitionHandler(IDatasetRegistry datasets, IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
         _datasets = datasets;
         _db = db;
+        _branch = branch;
         _tenant = tenant;
     }
 
@@ -155,7 +157,7 @@ public class PreviewReportDefinitionHandler : IRequestHandler<PreviewReportDefin
 
         var descriptor = DynamicDescriptorFactory.Create(previewDefinition, dataset, DynamicDescriptorFactory.PreviewLimit);
 
-        var ctx = new ReportQueryContext(_tenant.TenantId, request.From, request.To, new Dictionary<string, string?>());
+        var ctx = new ReportQueryContext(_tenant.TenantId, request.From, request.To, new Dictionary<string, string?>(), _branch.BranchId, _branch.IgnoreBranchFilter);
         var (sql, parameters) = descriptor.BuildQuery(ctx);
 
         using var conn = (IDbConnection)_db.CreateConnection();

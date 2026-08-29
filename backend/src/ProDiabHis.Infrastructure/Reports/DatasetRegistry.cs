@@ -48,7 +48,7 @@ public class DatasetRegistry : IDatasetRegistry
                 ReportAggregation.Count, ReportAggregation.CountDistinct)
         };
 
-        return new Dataset("thu-ngan", "Thu ngân", from, baseWhere, "paidDate", fields);
+        return new Dataset("thu-ngan", "Thu ngân", from, baseWhere, "paidDate", fields, BranchAlias: "p");
     }
 
     // ================= Dataset 2: Luot kham (Encounters) ================= //
@@ -76,7 +76,7 @@ public class DatasetRegistry : IDatasetRegistry
                 ReportAggregation.CountDistinct)
         };
 
-        return new Dataset("luot-kham", "Lượt khám", from, baseWhere, "visitDate", fields);
+        return new Dataset("luot-kham", "Lượt khám", from, baseWhere, "visitDate", fields, BranchAlias: "e");
     }
 
     // ================= Dataset 3: Kho duoc (Pharmacy stock) ================= //
@@ -106,7 +106,7 @@ public class DatasetRegistry : IDatasetRegistry
 
         // Dataset kho khong co "khoang ngay giao dich" ro rang (ton kho la snapshot) — dung ngay nhap lo
         // (created_at) lam truong ngay bat buoc de tuong thich khung from/to chung cua engine.
-        return new Dataset("kho", "Kho dược", from, baseWhere, "importedDate", fields);
+        return new Dataset("kho", "Kho dược", from, baseWhere, "importedDate", fields, BranchAlias: "s");
     }
 
     // ================= Dataset 4: Don thuoc (Prescriptions) ================= //
@@ -133,7 +133,7 @@ public class DatasetRegistry : IDatasetRegistry
                 ReportAggregation.Sum, ReportAggregation.Avg)
         };
 
-        return new Dataset("don-thuoc", "Đơn thuốc", from, baseWhere, "prescribedDate", fields);
+        return new Dataset("don-thuoc", "Đơn thuốc", from, baseWhere, "prescribedDate", fields, BranchAlias: "rx");
     }
 
     // ================= Dataset 5: Cong no (Billing balance > 0) ================= //
@@ -159,7 +159,7 @@ public class DatasetRegistry : IDatasetRegistry
                 ReportAggregation.Count, ReportAggregation.CountDistinct)
         };
 
-        return new Dataset("cong-no", "Công nợ", from, baseWhere, "billDate", fields);
+        return new Dataset("cong-no", "Công nợ", from, baseWhere, "billDate", fields, BranchAlias: "b");
     }
 
     // ================= Dataset 6: Chi dinh CLS (Lab + Rad orders gop qua UNION ALL) ================= //
@@ -171,11 +171,13 @@ public class DatasetRegistry : IDatasetRegistry
         const string from = @"
             (
                 SELECT lo.id AS id, lo.tenant_id AS tenant_id, lo.ordered_at AS ordered_at,
-                       lo.ordered_by AS ordered_by, N'Xét nghiệm' AS modality, lo.deleted_at AS deleted_at
+                       lo.ordered_by AS ordered_by, N'Xét nghiệm' AS modality, lo.deleted_at AS deleted_at,
+                       lo.branch_id AS branch_id
                 FROM diab_his_lab_orders lo
                 UNION ALL
                 SELECT ro.id AS id, ro.tenant_id AS tenant_id, ro.ordered_at AS ordered_at,
-                       ro.ordered_by AS ordered_by, ro.modality AS modality, ro.deleted_at AS deleted_at
+                       ro.ordered_by AS ordered_by, ro.modality AS modality, ro.deleted_at AS deleted_at,
+                       ro.branch_id AS branch_id
                 FROM diab_his_rad_orders ro
             ) cls
             LEFT JOIN diab_his_sec_users doc ON doc.id = cls.ordered_by";
@@ -191,6 +193,6 @@ public class DatasetRegistry : IDatasetRegistry
                 ReportAggregation.Count, ReportAggregation.CountDistinct)
         };
 
-        return new Dataset("cls", "Chỉ định CLS", from, baseWhere, "orderedDate", fields);
+        return new Dataset("cls", "Chỉ định CLS", from, baseWhere, "orderedDate", fields, BranchAlias: "cls");
     }
 }

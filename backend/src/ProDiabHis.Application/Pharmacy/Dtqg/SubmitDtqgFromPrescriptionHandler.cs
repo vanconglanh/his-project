@@ -38,6 +38,7 @@ public class SubmitDtqgFromPrescriptionHandler
     private readonly IAuditService _audit;
     private readonly IConfiguration _config;
     private readonly ILogger<SubmitDtqgFromPrescriptionHandler> _logger;
+    private readonly IBranchProvider _branch;
 
     public SubmitDtqgFromPrescriptionHandler(
         IDapperConnectionFactory db,
@@ -46,7 +47,8 @@ public class SubmitDtqgFromPrescriptionHandler
         IDtqgPrescriptionPayloadBuilder payloadBuilder,
         IAuditService audit,
         IConfiguration config,
-        ILogger<SubmitDtqgFromPrescriptionHandler> logger)
+        ILogger<SubmitDtqgFromPrescriptionHandler> logger,
+        IBranchProvider branch)
     {
         _db = db;
         _currentUser = currentUser;
@@ -55,6 +57,7 @@ public class SubmitDtqgFromPrescriptionHandler
         _audit = audit;
         _config = config;
         _logger = logger;
+        _branch = branch;
     }
 
     public async Task<Result<SubmitDtqgFromPrescriptionCommandResult>> Handle(
@@ -66,13 +69,14 @@ public class SubmitDtqgFromPrescriptionHandler
         var presId = cmd.PrescriptionId.ToString();
 
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
 
         // Lay thong tin don thuoc (schema canonical: diab_his_pha_prescriptions, id CHAR(36))
         var pres = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT id, status, dtqg_code, encounter_id
+            $@"SELECT id, status, dtqg_code, encounter_id
               FROM diab_his_pha_prescriptions
-              WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { id = presId, tenantId });
+              WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = presId, tenantId, branchId, ignoreBranch });
 
         if (pres == null)
             return Result<SubmitDtqgFromPrescriptionCommandResult>.Failure(

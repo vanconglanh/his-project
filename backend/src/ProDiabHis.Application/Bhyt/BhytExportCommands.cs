@@ -98,18 +98,20 @@ public class DeleteBhytExportHandler : IRequestHandler<DeleteBhytExportCommand, 
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public DeleteBhytExportHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public DeleteBhytExportHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result> Handle(DeleteBhytExportCommand cmd, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, status FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = cmd.Id, t = _tenant.TenantId });
+            $"SELECT id, status FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = cmd.Id, t = _tenant.TenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
@@ -137,21 +139,23 @@ public class GenerateBhytXmlHandler : IRequestHandler<GenerateBhytXmlCommand, Re
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IBackgroundJobEnqueuer _jobs;
     private readonly ILogger<GenerateBhytXmlHandler> _logger;
 
-    public GenerateBhytXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant,
+    public GenerateBhytXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch,
         IBackgroundJobEnqueuer jobs, ILogger<GenerateBhytXmlHandler> logger)
     {
-        _db = db; _tenant = tenant; _jobs = jobs; _logger = logger;
+        _db = db; _tenant = tenant; _branch = branch; _jobs = jobs; _logger = logger;
     }
 
     public async Task<Result<BhytExportResponse>> Handle(GenerateBhytXmlCommand cmd, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = cmd.ExportId, t = _tenant.TenantId });
+            $"SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = cmd.ExportId, t = _tenant.TenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result<BhytExportResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
@@ -175,19 +179,21 @@ public class RegenerateBhytXmlHandler : IRequestHandler<RegenerateBhytXmlCommand
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IBackgroundJobEnqueuer _jobs;
 
-    public RegenerateBhytXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBackgroundJobEnqueuer jobs)
+    public RegenerateBhytXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IBackgroundJobEnqueuer jobs)
     {
-        _db = db; _tenant = tenant; _jobs = jobs;
+        _db = db; _tenant = tenant; _branch = branch; _jobs = jobs;
     }
 
     public async Task<Result<BhytExportResponse>> Handle(RegenerateBhytXmlCommand cmd, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = cmd.ExportId, t = _tenant.TenantId });
+            $"SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = cmd.ExportId, t = _tenant.TenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result<BhytExportResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
@@ -212,19 +218,21 @@ public class ValidateBhytXmlHandler : IRequestHandler<ValidateBhytXmlCommand, Re
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IBhytXsdValidator _validator;
 
-    public ValidateBhytXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBhytXsdValidator validator)
+    public ValidateBhytXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IBhytXsdValidator validator)
     {
-        _db = db; _tenant = tenant; _validator = validator;
+        _db = db; _tenant = tenant; _branch = branch; _validator = validator;
     }
 
     public async Task<Result<BhytValidationResultResponse>> Handle(ValidateBhytXmlCommand cmd, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, status FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = cmd.ExportId, t = _tenant.TenantId });
+            $"SELECT id, status FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = cmd.ExportId, t = _tenant.TenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result<BhytValidationResultResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
@@ -255,19 +263,21 @@ public class SignBhytXmlHandler : IRequestHandler<SignBhytXmlCommand, Result<Bhy
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IBhytSigner _signer;
 
-    public SignBhytXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBhytSigner signer)
+    public SignBhytXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IBhytSigner signer)
     {
-        _db = db; _tenant = tenant; _signer = signer;
+        _db = db; _tenant = tenant; _branch = branch; _signer = signer;
     }
 
     public async Task<Result<BhytExportResponse>> Handle(SignBhytXmlCommand cmd, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = cmd.ExportId, t = _tenant.TenantId });
+            $"SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = cmd.ExportId, t = _tenant.TenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result<BhytExportResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
@@ -296,19 +306,21 @@ public class SubmitBhytExportHandler : IRequestHandler<SubmitBhytExportCommand, 
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
     private readonly IBhytSubmissionClient _client;
 
-    public SubmitBhytExportHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBhytSubmissionClient client)
+    public SubmitBhytExportHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch, IBhytSubmissionClient client)
     {
-        _db = db; _tenant = tenant; _client = client;
+        _db = db; _tenant = tenant; _branch = branch; _client = client;
     }
 
     public async Task<Result<BhytExportResponse>> Handle(SubmitBhytExportCommand cmd, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = cmd.ExportId, t = _tenant.TenantId });
+            $"SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = cmd.ExportId, t = _tenant.TenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result<BhytExportResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");

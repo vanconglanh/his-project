@@ -1,4 +1,5 @@
 using Dapper;
+using ProDiabHis.Application.Common;
 
 namespace ProDiabHis.Application.Reports.Engine;
 
@@ -123,6 +124,16 @@ public static class SafeQueryBuilder
             ?? throw new ReportValidationException("REPORT_DEFINITION_INVALID", $"Dataset '{dataset.Key}' thiếu cấu hình trường ngày");
 
         var whereClauses = new List<string> { dataset.BaseWhereSql, $"{dateField.SqlExpr} BETWEEN @from AND @to" };
+
+        // ---- Loc chi nhanh (bug bao mat da chi nhanh — xem docs/prd/phan-tich-da-chi-nhanh-mo-rong-20260829.md muc b) ----//
+        // Dataset khai bao BranchAlias -> luon ghep dieu kien branch, @branchId/@ignoreBranch lay tu ReportQueryContext
+        // (do handler goi tu IBranchProvider, KHONG tu client).
+        if (!string.IsNullOrEmpty(dataset.BranchAlias))
+        {
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
+            whereClauses.Add(BranchSql.Condition(dataset.BranchAlias));
+        }
 
         var paramIndex = 0;
         foreach (var f in filters)

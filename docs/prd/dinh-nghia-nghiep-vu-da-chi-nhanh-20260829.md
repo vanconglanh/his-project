@@ -574,3 +574,19 @@ Bảng chốt để dev tra nhanh khi thêm bảng/tính năng mới:
 ---
 
 *Tài liệu định nghĩa nghiệp vụ. Mọi BR-xx là ràng buộc bắt buộc. Dev gặp tình huống không có BR nào phủ → hỏi PO, KHÔNG tự suy diễn.*
+
+---
+
+## 15. Quyết định tạm cho 7 câu hỏi BO còn treo (2026-08-29 — CHỜ BO REVIEW)
+
+> Do không liên hệ được Business Owner trong phiên triển khai 2026-08-29, team **tự quyết theo phương án đề xuất mặc định** đã ghi ở mục 10 để không chặn tiến độ. Đây là **default**, BO cần xác nhận/điều chỉnh sau; nếu BO chọn khác, các phần liên quan sẽ điều chỉnh cục bộ (không phá kiến trúc).
+
+| Câu | Quyết định tạm (default) | Ảnh hưởng nếu BO đổi ý |
+|---|---|---|
+| **Q1** | Hỗ trợ cả kịch bản A và B qua `branch_groups` type `REGION` | Nếu chỉ cần A: bỏ bảng branch_groups, đơn giản hoá scope |
+| **Q2** | Thiết kế cho **≤ 50 chi nhánh/tenant** | > 50: cần pre-aggregate báo cáo, sharding — task riêng |
+| **Q5** | Ngưỡng duyệt điều chuyển kho **5.000.000đ**, cấu hình theo tenant (`sys_settings`) | Chỉ đổi giá trị cấu hình, không đổi code |
+| **Q6** | **Có** cho trả nợ chéo chi nhánh + báo cáo công nợ nội bộ | Nếu không cần: bỏ bảng công nợ nội bộ, đơn giản hoá kế toán |
+| **Q7** | Bác sĩ xem bệnh án chi nhánh khác **không giới hạn nhưng ghi audit** + chặn tìm kiếm mở | Nếu siết hơn: thêm cơ chế break-glass có phê duyệt |
+| **Q9** | **Có** vai trò giám đốc khu vực → làm `branch.group_view` | Nếu không có tổ chức thực: quyền vẫn tồn tại, chỉ không gán ai |
+| **Q10** | Đổi chi nhánh **không cần đăng nhập lại**, qua header `X-Branch-Id` + xác nhận + xoá cache | Nếu cần re-login: đổi UX branch switcher |

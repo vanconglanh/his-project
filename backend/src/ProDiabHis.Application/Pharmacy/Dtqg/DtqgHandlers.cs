@@ -123,32 +123,35 @@ public class GetDtqgStatusHandler : IRequestHandler<GetDtqgStatusQuery, Result<D
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public GetDtqgStatusHandler(IDapperConnectionFactory db, ICurrentUser currentUser)
+    public GetDtqgStatusHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch)
     {
         _db = db;
         _currentUser = currentUser;
+        _branch = branch;
     }
 
     public async Task<Result<DtqgSubmissionResponse>> Handle(GetDtqgStatusQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
 
         var presId = await conn.ExecuteScalarAsync<int?>(
-            "SELECT ID FROM pha_prescriptions WHERE ID = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { id = q.PrescriptionId.ToString(), tenantId });
+            $"SELECT ID FROM pha_prescriptions WHERE ID = @id AND tenant_id = @tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = q.PrescriptionId.ToString(), tenantId, branchId, ignoreBranch });
 
         if (!presId.HasValue)
             return Result<DtqgSubmissionResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
 
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT id, tenant_id, prescription_id, ma_don_thuoc, qr_payload,
+            $@"SELECT id, tenant_id, prescription_id, ma_don_thuoc, qr_payload,
                      status, error_code, error_message, submitted_at, accepted_at, retry_count, last_retry_at
               FROM diab_his_int_dtqg_submissions
-              WHERE prescription_id = @presId AND tenant_id = @tenantId
+              WHERE prescription_id = @presId AND tenant_id = @tenantId AND {BranchSql.Condition("")}
               ORDER BY created_at DESC LIMIT 1",
-            new { presId, tenantId });
+            new { presId, tenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result<DtqgSubmissionResponse>.Failure("DTQG_SUBMIT_FAILED", "Chua co thong tin gui DTQG cho don thuoc nay.");
@@ -224,11 +227,13 @@ public class ListDtqgSubmissionsHandler : IRequestHandler<ListDtqgSubmissionsQue
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public ListDtqgSubmissionsHandler(IDapperConnectionFactory db, ICurrentUser currentUser)
+    public ListDtqgSubmissionsHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch)
     {
         _db = db;
         _currentUser = currentUser;
+        _branch = branch;
     }
 
     public async Task<Result<PagedResult<DtqgSubmissionResponse>>> Handle(ListDtqgSubmissionsQuery q, CancellationToken ct)
@@ -236,12 +241,15 @@ public class ListDtqgSubmissionsHandler : IRequestHandler<ListDtqgSubmissionsQue
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
         var offset = (q.Page - 1) * q.PageSize;
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
 
-        var where = new List<string> { "tenant_id = @tenantId", "deleted_at IS NULL" };
+        var where = new List<string> { "tenant_id = @tenantId", "deleted_at IS NULL", BranchSql.Condition("") };
         var prm = new DynamicParameters();
         prm.Add("tenantId", tenantId);
         prm.Add("offset", offset);
         prm.Add("limit", q.PageSize);
+        prm.Add("branchId", branchId);
+        prm.Add("ignoreBranch", ignoreBranch);
 
         if (!string.IsNullOrWhiteSpace(q.Status)) { where.Add("status = @status"); prm.Add("status", q.Status); }
         if (q.FromDate.HasValue) { where.Add("DATE(submitted_at) >= @fromDate"); prm.Add("fromDate", q.FromDate.Value); }

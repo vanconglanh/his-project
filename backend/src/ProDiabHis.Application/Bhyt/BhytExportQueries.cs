@@ -20,19 +20,23 @@ public class ListBhytExportsHandler : IRequestHandler<ListBhytExportsQuery, Resu
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public ListBhytExportsHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public ListBhytExportsHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result<PagedResult<BhytExportResponse>>> Handle(ListBhytExportsQuery q, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
 
-        var where = new StringBuilder("WHERE tenant_id=@t AND deleted_at IS NULL");
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
+        var where = new StringBuilder($"WHERE tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}");
         var p = new DynamicParameters();
         p.Add("t", _tenant.TenantId);
+        p.Add("branchId", branchId);
+        p.Add("ignoreBranch", ignoreBranch);
 
         if (!string.IsNullOrEmpty(q.PeriodMonth)) { where.Append(" AND period_month=@pm"); p.Add("pm", q.PeriodMonth); }
         if (!string.IsNullOrEmpty(q.Status))      { where.Append(" AND status=@st");       p.Add("st", q.Status); }
@@ -61,18 +65,20 @@ public class GetBhytExportHandler : IRequestHandler<GetBhytExportQuery, Result<B
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public GetBhytExportHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public GetBhytExportHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result<BhytExportResponse>> Handle(GetBhytExportQuery q, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = q.Id, t = _tenant.TenantId });
+            $"SELECT * FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = q.Id, t = _tenant.TenantId, branchId, ignoreBranch });
 
         if (row == null)
             return Result<BhytExportResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
@@ -89,20 +95,22 @@ public class DownloadBhytTableXmlHandler : IRequestHandler<DownloadBhytTableXmlQ
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public DownloadBhytTableXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public DownloadBhytTableXmlHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result<byte[]>> Handle(DownloadBhytTableXmlQuery q, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
 
         // Xac nhan export ton tai
         var export = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, status FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL",
-            new { id = q.ExportId, t = _tenant.TenantId });
+            $"SELECT id, status FROM diab_his_int_bhyt_exports WHERE id=@id AND tenant_id=@t AND deleted_at IS NULL AND {BranchSql.Condition("")}",
+            new { id = q.ExportId, t = _tenant.TenantId, branchId, ignoreBranch });
 
         if (export == null)
             return Result<byte[]>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay ky export BHYT");
@@ -177,26 +185,30 @@ public class ListBhytExportItemsHandler : IRequestHandler<ListBhytExportItemsQue
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public ListBhytExportItemsHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public ListBhytExportItemsHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result<PagedResult<BhytExportItemResponse>>> Handle(ListBhytExportItemsQuery q, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
+        // diab_his_int_bhyt_export_items khong co cot branch_id rieng -> loc qua export cha (diab_his_int_bhyt_exports)
+        var branchExistsSql = $"EXISTS (SELECT 1 FROM diab_his_int_bhyt_exports ex WHERE ex.id = diab_his_int_bhyt_export_items.export_id AND ex.tenant_id = @t AND {BranchSql.Condition("ex")})";
 
         var total = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM diab_his_int_bhyt_export_items WHERE export_id=@eid AND table_no=@tn AND tenant_id=@t",
-            new { eid = q.ExportId, tn = q.TableNo, t = _tenant.TenantId });
+            $"SELECT COUNT(*) FROM diab_his_int_bhyt_export_items WHERE export_id=@eid AND table_no=@tn AND tenant_id=@t AND {branchExistsSql}",
+            new { eid = q.ExportId, tn = q.TableNo, t = _tenant.TenantId, branchId, ignoreBranch });
 
         var rows = await conn.QueryAsync<dynamic>(
-            @"SELECT * FROM diab_his_int_bhyt_export_items
-              WHERE export_id=@eid AND table_no=@tn AND tenant_id=@t
+            $@"SELECT * FROM diab_his_int_bhyt_export_items
+              WHERE export_id=@eid AND table_no=@tn AND tenant_id=@t AND {branchExistsSql}
               ORDER BY record_index
               LIMIT @limit OFFSET @offset",
-            new { eid = q.ExportId, tn = q.TableNo, t = _tenant.TenantId,
+            new { eid = q.ExportId, tn = q.TableNo, t = _tenant.TenantId, branchId, ignoreBranch,
                   limit = q.PageSize, offset = (q.Page - 1) * q.PageSize });
 
         var items = rows.Select(MapItem).ToList();
@@ -229,19 +241,22 @@ public class GetBhytExportItemHandler : IRequestHandler<GetBhytExportItemQuery, 
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public GetBhytExportItemHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public GetBhytExportItemHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result<BhytExportItemResponse>> Handle(GetBhytExportItemQuery q, CancellationToken ct)
     {
         using var conn = (IDbConnection)_db.CreateConnection();
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
+        var branchExistsSql = $"EXISTS (SELECT 1 FROM diab_his_int_bhyt_exports ex WHERE ex.id = diab_his_int_bhyt_export_items.export_id AND ex.tenant_id = @t AND {BranchSql.Condition("ex")})";
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT * FROM diab_his_int_bhyt_export_items
-              WHERE export_id=@eid AND table_no=@tn AND tenant_id=@t AND id=@rid",
-            new { eid = q.ExportId, tn = q.TableNo, t = _tenant.TenantId, rid = q.RowId.ToString() });
+            $@"SELECT * FROM diab_his_int_bhyt_export_items
+              WHERE export_id=@eid AND table_no=@tn AND tenant_id=@t AND id=@rid AND {branchExistsSql}",
+            new { eid = q.ExportId, tn = q.TableNo, t = _tenant.TenantId, rid = q.RowId.ToString(), branchId, ignoreBranch });
 
         if (row == null)
             return Result<BhytExportItemResponse>.Failure("BHYT_EXPORT_NOT_FOUND", "Khong tim thay dong du lieu");

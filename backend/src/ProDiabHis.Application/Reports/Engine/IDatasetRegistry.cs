@@ -48,7 +48,11 @@ public record Dataset(
     string FromSql,
     string BaseWhereSql,
     string DateFieldKey,
-    IReadOnlyList<DatasetField> Fields)
+    IReadOnlyList<DatasetField> Fields,
+    /// <summary>Alias bang/subquery co cot branch_id dung de loc chi nhanh (vd "p", "e", "s"...).
+    /// Null neu dataset khong co du lieu gan branch (hien khong dung — moi dataset van hanh deu phai khai bao).
+    /// SafeQueryBuilder se tu dong ghep BranchSql.Condition(BranchAlias) vao WHERE khi khac null.</summary>
+    string? BranchAlias = null)
 {
     public DatasetField? FindField(string key) => Fields.FirstOrDefault(f => string.Equals(f.Key, key, StringComparison.OrdinalIgnoreCase));
 }

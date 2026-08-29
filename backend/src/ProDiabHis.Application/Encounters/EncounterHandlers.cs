@@ -615,7 +615,14 @@ public class ListEncountersQueryHandler : IRequestHandler<ListEncountersQuery, R
         if (!string.IsNullOrEmpty(q.PatientId)) query = query.Where(e => e.PatientId == q.PatientId);
         if (!string.IsNullOrEmpty(q.DoctorId))  query = query.Where(e => e.DoctorId == q.DoctorId);
         if (!string.IsNullOrEmpty(q.RoomId))    query = query.Where(e => e.RoomId == q.RoomId);
-        if (!string.IsNullOrEmpty(q.Status))    query = query.Where(e => e.Status == q.Status);
+        // BUG-11: ho tro loc nhieu trang thai (CSV, vd "WAITING,IN_PROGRESS") de hang cho
+        // Dieu duong khong lam mat benh nhan da chuyen sang "Dang kham". Van tuong thich 1 gia tri.
+        if (!string.IsNullOrEmpty(q.Status))
+        {
+            var statuses = q.Status.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (statuses.Length == 1) query = query.Where(e => e.Status == statuses[0]);
+            else if (statuses.Length > 1) query = query.Where(e => statuses.Contains(e.Status));
+        }
         if (!string.IsNullOrEmpty(q.EncounterType)) query = query.Where(e => e.EncounterType == q.EncounterType);
         if (q.DateFrom.HasValue)
         {

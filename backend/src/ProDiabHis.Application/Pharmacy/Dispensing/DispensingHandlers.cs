@@ -21,24 +21,28 @@ public class GetDispenseQueueHandler : IRequestHandler<GetDispenseQueueQuery, Re
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public GetDispenseQueueHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public GetDispenseQueueHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<PagedResult<DispenseQueueItem>>> Handle(GetDispenseQueueQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
         var offset = (q.Page - 1) * q.PageSize;
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
 
         var where = new List<string>
         {
             "p.tenant_id = @tenantId",
             "p.status IN ('SIGNED','SUBMITTED_DTQG')",
             "p.deleted_at IS NULL",
+            BranchSql.Condition("p"),
             "NOT EXISTS (SELECT 1 FROM diab_his_pha_dispense_records dr WHERE dr.prescription_id = p.ID AND dr.status = 'DISPENSED' AND dr.tenant_id = @tenantId)"
         };
         var prm = new DynamicParameters();
         prm.Add("tenantId", tenantId); prm.Add("offset", offset); prm.Add("limit", q.PageSize);
+        prm.Add("branchId", branchId); prm.Add("ignoreBranch", ignoreBranch);
 
         if (!string.IsNullOrWhiteSpace(q.Q)) { where.Add("(pat.full_name LIKE @q OR p.ID LIKE @q)"); prm.Add("q", $"%{q.Q}%"); }
 
@@ -276,18 +280,21 @@ public class GetDispenseHistoryHandler : IRequestHandler<GetDispenseHistoryQuery
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public GetDispenseHistoryHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public GetDispenseHistoryHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch) { _db = db; _currentUser = currentUser; _branch = branch; }
 
     public async Task<Result<PagedResult<DispenseRecordResponse>>> Handle(GetDispenseHistoryQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
         var offset = (q.Page - 1) * q.PageSize;
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
 
-        var where = new List<string> { "dr.tenant_id = @tenantId", "dr.deleted_at IS NULL" };
+        var where = new List<string> { "dr.tenant_id = @tenantId", "dr.deleted_at IS NULL", BranchSql.Condition("dr") };
         var prm = new DynamicParameters();
         prm.Add("tenantId", tenantId); prm.Add("offset", offset); prm.Add("limit", q.PageSize);
+        prm.Add("branchId", branchId); prm.Add("ignoreBranch", ignoreBranch);
 
         if (!string.IsNullOrWhiteSpace(q.Status)) { where.Add("dr.status = @status"); prm.Add("status", q.Status); }
         if (q.FromDate.HasValue) { where.Add("DATE(dr.dispensed_at) >= @fromDate"); prm.Add("fromDate", q.FromDate.Value); }
@@ -314,24 +321,26 @@ public class GetDispenseReceiptPdfHandler : IRequestHandler<GetDispenseReceiptPd
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
     private readonly IPharmacyDispenseReceiptPdfBuilder _builder;
 
-    public GetDispenseReceiptPdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IPharmacyDispenseReceiptPdfBuilder builder)
-    { _db = db; _currentUser = currentUser; _builder = builder; }
+    public GetDispenseReceiptPdfHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch, IPharmacyDispenseReceiptPdfBuilder builder)
+    { _db = db; _currentUser = currentUser; _branch = branch; _builder = builder; }
 
     public async Task<Result<byte[]>> Handle(GetDispenseReceiptPdfQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
+        var (branchId, ignoreBranch) = BranchSql.Params(_branch);
 
         var record = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT dr.id, dr.prescription_id, dr.total_amount, dr.dispensed_at, dr.note,
+            $@"SELECT dr.id, dr.prescription_id, dr.total_amount, dr.dispensed_at, dr.note,
                      COALESCE(pat.full_name, '') AS patient_name, pat.code AS patient_code
               FROM diab_his_pha_dispense_records dr
               LEFT JOIN diab_his_pha_prescriptions p ON p.id = dr.prescription_id AND p.tenant_id = dr.tenant_id
               LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id AND pat.tenant_id = dr.tenant_id
-              WHERE dr.id = @id AND dr.tenant_id = @tenantId",
-            new { id = q.DispenseRecordId, tenantId });
+              WHERE dr.id = @id AND dr.tenant_id = @tenantId AND {BranchSql.Condition("dr")}",
+            new { id = q.DispenseRecordId, tenantId, branchId, ignoreBranch });
 
         if (record == null)
             return Result<byte[]>.Failure("PHARMACY_BATCH_NOT_FOUND", "Khong tim thay phieu phat.");
