@@ -90,7 +90,12 @@ public class ReportRegistry : IReportRegistry
             TyLeNoShow(),
             SuDungKhangSinh(),
             TatCls(),
-            KiemKeKho()
+            KiemKeKho(),
+
+            // Dot H-15 (FR-1212) — Goi dich vu (Package): doanh thu / ty le su dung dinh muc / cong no ton dong
+            PackageRevenue(),
+            PackageUtilization(),
+            PackageOutstandingDebt()
         };
 
         // Tu suy Orientation theo so cot (>=11 cot => Landscape) cho toan bo descriptor.
@@ -522,7 +527,7 @@ public class ReportRegistry : IReportRegistry
                     COUNT(DISTINCT lo.id)                                  AS visitCount,
                     COALESCE(AVG(bi.unit_price), MAX(dt.default_price), 0) AS unitPrice,
                     COALESCE(SUM(bi.line_total), 0)                        AS revenue
-                FROM diab_his_lab_orders lo
+                FROM diab_his_cli_lab_orders lo
                 LEFT JOIN diab_his_dict_lab_tests dt ON dt.code = lo.test_code COLLATE utf8mb4_unicode_ci
                 LEFT JOIN diab_his_bil_billing_items bi
                     ON bi.ref_id = lo.id COLLATE utf8mb4_unicode_ci AND bi.item_type = 'LAB' AND bi.tenant_id = @tenantId
@@ -668,7 +673,7 @@ public class ReportRegistry : IReportRegistry
                         COALESCE(ro.body_part, ro.procedure_name)           AS location,
                         COALESCE(rr.impression, N'Chưa có kết quả')         AS conclusion,
                         COALESCE(bi.line_total, 0)                          AS amount
-                    FROM diab_his_rad_orders ro
+                    FROM diab_his_cli_rad_orders ro
                     INNER JOIN diab_his_enc_encounters e ON e.id = ro.encounter_id AND e.tenant_id = ro.tenant_id
                     INNER JOIN diab_his_pat_patients pt ON pt.id = e.patient_id AND pt.tenant_id = ro.tenant_id
                     LEFT JOIN diab_his_sec_users doc ON doc.id = ro.ordered_by
@@ -806,7 +811,7 @@ public class ReportRegistry : IReportRegistry
                           WHERE lr.order_id = lo.id AND lr.tenant_id = lo.tenant_id),
                         0)                                          AS resultCount,
                     COALESCE(bi.line_total, 0)                     AS amount
-                FROM diab_his_lab_orders lo
+                FROM diab_his_cli_lab_orders lo
                 INNER JOIN diab_his_enc_encounters e ON e.id = lo.encounter_id AND e.tenant_id = lo.tenant_id
                 INNER JOIN diab_his_pat_patients pt ON pt.id = e.patient_id AND pt.tenant_id = lo.tenant_id
                 LEFT JOIN diab_his_sec_users doc ON doc.id = lo.ordered_by
@@ -949,7 +954,7 @@ public class ReportRegistry : IReportRegistry
                         ro.procedure_name                                   AS indication,
                         COALESCE(rr.impression, N'Chưa có kết quả')        AS conclusion,
                         COALESCE(reader.full_name, rr.performed_by, N'Chưa xác định') AS doctorName
-                    FROM diab_his_rad_orders ro
+                    FROM diab_his_cli_rad_orders ro
                     INNER JOIN diab_his_enc_encounters e ON e.id = ro.encounter_id AND e.tenant_id = ro.tenant_id
                     INNER JOIN diab_his_pat_patients pt ON pt.id = e.patient_id AND pt.tenant_id = ro.tenant_id
                     LEFT JOIN diab_his_rad_results rr ON rr.order_id = ro.id AND rr.tenant_id = ro.tenant_id
@@ -1090,7 +1095,7 @@ public class ReportRegistry : IReportRegistry
                           WHERE lr2.order_id = lo.id AND lr2.tenant_id = lo.tenant_id
                           ORDER BY lr2.performed_at DESC LIMIT 1),
                         N'Chưa xác định')                          AS ktvName
-                FROM diab_his_lab_orders lo
+                FROM diab_his_cli_lab_orders lo
                 INNER JOIN diab_his_enc_encounters e ON e.id = lo.encounter_id AND e.tenant_id = lo.tenant_id
                 INNER JOIN diab_his_pat_patients pt ON pt.id = e.patient_id AND pt.tenant_id = lo.tenant_id
                 WHERE lo.tenant_id = @tenantId
@@ -1299,7 +1304,7 @@ public class ReportRegistry : IReportRegistry
                           WHERE d.encounter_id = e.id AND d.type = 'PRIMARY' AND d.deleted_at IS NULL
                           ORDER BY d.created_at LIMIT 1),
                         e.primary_icd10, N'Chưa ghi nhận')                        AS diagnosis,
-                    (SELECT lr.value_numeric FROM diab_his_lab_orders lo
+                    (SELECT lr.value_numeric FROM diab_his_cli_lab_orders lo
                        INNER JOIN diab_his_lab_results lr ON lr.order_id = lo.id AND lr.tenant_id = lo.tenant_id
                       WHERE lo.encounter_id = e.id AND lo.tenant_id = e.tenant_id
                         AND lr.test_code = 'HBA1C'
@@ -1732,8 +1737,8 @@ public class ReportRegistry : IReportRegistry
     };
 
     // ================= Q6: Thong Ke Chi Dinh CLS (P1-5) ================= //
-    // Gop diab_his_lab_orders (XN) + diab_his_rad_orders (CDHA), phan biet theo modality. Ca hai bang
-    // deu ho collation utf8mb4_0900_ai_ci nen KHONG can COLLATE. diab_his_rad_orders hien CHUA co
+    // Gop diab_his_cli_lab_orders (XN) + diab_his_cli_rad_orders (CDHA), phan biet theo modality. Ca hai bang
+    // deu ho collation utf8mb4_0900_ai_ci nen KHONG can COLLATE. diab_his_cli_rad_orders hien CHUA co
     // du lieu seed (0 dong) — phan CDHA se rong cho toi khi co seed, KHONG phai loi SQL.
     private static ReportDescriptor ClsIndicationStats() => new()
     {
@@ -1767,7 +1772,7 @@ public class ReportRegistry : IReportRegistry
                 SELECT clsType, groupName, COUNT(*) AS orderCount
                 FROM (
                     SELECT N'Xét nghiệm' AS clsType, lo.test_name AS groupName
-                    FROM diab_his_lab_orders lo
+                    FROM diab_his_cli_lab_orders lo
                     WHERE lo.tenant_id = @tenantId
                       AND lo.deleted_at IS NULL
                       AND lo.ordered_at BETWEEN @from AND @to
@@ -1782,7 +1787,7 @@ public class ReportRegistry : IReportRegistry
                             ELSE N'CĐHA khác'
                         END AS clsType,
                         ro.procedure_name AS groupName
-                    FROM diab_his_rad_orders ro
+                    FROM diab_his_cli_rad_orders ro
                     WHERE ro.tenant_id = @tenantId
                       AND ro.deleted_at IS NULL
                       AND ro.ordered_at BETWEEN @from AND @to
@@ -2600,7 +2605,7 @@ public class ReportRegistry : IReportRegistry
                     ROUND(AVG(TIMESTAMPDIFF(MINUTE, lo.ordered_at, COALESCE(lr.performed_at, lr.verified_at))) / 60, 1) AS avgTatHours,
                     ROUND(MAX(TIMESTAMPDIFF(MINUTE, lo.ordered_at, COALESCE(lr.performed_at, lr.verified_at))) / 60, 1) AS maxTatHours
                 FROM diab_his_lab_results lr
-                INNER JOIN diab_his_lab_orders lo ON lo.id = lr.order_id AND lo.tenant_id = lr.tenant_id
+                INNER JOIN diab_his_cli_lab_orders lo ON lo.id = lr.order_id AND lo.tenant_id = lr.tenant_id
                 WHERE lr.tenant_id = @tenantId
                   AND lr.deleted_at IS NULL
                   AND lo.deleted_at IS NULL
@@ -2672,6 +2677,249 @@ public class ReportRegistry : IReportRegistry
                   AND st.stocktake_date BETWEEN @from AND @to
                   AND {BranchSql.Condition("st")}
                 ORDER BY st.stocktake_date DESC, drugName, lotNumber
+                LIMIT 3000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= H-15 (FR-1212) 1/3: BC DOANH THU GOI DICH VU ================= //
+    // Nguon: diab_his_pkg_subscriptions (tong ban = total_price, da thu = amount_paid,
+    // con no = amount_due la cot GENERATED). Loc theo purchase_date trong ky, group theo
+    // ten goi (package_name_snapshot) + chi nhanh (branch_id). branch_id o day la chi nhanh
+    // BAN goi (xem ghi chu migration 9092) — dung BranchSql.Condition("s") nhu cac descriptor khac.
+    private static ReportDescriptor PackageRevenue() => new()
+    {
+        Code = "package-revenue",
+        Title = "BÁO CÁO DOANH THU GÓI DỊCH VỤ",
+        Group = ReportGroupCategory.Financial,
+        GroupOrder = 10,
+        Icon = "package",
+        PdfTypeCode = "PKR",
+        GroupByKey = "branchName",
+        ShowGroupCount = true,
+        Columns = new List<ReportColumn>
+        {
+            new("purchaseDate",  "Ngày bán",       ReportColumnType.Date,   ReportAlign.Left,  1f),
+            new("subscriptionNo","Số HĐ/Mã gói",   ReportColumnType.Text,   ReportAlign.Left,  1f),
+            new("packageName",   "Tên gói",        ReportColumnType.Text,   ReportAlign.Left,  1.6f),
+            new("branchName",    "Chi nhánh",      ReportColumnType.Text,   ReportAlign.Left,  1.1f),
+            new("patientCode",   "Mã BN",          ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("patientName",   "Họ tên",         ReportColumnType.Text,   ReportAlign.Left,  1.3f),
+            new("totalPrice",    "Tổng bán",       ReportColumnType.Money,  ReportAlign.Right, 1.1f, IsGroupSubtotal: true),
+            new("amountPaid",    "Đã thu",         ReportColumnType.Money,  ReportAlign.Right, 1.1f, IsGroupSubtotal: true),
+            new("amountDue",     "Còn nợ",         ReportColumnType.Money,  ReportAlign.Right, 1.1f, IsGroupSubtotal: true),
+            new("paymentStatus", "Trạng thái TT",  ReportColumnType.Text,   ReportAlign.Left,  1f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG DOANH THU BÁN", "#F0FDFA", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "totalPrice"))), IsMoney: true),
+            new("TỔNG ĐÃ THU", "#ECFDF5", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "amountPaid"))), IsMoney: true),
+            new("TỔNG CÒN NỢ", "#FEF2F2", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "amountDue"))), IsMoney: true),
+            new("SỐ GÓI ĐÃ BÁN", "#FFFBEB", rows => rows.Count, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>
+        {
+            new("packageId", "Gói dịch vụ", ReportFilterType.Select, OptionsSource: "servicePackages"),
+            new("paymentStatus", "Trạng thái thanh toán", ReportFilterType.Enum)
+        },
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("packageId", ctx.Filter("packageId"));
+            p.Add("paymentStatus", ctx.Filter("paymentStatus"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
+
+            var sql = $@"
+                SELECT
+                    s.purchase_date                        AS purchaseDate,
+                    s.subscription_no                       AS subscriptionNo,
+                    s.package_name_snapshot                 AS packageName,
+                    COALESCE(br.name, N'Chưa xác định')     AS branchName,
+                    pt.code                                  AS patientCode,
+                    pt.full_name                             AS patientName,
+                    s.total_price                            AS totalPrice,
+                    s.amount_paid                            AS amountPaid,
+                    s.amount_due                             AS amountDue,
+                    CASE s.payment_status
+                        WHEN 'unpaid'       THEN N'Chưa thanh toán'
+                        WHEN 'deposit_paid' THEN N'Đã đặt cọc'
+                        WHEN 'paid_full'    THEN N'Đã thanh toán đủ'
+                        WHEN 'refunded'     THEN N'Đã hoàn tiền'
+                        ELSE s.payment_status
+                    END                                       AS paymentStatus
+                FROM diab_his_pkg_subscriptions s
+                INNER JOIN diab_his_pat_patients pt ON pt.id = s.patient_id AND pt.tenant_id = s.tenant_id
+                LEFT JOIN diab_his_sys_branches br ON br.id = s.branch_id
+                WHERE s.tenant_id = @tenantId
+                  AND s.deleted_at IS NULL
+                  AND s.purchase_date BETWEEN DATE(@from) AND DATE(@to)
+                  AND (@packageId IS NULL OR s.package_id = @packageId)
+                  AND (@paymentStatus IS NULL OR @paymentStatus = 'ALL' OR s.payment_status = @paymentStatus)
+                  AND {BranchSql.Condition("s")}
+                ORDER BY branchName, s.purchase_date DESC
+                LIMIT 3000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= H-15 (FR-1212) 2/3: BC TY LE SU DUNG DINH MUC GOI ================= //
+    // Nguon: diab_his_pkg_entitlement_balances (used_quantity/total_quantity/remaining_quantity
+    // la cot GENERATED) JOIN subscriptions de lay tenant/branch/patient/ten goi. Ty le % tinh
+    // truc tiep trong SQL de KPI/group subtotal on dinh giua cac dong.
+    private static ReportDescriptor PackageUtilization() => new()
+    {
+        Code = "package-utilization",
+        Title = "BÁO CÁO TỶ LỆ SỬ DỤNG ĐỊNH MỨC GÓI",
+        Group = ReportGroupCategory.Financial,
+        GroupOrder = 11,
+        Icon = "gauge",
+        PdfTypeCode = "PKU",
+        GroupByKey = "packageName",
+        ShowGroupCount = true,
+        Columns = new List<ReportColumn>
+        {
+            new("subscriptionNo","Số HĐ/Mã gói",    ReportColumnType.Text,   ReportAlign.Left,  1f),
+            new("packageName",   "Tên gói",         ReportColumnType.Text,   ReportAlign.Left,  1.5f),
+            new("patientCode",   "Mã BN",           ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("patientName",   "Họ tên",          ReportColumnType.Text,   ReportAlign.Left,  1.3f),
+            new("itemName",      "Hạng mục",        ReportColumnType.Text,   ReportAlign.Left,  1.4f),
+            new("totalQuantity", "Tổng định mức",   ReportColumnType.Number, ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("usedQuantity",  "Đã dùng",         ReportColumnType.Number, ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("remainingQuantity", "Còn lại",     ReportColumnType.Number, ReportAlign.Right, 1f, IsGroupSubtotal: true),
+            new("usagePercent",  "% sử dụng",       ReportColumnType.Number, ReportAlign.Right, 0.9f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG ĐỊNH MỨC", "#F0FDFA", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "totalQuantity"))), IsMoney: false),
+            new("TỔNG ĐÃ DÙNG", "#FFFBEB", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "usedQuantity"))), IsMoney: false),
+            new("TB % SỬ DỤNG", "#EFF6FF", rows => rows.Count > 0
+                ? rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "usagePercent"))) / rows.Count
+                : 0m, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>
+        {
+            new("packageId", "Gói dịch vụ", ReportFilterType.Select, OptionsSource: "servicePackages"),
+            new("patientId", "Bệnh nhân", ReportFilterType.Select, OptionsSource: "patients")
+        },
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("packageId", ctx.Filter("packageId"));
+            p.Add("patientId", ctx.Filter("patientId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
+
+            var sql = $@"
+                SELECT
+                    s.subscription_no                                                             AS subscriptionNo,
+                    s.package_name_snapshot                                                        AS packageName,
+                    pt.code                                                                        AS patientCode,
+                    pt.full_name                                                                   AS patientName,
+                    bal.item_name                                                                  AS itemName,
+                    bal.total_quantity                                                              AS totalQuantity,
+                    bal.used_quantity                                                               AS usedQuantity,
+                    bal.remaining_quantity                                                          AS remainingQuantity,
+                    CASE WHEN bal.total_quantity > 0
+                         THEN ROUND(bal.used_quantity / bal.total_quantity * 100, 1)
+                         ELSE 0 END                                                                 AS usagePercent
+                FROM diab_his_pkg_entitlement_balances bal
+                INNER JOIN diab_his_pkg_subscriptions s ON s.id = bal.subscription_id AND s.tenant_id = bal.tenant_id
+                INNER JOIN diab_his_pat_patients pt ON pt.id = s.patient_id AND pt.tenant_id = s.tenant_id
+                WHERE bal.tenant_id = @tenantId
+                  AND bal.deleted_at IS NULL
+                  AND s.deleted_at IS NULL
+                  AND s.purchase_date BETWEEN DATE(@from) AND DATE(@to)
+                  AND (@packageId IS NULL OR s.package_id = @packageId)
+                  AND (@patientId IS NULL OR s.patient_id = @patientId)
+                  AND {BranchSql.Condition("s")}
+                ORDER BY packageName, usagePercent DESC
+                LIMIT 3000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= H-15 (FR-1212) 3/3: BC CONG NO GOI TON DONG TOAN HE THONG ================= //
+    // Nguon: diab_his_pkg_subscriptions loc amount_due > 0 (con no), khong gioi han theo purchase_date
+    // (cong no ton dong tinh den hien tai, khong phu thuoc ky bao cao) — chi dung from/to de loc theo
+    // ngay mua neu nguoi dung muon thu hep, mac dinh KPI/orderBy uu tien so ngay qua han giam dan.
+    private static ReportDescriptor PackageOutstandingDebt() => new()
+    {
+        Code = "package-outstanding-debt",
+        Title = "BÁO CÁO CÔNG NỢ GÓI DỊCH VỤ TỒN ĐỌNG",
+        Group = ReportGroupCategory.Financial,
+        GroupOrder = 12,
+        Icon = "alert-triangle",
+        PdfTypeCode = "PKD",
+        GroupByKey = "branchName",
+        ShowGroupCount = true,
+        Columns = new List<ReportColumn>
+        {
+            new("subscriptionNo","Số HĐ/Mã gói",   ReportColumnType.Text,   ReportAlign.Left,  1f),
+            new("packageName",   "Tên gói",        ReportColumnType.Text,   ReportAlign.Left,  1.4f),
+            new("branchName",    "Chi nhánh",      ReportColumnType.Text,   ReportAlign.Left,  1f),
+            new("patientCode",   "Mã BN",          ReportColumnType.Text,   ReportAlign.Left,  0.9f),
+            new("patientName",   "Họ tên",         ReportColumnType.Text,   ReportAlign.Left,  1.3f),
+            new("totalPrice",    "Tổng giá trị",   ReportColumnType.Money,  ReportAlign.Right, 1.1f, IsGroupSubtotal: true),
+            new("amountPaid",    "Đã thu",         ReportColumnType.Money,  ReportAlign.Right, 1.1f, IsGroupSubtotal: true),
+            new("amountDue",     "Còn nợ",         ReportColumnType.Money,  ReportAlign.Right, 1.1f, IsGroupSubtotal: true),
+            new("overdueDays",   "Số ngày quá hạn",ReportColumnType.Number, ReportAlign.Right, 1f)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG CÒN NỢ", "#FEF2F2", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "amountDue"))), IsMoney: true),
+            new("SỐ GÓI CÒN NỢ", "#FFFBEB", rows => rows.Count, IsMoney: false),
+            new("SỐ GÓI QUÁ HẠN > 30 NGÀY", "#FEF2F2",
+                rows => rows.Count(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "overdueDays")) > 30), IsMoney: false)
+        },
+        Filters = new List<ReportFilter>
+        {
+            new("packageId", "Gói dịch vụ", ReportFilterType.Select, OptionsSource: "servicePackages"),
+            new("patientId", "Bệnh nhân", ReportFilterType.Select, OptionsSource: "patients")
+        },
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("packageId", ctx.Filter("packageId"));
+            p.Add("patientId", ctx.Filter("patientId"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
+
+            var sql = $@"
+                SELECT
+                    s.subscription_no                                             AS subscriptionNo,
+                    s.package_name_snapshot                                       AS packageName,
+                    COALESCE(br.name, N'Chưa xác định')                          AS branchName,
+                    pt.code                                                       AS patientCode,
+                    pt.full_name                                                  AS patientName,
+                    s.total_price                                                 AS totalPrice,
+                    s.amount_paid                                                 AS amountPaid,
+                    s.amount_due                                                  AS amountDue,
+                    DATEDIFF(CURDATE(), s.expiry_date)                            AS overdueDays
+                FROM diab_his_pkg_subscriptions s
+                INNER JOIN diab_his_pat_patients pt ON pt.id = s.patient_id AND pt.tenant_id = s.tenant_id
+                LEFT JOIN diab_his_sys_branches br ON br.id = s.branch_id
+                WHERE s.tenant_id = @tenantId
+                  AND s.deleted_at IS NULL
+                  AND s.amount_due > 0
+                  AND s.status <> 'cancelled'
+                  AND s.purchase_date BETWEEN DATE(@from) AND DATE(@to)
+                  AND (@packageId IS NULL OR s.package_id = @packageId)
+                  AND (@patientId IS NULL OR s.patient_id = @patientId)
+                  AND {BranchSql.Condition("s")}
+                ORDER BY overdueDays DESC, s.amount_due DESC
                 LIMIT 3000";
 
             return (sql, p);

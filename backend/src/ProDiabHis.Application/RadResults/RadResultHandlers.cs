@@ -33,9 +33,9 @@ public record ExportRadResultPdfQuery(Guid Id)
 // ═══════════════════════════════════════════════
 // Bug tien nhiem #2: cac handler duoi day truoc kia tro toi bang khong ton tai
 // "cli_rad_results". Bang that la diab_his_rad_results, FK "order_id" ->
-// diab_his_rad_orders.id (xem constraint fk_rad_results_order trong DB).
+// diab_his_cli_rad_orders.id (xem constraint fk_rad_results_order trong DB).
 // patient_id/encounter_id/modality KHONG luu trung lap tren diab_his_rad_results
-// ma duoc JOIN qua diab_his_rad_orders (encounter_id, modality) roi
+// ma duoc JOIN qua diab_his_cli_rad_orders (encounter_id, modality) roi
 // diab_his_enc_encounters (patient_id) — tranh du thua du lieu.
 // Cac cot conclusion/status/verified_at/verified_by/dicom_count duoc bo sung
 // boi migration 9037_rad_results_add_workflow_columns.sql.
@@ -88,7 +88,7 @@ file static class Mapper
 
     public const string FromJoin = @"
         FROM diab_his_rad_results rr
-        JOIN diab_his_rad_orders ro ON ro.id = rr.order_id
+        JOIN diab_his_cli_rad_orders ro ON ro.id = rr.order_id
         LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id";
 }
 
@@ -155,7 +155,7 @@ public class CreateRadResultCommandHandler
 
         var order = await conn.QueryFirstOrDefaultAsync<dynamic>(
             @"SELECT ro.id, ro.encounter_id, ro.modality, enc.patient_id
-              FROM diab_his_rad_orders ro
+              FROM diab_his_cli_rad_orders ro
               LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id
               WHERE ro.id=@Id AND ro.tenant_id=@TId AND ro.deleted_at IS NULL",
             new { Id = req.RadOrderId.ToString(), TId = _tenant.TenantId });
@@ -285,7 +285,7 @@ public class VerifyRadResultCommandHandler
                      t.email_support AS clinic_email_support, t.logo_url AS clinic_logo_url,
                      t.slogan AS clinic_slogan, t.website AS clinic_website
               FROM diab_his_rad_results rr
-              JOIN diab_his_rad_orders ro ON ro.id = rr.order_id
+              JOIN diab_his_cli_rad_orders ro ON ro.id = rr.order_id
               LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id
               LEFT JOIN diab_his_pat_patients pat ON pat.id = enc.patient_id AND pat.tenant_id = rr.tenant_id
               LEFT JOIN diab_his_sec_users doc ON doc.id = enc.doctor_id
@@ -413,7 +413,7 @@ public class ExportRadResultPdfQueryHandler
                      t.email_support AS clinic_email_support, t.logo_url AS clinic_logo_url,
                      t.slogan AS clinic_slogan, t.website AS clinic_website
               FROM diab_his_rad_results rr
-              JOIN diab_his_rad_orders ro ON ro.id = rr.order_id
+              JOIN diab_his_cli_rad_orders ro ON ro.id = rr.order_id
               LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id
               LEFT JOIN diab_his_pat_patients pat ON pat.id = enc.patient_id AND pat.tenant_id = rr.tenant_id
               LEFT JOIN diab_his_sec_users doc ON doc.id = enc.doctor_id

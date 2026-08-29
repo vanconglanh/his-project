@@ -159,8 +159,8 @@ public class EncounterLockGuard : IEncounterLockGuard
         {
             EncounterChildKind.VitalSigns   => "diab_his_enc_vital_signs",
             EncounterChildKind.Prescription => "diab_his_pha_prescriptions",
-            EncounterChildKind.LabOrder     => "diab_his_lab_orders",
-            EncounterChildKind.RadOrder     => "diab_his_rad_orders",
+            EncounterChildKind.LabOrder     => "diab_his_cli_lab_orders",
+            EncounterChildKind.RadOrder     => "diab_his_cli_rad_orders",
             EncounterChildKind.Diagnosis    => "diab_his_enc_diagnoses",
             _ => null
         };

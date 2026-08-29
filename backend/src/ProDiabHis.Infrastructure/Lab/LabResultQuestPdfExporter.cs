@@ -28,11 +28,11 @@ public class LabResultQuestPdfExporter : ILabResultPdfExporter
         using var conn = (System.Data.IDbConnection)_db.CreateConnection();
 
         // Ket qua XN co the thuoc encounter/patient duoc gan truc tiep (cot moi) hoac chi lien ket
-        // qua lab_order legacy (diab_his_lab_orders.encounter_id) — COALESCE ca hai nguon.
+        // qua lab_order legacy (diab_his_cli_lab_orders.encounter_id) — COALESCE ca hai nguon.
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
             @"SELECT COALESCE(lr.encounter_id, lo.encounter_id) AS encounter_id
               FROM diab_his_lab_results lr
-              LEFT JOIN diab_his_lab_orders lo ON lo.id = lr.order_id
+              LEFT JOIN diab_his_cli_lab_orders lo ON lo.id = lr.order_id
               WHERE lr.id = @Id",
             new { Id = entity.Id.ToString() });
 

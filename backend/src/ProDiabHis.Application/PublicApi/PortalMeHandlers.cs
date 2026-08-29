@@ -152,7 +152,7 @@ public class GetPortalEncounterDetailHandler
         // truc tiep). Join qua rad order de lay dung ket luan cua luot kham nay.
         var conclusion = await conn.ExecuteScalarAsync<string?>(
             @"SELECT rr.conclusion FROM diab_his_rad_results rr
-              JOIN diab_his_rad_orders ro ON ro.id = rr.order_id
+              JOIN diab_his_cli_rad_orders ro ON ro.id = rr.order_id
               WHERE ro.encounter_id = @Id AND ro.tenant_id = @TenantId AND rr.deleted_at IS NULL
               ORDER BY rr.performed_at DESC LIMIT 1",
             new { Id = encId, q.TenantId });

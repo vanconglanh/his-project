@@ -190,7 +190,12 @@ public class RadOrderConfiguration : IEntityTypeConfiguration<RadOrder>
 {
     public void Configure(EntityTypeBuilder<RadOrder> builder)
     {
-        builder.ToTable("diab_his_rad_orders");
+        // FIX (buoc 2 - dong bo voi LabOrder): entity RadOrder truoc day map sang bang CHET
+        // "diab_his_rad_orders". Remap ve bang live "diab_his_cli_rad_orders" (migration 9148
+        // da copy du lieu legacy sang, giu nguyen id). LUU Y: rad ~0 data thuc te, script merge
+        // 9148 boc trong CONTINUE HANDLER vi cot rad co the lech ten - Leader can doi chieu
+        // schema that cua diab_his_cli_rad_orders truoc khi DROP bang chet.
+        builder.ToTable("diab_his_cli_rad_orders");
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id").HasMaxLength(36);
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();

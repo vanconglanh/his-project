@@ -8,15 +8,17 @@ namespace ProDiabHis.Infrastructure.CLS;
 
 /// <summary>
 /// Gate thanh toan CLS (G02). Xem IClsPaymentGate de biet quy tac.
-/// Luu y ve bang: repo dang ton tai song song 2 cap bang chi dinh
-/// (diab_his_cli_lab_orders/diab_his_cli_rad_orders tu 0031 va
-///  diab_his_lab_orders/diab_his_rad_orders tu 9004). Gate tra cuu round_id
-/// o ca hai, luon kem filter tenant_id.
+/// FIX (buoc 2 - nghi ky thuat migration 9148): truoc day gate tra cuu round_id o ca 2 cap
+/// bang chi dinh (diab_his_cli_lab_orders/diab_his_cli_rad_orders tu 0031 VA
+/// diab_his_lab_orders/diab_his_rad_orders tu 9004 - bang CHET). Migration 9148 da copy
+/// toan bo order tu bang chet sang bang song (giu nguyen id), nen bang cli hien la superset ->
+/// bo tra cuu bang chet, chi con doc bang song. Van giu try/catch phong khi moi truong cu
+/// thieu cot round_id.
 /// </summary>
 public class ClsPaymentGateImpl : IClsPaymentGate
 {
-    private static readonly string[] LabTables = { "diab_his_cli_lab_orders", "diab_his_lab_orders" };
-    private static readonly string[] RadTables = { "diab_his_cli_rad_orders", "diab_his_rad_orders" };
+    private static readonly string[] LabTables = { "diab_his_cli_lab_orders" };
+    private static readonly string[] RadTables = { "diab_his_cli_rad_orders" };
 
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;

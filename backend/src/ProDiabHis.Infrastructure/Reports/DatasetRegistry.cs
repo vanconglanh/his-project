@@ -163,7 +163,7 @@ public class DatasetRegistry : IDatasetRegistry
     }
 
     // ================= Dataset 6: Chi dinh CLS (Lab + Rad orders gop qua UNION ALL) ================= //
-    // diab_his_lab_orders/rad_orders/sec_users deu 0900_ai_ci -> khong can COLLATE. Gop 2 bang bang subquery
+    // diab_his_cli_lab_orders/rad_orders/sec_users deu 0900_ai_ci -> khong can COLLATE. Gop 2 bang bang subquery
     // UNION ALL lam FromSql (alias "cls") — cac DatasetField ben duoi tham chieu truc tiep alias nay, giong
     // nhu tham chieu 1 bang thuong; SafeQueryBuilder khong can biet gi ve UNION ben trong.
     private static Dataset Cls()
@@ -173,12 +173,12 @@ public class DatasetRegistry : IDatasetRegistry
                 SELECT lo.id AS id, lo.tenant_id AS tenant_id, lo.ordered_at AS ordered_at,
                        lo.ordered_by AS ordered_by, N'Xét nghiệm' AS modality, lo.deleted_at AS deleted_at,
                        lo.branch_id AS branch_id
-                FROM diab_his_lab_orders lo
+                FROM diab_his_cli_lab_orders lo
                 UNION ALL
                 SELECT ro.id AS id, ro.tenant_id AS tenant_id, ro.ordered_at AS ordered_at,
                        ro.ordered_by AS ordered_by, ro.modality AS modality, ro.deleted_at AS deleted_at,
                        ro.branch_id AS branch_id
-                FROM diab_his_rad_orders ro
+                FROM diab_his_cli_rad_orders ro
             ) cls
             LEFT JOIN diab_his_sec_users doc ON doc.id = cls.ordered_by";
 
