@@ -19,6 +19,8 @@ import {
   useCreateClsRound,
   useCancelClsRound,
   useSubmitClsRound,
+  usePayClsRound,
+  useWaiveClsRound,
 } from "@/lib/hooks/use-cls-rounds";
 import { useLabOrders, useRadOrders } from "@/lib/hooks/use-cls-orders";
 import { printLabOrdersPdf } from "@/lib/api/cls-orders";
@@ -36,6 +38,8 @@ export function ClsOrderTabPanel({ encounterId, canEdit }: Props) {
   const createRound = useCreateClsRound(encounterId);
   const submitRound = useSubmitClsRound(encounterId);
   const cancelRound = useCancelClsRound(encounterId);
+  const payRound = usePayClsRound(encounterId);
+  const waiveRound = useWaiveClsRound(encounterId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -129,10 +133,17 @@ export function ClsOrderTabPanel({ encounterId, canEdit }: Props) {
               round={round}
               defaultOpen={index === 0}
               canEdit={canEdit}
-              isPending={submitRound.isPending || cancelRound.isPending}
+              isPending={
+                submitRound.isPending ||
+                cancelRound.isPending ||
+                payRound.isPending ||
+                waiveRound.isPending
+              }
               onPrint={() => void printLabOrdersPdf(encounterId)}
               onSubmit={() => submitRound.mutate(round.id)}
               onCancel={() => cancelRound.mutate({ roundId: round.id })}
+              onPay={() => payRound.mutate({ roundId: round.id })}
+              onWaive={(reason) => waiveRound.mutate({ roundId: round.id, reason })}
             />
           ))}
 

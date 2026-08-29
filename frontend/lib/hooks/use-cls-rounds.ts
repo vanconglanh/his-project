@@ -61,6 +61,37 @@ export function useSubmitClsRound(encounterId: string) {
   });
 }
 
+export function usePayClsRound(encounterId: string) {
+  const invalidate = useRoundMutationInvalidate(encounterId);
+  return useMutation({
+    mutationFn: ({
+      roundId,
+      body,
+    }: {
+      roundId: string;
+      body?: { billing_id?: string; method?: string; amount?: number; note?: string };
+    }) => roundsApi.payClsRound(roundId, body),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Đã thu tiền đợt chỉ định");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, "Thu tiền đợt chỉ định thất bại")),
+  });
+}
+
+export function useWaiveClsRound(encounterId: string) {
+  const invalidate = useRoundMutationInvalidate(encounterId);
+  return useMutation({
+    mutationFn: ({ roundId, reason }: { roundId: string; reason: string }) =>
+      roundsApi.waiveClsRound(roundId, reason),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Đã miễn phí đợt chỉ định");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, "Miễn phí đợt chỉ định thất bại")),
+  });
+}
+
 export function useCancelClsRound(encounterId: string) {
   const invalidate = useRoundMutationInvalidate(encounterId);
   return useMutation({

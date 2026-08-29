@@ -21,6 +21,7 @@ import { EncounterTimeline } from "@/components/domain/EncounterTimeline";
 import { EncounterAmendDialog } from "@/components/domain/EncounterAmendDialog";
 import { EmrSignDialog } from "@/components/domain/EmrSignDialog";
 import { VitalSignsHistoryDrawer } from "@/components/domain/VitalSignsHistoryDrawer";
+import { VitalSignsForm } from "@/components/domain/VitalSignsForm";
 import {
   EncounterTabs,
   isEncounterTabValue,
@@ -36,6 +37,8 @@ import {
   useStartEncounter,
 } from "@/lib/hooks/use-encounters";
 import { useSignEmr } from "@/lib/hooks/use-emr";
+import { useCreateVitalSigns } from "@/lib/hooks/use-vital-signs";
+import type { VitalSignsRequest } from "@/lib/api/types";
 import { useClsRounds } from "@/lib/hooks/use-cls-rounds";
 import { useAllergies } from "@/lib/hooks/use-patients";
 import {
@@ -69,6 +72,7 @@ export function EncounterDetailClient({ encounterId }: Props) {
   const deleteDiagnosis = useDeleteDiagnosis(encounterId);
   const createAddendum = useCreateEncounterAddendum(encounterId);
   const signEmr = useSignEmr(encounterId);
+  const createVital = useCreateVitalSigns(encounterId);
   const reassignTicket = useReassignTicket();
   const waitClsTicket = useWaitClsTicket();
   const resumeTicket = useResumeTicket();
@@ -76,6 +80,15 @@ export function EncounterDetailClient({ encounterId }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [vitalDrawerOpen, setVitalDrawerOpen] = useState(false);
+  const [vitalFormOpen, setVitalFormOpen] = useState(false);
+
+  const handleVitalSubmit = useCallback(
+    async (data: VitalSignsRequest) => {
+      await createVital.mutateAsync(data);
+      setVitalFormOpen(false);
+    },
+    [createVital]
+  );
   const [signDialogOpen, setSignDialogOpen] = useState(false);
   const [amendDialogOpen, setAmendDialogOpen] = useState(false);
 
@@ -245,6 +258,7 @@ export function EncounterDetailClient({ encounterId }: Props) {
               variant="desktop"
               canEdit={!!canEdit}
               onOpenVitalDrawer={() => setVitalDrawerOpen(true)}
+              onOpenVitalForm={() => setVitalFormOpen(true)}
               onOpenTimeline={() => setTimelineOpen(true)}
               onNavigateHistoryTab={() => handleTabChange("history")}
             />
@@ -275,6 +289,10 @@ export function EncounterDetailClient({ encounterId }: Props) {
             variant="drawer"
             canEdit={!!canEdit}
             onOpenVitalDrawer={() => setVitalDrawerOpen(true)}
+            onOpenVitalForm={() => {
+              setSheetOpen(false);
+              setVitalFormOpen(true);
+            }}
             onOpenTimeline={() => setTimelineOpen(true)}
             onNavigateHistoryTab={() => {
               setSheetOpen(false);
@@ -301,6 +319,23 @@ export function EncounterDetailClient({ encounterId }: Props) {
         open={vitalDrawerOpen}
         onClose={() => setVitalDrawerOpen(false)}
       />
+
+      {/* Ghi sinh hiệu — form nhập mới cho bệnh nhân đang khám */}
+      <Sheet open={vitalFormOpen} onOpenChange={setVitalFormOpen}>
+        <SheetContent side="right" className="overflow-y-auto px-6 pb-6 sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>Ghi sinh hiệu</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {vitalFormOpen && (
+              <VitalSignsForm
+                onSubmit={handleVitalSubmit}
+                isLoading={createVital.isPending}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <EmrSignDialog
         open={signDialogOpen}

@@ -60,7 +60,7 @@ SELECT @bacsi, id FROM diab_his_sec_permissions WHERE code IN (
   'lab_order.create','lab_order.read','lab_order.update','lab_order.delete',
   'rad_order.create','rad_order.read','rad_order.update','rad_order.delete',
   'lab_result.read','rad_result.read',
-  'cls_round.create','cls_round.read','cls_round.submit',
+  'cls_round.create','cls_round.read','cls_round.submit','cls_round.pay','cls_round.waive',
   'cls_upload.read',
   'prescription.create','prescription.read','prescription.update','prescription.sign','prescription.cancel',
   'diabetes.assess','risk.read','cdss.read','cdss.override','ai.suggest','ddi.check',

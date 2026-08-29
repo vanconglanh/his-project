@@ -13,6 +13,7 @@ export interface EncounterPatientSidebarProps {
   encounter: EncounterDetailResponse;
   variant?: "desktop" | "drawer";
   onOpenVitalDrawer: () => void;
+  onOpenVitalForm: () => void;
   onOpenTimeline: () => void;
   onNavigateHistoryTab: () => void;
   canEdit: boolean;
@@ -22,6 +23,7 @@ export function EncounterPatientSidebar({
   encounter,
   variant = "desktop",
   onOpenVitalDrawer,
+  onOpenVitalForm,
   onOpenTimeline,
   onNavigateHistoryTab,
   canEdit,
@@ -57,7 +59,7 @@ export function EncounterPatientSidebar({
         vital={latestVital}
         measuredAt={measuredAt}
         onViewAll={onOpenVitalDrawer}
-        onAddNew={canEdit ? onOpenVitalDrawer : undefined}
+        onAddNew={canEdit ? onOpenVitalForm : undefined}
       />
 
       <AllergyAlertCard

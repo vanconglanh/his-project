@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Printer, Send, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Printer, Send, Trash2, Wallet, BadgePercent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
@@ -18,6 +18,8 @@ export interface ClsRoundCardProps {
   onPrint: () => void;
   onSubmit?: () => void;
   onCancel?: () => void;
+  onPay?: () => void;
+  onWaive?: (reason: string) => void;
 }
 
 export function ClsRoundCard({
@@ -28,9 +30,12 @@ export function ClsRoundCard({
   onPrint,
   onSubmit,
   onCancel,
+  onPay,
+  onWaive,
 }: ClsRoundCardProps) {
   const [open, setOpen] = useState(defaultOpen);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmWaive, setConfirmWaive] = useState(false);
 
   const items: ClsOrderItemRow[] = [
     ...(round.lab_orders ?? []).map((o) => ({ ...o, kind: "LAB" as const })),
@@ -40,6 +45,10 @@ export function ClsRoundCard({
   const isCancelled = round.status === "CANCELLED";
   const isPaid = round.payment_status === "PAID" || round.payment_status === "WAIVED";
   const canMutate = canEdit && !isCancelled && !isPaid && round.status === "OPEN";
+  // Sau khi chốt đợt (SUBMITTED) mà chưa thanh toán -> cho phép thu tiền / miễn phí
+  // để mở khoá bước nhập kết quả XN (gate CLS_ORDER_UNPAID).
+  const canPay =
+    canEdit && !isCancelled && round.payment_status === "UNPAID" && round.status === "SUBMITTED";
 
   return (
     <Card>
@@ -92,6 +101,32 @@ export function ClsRoundCard({
             </Button>
           )}
 
+          {canPay && onPay && (
+            <Button
+              variant="default"
+              size="sm"
+              className="min-h-[44px] gap-1"
+              onClick={onPay}
+              disabled={isPending}
+            >
+              <Wallet className="h-4 w-4" aria-hidden="true" />
+              Thu tiền
+            </Button>
+          )}
+
+          {canPay && onWaive && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] gap-1"
+              onClick={() => setConfirmWaive(true)}
+              disabled={isPending}
+            >
+              <BadgePercent className="h-4 w-4" aria-hidden="true" />
+              Miễn phí
+            </Button>
+          )}
+
           {canMutate && onCancel && (
             <Button
               variant="ghost"
@@ -129,6 +164,20 @@ export function ClsRoundCard({
         onConfirm={() => {
           setConfirmCancel(false);
           onCancel?.();
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmWaive}
+        onOpenChange={setConfirmWaive}
+        title={`Miễn phí đợt chỉ định #${round.round_no}?`}
+        description={`Đợt ${formatVnd(round.total_amount)} ₫ sẽ được đánh dấu miễn phí và mở khoá bước nhập kết quả, không thu tiền bệnh nhân.`}
+        confirmLabel="Miễn phí đợt"
+        cancelLabel="Huỷ"
+        isLoading={isPending}
+        onConfirm={() => {
+          setConfirmWaive(false);
+          onWaive?.("Miễn phí theo chỉ định lâm sàng");
         }}
       />
     </Card>
