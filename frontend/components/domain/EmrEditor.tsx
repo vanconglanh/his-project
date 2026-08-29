@@ -52,8 +52,16 @@ export function EmrEditor({ encounterId, initialContent, isSigned, onSaved, temp
       TableCell,
       TableHeader,
       Image,
+      // UX FIX: mac dinh Placeholder chi hien o dong dang co con tro (option
+      // showOnlyCurrent = true) -> sau khi chon mau benh an (nhieu tieu de +
+      // nhieu dong noi dung trong xen ke), cac dong trong KHONG dang duoc focus
+      // nhin nhu khoang trang chet, khong ro co the bam vao de go -> nguoi dung
+      // tuong nhu "khong thay con tro". Tat showOnlyCurrent de MOI dong trong
+      // deu hien placeholder cung luc, khong chi dong dang go.
       Placeholder.configure({
-        placeholder: "Ghi nội dung bệnh án...",
+        showOnlyCurrent: false,
+        placeholder: ({ node }) =>
+          node.type.name === "heading" ? "Tiêu đề mục..." : "Ghi nội dung bệnh án...",
       }),
     ],
     content: initialContent ?? { type: "doc", content: [] },
@@ -238,7 +246,10 @@ export function EmrEditor({ encounterId, initialContent, isSigned, onSaved, temp
       {/* Editor area */}
       <div
         className={cn(
-          "min-h-[400px] rounded-md border bg-background p-4 prose prose-sm max-w-none dark:prose-invert focus-within:ring-2 focus-within:ring-ring",
+          // UX FIX: caret-color mac dinh trung mau chu (currentColor) nen kho
+          // thay con tro dang o dau, dac biet khi vua click vao 1 dong trong.
+          // Doi sang mau accent (primary) de con tro noi bat, de nhan biet.
+          "min-h-[400px] rounded-md border bg-background p-4 prose prose-sm max-w-none dark:prose-invert focus-within:ring-2 focus-within:ring-ring [&_.ProseMirror]:caret-primary [&_.ProseMirror]:min-h-[350px] [&_.ProseMirror_p.is-empty::before]:text-muted-foreground/60 [&_.ProseMirror_p.is-empty::before]:italic",
           isSigned && "bg-muted/30 opacity-80"
         )}
       >
