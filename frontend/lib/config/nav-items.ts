@@ -28,6 +28,7 @@ import {
   ShieldAlert,
   BellRing,
   Wand2,
+  ArrowLeftRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -136,6 +137,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "drugs",
         icon: Store,
         permissions: ["drug.read"],
+      },
+      {
+        href: "/pharmacy/stock-transfers",
+        labelKey: "stockTransfers",
+        icon: ArrowLeftRight,
+        permissions: ["stock_transfer.read"],
       },
     ],
   },
