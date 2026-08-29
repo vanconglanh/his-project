@@ -14,14 +14,29 @@
    placeholder CHUA BAO GIO hien thi, khien vung soan benh an nhin nhu
    khoang trang chet, nguoi dung khong biet bam vao dau de go (bao cao
    UX "khong thay con tro"). */
+/* GHI CHU: ban dau dung "float:left; height:0" (mau chuan pho bien cua Tiptap)
+   nhung gay tac dung phu: dong text bi thu ve line-box cao 0 khien con tro
+   nhap nhay KHONG VE DUOC (nguoi dung xac nhan tren trinh duyet that - go
+   van dung vi tri nhung khong thay con tro nhap nhay). Doi sang
+   position:absolute de placeholder nam NGOAI luong box binh thuong, khong
+   dung cham gi toi line-box thuc cua doan van rong -> con tro ve binh
+   thuong. Can position:relative tren the cha (p/h1-3) de dinh vi dung. */
+.ProseMirror p.is-empty,
+.ProseMirror h1.is-empty,
+.ProseMirror h2.is-empty,
+.ProseMirror h3.is-empty {
+  position: relative;
+}
 .ProseMirror p.is-empty::before,
 .ProseMirror h1.is-empty::before,
 .ProseMirror h2.is-empty::before,
 .ProseMirror h3.is-empty::before {
   content: attr(data-placeholder);
-  float: left;
-  height: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
   pointer-events: none;
+  user-select: none;
 }
 
 @custom-variant dark (&:is(.dark *));

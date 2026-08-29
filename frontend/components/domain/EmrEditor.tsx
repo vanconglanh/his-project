@@ -249,7 +249,10 @@ export function EmrEditor({ encounterId, initialContent, isSigned, onSaved, temp
           // UX FIX: caret-color mac dinh trung mau chu (currentColor) nen kho
           // thay con tro dang o dau, dac biet khi vua click vao 1 dong trong.
           // Doi sang mau accent (primary) de con tro noi bat, de nhan biet.
-          "min-h-[400px] rounded-md border bg-background p-4 prose prose-sm max-w-none dark:prose-invert focus-within:ring-2 focus-within:ring-ring [&_.ProseMirror]:caret-primary [&_.ProseMirror]:min-h-[350px] [&_.ProseMirror_p.is-empty::before]:text-muted-foreground/60 [&_.ProseMirror_p.is-empty::before]:italic",
+          // Bo han vien tinh (border xam/trang luon hien) theo yeu cau user -
+          // chi giu vien mau accent luc dang focus (focus-within:ring-2) de
+          // van co dau hieu ro dang thao tac o day, khong con vien "chet".
+          "min-h-[400px] rounded-md bg-background p-4 prose prose-sm max-w-none dark:prose-invert focus-within:ring-2 focus-within:ring-ring [&_.ProseMirror]:caret-primary [&_.ProseMirror]:min-h-[350px] [&_.ProseMirror_p.is-empty::before]:text-muted-foreground/60 [&_.ProseMirror_p.is-empty::before]:italic",
           isSigned && "bg-muted/30 opacity-80"
         )}
       >
