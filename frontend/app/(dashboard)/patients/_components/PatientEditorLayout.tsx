@@ -14,6 +14,7 @@ import { PatientBhytTab } from "./PatientBhytTab";
 import { PatientEmergencyTab } from "./PatientEmergencyTab";
 import { PatientAllergiesTab } from "./PatientAllergiesTab";
 import type { CreatePatientRequest, PatientResponse } from "@/lib/api/types";
+import { getErrorMessage } from "@/lib/utils/errors";
 
 // Tab định nghĩa
 const EDITOR_TABS = [
@@ -156,7 +157,10 @@ export function PatientEditorLayout({
     try {
       await onSubmit(buildPayload(values));
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : "Có lỗi xảy ra, vui lòng thử lại.");
+      // BUG FIX (BUG-10): truoc day dung err.message truc tiep -> loi tieng Anh tho tu backend
+      // (vd validation message goc). Dung getErrorMessage de uu tien error.response.data.error.message
+      // tieng Viet tu backend, chi fallback ve err.message khi khong phai loi API.
+      setSubmitError(getErrorMessage(err, "Có lỗi xảy ra, vui lòng thử lại."));
     }
   };
 

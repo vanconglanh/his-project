@@ -123,14 +123,42 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
             ORDER BY p.created_at DESC
             LIMIT @limit OFFSET @offset";
 
-        var rows = await conn.QueryAsync<PrescriptionRow>(sql, prm);
+        var rowList = (await conn.QueryAsync<PrescriptionRow>(sql, prm)).ToList();
 
-        var items = rows.Select(r => MapToResponse(r, [], [])).ToList();
+        // BUG FIX (BUG-09): list truoc day khong tra patient_summary khien FE khong
+        // hien duoc ten benh nhan o /prescriptions. Batch load 1 lan cho ca trang.
+        var patientIds = rowList
+            .Select(r => r.PatientId?.ToString())
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct()
+            .ToList();
+        var patientMap = new Dictionary<string, PatientSummary>();
+        if (patientIds.Count > 0)
+        {
+            var patientRows = await conn.QueryAsync<dynamic>(
+                "SELECT id, full_name, gender, date_of_birth AS dob, bhyt_card_no_masked FROM diab_his_pat_patients WHERE id IN @ids AND deleted_at IS NULL",
+                new { ids = patientIds });
+            foreach (var pr in patientRows)
+            {
+                patientMap[(string)pr.id] = new PatientSummary(
+                    (string)pr.full_name,
+                    (string?)pr.gender,
+                    pr.dob == null ? null : DateOnly.FromDateTime((DateTime)pr.dob),
+                    (string?)pr.bhyt_card_no_masked);
+            }
+        }
+
+        var items = rowList.Select(r =>
+        {
+            var pid = r.PatientId?.ToString();
+            var patient = pid != null && patientMap.TryGetValue(pid, out var p) ? p : null;
+            return MapToResponse(r, patient, [], []);
+        }).ToList();
         return Result<PagedResult<PrescriptionResponse>>.Success(
             new PagedResult<PrescriptionResponse>(items, q.Page, q.PageSize, total));
     }
 
-    private static PrescriptionResponse MapToResponse(PrescriptionRow r,
+    private static PrescriptionResponse MapToResponse(PrescriptionRow r, PatientSummary? patient,
         IReadOnlyList<PrescriptionItemResponse> items, IReadOnlyList<DdiWarning> warnings) =>
         new(
             Guid.TryParse(r.Id?.ToString(), out var g) ? g : Guid.Empty,
@@ -140,7 +168,7 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
             // tuy MySqlConnector suy dien, xem GuidFormat=None o Infrastructure/DependencyInjection.cs).
             Guid.TryParse(r.EncounterId?.ToString(), out var eg) ? eg : Guid.Empty,
             Guid.TryParse(r.PatientId?.ToString(), out var pg) ? pg : Guid.Empty,
-            null, null, null,
+            patient, null, null,
             r.Status ?? "DRAFT", r.PrescribedAt,
             r.SignedAt, r.SignedBy, r.DtqgCode, r.DtqgStatus ?? "NONE",
             items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt);

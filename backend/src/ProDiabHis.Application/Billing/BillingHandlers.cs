@@ -198,12 +198,44 @@ public class ListBillingsHandler : IRequestHandler<ListBillingsQuery, Result<Pag
         // System.Guid (khong phai string) khi query khong generic (dynamic row). Ep kieu truc tiep
         // (string?)r.id se nem RuntimeBinderException "Cannot convert type 'System.Guid' to 'string'".
         // Dung ToGuidOrEmpty/ToGuidOrNull de nhan ca 2 truong hop (Guid hoac string) mot cach an toan.
-        var items = rows.Select(r => new BillingResponse(
+        var rowList = rows.ToList();
+
+        // BUG FIX (UX): truoc day patient_summary luon = null o danh sach hoa don -> man
+        // Thu ngan/Hoa don khong biet dang thu/xem cua benh nhan nao (cot "Benh nhan" trong
+        // rong). GetBillingHandler (xem 1 hoa don) da co goi GetPatientSummaryAsync, nhung
+        // ListBillingsHandler thi khong. Batch load 1 lan cho ca trang thay vi N+1 query.
+        var patientIds = rowList
+            .Select(r => (string?)r.patient_id)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct()
+            .ToList();
+        var patientMap = new Dictionary<string, PatientSummaryDto>();
+        if (patientIds.Count > 0)
+        {
+            var patientRows = await conn.QueryAsync<dynamic>(
+                "SELECT id, full_name, date_of_birth AS dob, gender, phone_enc FROM diab_his_pat_patients WHERE id IN @ids AND deleted_at IS NULL",
+                new { ids = patientIds });
+            foreach (var pr in patientRows)
+            {
+                patientMap[(string)pr.id] = new PatientSummaryDto(
+                    (string)pr.full_name,
+                    pr.dob == null ? null : DateOnly.FromDateTime((DateTime)pr.dob),
+                    (string?)pr.gender,
+                    PiiCrypto.Unprotect((string?)pr.phone_enc),
+                    null);
+            }
+        }
+
+        var items = rowList.Select(r =>
+        {
+            var pid = (string?)r.patient_id;
+            var patient = pid != null && patientMap.TryGetValue(pid, out var p) ? p : null;
+            return new BillingResponse(
             ToGuidOrEmpty(r.id),
             (int)r.tenant_id,
             ToGuidOrNull(r.encounter_id),
             ToGuidOrEmpty(r.patient_id),
-            null,
+            patient,
             (string?)r.bill_no, new List<BillingItemDto>(),
             r.subtotal == null ? 0m : (decimal)r.subtotal,
             r.vat_total == null ? 0m : (decimal)r.vat_total,
@@ -218,7 +250,8 @@ public class ListBillingsHandler : IRequestHandler<ListBillingsQuery, Result<Pag
             (DateTime)r.created_at,
             ToGuidOrNull(r.created_by),
             r.finalized_at == null ? null : (DateTime?)r.finalized_at,
-            (string?)r.void_reason)).ToList();
+            (string?)r.void_reason);
+        }).ToList();
 
         return Result<PagedResult<BillingResponse>>.Success(
             new PagedResult<BillingResponse>(items, query.Page, query.PageSize, total));
