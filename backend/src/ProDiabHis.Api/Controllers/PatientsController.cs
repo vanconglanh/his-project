@@ -92,6 +92,36 @@ public class PatientsController : ControllerBase
             new { data = result.Value.Patient });
     }
 
+    // GET /api/v1/patients/check-cccd-duplicate — US-QR-003/004/005: check trung theo CCCD quet QR,
+    // phan biet 3 case (chua ton tai / khop hoan toan / co truong lech) va tra ve field diff cu the.
+    [HttpGet("check-cccd-duplicate")]
+    [RequirePermission("patient.read")]
+    public async Task<IActionResult> CheckCccdDuplicate(
+        [FromQuery] string id_number,
+        [FromQuery] string? full_name,
+        [FromQuery] DateOnly? date_of_birth,
+        [FromQuery] string? gender,
+        [FromQuery] string? address,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new CheckCccdDuplicateQuery(id_number, full_name, date_of_birth, gender, address), ct);
+        if (!result.IsSuccess)
+            return UnprocessableEntity(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
+    }
+
+    // PUT /api/v1/patients/{id}/apply-cccd-fields — US-QR-005 (Case 3): cap nhat CHI cac truong
+    // lien tan da tich chon tren dialog so sanh, audit log rieng cho tung truong (source=CCCD_QR_SCAN).
+    [HttpPut("{id:guid}/apply-cccd-fields")]
+    [RequirePermission("patient.write")]
+    public async Task<IActionResult> ApplyCccdFields(Guid id, [FromBody] ApplyCccdFieldsBody body, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ApplyCccdFieldUpdatesCommand(id, body.Fields ?? new List<CccdFieldUpdateItem>()), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
+    }
+
     // GET /api/v1/patients/{id}
     [HttpGet("{id:guid}")]
     [RequirePermission("patient.read")]
@@ -340,3 +370,5 @@ public class PatientsController : ControllerBase
 }
 
 public record UpdateReceptionNoteBody(string ReceptionNote);
+
+public record ApplyCccdFieldsBody(List<CccdFieldUpdateItem>? Fields);
