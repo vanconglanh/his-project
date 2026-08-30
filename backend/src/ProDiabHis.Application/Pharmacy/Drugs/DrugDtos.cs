@@ -41,7 +41,10 @@ public record DrugMasterResponse(
     string Status,
     int InteractionsCount,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    // Migration 9180 (tham so tuy chon o cuoi de khong pha cac call site positional hien co)
+    string? Route = null,
+    string? BhytCode = null);
 
 public record DrugCategory(string Id, string Code, string Name, string? ParentId);
 

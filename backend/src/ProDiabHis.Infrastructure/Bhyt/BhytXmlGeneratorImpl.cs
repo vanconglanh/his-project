@@ -87,6 +87,11 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
         decimal totalRequested = 0;
         int table1Idx = 0;
 
+        // Migration 9180: DUONG_DUNG (XML 4210 Bang 2) BAT BUOC. Thu tu lay: prescription_items.route
+        // -> drugs.route (da COALESCE trong BhytXmlSql.PrescriptionItems). Neu ca 2 rong => KHONG phat
+        // hanh XML, gom danh sach thuoc thieu duong dung roi bao loi DRUG_ROUTE_MISSING (khong hardcode).
+        var missingRouteDrugs = new List<string>();
+
         foreach (var enc in encounters)
         {
             var e = (IDictionary<string, object?>)enc;
@@ -182,14 +187,24 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                 var d = (IDictionary<string, object?>)drug;
                 var donViTinh = Str(Col(d, "don_vi_tinh"));
                 var duongDung = Str(Col(d, "duong_dung"));
+                var maThuoc = Str(Col(d, "ma_thuoc"));
+                var tenThuoc = Str(Col(d, "ten_thuoc"));
+
+                // Migration 9180: KHONG hardcode "uong". Rong => gom vao danh sach thieu, bao loi cuoi ky.
+                if (duongDung.Length == 0)
+                {
+                    var label = $"[{(maThuoc.Length > 0 ? maThuoc : "?")}] {tenThuoc}".Trim();
+                    if (!missingRouteDrugs.Contains(label))
+                        missingRouteDrugs.Add(label);
+                }
 
                 var table2Row = new BhytTable2Row(
                     MaLienKet: maLienKet,
-                    MaThuoc: Str(Col(d, "ma_thuoc")),
-                    TenThuoc: Str(Col(d, "ten_thuoc")),
+                    MaThuoc: maThuoc,
+                    TenThuoc: tenThuoc,
                     DonViTinh: donViTinh.Length > 0 ? donViTinh : "vien",
                     HamLuong: Str(Col(d, "ham_luong")),
-                    DuongDung: duongDung.Length > 0 ? duongDung : "uong",
+                    DuongDung: duongDung,
                     LieuDung: Str(Col(d, "lieu_dung")),
                     // TODO(BHYT): diab_his_pha_drugs chua co nguon nhap lieu SO_DANG_KY
                     // (them cot rong trong migration 9110, cho module quan ly dau thau/dang ky thuoc) -> de trong.
@@ -266,6 +281,17 @@ public class BhytXmlGeneratorImpl : IBhytXmlGenerator
                 TNguonkhac: 0m);
 
             items.Add(new BhytExportItemData(5, 0, JsonSerializer.Serialize(table5Row), maLienKet, encId, null, 0m));
+        }
+
+        // Migration 9180: chan phat hanh XML khi con thuoc thieu DUONG_DUNG (bat buoc XML 4210 Bang 2).
+        if (missingRouteDrugs.Count > 0)
+        {
+            _logger.LogWarning("BhytXmlGenerator: exportId={Id} thieu duong dung o {Count} thuoc",
+                exportId, missingRouteDrugs.Count);
+            var msg = "DRUG_ROUTE_MISSING: Không thể phát hành XML giám định vì thiếu đường dùng (DUONG_DUNG) "
+                    + "cho các thuốc sau: " + string.Join("; ", missingRouteDrugs)
+                    + ". Vui lòng bổ sung đường dùng trong danh mục thuốc hoặc đơn thuốc trước khi xuất.";
+            return new BhytXmlGenerateResult(false, encounters.Count, 0, [], msg);
         }
 
         _logger.LogInformation("BhytXmlGenerator: done exportId={Id}, {Count} encounters, {Items} items",

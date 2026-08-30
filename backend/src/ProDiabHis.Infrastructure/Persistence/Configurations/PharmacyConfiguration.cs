@@ -31,6 +31,9 @@ public class DrugConfiguration : IEntityTypeConfiguration<Drug>
         builder.Property(e => e.Note).HasColumnName("note");
         builder.Property(e => e.SoDangKy).HasColumnName("so_dang_ky").HasMaxLength(50);
         builder.Property(e => e.MaNhaThau).HasColumnName("ma_nha_thau").HasMaxLength(50);
+        // Migration 9180
+        builder.Property(e => e.Route).HasColumnName("route").HasMaxLength(30);
+        builder.Property(e => e.BhytCode).HasColumnName("bhyt_code").HasMaxLength(50);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");

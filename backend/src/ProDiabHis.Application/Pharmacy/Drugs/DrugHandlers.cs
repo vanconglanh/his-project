@@ -59,6 +59,7 @@ public class ListDrugsHandler : IRequestHandler<ListDrugsQuery, Result<PagedResu
                       d.requires_prescription as RequiresPrescription,
                       d.is_psychotropic as IsPsychotropic, d.is_narcotic as IsNarcotic,
                       d.dtqg_drug_code as DtqgDrugCode, d.status as Status,
+                      d.route as Route, d.bhyt_code as BhytCode,
                       d.created_at as CreatedAt, d.updated_at as UpdatedAt,
                       (SELECT COUNT(*) FROM diab_his_pha_ddi_rules r WHERE (r.drug1_id = d.ID OR r.drug2_id = d.ID) AND r.deleted_at IS NULL) as InteractionsCount
                FROM diab_his_pha_drugs d WHERE {wc}
@@ -72,7 +73,8 @@ public class ListDrugsHandler : IRequestHandler<ListDrugsQuery, Result<PagedResu
         new(r.Id?.ToString() ?? "", r.TenantId, r.Code ?? "", r.NameVi ?? "", r.NameEn, r.GenericName,
             r.AtcCode, r.Strength, r.Unit ?? "", r.Form, r.Manufacturer, r.Country,
             r.Price, r.CategoryId, Convert.ToBoolean(r.RequiresPrescription), Convert.ToBoolean(r.IsPsychotropic), Convert.ToBoolean(r.IsNarcotic),
-            r.DtqgDrugCode, r.Status ?? "ACTIVE", r.InteractionsCount, r.CreatedAt, r.UpdatedAt);
+            r.DtqgDrugCode, r.Status ?? "ACTIVE", r.InteractionsCount, r.CreatedAt, r.UpdatedAt,
+            r.Route, r.BhytCode);
 }
 
 public class GetDrugHandler : IRequestHandler<GetDrugQuery, Result<DrugMasterResponse>>
@@ -96,6 +98,7 @@ public class GetDrugHandler : IRequestHandler<GetDrugQuery, Result<DrugMasterRes
                      d.requires_prescription as RequiresPrescription,
                      d.is_psychotropic as IsPsychotropic, d.is_narcotic as IsNarcotic,
                      d.dtqg_drug_code as DtqgDrugCode, d.status as Status,
+                     d.route as Route, d.bhyt_code as BhytCode,
                      d.created_at as CreatedAt, d.updated_at as UpdatedAt,
                      (SELECT COUNT(*) FROM diab_his_pha_ddi_rules r WHERE (r.drug1_id = d.ID OR r.drug2_id = d.ID) AND r.deleted_at IS NULL) as InteractionsCount
               FROM diab_his_pha_drugs d
@@ -109,7 +112,8 @@ public class GetDrugHandler : IRequestHandler<GetDrugQuery, Result<DrugMasterRes
             row.Id?.ToString() ?? "", row.TenantId, row.Code ?? "", row.NameVi ?? "", row.NameEn, row.GenericName,
             row.AtcCode, row.Strength, row.Unit ?? "", row.Form, row.Manufacturer, row.Country,
             row.Price, row.CategoryId, Convert.ToBoolean(row.RequiresPrescription), Convert.ToBoolean(row.IsPsychotropic), Convert.ToBoolean(row.IsNarcotic),
-            row.DtqgDrugCode, row.Status ?? "ACTIVE", row.InteractionsCount, row.CreatedAt, row.UpdatedAt));
+            row.DtqgDrugCode, row.Status ?? "ACTIVE", row.InteractionsCount, row.CreatedAt, row.UpdatedAt,
+            row.Route, row.BhytCode));
     }
 }
 
@@ -416,4 +420,7 @@ internal class DrugRow
     public int InteractionsCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    // Migration 9180
+    public string? Route { get; set; }
+    public string? BhytCode { get; set; }
 }

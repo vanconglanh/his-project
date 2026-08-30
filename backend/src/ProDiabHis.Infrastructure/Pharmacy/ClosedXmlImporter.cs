@@ -12,7 +12,16 @@ namespace ProDiabHis.Infrastructure.Pharmacy;
 /// Expected columns (row 1 = header):
 ///   A: code, B: name_vi, C: name_en, D: generic_name, E: atc_code,
 ///   F: strength, G: unit, H: form, I: manufacturer, J: country,
-///   K: price, L: requires_prescription (1/0), M: is_psychotropic (1/0), N: is_narcotic (1/0)
+///   K: price, L: requires_prescription (1/0), M: is_psychotropic (1/0), N: is_narcotic (1/0),
+///   O: route (duong dung, tuy chon - vd uong|tiem_bap|tiem_tinh_mach...)
+///
+/// LUU Y (migration 9180 - Quyet dinh chot bo cot 9005 la nguon su that):
+///   Importer GHI VAO BANG CANONICAL diab_his_pha_drugs (KHONG dung view pha_drug_master
+///   vi view tao o migration 9009 bang SELECT * nen KHONG expose cot route/bhyt_code
+///   them sau nay). Ghi bo cot 9005 (name/drug_form/sell_price/requires_rx/is_controlled)
+///   la nguon su that, dong thoi van ghi bo cot 9010 legacy (name_vi/name_en/form/price/
+///   requires_prescription/is_narcotic/is_psychotropic) de bao cao doc COALESCE 2 chieu
+///   khong bi mat du lieu cho toi khi hoan tat deprecate.
 /// </summary>
 public class ClosedXmlImporter : IExcelImporter
 {
@@ -81,45 +90,63 @@ public class ClosedXmlImporter : IExcelImporter
                 int.TryParse(sheet.Cell(row, 12).GetString(), out var rx);
                 int.TryParse(sheet.Cell(row, 13).GetString(), out var psycho);
                 int.TryParse(sheet.Cell(row, 14).GetString(), out var narcotic);
+                // Cot O (15): duong dung - tuy chon. Khong hardcode; rong => NULL.
+                var routeRaw = sheet.Cell(row, 15).GetString()?.Trim();
+                var route = string.IsNullOrWhiteSpace(routeRaw) ? null : routeRaw;
 
                 var validForms = new[] { "TABLET", "CAPSULE", "SYRUP", "INJ", "CREAM", "OINTMENT", "DROP", "INHALER", "POWDER", "SUPPOSITORY", "OTHER" };
                 if (!string.IsNullOrWhiteSpace(form) && !validForms.Contains(form.ToUpper()))
                     form = "OTHER";
+                var drugForm = form?.ToUpper() ?? "OTHER";
+                // is_controlled (bo 9005) = HOP cua is_narcotic / is_psychotropic (xem N4 tai lieu 3.2.1)
+                var isControlled = (psycho == 1 || narcotic == 1) ? 1 : 0;
 
-                // Check existing
-                var existingId = await conn.ExecuteScalarAsync<int?>(
-                    "SELECT ID FROM pha_drug_master WHERE tenant_id = @tenantId AND CODE = @code AND DELETED_AT IS NULL",
+                // Check existing - GHI VAO BANG CANONICAL diab_his_pha_drugs (id CHAR(36))
+                var existingId = await conn.ExecuteScalarAsync<string?>(
+                    "SELECT id FROM diab_his_pha_drugs WHERE tenant_id = @tenantId AND code = @code AND deleted_at IS NULL",
                     new { tenantId, code });
 
-                if (existingId.HasValue && mode == "INSERT")
+                if (existingId != null && mode == "INSERT")
                 {
                     errors.Add(new DrugImportError(row, $"Ma thuoc '{code}' da ton tai (mode=INSERT)."));
                     failed++;
                     continue;
                 }
 
-                if (existingId.HasValue)
+                if (existingId != null)
                 {
                     await conn.ExecuteAsync(
-                        @"UPDATE pha_drug_master SET DRUG_NAME=@nameVi, name_en=@nameEn, generic_name=@genericName,
-                          atc_code=@atcCode, STRENGTH=@strength, UNIT=@unit, form=@form,
-                          MANUFACTURER=@manufacturer, COUNTRY=@country, price=@price,
-                          requires_prescription=@rx, is_psychotropic=@psycho, is_narcotic=@narcotic, UPDATED_AT=NOW()
-                          WHERE ID=@id",
-                        new { nameVi, nameEn, genericName, atcCode, strength, unit, form = form?.ToUpper() ?? "OTHER",
-                              manufacturer, country, price, rx, psycho, narcotic, id = existingId.Value });
+                        // Bo 9005 (nguon su that) + route; dong bo bo 9010 legacy de bao cao khong mat du lieu.
+                        @"UPDATE diab_his_pha_drugs SET
+                          name=@nameVi, drug_form=@drugForm, strength=@strength, unit=@unit,
+                          generic_name=@genericName, atc_code=@atcCode, sell_price=@price,
+                          requires_rx=@rx, is_controlled=@isControlled, route=@route,
+                          name_vi=@nameVi, name_en=@nameEn, form=@form, manufacturer=@manufacturer,
+                          country=@country, price=@price, requires_prescription=@rx,
+                          is_psychotropic=@psycho, is_narcotic=@narcotic, updated_at=NOW()
+                          WHERE id=@id",
+                        new { nameVi, nameEn, genericName, atcCode, strength, unit, drugForm, form,
+                              manufacturer, country, price, rx, psycho, narcotic, isControlled, route,
+                              id = existingId });
                     updated++;
                 }
                 else
                 {
                     await conn.ExecuteAsync(
-                        @"INSERT INTO pha_drug_master (tenant_id, CODE, DRUG_NAME, name_en, generic_name, atc_code,
-                          STRENGTH, UNIT, form, MANUFACTURER, COUNTRY, price, requires_prescription,
-                          is_psychotropic, is_narcotic, status, CREATED_AT, UPDATED_AT)
-                          VALUES (@tenantId, @code, @nameVi, @nameEn, @genericName, @atcCode,
-                          @strength, @unit, @form, @manufacturer, @country, @price, @rx, @psycho, @narcotic, 'ACTIVE', NOW(), NOW())",
-                        new { tenantId, code, nameVi, nameEn, genericName, atcCode, strength, unit, form = form?.ToUpper() ?? "OTHER",
-                              manufacturer, country, price, rx, psycho, narcotic });
+                        @"INSERT INTO diab_his_pha_drugs
+                          (id, tenant_id, code, name, drug_form, strength, unit, generic_name, atc_code,
+                           sell_price, requires_rx, is_controlled, route,
+                           name_vi, name_en, form, manufacturer, country, price,
+                           requires_prescription, is_psychotropic, is_narcotic, status, is_active,
+                           created_at, updated_at)
+                          VALUES
+                          (UUID(), @tenantId, @code, @nameVi, @drugForm, @strength, @unit, @genericName, @atcCode,
+                           @price, @rx, @isControlled, @route,
+                           @nameVi, @nameEn, @form, @manufacturer, @country, @price,
+                           @rx, @psycho, @narcotic, 'ACTIVE', 1,
+                           NOW(), NOW())",
+                        new { tenantId, code, nameVi, nameEn, genericName, atcCode, strength, unit, drugForm, form,
+                              manufacturer, country, price, rx, psycho, narcotic, isControlled, route });
                     inserted++;
                 }
             }

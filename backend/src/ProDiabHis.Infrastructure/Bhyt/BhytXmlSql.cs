@@ -81,7 +81,9 @@ SELECT d.code                              AS ma_thuoc,
        pi.drug_name                        AS ten_thuoc,
        pi.unit                             AS don_vi_tinh,
        pi.drug_strength                    AS ham_luong,
-       pi.route                            AS duong_dung,
+       -- DUONG_DUNG (XML 4210 Bang 2, bat buoc): uu tien route ke don, fallback route master (9180).
+       -- Da bo fallback hardcode duong uong - rong => BhytXmlGeneratorImpl bao loi DRUG_ROUTE_MISSING.
+       COALESCE(NULLIF(TRIM(pi.route), ''), NULLIF(TRIM(d.route), '')) AS duong_dung,
        pi.dosage                           AS lieu_dung,
        pi.quantity                         AS so_luong,
        pi.unit_price                       AS don_gia,

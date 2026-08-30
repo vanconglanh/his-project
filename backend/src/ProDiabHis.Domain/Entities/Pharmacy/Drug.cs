@@ -28,4 +28,9 @@ public class Drug : BaseEntity, ITenantScoped
     // khi co module quan ly dau thau / danh muc dang ky thuoc.
     public string? SoDangKy { get; set; }
     public string? MaNhaThau { get; set; }
+
+    // Migration 9180: duong dung chuan hoa (nguon cho XML 4210 Bang 2 DUONG_DUNG) va
+    // ma thuoc theo danh muc BHYT (thay ma noi bo khi xuat XML Bang 2).
+    public string? Route { get; set; }
+    public string? BhytCode { get; set; }
 }
