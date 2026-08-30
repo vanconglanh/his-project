@@ -720,17 +720,18 @@ public class CloneBranchHandler : IRequestHandler<CloneBranchCommand, Result<Bra
                     groupId = req.GroupId
                 }, tx);
 
-            // Copy cau truc phong (diab_his_sys_rooms)
+            // Copy cau truc phong (diab_his_sys_rooms). Code room unique theo (tenant, code) — KHONG
+            // theo branch — nen phai sinh code moi cho chi nhanh clone (suffix -B{newId}) de tranh trung.
             await conn.ExecuteAsync(
                 @"INSERT INTO diab_his_sys_rooms (id, tenant_id, branch_id, code, name, room_type, floor, capacity, is_active, created_at, updated_at)
-                  SELECT UUID(), tenant_id, @newId, code, name, room_type, floor, capacity, is_active, NOW(), NOW()
+                  SELECT UUID(), tenant_id, @newId, CONCAT(code, '-B', @newId), name, room_type, floor, capacity, is_active, NOW(), NOW()
                     FROM diab_his_sys_rooms WHERE branch_id = @sourceId AND tenant_id = @tenantId AND deleted_at IS NULL",
                 new { newId, sourceId = req.SourceBranchId, tenantId }, tx);
 
-            // Copy cau hinh kho (pha_warehouses)
+            // Copy cau hinh kho (pha_warehouses). Code kho cung unique theo (tenant, code) -> suffix -B{newId}.
             await conn.ExecuteAsync(
                 @"INSERT INTO pha_warehouses (tenant_id, code, name, type, address, branch_id, created_at, updated_at)
-                  SELECT tenant_id, code, name, type, address, @newId, NOW(), NOW()
+                  SELECT tenant_id, CONCAT(code, '-B', @newId), name, type, address, @newId, NOW(), NOW()
                     FROM pha_warehouses WHERE branch_id = @sourceId AND tenant_id = @tenantId AND deleted_at IS NULL",
                 new { newId, sourceId = req.SourceBranchId, tenantId }, tx);
 
