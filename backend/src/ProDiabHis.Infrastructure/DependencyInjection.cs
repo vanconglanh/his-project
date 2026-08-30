@@ -510,6 +510,9 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(5);
         });
 
+        // InBody OCR (doc PDF ket qua may InBody — xem docs/prd/inbody-ocr-20260830.md)
+        services.AddScoped<Application.InBody.IInBodyDataProvider, InBody.InBodyPdfTextProvider>();
+
         // Lab integration services
         services.AddHttpClient("LabPartner");
         services.AddScoped<ILabPartnerClient, LabPartnerHttpClient>();
