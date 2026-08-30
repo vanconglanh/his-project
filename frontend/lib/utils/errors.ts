@@ -13,6 +13,10 @@ const ERROR_CODE_MAP: Record<string, string> = {
   ROLE_SYSTEM_PROTECTED: "Không thể xóa vai trò hệ thống",
   TWO_FA_INVALID_CODE: "Mã xác thực 2 lớp không đúng",
   TWO_FA_ALREADY_ENABLED: "Xác thực 2 lớp đã được kích hoạt",
+  AUTH_MFA_TOKEN_INVALID: "Phiên xác thực 2 lớp đã hết hạn, vui lòng đăng nhập lại",
+  AUTH_MFA_TOO_MANY_ATTEMPTS:
+    "Bạn đã nhập sai mã quá nhiều lần, vui lòng thử lại sau ít phút",
+  AUTH_MFA_INVALID_CODE: "Mã xác thực 2 lớp không đúng",
 };
 
 export function getErrorMessage(error: unknown, fallback?: string): string {

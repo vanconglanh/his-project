@@ -212,8 +212,10 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>Khoi tao TOTP 2FA</summary>
+    /// <summary>Khoi tao TOTP 2FA. Chap nhan token thuong (Bearer) LAN token tam mfa-setup (user role
+    /// bat buoc 2FA nhung chua bat, lay tu buoc login).</summary>
     [HttpPost("me/2fa/setup")]
+    [Authorize(AuthenticationSchemes = "Bearer,MfaSetup")]
     public async Task<IActionResult> Setup2FA(CancellationToken ct)
     {
         var result = await _mediator.Send(new Setup2FACommand(), ct);
@@ -230,8 +232,10 @@ public class UsersController : ControllerBase
         });
     }
 
-    /// <summary>Kich hoat 2FA sau khi xac minh TOTP code</summary>
+    /// <summary>Kich hoat 2FA sau khi xac minh TOTP code. Chap nhan token thuong (Bearer) LAN token tam
+    /// mfa-setup (user role bat buoc 2FA nhung chua bat, lay tu buoc login).</summary>
     [HttpPost("me/2fa/enable")]
+    [Authorize(AuthenticationSchemes = "Bearer,MfaSetup")]
     public async Task<IActionResult> Enable2FA([FromBody] Enable2FARequest request, CancellationToken ct)
     {
         var result = await _mediator.Send(new Enable2FACommand(request.Code), ct);

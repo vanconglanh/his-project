@@ -140,6 +140,64 @@ public class JwtService : IJwtService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    public string GenerateMfaPendingToken(User user)
+        => GenerateMfaToken(user, "mfa-pending", TimeSpan.FromMinutes(5));
+
+    public string GenerateMfaSetupToken(User user)
+        => GenerateMfaToken(user, "mfa-setup", TimeSpan.FromMinutes(10));
+
+    private string GenerateMfaToken(User user, string audience, TimeSpan ttl)
+    {
+        var (_, creds) = GetSigningCredentials();
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("user_id", user.Id.ToString()),
+            new("tenant_id", user.TenantId.ToString()),
+            new("purpose", audience)
+        };
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"] ?? "ProDiabHis",
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.Add(ttl),
+            signingCredentials: creds);
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public (Guid UserId, int TenantId)? ValidateMfaToken(string token, string expectedAudience)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        var (key, _) = GetSigningCredentials();
+        var validationParams = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = _configuration["Jwt:Issuer"] ?? "ProDiabHis",
+            ValidAudience = expectedAudience,
+            IssuerSigningKey = key,
+            ClockSkew = TimeSpan.Zero
+        };
+        try
+        {
+            var principal = new JwtSecurityTokenHandler().ValidateToken(token, validationParams, out _);
+            var uid = principal.FindFirst("user_id")?.Value;
+            var tid = principal.FindFirst("tenant_id")?.Value;
+            if (uid != null && Guid.TryParse(uid, out var userId)
+                && tid != null && int.TryParse(tid, out var tenantId))
+            {
+                return (userId, tenantId);
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private IEnumerable<string> LoadPermissions(Guid userId)
     {
         try

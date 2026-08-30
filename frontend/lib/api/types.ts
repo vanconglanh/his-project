@@ -29,11 +29,29 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
+  // Ở trạng thái cần 2FA (requires2fa / mfaSetupRequired) BE trả chuỗi rỗng "" cho 2 token này.
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
   user: UserProfile & { roles?: string[]; roleCodes?: string[] };
   permissions: string[];
+  // ─── 2FA (login 2 bước) — 3 trạng thái loại trừ nhau ─────────────────────────
+  /** User đã bật 2FA → cần nhập TOTP ở bước 2 (POST /auth/2fa/verify) */
+  requires2fa?: boolean;
+  /** Token tạm dùng cho bước verify TOTP; null khi không ở trạng thái này */
+  mfaPendingToken?: string | null;
+  /** Role bắt buộc 2FA nhưng user CHƯA bật → phải thiết lập 2FA trước */
+  mfaSetupRequired?: boolean;
+  /** Token tạm (aud="mfa-setup") chỉ gọi được me/2fa/setup + me/2fa/enable */
+  mfaSetupToken?: string | null;
+  /** Thông báo tiếng Việt hướng dẫn thiết lập 2FA */
+  mfaSetupMessage?: string | null;
+}
+
+export interface Verify2FARequest {
+  mfaPendingToken: string;
+  /** TOTP 6 số HOẶC recovery code dạng xxxxx-xxxxx */
+  code: string;
 }
 
 export interface UserProfile {

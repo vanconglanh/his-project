@@ -23,4 +23,16 @@ public interface IJwtService
 
     /// <summary>Sinh portal session JWT (aud=patient-portal, TTL 24h)</summary>
     string GeneratePortalToken(Guid patientId, string patientCode, int tenantId, out string jti);
+
+    /// <summary>Sinh token tam (aud=mfa-pending, TTL 5 phut) cho buoc 2 dang nhap: user DA bat 2FA can nhap
+    /// ma TOTP. Chua cap quyen truy cap API nghiep vu — chi dung de goi POST /api/v1/auth/2fa/verify.</summary>
+    string GenerateMfaPendingToken(User user);
+
+    /// <summary>Sinh token tam (aud=mfa-setup, TTL 10 phut) cho user thuoc role bat buoc 2FA nhung chua bat.
+    /// Chi dung duoc cho endpoint me/2fa/setup + me/2fa/enable de bat 2FA lan dau.</summary>
+    string GenerateMfaSetupToken(User user);
+
+    /// <summary>Xac thuc token tam (mfa-pending / mfa-setup) theo audience mong doi. Tra ve (userId, tenantId)
+    /// neu hop le; null neu token sai/het han/sai audience.</summary>
+    (Guid UserId, int TenantId)? ValidateMfaToken(string token, string expectedAudience);
 }

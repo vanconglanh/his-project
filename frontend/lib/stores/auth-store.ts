@@ -21,6 +21,12 @@ interface AuthActions {
   ) => void;
   clearAuth: () => void;
   updateTokens: (accessToken: string, refreshToken: string) => void;
+  /**
+   * Lưu tạm token thiết lập 2FA (aud="mfa-setup") để apiClient tự đính kèm khi
+   * gọi me/2fa/setup + me/2fa/enable. KHÔNG set isAuthenticated → user vẫn CHƯA
+   * đăng nhập, không truy cập được dashboard / API nghiệp vụ.
+   */
+  setMfaSetupToken: (accessToken: string) => void;
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -48,6 +54,16 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       updateTokens: (accessToken, refreshToken) =>
         set({ accessToken, refreshToken }),
+
+      setMfaSetupToken: (accessToken) =>
+        set({
+          accessToken,
+          refreshToken: null,
+          user: null,
+          isAuthenticated: false,
+          permissions: [],
+          roles: [],
+        }),
     }),
     {
       name: "auth-store",

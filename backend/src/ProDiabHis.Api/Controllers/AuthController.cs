@@ -39,6 +39,27 @@ public class AuthController : ControllerBase
         return Ok(new { data = result.Value, meta = new { } });
     }
 
+    /// <summary>Xac thuc ma 2FA (buoc 2 dang nhap) — dung khi login tra ve requires2fa=true</summary>
+    /// <remarks>Gui mfaPendingToken (nhan tu buoc login) + ma TOTP 6 so hoac recovery code.
+    /// Thanh cong tra ve access token + refresh token day du nhu login binh thuong.</remarks>
+    [HttpPost("2fa/verify")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Verify2fa(
+        [FromBody] Verify2faRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new Verify2faLoginCommand(request.MfaPendingToken, request.Code),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return Unauthorized(new { error = new { code = result.ErrorCode, message = result.ErrorMessage, details = new { } } });
+
+        return Ok(new { data = result.Value, meta = new { } });
+    }
+
     /// <summary>Lam moi access token bang refresh token</summary>
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
@@ -97,5 +118,11 @@ public class AuthController : ControllerBase
 // DTO helper cho Swagger docs
 public record ApiResponse<T>(T Data, object Meta);
 public record ApiError(string Code, string Message, object Details);
+// Global JSON policy la snake_case, nhung login RESPONSE tra "mfaPendingToken" (camelCase, do
+// LoginResponse dat [JsonPropertyName] tuong minh) va FE gui lai dung ten do -> ep camelCase o day
+// de request body khop, tranh loi VALIDATION_ERROR "MfaPendingToken la bat buoc".
+public record Verify2faRequest(
+    [property: System.Text.Json.Serialization.JsonPropertyName("mfaPendingToken")] string MfaPendingToken,
+    [property: System.Text.Json.Serialization.JsonPropertyName("code")] string Code);
 public record ForgotPasswordApiRequest(string Email);
 public record ResetPasswordApiRequest(string Token, string NewPassword);

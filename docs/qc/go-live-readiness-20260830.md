@@ -1,8 +1,10 @@
 # Go-live readiness — Pro-Diab HIS (audit 2026-08-30, nhánh `develop`)
 
-## KẾT LUẬN: 🟡 SẴN SÀNG CÓ ĐIỀU KIỆN — hiện tại BLOCK
+## KẾT LUẬN (cập nhật 2026-08-30 sau fix): 2 P0 ĐÃ FIX ✅ — còn P1 #3 + P0 vận hành #4
 
-Hệ thống **đủ chức năng** để vận hành thực tế, nhưng **chưa được go-live hôm nay** vì 2 lỗi bảo mật/dữ liệu mới phát hiện trong đợt audit này.
+**2 P0 blocker (#1 thực thi 2FA, #2 backfill `id_number_bidx`) đã được sửa và verify thật** (chi tiết cách verify ở mục 3). Còn lại **P1 #3 (Minio PublicEndpoint rỗng)** và **P0 vận hành #4 (checklist sinh secret khi deploy)** CHƯA làm — vẫn cần trước khi go-live thật lên server production, nhưng **không chặn tiếp tục dev/test**.
+
+> Lịch sử: bản audit gốc kết luận 🟡 BLOCK vì 2 lỗi bảo mật/dữ liệu. Hệ thống đủ chức năng vận hành; 2 lỗi đó nay đã khắc phục.
 
 Tin tốt trước: **12/12 hạng mục chọn ngẫu nhiên để tự kiểm đều khớp 100% với báo cáo trước đó.** Các agent báo cáo trung thực ở đợt này — không lặp lại sai sót của vòng PO review trước (báo migration "chưa chạy" trong khi thực tế đã áp).
 
@@ -31,7 +33,13 @@ Tin tốt trước: **12/12 hạng mục chọn ngẫu nhiên để tự kiểm 
 
 ## 3. Phát hiện MỚI (chưa báo cáo nào nêu trước đây)
 
-### ❌ #1 — P0 Blocker (bảo mật): 2FA không được thực thi ở backend
+### ✅ #1 — P0 Blocker (bảo mật): 2FA không được thực thi ở backend — ĐÃ FIX (2026-08-30)
+
+**Đã sửa:** login bước 1 (email+password đúng) với user `TwoFaEnabled=true` KHÔNG còn cấp `AccessToken` đầy đủ — chỉ cấp `mfaPendingToken` (aud=`mfa-pending`, TTL 5 phút). Thêm endpoint `POST /api/v1/auth/2fa/verify` nhận `mfaPendingToken` + mã TOTP 6 số (hoặc recovery code), verify đúng mới cấp `AccessToken`/`RefreshToken` đầy đủ; sai mã → `AUTH_MFA_INVALID_CODE`, có rate-limit chống brute-force (`AUTH_MFA_TOO_MANY_ATTEMPTS`, 5 lần/5 phút qua `IRateLimiter`). Role bắt buộc 2FA (`Security:MandatoryMfaRoles`) mà chưa bật → CHẶN token đầy đủ, chỉ cấp `mfaSetupToken` (aud=`mfa-setup`) dùng được duy nhất cho `me/2fa/setup`/`enable`. Token tạm có `aud` khác nên bị scheme Bearer mặc định từ chối ở mọi API nghiệp vụ. Frontend: thêm màn nhập TOTP trong luồng login.
+**Fix phụ (chặn 2FA hoạt động):** cột `two_fa_recovery_codes` kiểu JSON không lưu được ciphertext → migration `9186` đổi sang TEXT (trước đó `me/2fa/enable` luôn 500).
+**Verify thật:** API test 5 bước (bacsi.test bật 2FA → chặn/verify sai/verify đúng; letan.test không 2FA vẫn login thường; qc.admin role bắt buộc → mfaSetupToken) + browser test end-to-end. Evidence: `docs/qc/evidence-p0-golive-fix-20260830/P0-1-2fa-api-test.md` + `P0-1-2fa-browser-test.md`. `dotnet test` 901 pass.
+
+<details><summary>Mô tả lỗi gốc (đã khắc phục)</summary>
 `backend/src/ProDiabHis.Application/Auth/LoginCommandHandler.cs:111-140` cấp token đầy đủ rồi chỉ trả một lá cờ:
 ```csharp
 var mfaSetupRequired = isMandatoryMfaRole && !user.TwoFaEnabled;
@@ -43,7 +51,16 @@ Hai lỗ hổng:
 
 Vi phạm trực tiếp `CLAUDE.md`: *"RBAC enforce ở backend (không chỉ frontend hide)"*. TASKLIST H-10 có ghi nhận gap này nhưng vẫn đánh ✅ Done và coi là "ngoài phạm vi". Về QC, hạng mục bảo mật không thực thi được thì không tính là Done.
 
-### ❌ #2 — P0 Blocker (dữ liệu): tra cứu theo CCCD trượt toàn bộ hồ sơ cũ
+</details>
+
+### ✅ #2 — P0 Blocker (dữ liệu): tra cứu theo CCCD trượt toàn bộ hồ sơ cũ — ĐÃ FIX (2026-08-30)
+
+**Đã sửa:** viết console command chạy-một-lần `dotnet run --project backend/src/ProDiabHis.Api -- backfill-bidx` (tái dùng `PiiBackfillService`, idempotent, mọi tenant), giải mã `*_enc` → tính lại blind index → ghi `*_bidx`.
+**Bug ẩn phát hiện khi verify:** `id_number_enc`/`card_no_enc` lưu RAW (không tiền tố `enc:v1:`), backfill cũ dùng `_pii.Unprotect` → trả nguyên ciphertext → bidx = hash(ciphertext) ≠ hash(CCCD thật) → tìm vẫn trượt dù cột bidx đã có giá trị. Đã sửa `PiiBackfillService.DecryptEnc()` marker-aware; bổ sung backfill `phone_bidx` từ `phone_enc` (plaintext đã bị NULL sau khi mã hoá).
+**Runtime key:** `Encryption:BlindIndexKey` trước đó KHÔNG có trong runtime (chỉ ở `.env.example`) → dù backfill xong search vẫn hỏng. Đã set khoá cố định cho dev (appsettings.Development.json, gitignored) + tài liệu vận hành yêu cầu set + backup khoá cho mọi môi trường.
+**Verify thật:** DB `bidx_ok = enc_total = 20`; blind index tự tính khớp bidx đã lưu; **gọi `GET /patients/search?q=048172044001` (CCCD bệnh nhân cũ) qua API trả đúng bệnh nhân BNT01000020**. Evidence: `docs/qc/evidence-p0-golive-fix-20260830/P0-2-backfill-bidx.md`. Docs vận hành: `docs/ops/backfill-id-number-bidx.md`. Test hồi quy pass.
+
+<details><summary>Mô tả lỗi gốc (đã khắc phục)</summary>
 Hai cột dùng cho hai mục đích khác nhau:
 - Kiểm trùng CCCD (I-1) dùng `IdNumberHash` → **20/20 dòng có** ✅
 - Tìm kiếm bệnh nhân (`PatientQueryHandler.cs:73`) dùng `IdNumberBidx` → **0/20 dòng có** ❌
@@ -53,6 +70,8 @@ SELECT SUM(id_number_hash<>''), SUM(id_number_bidx<>'') FROM diab_his_pat_patien
 -- ket qua that: 20 , 0
 ```
 Hậu quả: lễ tân gõ đúng CCCD bệnh nhân cũ → "không tìm thấy" → tạo trùng hồ sơ. Nguyên nhân: `IdNumberBidx` thêm sau, code create/update có ghi cho bản ghi MỚI (`PatientCommandHandler.cs:125,217`) nhưng **thiếu migration backfill dữ liệu cũ**. Lỗi im lặng — không exception, test không bắt được.
+
+</details>
 
 ### ⚠️ #3 — P1 (triển khai): `MINIO_PUBLIC_ENDPOINT` không có mặc định
 Có mặt đúng trong file prod (`ops/docker-compose.prod.yml:161`, `ops/docker-compose.deploy.yml:67`) — claim này đúng. Nhưng dùng `${MINIO_PUBLIC_ENDPOINT}` **không fallback** và `.env.example:25` để trống. Quên set → chuỗi rỗng; `DependencyInjection.cs:142` dùng `?? minioEndpoint` **chỉ bắt null, không bắt chuỗi rỗng** → presigned URL hỏng, không xem được file CLS/ảnh.

@@ -28,7 +28,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.InviteTokenExpiresAt).HasColumnName("invite_token_expires_at");
         builder.Property(u => u.TwoFaSecret).HasColumnName("two_fa_secret");
         builder.Property(u => u.TwoFaEnabled).HasColumnName("two_fa_enabled").HasDefaultValue(false);
-        builder.Property(u => u.TwoFaRecoveryCodesJson).HasColumnName("two_fa_recovery_codes").HasColumnType("json");
+        // Cot luu chuoi DA MA HOA (AES-256-GCM base64), KHONG phai JSON hop le -> dung TEXT.
+        // Truoc day khai bao "json" khien MySQL tu choi ("Invalid JSON text") -> POST me/2fa/enable
+        // luon 500 -> khong the bat 2FA (fix migration 9186).
+        builder.Property(u => u.TwoFaRecoveryCodesJson).HasColumnName("two_fa_recovery_codes").HasColumnType("text");
         builder.Property(u => u.PasswordResetToken).HasColumnName("password_reset_token").HasMaxLength(64);
         builder.Property(u => u.PasswordResetExpiresAt).HasColumnName("password_reset_expires_at");
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");

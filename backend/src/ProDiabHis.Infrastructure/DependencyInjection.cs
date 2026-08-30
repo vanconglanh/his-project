@@ -90,6 +90,10 @@ public static class DependencyInjection
         // Auth services
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
+        // LoginCommandHandler duoc inject truc tiep vao Verify2faLoginCommandHandler de tai dung
+        // BuildSuccessResponseAsync. MediatR chi dang ky handler qua interface nen phai dang ky
+        // concrete type de resolve duoc.
+        services.AddScoped<ProDiabHis.Application.Auth.LoginCommandHandler>();
 
         // Encryption
         services.AddSingleton<IEncryptionService, AesGcmEncryptor>();
@@ -175,6 +179,24 @@ public static class DependencyInjection
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = configuration["Jwt:Issuer"] ?? "ProDiabHis",
                     ValidAudience = configuration["Jwt:Audience"] ?? "ProDiabHis",
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+                    ClockSkew = TimeSpan.Zero
+                };
+            })
+            // Scheme rieng "MfaSetup" cho token tam aud=mfa-setup (user role bat buoc 2FA nhung chua bat).
+            // CHI dung duoc cho me/2fa/setup + me/2fa/enable (2 action khai bao
+            // [Authorize(AuthenticationSchemes = "Bearer,MfaSetup")]); moi API nghiep vu khac dung scheme
+            // Bearer mac dinh (ValidAudience=ProDiabHis) nen tu dong tu choi token nay.
+            .AddJwtBearer("MfaSetup", options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = configuration["Jwt:Issuer"] ?? "ProDiabHis",
+                    ValidAudience = "mfa-setup",
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
                     ClockSkew = TimeSpan.Zero
                 };
