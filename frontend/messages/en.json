@@ -121,6 +121,7 @@
     "recall": "Follow-up Recall",
     "chainDashboard": "Chain Dashboard",
     "interBranchDebts": "Inter-branch Debts",
+    "legacyImport": "Legacy Records Import (OCR)",
     "internalReferrals": "Internal Referrals"
   },
   "ApiPartner": {

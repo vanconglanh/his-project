@@ -121,6 +121,7 @@
     "recall": "Nhắc tái khám",
     "chainDashboard": "Dashboard chuỗi",
     "interBranchDebts": "Công nợ nội bộ",
+    "legacyImport": "Nhập hồ sơ cũ (OCR)",
     "internalReferrals": "Chuyển cơ sở nội bộ"
   },
   "ApiPartner": {

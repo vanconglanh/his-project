@@ -29,6 +29,7 @@ import {
   BellRing,
   Wand2,
   ArrowLeftRight,
+  ScanLine,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -315,6 +316,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "notificationChannels",
         icon: BellRing,
         permissions: ["notification_channel.read"],
+      },
+      {
+        href: "/admin/legacy-import",
+        labelKey: "legacyImport",
+        icon: ScanLine,
+        permissions: ["legacy_import.write"],
       },
     ],
   },
