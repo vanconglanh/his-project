@@ -1,0 +1,10 @@
+File           : case3-ket-qua-xet-nghiem.pdf
+Loai nhan dien : LabResult
+Do tin cay     : 0.90
+Bang chung     : Glucose, HbA1c, Cholesterol toàn phần
+Ung vien       :
+   - LabResult  score=0.90 evidence=Glucose, HbA1c, Cholesterol toàn phần
+   - Legacy     score=0.50 evidence=
+
+--- RAW TEXT DOC TU PDF ---
+PHÒNG XÉT NGHIỆM - PHIẾU KẾT QUẢGlucose (đường huyết): 5.6 mmol/LHbA1c: 6.1 %Cholesterol toàn phần: 4.8 mmol/L

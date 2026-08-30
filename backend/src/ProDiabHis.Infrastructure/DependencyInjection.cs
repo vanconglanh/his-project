@@ -583,6 +583,10 @@ public static class DependencyInjection
         // Tai dung IPdfTextExtractor + IOcrTextProvider (dang ky o tren), chi them provider dieu phoi.
         services.AddScoped<Application.LabResults.Ocr.ILabOcrTextProvider, Lab.LabOcrTextProvider>();
 
+        // Document smart-upload classifier — dieu phoi tai lieu OCR sang dung luong (InBody/LabResult).
+        services.AddScoped<Application.Documents.IPendingLabTestsProvider, Documents.PendingLabTestsProvider>();
+        services.AddScoped<Application.Documents.IDocumentClassifier, Application.Documents.DocumentClassifierService>();
+
         return services;
     }
 

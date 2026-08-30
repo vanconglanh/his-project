@@ -1,0 +1,9 @@
+File           : case2-ho-so-cu-mac-dinh-legacy.pdf
+Loai nhan dien : Legacy
+Do tin cay     : 0.50
+Bang chung     : (khong)
+Ung vien       :
+   - Legacy     score=0.50 evidence=
+
+--- RAW TEXT DOC TU PDF ---
+SỔ KHÁM BỆNH CŨ - NĂM 2015Họ tên: Trần Thị B    Năm sinh: 1970Chẩn đoán: Viêm họng cấpLời dặn bác sĩ: Uống thuốc theo toa, tái khám sau 5 ngày.Ghi chú: Hồ sơ giấy lưu trữ, số quyển 12, trang 34.
