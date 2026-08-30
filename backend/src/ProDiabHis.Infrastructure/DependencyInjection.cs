@@ -565,8 +565,10 @@ public static class DependencyInjection
         // InBody OCR (doc PDF ket qua may InBody — xem docs/prd/inbody-ocr-20260830.md)
         services.AddScoped<Application.InBody.IInBodyDataProvider, InBody.InBodyPdfTextProvider>();
 
-        // Legacy scan import - nhap lieu hang loat ho so giay cu (OCR anh scan bang Tesseract)
+        // Legacy scan import - nhap lieu hang loat ho so giay cu (OCR anh scan bang Tesseract,
+        // OCR/text-layer file PDF bang PdfPig + PDFtoImage fallback)
         services.AddScoped<Application.LegacyImport.IOcrTextProvider, Ocr.TesseractOcrProvider>();
+        services.AddScoped<Application.LegacyImport.IPdfTextExtractor, Ocr.PdfTextExtractor>();
         services.AddScoped<Jobs.LegacyOcrBatchJob>();
 
         // Lab integration services

@@ -1,64 +1,85 @@
-# Evidence — Nhập liệu hàng loạt hồ sơ giấy cũ (Legacy Scan OCR Import)
+# Evidence — mo rong dinh dang file cho tinh nang "Nhap ho so cu qua OCR" (legacy-import)
 
-Ngày verify: 2026-08-30
-Người thực hiện: Team Leader (điều phối backend + frontend agent)
-Môi trường: API .NET chạy local `http://localhost:5001` (`Storage:Provider=Local`) + MySQL/MinIO/Redis Docker đang chạy; OCR Tesseract 5.2.0 + tessdata `vie+eng`.
+Ngay: 2026-08-30
+Agent: Thao (Backend Developer)
 
-## Phạm vi tính năng
-Admin upload 1 file ZIP nhiều ảnh scan hồ sơ giấy cũ -> OCR nền (Hangfire) -> review từng ảnh -> match bệnh nhân (tự động theo tên file / thủ công) -> confirm -> lưu thành tài liệu đính kèm hồ sơ bệnh nhân (`diab_his_fil_cls_uploads` + `fil_files`). KHÔNG tự tạo bệnh án/lượt khám. Chỉ admin (permission `legacy_import.write`).
+## Boi canh
 
-## Dữ liệu test
-- `test-legacy-scan.zip` gồm 3 ảnh PNG có chữ:
-  - `BNT01000020_trang1.png`, `BNT01000020_trang2.png` — tên file chứa mã BN `BNT01000020` (khớp bệnh nhân thật "Le Thi Huong" trong DB tenant 1) -> test auto-match.
-  - `khongcoma_trang1.png` — không có mã trong tên -> test fallback `pending_match`.
+Truoc khi lam task nay, `LegacyOcrBatchJob` chi nhan `.jpg/.jpeg/.png` trong file ZIP upload.
+Task mo rong ho tro them **PDF** (uu tien cao nhat), **TIFF/BMP** (de, ho tro san qua Tesseract),
+va danh gia/guard ro rang cho **HEIC/HEIF**.
 
-## Kết quả verify (chạy thật qua API + DB)
+## Thay doi code
 
-### 0. Smoke test OCR engine (Windows, NuGet Tesseract 5.2.0)
-```
-=== OCR TEXT ===
-HO SO KHAM BENH CU / Ho ten: Nguyen Van A / Chan doan: Tang huyet ap / Thuoc: Amlodipine 5mg / So luong: 30 vien
-=== MeanConfidence: 0.93
-```
+- `backend/src/ProDiabHis.Application/LegacyImport/IPdfTextExtractor.cs` — interface moi.
+- `backend/src/ProDiabHis.Infrastructure/Ocr/PdfTextExtractor.cs` — implementation 2 tang:
+  - Tang 1: `UglyToad.PdfPig` doc text layer truc tiep (tai su dung thu vien da co cho InBody OCR).
+  - Tang 2 (fallback khi tang 1 khong ra du text, nguong `MinTextLayerChars = 20` ky tu
+    non-whitespace): dung goi **PDFtoImage** (moi them, wrap PDFium native, ho tro
+    Windows/Linux/macOS khong can cai them goi he thong tren Linux Docker) render tung trang PDF
+    thanh anh PNG -> tai su dung `IOcrTextProvider` (Tesseract co san) OCR tung trang -> gop text
+    tat ca cac trang thanh 1 ket qua duy nhat cho item (1 file PDF nhieu trang = 1 bo ho so 1 benh
+    nhan -> KHONG tach thanh nhieu item theo trang, de admin de quan ly/review hon).
+  - Gioi han `MaxOcrPages = 30` trang/file de tranh 1 file PDF qua lon lam treo job.
+- `backend/src/ProDiabHis.Infrastructure/Jobs/LegacyImportFileKind.cs` — tach logic phan loai
+  file (`LegacyImportFileClassifier.Classify`) thanh static class doc lap, de unit test khong can
+  DB/MinIO/Hangfire, dung chung boi `LegacyOcrBatchJob`.
+- `backend/src/ProDiabHis.Infrastructure/Jobs/LegacyOcrBatchJob.cs`:
+  - Zip-bomb/whitelist guard nay dung `LegacyImportFileClassifier` — PDF nam trong whitelist,
+    khong bi chan nham nhu file la.
+  - PDF: upload nguyen file PDF vao bucket `legacy-scans` (cot `image_object_key` dung chung,
+    khong doi schema), OCR qua `IPdfTextExtractor`.
+  - TIFF/BMP: xu ly nhu anh binh thuong (Tesseract/Leptonica ho tro san dinh dang nay, khong can
+    thu vien them).
+  - HEIC/HEIF: **KHONG xu ly** — tao item voi `status='failed'` va
+    `item_error='Định dạng HEIC/HEIF chưa được hỗ trợ, vui lòng chuyển đổi sang JPG/PNG hoặc PDF trước khi upload'`.
+    Ly do khong lam: khong tim duoc thu vien decode HEIC on dinh + license ro rang chay tren
+    Linux Docker ma khong can them native binary phuc tap (rui ro build/deploy cao so voi loi ich
+    — may scan van phong hau nhu khong xuat HEIC, chi dien thoai iPhone chup anh moi ra dinh dang
+    nay va nguoi dung co the de dang chuyen sang JPG bang app Photos/Files co san tren iPhone).
+- `backend/src/ProDiabHis.Infrastructure/DependencyInjection.cs` — dang ky `IPdfTextExtractor`.
+- `backend/src/ProDiabHis.Infrastructure/ProDiabHis.Infrastructure.csproj` — them goi NuGet
+  `PDFtoImage` 4.1.0 (MIT-style permissive, wrap `bblanchon.PDFium.*` native cho Win/Linux/macOS).
 
-### 1. Upload ZIP -> tao batch (POST /api/v1/legacy-imports)
-HTTP 201, batch status=`pending`, id=`2e8156d7-c28d-4b54-8c4d-9217723afe3a`.
+## Thu vien moi va ly do chon
 
-### 2. Hangfire OCR job chay nen -> GET /api/v1/legacy-imports/{id}
-`status=done  processed=3/3` (job nghe queue "ocr" — da vá cấu hình `Queues` cho Hangfire server).
+| Thu vien | Ly do |
+|---|---|
+| `PDFtoImage` 4.1.0 | Render trang PDF -> `SKBitmap` (dung chung SkiaSharp da co san trong du an). Bundle san PDFium native cho Win32/Linux/macOS qua NuGet — khong can cai them goi he thong tren Docker Linux image, license permissive, API don gian (`Conversion.ToImage(bytes, index)`). |
 
-### 3. OCR text + auto-match (GET .../items)
-```
-BNT01000020_trang1.png | status=pending_review | match=filename_auto | patient=Le Thi Huong
-  ocr: 'HO SO KHAM BENH CU\nHo ten: Nguyen Van A\nChan doan: Tang huyet ap\nThuoc: Amlodipine 5mg\nSo luong: 30 vien'
-BNT01000020_trang2.png | status=pending_review | match=filename_auto | patient=Le Thi Huong
-  ocr: 'PHIEU KHAM LAI\nNgay kham: 12/03/2024\nHuyet ap: 140/90 mmHg\nThuoc: Metformin 500mg\nLoi dan: Tai kham sau 1 thang'
-khongcoma_trang1.png    | status=pending_match  | match=None        | patient=None   (fallback dung)
-  ocr: 'HO SO KHONG CO MA BENH NHAN\nHo ten: Tran Thi B\nChan doan: Dai thao duong type 2\nThuoc: Insulin'
-```
+**Khong them thu vien HEIC** — danh gia rui ro cao (native codec libheif phuc tap, license/build
+tren Linux container rui ro) so voi loi ich thap (may scan phong kham hau nhu khong xuat HEIC).
+Chon guard ro rang thay vi ep lam.
 
-### 4. Match thu cong (PUT .../items/{id}/match)
-HTTP 200 — gan `khongcoma_trang1` vao patient `0675828f...`, status -> `pending_review`, match_method=`manual`.
+## Test
 
-### 5. Confirm (POST .../items/{id}/confirm, co sua ocr_text)
-HTTP 200 — item status -> `confirmed`, `saved_cls_upload_id=cdf1d401-ed2c-4cf6-8b09-5d2d0c478f69`.
+- `backend/tests/ProDiabHis.UnitTests/LegacyImport/PdfTextExtractorTests.cs` — 3 test (mock
+  `IOcrTextProvider`): tang 1 (text layer, khong goi OCR), tang 2 fallback (khong text layer, co
+  goi OCR), va file PDF hong -> failure ro rang.
+- `backend/tests/ProDiabHis.UnitTests/LegacyImport/PdfOcrFallbackRealEngineVerifyTests.cs` —
+  **VERIFY THAT khong mock**: dung Tesseract engine that (tessdata vie+eng co san trong repo) +
+  PDFtoImage that de OCR 1 PDF "gia lap scan" (chu duoc ve thanh anh PNG roi nhung vao PDF nhu 1
+  hinh, PdfPig khong trich duoc text tu day) -> xac nhan tang 2 hoat dong dung, OCR ra dung chuoi
+  "HOSOBENHNHAN" da ve. Day la bang chung end-to-end that cho luong OCR fallback PDF-scan.
+- `backend/tests/ProDiabHis.UnitTests/LegacyImport/LegacyImportFileClassifierTests.cs` — 13 case
+  theory kiem tra dung whitelist/guard cho tat ca dinh dang: jpg/jpeg/png/tiff/tif/bmp -> Image,
+  pdf -> Pdf, heic/heif -> UnsupportedGuard, cac duoi khac (txt/docx/exe) -> Ignored (khong throw,
+  khong lot qua whitelist).
 
-### 6. Tai lieu xuat hien trong ho so benh nhan (GET /api/v1/patients/{id}/cls-uploads?doc_type=HO_SO_CU_SCAN)
-```
-{ id: cdf1d401..., patient_id: 0675828f..., doc_type: HO_SO_CU_SCAN,
-  file_id: 19be10b0..., file_name: BNT01000020_trang1.png, mime_type: image/png }
-```
+Ket qua chay toan bo unit test suite: xem `unittests-full-run.txt` — **918/918 pass** (baseline
+truoc task ~901, tang them 17 test moi cho tinh nang nay, khong test nao cu bi fail).
 
-### 7. DB xac nhan (bang co san, khong tao bang file rieng)
-```
-diab_his_fil_cls_uploads: cdf1d401... | 0675828f... | HO_SO_CU_SCAN | BNT01000020_trang1.png
-fil_files:                19be10b0... | LEGACY_SCAN | BNT01000020_trang1.png
-```
-`encounter_id = NULL` -> xac nhan KHONG tu tao luot kham/benh an.
+Build: `dotnet build` toan solution — 0 error, 13 warning (toan bo la warning co san tu truoc khi
+lam task nay, khong lien quan code moi — xem `dotnet-build-full.txt`).
 
-## Ket luan
-Toan bo luong upload -> OCR -> auto/manual match -> confirm -> luu dinh kem ho so benh nhan chay dung. Fallback pending_match hoat dong. Multi-tenant filter + permission admin (`legacy_import.write`) da ap dung.
+## Dinh dang ho tro sau task nay
 
-## Ghi chu / ton dong nho
-- `ocr_confidence` tra ve `null` trong danh sach item (engine co tinh confidence 0.93 nhung job chua persist gia tri) — cosmetic, khong anh huong chuc nang.
-- Verify o tang API + DB (bang chung manh nhat). UI Next.js da build + `tsc --noEmit` sach; chua chup screenshot UI song (docker frontend dang chay code cu).
+| Dinh dang | Trang thai | Ghi chu |
+|---|---|---|
+| JPG/JPEG | Da ho tro (khong doi) | OCR truc tiep bang Tesseract |
+| PNG | Da ho tro (khong doi) | OCR truc tiep bang Tesseract |
+| TIFF/TIF | **Moi ho tro** | OCR truc tiep bang Tesseract (Leptonica doc duoc san) |
+| BMP | **Moi ho tro** | OCR truc tiep bang Tesseract (Leptonica doc duoc san) |
+| PDF (co text layer) | **Moi ho tro** | Doc text truc tiep bang PdfPig, nhanh + chinh xac 100% |
+| PDF (anh scan, khong text layer) | **Moi ho tro** | Render tung trang bang PDFtoImage (PDFium) + OCR Tesseract, gop text ca file thanh 1 item |
+| HEIC/HEIF | **Chua ho tro — guard ro rang** | Tao item `status=failed` voi thong bao tieng Viet yeu cau chuyen doi dinh dang, khong am tham bo qua |

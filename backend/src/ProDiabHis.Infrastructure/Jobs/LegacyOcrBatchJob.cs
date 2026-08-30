@@ -16,16 +16,19 @@ public class LegacyOcrBatchJob
     private readonly IDapperConnectionFactory _db;
     private readonly IFileStorage _storage;
     private readonly IOcrTextProvider _ocr;
+    private readonly IPdfTextExtractor _pdfExtractor;
     private readonly ILogger<LegacyOcrBatchJob> _logger;
 
-    private static readonly string[] AllowedImageExts = { ".jpg", ".jpeg", ".png" };
+    // Whitelist dinh dang (anh/pdf/heic-guard) - xem LegacyImportFileClassifier de biet chi tiet
+    // tung nhom xu ly ra sao (Image = OCR truc tiep, Pdf = IPdfTextExtractor, UnsupportedGuard =
+    // HEIC/HEIF chua ho tro, tao item 'failed' voi thong bao ro rang thay vi am tham bo qua).
     private const int MaxFilesPerZip = 200;
     private const long MaxImageBytes = 15L * 1024 * 1024;
     private const long MaxTotalExtractedBytes = 500L * 1024 * 1024;
 
-    public LegacyOcrBatchJob(IDapperConnectionFactory db, IFileStorage storage, IOcrTextProvider ocr, ILogger<LegacyOcrBatchJob> logger)
+    public LegacyOcrBatchJob(IDapperConnectionFactory db, IFileStorage storage, IOcrTextProvider ocr, IPdfTextExtractor pdfExtractor, ILogger<LegacyOcrBatchJob> logger)
     {
-        _db = db; _storage = storage; _ocr = ocr; _logger = logger;
+        _db = db; _storage = storage; _ocr = ocr; _pdfExtractor = pdfExtractor; _logger = logger;
     }
 
     [Hangfire.Queue("ocr")]
@@ -57,15 +60,16 @@ public class LegacyOcrBatchJob
 
             using var archive = new ZipArchive(zipMemory, ZipArchiveMode.Read);
 
-            // Loc entry hop le: chi anh jpg/png, chan path traversal, gioi han so luong/kich thuoc (zip bomb)
+            // Loc entry hop le: anh (jpg/png/tiff/bmp), pdf, hoac heic/heif (de bao loi ro rang -
+            // KHONG am tham bo qua), chan path traversal, gioi han so luong/kich thuoc (zip bomb)
             var validEntries = new List<ZipArchiveEntry>();
             long totalExtractedBytes = 0;
             foreach (var entry in archive.Entries)
             {
                 if (string.IsNullOrEmpty(entry.Name)) continue; // thu muc
                 if (entry.FullName.Contains("..") || Path.IsPathRooted(entry.FullName)) continue; // path traversal
-                var ext = Path.GetExtension(entry.Name).ToLowerInvariant();
-                if (!AllowedImageExts.Contains(ext)) continue;
+                var kind = LegacyImportFileClassifier.Classify(entry.Name);
+                if (kind == LegacyImportFileKind.Ignored) continue;
                 if (entry.Length <= 0 || entry.Length > MaxImageBytes) continue;
 
                 totalExtractedBytes += entry.Length;
@@ -83,21 +87,50 @@ public class LegacyOcrBatchJob
             {
                 ct.ThrowIfCancellationRequested();
                 var itemId = Guid.NewGuid().ToString();
+                var ext = Path.GetExtension(entry.Name).ToLowerInvariant();
+                var kind = LegacyImportFileClassifier.Classify(entry.Name);
                 try
                 {
-                    await using var entryStream = entry.Open();
-                    using var imgMemory = new MemoryStream();
-                    await entryStream.CopyToAsync(imgMemory, ct);
-                    var imageBytes = imgMemory.ToArray();
+                    // HEIC/HEIF: guard ro rang, khong xu ly - bao loi cho admin biet phai chuyen doi.
+                    if (kind == LegacyImportFileKind.UnsupportedGuard)
+                    {
+                        await conn.ExecuteAsync(@"
+                            INSERT INTO diab_his_leg_import_item
+                                (id, tenant_id, batch_id, original_filename, status, item_error, created_at, updated_at)
+                            VALUES
+                                (@Id, @TenantId, @BatchId, @FileName, 'failed', @Err, NOW(), NOW())",
+                            new
+                            {
+                                Id = itemId,
+                                TenantId = tenantId,
+                                BatchId = batchId,
+                                FileName = entry.Name,
+                                Err = "Định dạng HEIC/HEIF chưa được hỗ trợ, vui lòng chuyển đổi sang JPG/PNG hoặc PDF trước khi upload"
+                            });
+                        continue;
+                    }
 
-                    var ext = Path.GetExtension(entry.Name).ToLowerInvariant();
-                    var mime = ext == ".png" ? "image/png" : "image/jpeg";
+                    await using var entryStream = entry.Open();
+                    using var fileMemory = new MemoryStream();
+                    await entryStream.CopyToAsync(fileMemory, ct);
+                    var fileBytes = fileMemory.ToArray();
+
+                    var isPdf = kind == LegacyImportFileKind.Pdf;
+                    var mime = isPdf ? "application/pdf" : ext switch
+                    {
+                        ".png" => "image/png",
+                        ".tiff" or ".tif" => "image/tiff",
+                        ".bmp" => "image/bmp",
+                        _ => "image/jpeg"
+                    };
                     var objectKey = $"images/{tenantId}/{batchId}/{itemId}{ext}";
 
-                    imgMemory.Position = 0;
-                    await _storage.UploadAsync(FileBuckets.LegacyScans, objectKey, imgMemory, mime, ct);
+                    fileMemory.Position = 0;
+                    await _storage.UploadAsync(FileBuckets.LegacyScans, objectKey, fileMemory, mime, ct);
 
-                    var ocrResult = await _ocr.ExtractTextAsync(imageBytes, entry.Name, ct);
+                    var ocrResult = isPdf
+                        ? await _pdfExtractor.ExtractTextAsync(fileBytes, entry.Name, ct)
+                        : await _ocr.ExtractTextAsync(fileBytes, entry.Name, ct);
                     var ocrText = ocrResult.IsSuccess ? ocrResult.Value : null;
 
                     // Parse ma benh nhan tu ten file: phan truoc dau "_" dau tien lam ung vien ma
