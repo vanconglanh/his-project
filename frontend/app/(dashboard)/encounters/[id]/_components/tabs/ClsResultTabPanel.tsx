@@ -1,11 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LabResultTable } from "@/components/domain/LabResultTable";
+import { LabResultForm } from "@/components/domain/LabResultForm";
+import { LabResultOcrPanel } from "@/components/domain/LabResultOcrPanel";
 import { HisStatusBadge } from "@/components/ui/status-badge";
-import { useLabResults } from "@/lib/hooks/use-lab-results";
+import { useLabResults, useCreateLabResult } from "@/lib/hooks/use-lab-results";
 import { useRadResults } from "@/lib/hooks/use-rad-results";
 import { formatVnDateTime } from "@/lib/utils/encounter-format";
 
@@ -14,11 +20,46 @@ interface Props {
 }
 
 export function ClsResultTabPanel({ encounterId }: Props) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { data: labData, isLoading: labLoading } = useLabResults({ encounter_id: encounterId });
   const { data: radResults, isLoading: radLoading } = useRadResults({ encounter_id: encounterId });
+  const createMutation = useCreateLabResult();
 
   const labResults = labData?.data ?? [];
   const isLoading = labLoading || radLoading;
+
+  const entryDrawer = (
+    <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
+        <SheetHeader>
+          <SheetTitle>Nhập kết quả xét nghiệm</SheetTitle>
+        </SheetHeader>
+        <div className="mt-6">
+          <Tabs defaultValue="manual">
+            <TabsList>
+              <TabsTrigger value="manual">Nhập tay</TabsTrigger>
+              <TabsTrigger value="ocr">Đọc từ file</TabsTrigger>
+            </TabsList>
+            <TabsContent value="manual">
+              <LabResultForm
+                onSubmit={async (data) => {
+                  await createMutation.mutateAsync(
+                    data as Parameters<typeof createMutation.mutateAsync>[0]
+                  );
+                  setDrawerOpen(false);
+                }}
+                onCancel={() => setDrawerOpen(false)}
+                isSubmitting={createMutation.isPending}
+              />
+            </TabsContent>
+            <TabsContent value="ocr">
+              <LabResultOcrPanel encounterId={encounterId} onSaved={() => setDrawerOpen(false)} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
 
   if (isLoading) {
     return (
@@ -32,16 +73,27 @@ export function ClsResultTabPanel({ encounterId }: Props) {
 
   if (labResults.length === 0 && (radResults ?? []).length === 0) {
     return (
-      <EmptyState
-        variant="labrad"
-        title="Chưa có kết quả"
-        description="Kết quả sẽ hiện tại đây khi khoa cận lâm sàng trả về."
-      />
+      <>
+        <div className="flex justify-end">
+          <Button onClick={() => setDrawerOpen(true)}>+ Nhập kết quả XN</Button>
+        </div>
+        <EmptyState
+          variant="labrad"
+          title="Chưa có kết quả"
+          description="Kết quả sẽ hiện tại đây khi khoa cận lâm sàng trả về."
+        />
+        {entryDrawer}
+      </>
     );
   }
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button onClick={() => setDrawerOpen(true)}>+ Nhập kết quả XN</Button>
+      </div>
+      {entryDrawer}
+
       {labResults.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">Kết quả xét nghiệm</h3>

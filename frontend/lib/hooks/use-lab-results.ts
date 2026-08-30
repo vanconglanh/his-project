@@ -12,9 +12,12 @@ import {
   listAbnormalLabResults,
   getLabResultTrend,
   batchVerifyLabResults,
+  ocrExtractLabResult,
+  ocrConfirmLabResult,
   type LabResultListParams,
   type LabResultCreateRequest,
   type LabResultUpdateRequest,
+  type LabOcrConfirmRequest,
 } from "@/lib/api/lab-results";
 import { getErrorMessage } from "@/lib/utils/errors";
 
@@ -120,5 +123,25 @@ export function useBatchVerifyLabResults() {
       toast.success(`Đã xác thực ${data.success_count} kết quả`);
     },
     onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useOcrExtractLabResult() {
+  return useMutation({
+    mutationFn: ({ file, encounterId }: { file: File; encounterId: string }) =>
+      ocrExtractLabResult(file, encounterId),
+    onError: (e) => toast.error(getErrorMessage(e, "Đọc file kết quả xét nghiệm thất bại")),
+  });
+}
+
+export function useOcrConfirmLabResult() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: LabOcrConfirmRequest) => ocrConfirmLabResult(body),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: labResultKeys.all });
+      toast.success(`Đã lưu ${data.created_count} kết quả từ file, thất bại: ${data.failed_count}`);
+    },
+    onError: (e) => toast.error(getErrorMessage(e, "Lưu kết quả từ file thất bại")),
   });
 }

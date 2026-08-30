@@ -11,8 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LabResultTable } from "@/components/domain/LabResultTable";
 import { LabResultForm } from "@/components/domain/LabResultForm";
+import { LabResultOcrPanel } from "@/components/domain/LabResultOcrPanel";
 import {
   useLabResults,
   useCreateLabResult,
@@ -169,19 +171,39 @@ export function LabResultsTab() {
             )}
           </SheetHeader>
           <div className="mt-6">
-            <LabResultForm
-              existing={editing ?? undefined}
-              onSubmit={async (data) => {
-                if (editing) {
+            {editing ? (
+              <LabResultForm
+                existing={editing}
+                onSubmit={async () => {
                   // handled by parent (edit path not wired here for brevity)
-                } else {
-                  await createMutation.mutateAsync(data as Parameters<typeof createMutation.mutateAsync>[0]);
-                }
-                setDrawerOpen(false);
-              }}
-              onCancel={() => setDrawerOpen(false)}
-              isSubmitting={createMutation.isPending}
-            />
+                  setDrawerOpen(false);
+                }}
+                onCancel={() => setDrawerOpen(false)}
+                isSubmitting={createMutation.isPending}
+              />
+            ) : (
+              <Tabs defaultValue="manual">
+                <TabsList>
+                  <TabsTrigger value="manual">Nhập tay</TabsTrigger>
+                  <TabsTrigger value="ocr">Đọc từ file</TabsTrigger>
+                </TabsList>
+                <TabsContent value="manual">
+                  <LabResultForm
+                    onSubmit={async (data) => {
+                      await createMutation.mutateAsync(
+                        data as Parameters<typeof createMutation.mutateAsync>[0]
+                      );
+                      setDrawerOpen(false);
+                    }}
+                    onCancel={() => setDrawerOpen(false)}
+                    isSubmitting={createMutation.isPending}
+                  />
+                </TabsContent>
+                <TabsContent value="ocr">
+                  <LabResultOcrPanel onSaved={() => setDrawerOpen(false)} />
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
         </SheetContent>
       </Sheet>

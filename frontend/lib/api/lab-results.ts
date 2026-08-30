@@ -113,6 +113,43 @@ export interface BatchVerifyResult {
   errors: { id: string; code: string; message: string }[];
 }
 
+export interface LabOcrExtractedField {
+  lab_order_item_id: string;
+  test_code: string;
+  test_name: string;
+  value: string | null;
+  value_numeric: number | null;
+  unit: string | null;
+  extracted: boolean;
+}
+
+export interface LabOcrExtractResult {
+  encounter_id: string;
+  pending_count: number;
+  extracted_count: number;
+  fields: LabOcrExtractedField[];
+}
+
+export interface LabOcrConfirmItem {
+  lab_order_item_id: string;
+  value: string;
+  value_numeric?: number | null;
+  unit?: string | null;
+  method?: string | null;
+  include: boolean;
+}
+
+export interface LabOcrConfirmRequest {
+  performed_at?: string;
+  items: LabOcrConfirmItem[];
+}
+
+export interface LabOcrConfirmResult {
+  created_count: number;
+  failed_count: number;
+  errors: { row: number; message: string }[];
+}
+
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export async function listLabResults(params?: LabResultListParams): Promise<LabResultListResponse> {
@@ -188,5 +225,20 @@ export async function getLabResultTrend(params: {
 
 export async function batchVerifyLabResults(result_ids: string[]): Promise<BatchVerifyResult> {
   const res = await apiClient.post<ApiResponse<BatchVerifyResult>>("/lab-results/batch-verify", { result_ids });
+  return res.data.data;
+}
+
+export async function ocrExtractLabResult(file: File, encounterId: string): Promise<LabOcrExtractResult> {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("encounter_id", encounterId);
+  const res = await apiClient.post<ApiResponse<LabOcrExtractResult>>("/lab-results/ocr-extract", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.data;
+}
+
+export async function ocrConfirmLabResult(body: LabOcrConfirmRequest): Promise<LabOcrConfirmResult> {
+  const res = await apiClient.post<ApiResponse<LabOcrConfirmResult>>("/lab-results/ocr-confirm", body);
   return res.data.data;
 }
