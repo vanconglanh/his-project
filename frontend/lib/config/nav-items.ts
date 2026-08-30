@@ -179,6 +179,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         icon: ShieldCheck,
         permissions: ["bhyt.read"],
       },
+      {
+        href: "/cashier/inter-branch-debts",
+        labelKey: "interBranchDebts",
+        icon: ArrowLeftRight,
+        permissions: ["inter_branch_debt.read"],
+      },
     ],
   },
   {
@@ -208,6 +214,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "reportDashboards",
         icon: LayoutDashboard,
         permissions: ["report.read"],
+      },
+      {
+        href: "/reports/chain-dashboard",
+        labelKey: "chainDashboard",
+        icon: Building2,
+        permissions: ["dashboard.read"],
       },
       {
         href: "/reports/schedules",

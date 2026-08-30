@@ -118,7 +118,9 @@
     "notificationsConfig": "Notification Settings",
     "notificationChannels": "Reminder Channels (SMS/Zalo)",
     "riskList": "Diabetes Risk List",
-    "recall": "Follow-up Recall"
+    "recall": "Follow-up Recall",
+    "chainDashboard": "Chain Dashboard",
+    "interBranchDebts": "Inter-branch Debts"
   },
   "ApiPartner": {
     "title": "API Partners",

@@ -118,7 +118,9 @@
     "notificationsConfig": "Cấu hình thông báo",
     "notificationChannels": "Kênh nhắc lịch (SMS/Zalo)",
     "riskList": "Danh sách nguy cơ ĐTĐ",
-    "recall": "Nhắc tái khám"
+    "recall": "Nhắc tái khám",
+    "chainDashboard": "Dashboard chuỗi",
+    "interBranchDebts": "Công nợ nội bộ"
   },
   "ApiPartner": {
     "title": "API Partners",
