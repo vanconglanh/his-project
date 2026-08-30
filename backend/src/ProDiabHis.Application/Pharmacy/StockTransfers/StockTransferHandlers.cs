@@ -435,6 +435,7 @@ file static class StockTransferReceiveLogic
             return Result<StockTransferResponse>.Failure(StockTransferErrors.InvalidState, "Chỉ có thể nhận hàng phiếu ở trạng thái IN_TRANSIT");
 
         var toBranchId = (int)header.to_branch_id;
+        var fromBranchId = (int)header.from_branch_id;
         var items = (await conn.QueryAsync<dynamic>(StockTransferSql.Items, new { id })).ToList();
         var receiveMap = request.Items.ToDictionary(i => i.ItemId, i => i.QtyReceived);
 
@@ -442,6 +443,7 @@ file static class StockTransferReceiveLogic
         try
         {
             var isFullyReceived = true;
+            decimal receivedValue = 0m; // BR-87: gia tri thuc nhan theo gia von, dung sinh cong no noi bo
             foreach (var item in items)
             {
                 string itemId = item.id;
@@ -482,6 +484,8 @@ file static class StockTransferReceiveLogic
                 await conn.ExecuteAsync(
                     "UPDATE diab_his_pha_stock_transfer_items SET qty_received = qty_received + @qty WHERE id = @itemId",
                     new { qty = qtyReceived, itemId }, tx);
+
+                receivedValue += qtyReceived * (decimal)item.unit_cost;
             }
 
             var newStatus = isFullyReceived ? StockTransferStatus.Received : StockTransferStatus.PartiallyReceived;
@@ -490,6 +494,29 @@ file static class StockTransferReceiveLogic
                 SET status = @status, received_by = @userId, received_at = UTC_TIMESTAMP(), updated_by = @userId
                 WHERE id = @id AND tenant_id = @tenantId",
                 new { status = newStatus, userId = currentUser.UserId?.ToString(), id, tenantId }, tx);
+
+            // BR-87: dieu chuyen kho RECEIVED/PARTIALLY_RECEIVED -> sinh but toan doi soat noi bo
+            // (debtor=chi nhanh nhan hang, creditor=chi nhanh gui hang). Day la but toan noi bo 1
+            // phap nhan (BR-55/Q3=Khong voi kich ban cung MST) - KHONG xuat hoa don/chung tu ban hang,
+            // chi phuc vu doi chieu cuoi ky (BR-87, muc 6.2 "Doi chieu cong no lien don vi").
+            if (receivedValue > 0)
+            {
+                await conn.ExecuteAsync(@"
+                    INSERT INTO diab_his_bil_inter_branch_debts
+                        (id, tenant_id, debtor_branch_id, creditor_branch_id, amount, source_type,
+                         source_ref_id, source_ref_code, status, note, created_by, created_at)
+                    VALUES
+                        (UUID(), @tenantId, @debtorId, @creditorId, @amount, @sourceType,
+                         @sourceRefId, @sourceRefCode, 'OPEN', @note, @userId, UTC_TIMESTAMP())",
+                    new
+                    {
+                        tenantId, debtorId = toBranchId, creditorId = fromBranchId, amount = receivedValue,
+                        sourceType = ProDiabHis.Application.Billing.InterBranchDebts.InterBranchDebtSourceType.StockTransfer,
+                        sourceRefId = id, sourceRefCode = (string?)header.transfer_no,
+                        note = $"Dieu chuyen kho {(string?)header.transfer_no} - gia tri thuc nhan theo gia von",
+                        userId = currentUser.UserId?.ToString()
+                    }, tx);
+            }
 
             tx.Commit();
 

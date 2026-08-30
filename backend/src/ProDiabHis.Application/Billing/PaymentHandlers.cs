@@ -1,8 +1,10 @@
+using System.Data;
 using Dapper;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
+using ProDiabHis.Application.Billing.InterBranchDebts;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Domain.Entities;
 
@@ -61,12 +63,16 @@ public class CreatePaymentHandler : IRequestHandler<CreatePaymentCommand, Result
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly ICashierShiftService _shiftSvc;
+    private readonly IBranchProvider _branchProvider;
+    private readonly IDapperConnectionFactory _dapper;
 
     public CreatePaymentHandler(
         IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, ICashierShiftService shiftSvc)
+        ICurrentUser user, ICashierShiftService shiftSvc,
+        IBranchProvider branchProvider, IDapperConnectionFactory dapper)
     {
         _db = db; _tenant = tenant; _user = user; _shiftSvc = shiftSvc;
+        _branchProvider = branchProvider; _dapper = dapper;
     }
 
     public async Task<Result<PaymentResponse>> Handle(CreatePaymentCommand cmd, CancellationToken ct)
@@ -87,9 +93,14 @@ public class CreatePaymentHandler : IRequestHandler<CreatePaymentCommand, Result
             shiftId = shift?.Id;
         }
 
+        // BR-32/BR-85: moi khoan thu tien PHAI gan dung 1 chi nhanh dang hoat dong (noi thu tien,
+        // dong tien) - lay tu IBranchProvider (server-side), KHONG trust input client.
+        var currentBranchId = _branchProvider.BranchId;
+
         var payment = new Payment
         {
             TenantId = _tenant.TenantId,
+            BranchId = currentBranchId > 0 ? currentBranchId : null,
             BillingId = req.BillingId,
             CashierShiftId = shiftId,
             Amount = req.Amount,
@@ -106,12 +117,45 @@ public class CreatePaymentHandler : IRequestHandler<CreatePaymentCommand, Result
 
         _db.Payments.Add(payment);
 
-        // Update billing
+        // Update billing (BR-86: doanh thu ghi nhan o billing.BranchId - KHONG dung o day, chi cap nhat cong no)
         billing.PaidAmount += req.Amount;
         billing.Balance = billing.PatientPayable - billing.PaidAmount;
         billing.Status = billing.Balance <= 0 ? BillingStatus.Paid : BillingStatus.PartialPaid;
 
         await _db.SaveChangesAsync(ct);
+
+        // BR-85: thu ho hoa don chi nhanh khac -> sinh but toan cong no noi bo (debtor=chi nhanh dang
+        // thu tien, creditor=chi nhanh phat sinh hoa don). Cung chi nhanh hoac billing chua gan chi
+        // nhanh -> khong sinh (xem InterBranchDebtCalculator - pure logic, co unit test rieng).
+        if (currentBranchId > 0)
+        {
+            var pair = InterBranchDebtCalculator.ComputeForCrossBranchPayment(billing.BranchId, currentBranchId);
+            if (pair.HasValue)
+            {
+                using var conn = (IDbConnection)_dapper.CreateConnection();
+                conn.Open();
+                await conn.ExecuteAsync(@"
+                    INSERT INTO diab_his_bil_inter_branch_debts
+                        (id, tenant_id, debtor_branch_id, creditor_branch_id, amount, source_type,
+                         source_ref_id, source_ref_code, status, note, created_by, created_at)
+                    VALUES
+                        (UUID(), @tenantId, @debtorId, @creditorId, @amount, @sourceType,
+                         @sourceRefId, @sourceRefCode, 'OPEN', @note, @userId, UTC_TIMESTAMP())",
+                    new
+                    {
+                        tenantId = _tenant.TenantId,
+                        debtorId = pair.Value.DebtorBranchId,
+                        creditorId = pair.Value.CreditorBranchId,
+                        amount = req.Amount,
+                        sourceType = InterBranchDebtSourceType.CrossBranchPayment,
+                        sourceRefId = payment.Id.ToString(),
+                        sourceRefCode = billing.BillNo,
+                        note = $"Thu no cheo hoa don {billing.BillNo ?? billing.Id.ToString()} tai chi nhanh khac",
+                        userId = _user.UserId?.ToString()
+                    });
+            }
+        }
+
         return Result<PaymentResponse>.Success(PaymentMapper.ToDto(payment));
     }
 }

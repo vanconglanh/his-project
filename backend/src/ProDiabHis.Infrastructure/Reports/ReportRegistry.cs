@@ -95,7 +95,10 @@ public class ReportRegistry : IReportRegistry
             // Dot H-15 (FR-1212) — Goi dich vu (Package): doanh thu / ty le su dung dinh muc / cong no ton dong
             PackageRevenue(),
             PackageUtilization(),
-            PackageOutstandingDebt()
+            PackageOutstandingDebt(),
+
+            // Dot 4 da chi nhanh (BR-85/BR-87, muc 6.2) — Cong no noi bo giua cac chi nhanh
+            InterBranchDebtReport()
         };
 
         // Tu suy Orientation theo so cot (>=11 cot => Landscape) cho toan bo descriptor.
@@ -2920,6 +2923,70 @@ public class ReportRegistry : IReportRegistry
                   AND (@patientId IS NULL OR s.patient_id = @patientId)
                   AND {BranchSql.Condition("s")}
                 ORDER BY overdueDays DESC, s.amount_due DESC
+                LIMIT 3000";
+
+            return (sql, p);
+        }
+    };
+
+    // ================= Dot 4 da chi nhanh: Cong no noi bo giua cac chi nhanh (BR-85/BR-87) ================= //
+
+    private static ReportDescriptor InterBranchDebtReport() => new()
+    {
+        Code = "inter-branch-debt",
+        Title = "BÁO CÁO CÔNG NỢ NỘI BỘ GIỮA CÁC CHI NHÁNH",
+        Group = ReportGroupCategory.Financial,
+        GroupOrder = 13,
+        Icon = "shuffle",
+        PdfTypeCode = "IBD",
+        GroupByKey = "debtorBranchName",
+        ShowGroupCount = true,
+        Columns = new List<ReportColumn>
+        {
+            new("debtorBranchName",   "Chi nhánh nợ",       ReportColumnType.Text,   ReportAlign.Left,  1.3f),
+            new("creditorBranchName", "Chi nhánh được nợ",  ReportColumnType.Text,   ReportAlign.Left,  1.3f),
+            new("sourceType",         "Nguồn phát sinh",    ReportColumnType.Text,   ReportAlign.Left,  1f),
+            new("entryCount",         "Số bút toán",        ReportColumnType.Number, ReportAlign.Right, 0.8f),
+            new("totalAmountOpen",    "Tổng còn nợ (OPEN)", ReportColumnType.Money,  ReportAlign.Right, 1.2f, IsGroupSubtotal: true)
+        },
+        Kpis = new List<ReportKpiSpec>
+        {
+            new("TỔNG CÒN NỢ NỘI BỘ", "#FEF2F2", rows => rows.Sum(r => ReportValueConverter.ToDecimal(ReportValueConverter.Get(r, "totalAmountOpen"))), IsMoney: true),
+            new("SỐ CẶP CHI NHÁNH", "#FFFBEB", rows => rows.Count, IsMoney: false)
+        },
+        Filters = new List<ReportFilter>
+        {
+            new("sourceType", "Nguồn phát sinh", ReportFilterType.Enum)
+        },
+        BuildQuery = ctx =>
+        {
+            var p = new DynamicParameters();
+            p.Add("tenantId", ctx.TenantId);
+            p.Add("from", ctx.From.ToDateTime(TimeOnly.MinValue));
+            p.Add("to", ctx.To.ToDateTime(TimeOnly.MaxValue));
+            p.Add("sourceType", ctx.Filter("sourceType"));
+            p.Add("branchId", ctx.BranchId);
+            p.Add("ignoreBranch", ctx.IgnoreBranchFilter);
+
+            // BR-60 style scope: dong ma debtor HOAC creditor thuoc chi nhanh hien tai (khong bo qua
+            // filter neu khong co IgnoreBranchFilter) - S2 xem duoc theo cap tren gan @branchId.
+            var sql = @"
+                SELECT
+                    COALESCE(db.name, N'Chưa xác định') AS debtorBranchName,
+                    COALESCE(cb.name, N'Chưa xác định') AS creditorBranchName,
+                    d.source_type                        AS sourceType,
+                    COUNT(*)                              AS entryCount,
+                    SUM(CASE WHEN d.status = 'OPEN' THEN d.amount ELSE 0 END) AS totalAmountOpen
+                FROM diab_his_bil_inter_branch_debts d
+                LEFT JOIN diab_his_sys_branches db ON db.id = d.debtor_branch_id
+                LEFT JOIN diab_his_sys_branches cb ON cb.id = d.creditor_branch_id
+                WHERE d.tenant_id = @tenantId
+                  AND d.deleted_at IS NULL
+                  AND d.created_at BETWEEN @from AND @to
+                  AND (@sourceType IS NULL OR d.source_type = @sourceType)
+                  AND (@ignoreBranch = 1 OR d.debtor_branch_id = @branchId OR d.creditor_branch_id = @branchId)
+                GROUP BY db.name, cb.name, d.source_type
+                ORDER BY totalAmountOpen DESC
                 LIMIT 3000";
 
             return (sql, p);

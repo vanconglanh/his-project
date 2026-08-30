@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProDiabHis.Api.Filters;
+using ProDiabHis.Application.Dashboard;
 using ProDiabHis.Application.Reports;
 
 namespace ProDiabHis.Api.Controllers;
@@ -108,5 +109,40 @@ public class DashboardController : ControllerBase
     {
         var result = await _mediator.Send(new GetAlertsQuery(severity, type), ct);
         return Ok(new { data = result });
+    }
+
+    /// <summary>US-6.1 - Bang xep hang chi nhanh (BR-90..96). Pham vi tu dong theo S1/S2/S3
+    /// (IBranchProvider), KHONG duoc client truyen branch tuy y.</summary>
+    [HttpGet("branch-ranking")]
+    [RequirePermission("dashboard.read")]
+    public async Task<IActionResult> GetBranchRanking(
+        [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct = default)
+    {
+        var (f, t) = ResolveDateRange(from, to);
+        var result = await _mediator.Send(new GetBranchRankingQuery(f, t), ct);
+        return Ok(new { data = result.Value!.Items, meta = result.Value!.Meta });
+    }
+
+    /// <summary>AC-6.1.2 - drill-down xep hang chi nhanh xuong danh sach bac si cua 1 chi nhanh.</summary>
+    [HttpGet("branch/{branchId:int}/detail")]
+    [RequirePermission("dashboard.read")]
+    public async Task<IActionResult> GetBranchDetail(
+        int branchId, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct = default)
+    {
+        var (f, t) = ResolveDateRange(from, to);
+        var result = await _mediator.Send(new GetBranchDetailQuery(branchId, f, t), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode == ChainDashboardErrors.BranchAccessDenied
+                ? StatusCodes.Status403Forbidden : StatusCodes.Status422UnprocessableEntity;
+            return new ObjectResult(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } }) { StatusCode = status };
+        }
+        return Ok(new { data = result.Value });
+    }
+
+    private static (DateOnly From, DateOnly To) ResolveDateRange(DateOnly? from, DateOnly? to)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return (from ?? today.AddDays(-29), to ?? today);
     }
 }
