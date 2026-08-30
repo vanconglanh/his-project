@@ -21,6 +21,7 @@ import { BhytForm } from "@/components/domain/BhytForm";
 import { EmergencyContactList } from "@/components/domain/EmergencyContactList";
 import { ConsentList } from "@/components/domain/ConsentList";
 import { ClsUploadList } from "@/components/domain/ClsUploadList";
+import { InBodyHistoryList } from "@/components/domain/InBodyHistoryList";
 import { formatDate, formatDateTime } from "@/lib/utils/format";
 import type { Gender } from "@/lib/api/types";
 
@@ -38,6 +39,7 @@ const TABS = [
   { id: "consent", label: "Đồng ý" },
   { id: "history", label: "Lịch sử khám" },
   { id: "cls", label: "Kết quả CLS" },
+  { id: "inbody", label: "Lịch sử InBody" },
 ];
 
 export default function PatientDetailPage() {
@@ -312,6 +314,7 @@ export default function PatientDetailPage() {
         {activeTab === "emergency" && <EmergencyContactList patientId={id} />}
         {activeTab === "consent" && <ConsentList patientId={id} />}
         {activeTab === "cls" && <ClsUploadList patientId={id} />}
+        {activeTab === "inbody" && <InBodyHistoryList patientId={id} />}
         {activeTab === "history" && <EncounterHistory patientId={id} />}
       </div>
     </div>

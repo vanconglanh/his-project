@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useEncounters } from "@/lib/hooks/use-encounters";
 import { useCreateVitalSigns, useVitalSigns } from "@/lib/hooks/use-vital-signs";
 import { VitalSignsForm } from "@/components/domain/VitalSignsForm";
+import { InBodyImportPanel } from "@/components/domain/InBodyImportPanel";
 import { EncounterStatusBadge } from "@/components/domain/EncounterStatusBadge";
 import { SimpleAvatar } from "@/components/domain/SimpleAvatar";
 import { Activity, Plus } from "lucide-react";
@@ -161,12 +162,28 @@ export function NursePageClient() {
           </SheetHeader>
           <div className="mt-4">
             {selectedEncounter && (
-              <VitalSignsForm
-                key={selectedEncounter.id}
-                isLoading={createVital.isPending}
-                onSubmit={handleVitalSubmit}
-                onSubmitAndNext={handleVitalSubmitAndNext}
-              />
+              <Tabs defaultValue="manual">
+                <TabsList>
+                  <TabsTrigger value="manual">Nhập tay</TabsTrigger>
+                  <TabsTrigger value="inbody">Nhập từ máy InBody (PDF)</TabsTrigger>
+                </TabsList>
+                <TabsContent value="manual" className="mt-4">
+                  <VitalSignsForm
+                    key={selectedEncounter.id}
+                    isLoading={createVital.isPending}
+                    onSubmit={handleVitalSubmit}
+                    onSubmitAndNext={handleVitalSubmitAndNext}
+                  />
+                </TabsContent>
+                <TabsContent value="inbody" className="mt-4">
+                  <InBodyImportPanel
+                    key={selectedEncounter.id}
+                    patientId={selectedEncounter.patient_id}
+                    encounterId={selectedEncounter.id}
+                    onSaved={() => { setDrawerOpen(false); setSelectedEncounter(null); }}
+                  />
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         </SheetContent>

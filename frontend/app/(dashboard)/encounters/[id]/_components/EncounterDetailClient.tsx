@@ -22,6 +22,8 @@ import { EncounterAmendDialog } from "@/components/domain/EncounterAmendDialog";
 import { EmrSignDialog } from "@/components/domain/EmrSignDialog";
 import { VitalSignsHistoryDrawer } from "@/components/domain/VitalSignsHistoryDrawer";
 import { VitalSignsForm } from "@/components/domain/VitalSignsForm";
+import { InBodyImportPanel } from "@/components/domain/InBodyImportPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   EncounterTabs,
   isEncounterTabValue,
@@ -328,10 +330,27 @@ export function EncounterDetailClient({ encounterId }: Props) {
           </SheetHeader>
           <div className="mt-4">
             {vitalFormOpen && (
-              <VitalSignsForm
-                onSubmit={handleVitalSubmit}
-                isLoading={createVital.isPending}
-              />
+              <Tabs defaultValue="manual">
+                <TabsList>
+                  <TabsTrigger value="manual">Nhập tay</TabsTrigger>
+                  <TabsTrigger value="inbody">Nhập từ máy InBody (PDF)</TabsTrigger>
+                </TabsList>
+                <TabsContent value="manual" className="mt-4">
+                  <VitalSignsForm
+                    onSubmit={handleVitalSubmit}
+                    isLoading={createVital.isPending}
+                  />
+                </TabsContent>
+                <TabsContent value="inbody" className="mt-4">
+                  {encounter && (
+                    <InBodyImportPanel
+                      patientId={encounter.patient_id}
+                      encounterId={encounterId}
+                      onSaved={() => setVitalFormOpen(false)}
+                    />
+                  )}
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         </SheetContent>
