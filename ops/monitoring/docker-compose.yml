@@ -22,6 +22,10 @@ volumes:
   loki_data:
   grafana_data:
   alertmanager_data:
+  # Config Alertmanager da duoc render tu template (envsubst) — xem service
+  # "alertmanager-config" ben duoi. Dung volume thay vi bind mount truc tiep
+  # file .template.yml vi Alertmanager KHONG tu thay the bien moi truong.
+  alertmanager_config:
 
 services:
   # --------------------------------------------------------------------------
@@ -36,6 +40,8 @@ services:
     volumes:
       - loki_data:/loki
       - ./loki-config.yml:/etc/loki/loki-config.yml:ro
+      # Rule LogQL cho canh bao (vd HTTP5xxRateHigh) — xem ops/monitoring/loki-rules/
+      - ./loki-rules:/loki/rules-config:ro
     command: -config.file=/etc/loki/loki-config.yml
     networks:
       - monitoring
@@ -124,6 +130,45 @@ services:
         max-file: "5"
 
   # --------------------------------------------------------------------------
+  # Alertmanager-config — render alertmanager-config.template.yml -> file that
+  # bang envsubst (thay bien moi truong TRUOC khi Alertmanager doc, vi ban than
+  # Alertmanager KHONG chay qua docker-compose interpolation va se crash-loop
+  # neu doc thang file con cu phap "${VAR:-default}"). Chay 1 lan roi thoat
+  # (exit 0), alertmanager cho no hoan tat qua "depends_on: service_completed_successfully".
+  # --------------------------------------------------------------------------
+  alertmanager-config:
+    image: alpine:3.19
+    container_name: prodiab_alertmanager_config
+    restart: "no"
+    environment:
+      SMTP_HOST: "${SMTP_HOST:-smtp.gmail.com}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_FROM: "${SMTP_FROM:-prodiab-alert@example.com}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_REQUIRE_TLS: "${SMTP_REQUIRE_TLS:-true}"
+      OPS_ALERT_EMAIL: "${OPS_ALERT_EMAIL:-devops@example.com}"
+      GRAFANA_URL: "${GF_ROOT_URL:-http://localhost:3100}"
+      SLACK_WEBHOOK_URL: "${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/CHANGE_ME}"
+      SLACK_WEBHOOK_SECURITY: "${SLACK_WEBHOOK_SECURITY:-https://hooks.slack.com/services/CHANGE_ME}"
+      PAGERDUTY_INTEGRATION_KEY: "${PAGERDUTY_INTEGRATION_KEY:-CHANGE_ME}"
+    volumes:
+      - ./alertmanager-config.template.yml:/template/alertmanager-config.template.yml:ro
+      - alertmanager_config:/config
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache gettext >/dev/null 2>&1
+        envsubst < /template/alertmanager-config.template.yml > /config/alertmanager.yml
+        echo "alertmanager.yml da duoc render thanh cong"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
   # Alertmanager — routing alert → Slack / email / PagerDuty
   # --------------------------------------------------------------------------
   alertmanager:
@@ -132,15 +177,21 @@ services:
     restart: unless-stopped
     ports:
       - "9093:9093"
+    depends_on:
+      alertmanager-config:
+        condition: service_completed_successfully
     volumes:
       - alertmanager_data:/alertmanager
-      - ./alertmanager-config.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_config:/etc/alertmanager
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
       - "--web.listen-address=:9093"
     networks:
       - monitoring
+      # Can join network app de gui email that qua mailhog (smtp mailhog:1025)
+      # khi test local, va de goi toi service khac cua app neu can sau nay.
+      - prodiab-net
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:9093/-/healthy || exit 1"]
       interval: 30s

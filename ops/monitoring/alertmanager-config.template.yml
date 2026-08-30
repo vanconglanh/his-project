@@ -1,12 +1,24 @@
+# =============================================================================
+# TEMPLATE — KHÔNG dùng file này trực tiếp cho Alertmanager.
+# Alertmanager tự đọc file config của chính nó, KHÔNG chạy qua docker-compose
+# interpolation — cú pháp "${VAR:-default}" kiểu compose sẽ KHÔNG được thay thế
+# và làm Alertmanager crash-loop khi parse config (đã xảy ra thật, xem lịch sử).
+#
+# File này được service "alertmanager-config" (xem docker-compose.yml) render
+# bằng envsubst -> ghi ra volume dùng chung -> Alertmanager đọc bản đã render.
+# Biến dùng cú pháp envsubst thuần "${VAR}" (KHÔNG default trong file này —
+# giá trị mặc định đặt ở "environment:" của service alertmanager-config trong
+# docker-compose.yml, để ops/monitoring/.env chỉ cần set giá trị thật).
+# =============================================================================
 global:
   # Thời gian chờ resolve nếu không nhận được thêm alert
   resolve_timeout: 5m
-  # SMTP (cấu hình qua env nếu cần)
-  smtp_smarthost: "${SMTP_HOST:-smtp.gmail.com:587}"
-  smtp_from: "${SMTP_FROM:-prodiab-alert@example.com}"
-  smtp_auth_username: "${SMTP_USER:-}"
-  smtp_auth_password: "${SMTP_PASSWORD:-}"
-  smtp_require_tls: true
+  # SMTP — điền giá trị thật qua ops/monitoring/.env (xem .env.example)
+  smtp_smarthost: "${SMTP_HOST}:${SMTP_PORT}"
+  smtp_from: "${SMTP_FROM}"
+  smtp_auth_username: "${SMTP_USER}"
+  smtp_auth_password: "${SMTP_PASSWORD}"
+  smtp_require_tls: ${SMTP_REQUIRE_TLS}
 
 # Templates tùy chỉnh
 templates:
@@ -23,6 +35,14 @@ route:
   receiver: default-slack
 
   routes:
+    # Lỗi 5xx tăng cao — gửi email ngay cho ops, VẪN tiếp tục xét route critical bên dưới
+    - match:
+        alertname: HTTP5xxRateHigh
+      receiver: ops-email
+      group_wait: 10s
+      repeat_interval: 30m
+      continue: true
+
     # P1 Critical — notify ngay lập tức, không giảm tần suất
     - match:
         severity: critical
@@ -76,7 +96,7 @@ receivers:
   # Slack channel chính (#ops-alerts)
   - name: default-slack
     slack_configs:
-      - api_url: "${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/CHANGE_ME}"
+      - api_url: "${SLACK_WEBHOOK_URL}"
         channel: "#ops-alerts"
         username: "ProDiab AlertManager"
         icon_emoji: ":rotating_light:"
@@ -95,7 +115,7 @@ receivers:
   # PagerDuty cho critical P1
   - name: pagerduty-critical
     pagerduty_configs:
-      - routing_key: "${PAGERDUTY_INTEGRATION_KEY:-CHANGE_ME}"
+      - routing_key: "${PAGERDUTY_INTEGRATION_KEY}"
         description: "{{ .GroupLabels.alertname }} — {{ .CommonAnnotations.summary }}"
         severity: critical
         client: "ProDiab AlertManager"
@@ -103,10 +123,10 @@ receivers:
           firing: "{{ .Alerts.Firing | len }}"
           service: "{{ .GroupLabels.service }}"
 
-  # Email riêng cho database
+  # Slack + Email riêng cho database
   - name: db-alert
     slack_configs:
-      - api_url: "${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/CHANGE_ME}"
+      - api_url: "${SLACK_WEBHOOK_URL}"
         channel: "#ops-database"
         username: "ProDiab DB Alert"
         icon_emoji: ":database:"
@@ -118,20 +138,27 @@ receivers:
           {{ .Annotations.description }}
           {{ end }}
     email_configs:
-      - to: "${OPS_EMAIL:-devops@example.com}"
+      - to: "${OPS_ALERT_EMAIL}"
         send_resolved: true
-        subject: "[ProDiab DB] {{ .GroupLabels.alertname }}"
-        body: |
+        headers:
+          Subject: "[Pro-Diab HIS] Canh bao co so du lieu: {{ .GroupLabels.alertname }}"
+        html: |
+          <h3>Cảnh báo Pro-Diab HIS — Cơ sở dữ liệu</h3>
           {{ range .Alerts }}
-          Alert: {{ .Annotations.summary }}
-          Description: {{ .Annotations.description }}
-          Started: {{ .StartsAt }}
+          <p>
+            <b>Dịch vụ:</b> {{ .Labels.service }}<br/>
+            <b>Mức độ:</b> {{ .Labels.severity }}<br/>
+            <b>Nội dung:</b> {{ .Annotations.summary }}<br/>
+            <b>Chi tiết:</b> {{ .Annotations.description }}<br/>
+            <b>Thời điểm:</b> {{ .StartsAt }}<br/>
+          </p>
           {{ end }}
+          <p><a href="${GRAFANA_URL}">Xem chi tiết trên Grafana</a></p>
 
   # Security team
   - name: security-team
     slack_configs:
-      - api_url: "${SLACK_WEBHOOK_SECURITY:-https://hooks.slack.com/services/CHANGE_ME}"
+      - api_url: "${SLACK_WEBHOOK_SECURITY}"
         channel: "#security-alerts"
         username: "ProDiab Security"
         icon_emoji: ":lock:"
@@ -143,29 +170,40 @@ receivers:
           {{ .Annotations.description }}
           {{ end }}
 
-  # Ops email cho cảnh báo disk
+  # Ops email — cảnh báo 5xx cao, disk, và các cảnh báo vận hành chung
   - name: ops-email
     email_configs:
-      - to: "${OPS_EMAIL:-devops@example.com}"
+      - to: "${OPS_ALERT_EMAIL}"
         send_resolved: true
-        subject: "[ProDiab Ops] {{ .GroupLabels.alertname }}"
-        body: |
+        headers:
+          Subject: "[Pro-Diab HIS] {{ if eq .Status \"firing\" }}CANH BAO{{ else }}DA KHAC PHUC{{ end }}: {{ .GroupLabels.alertname }}"
+        html: |
+          <h3>{{ if eq .Status "firing" }}⚠️ Cảnh báo đang xảy ra{{ else }}✅ Cảnh báo đã hết{{ end }} — Pro-Diab HIS</h3>
           {{ range .Alerts }}
-          Alert: {{ .Annotations.summary }}
-          Description: {{ .Annotations.description }}
-          Labels: {{ .Labels }}
+          <p>
+            <b>Dịch vụ:</b> {{ .Labels.service }}<br/>
+            <b>Mức độ (severity):</b> {{ .Labels.severity }}<br/>
+            <b>Nội dung:</b> {{ .Annotations.summary }}<br/>
+            <b>Chi tiết:</b> {{ .Annotations.description }}<br/>
+            <b>Thời điểm bắt đầu:</b> {{ .StartsAt }}<br/>
+          </p>
           {{ end }}
+          <p>Xem log và biểu đồ chi tiết tại Grafana: <a href="${GRAFANA_URL}">${GRAFANA_URL}</a></p>
+          <p style="color:#888;font-size:12px">Email tự động từ Alertmanager — Pro-Diab HIS. Không trả lời email này.</p>
 
 # ---------------------------------------------------------------------------
 # Alert rules — định nghĩa các ngưỡng cảnh báo
-# (thường đặt trong Prometheus rules, nhưng Loki cũng hỗ trợ ruler)
-# Tham khảo: ops/monitoring/loki-rules/ (tạo thêm nếu dùng Loki ruler)
+# Rule THẬT chạy qua Loki ruler, đặt tại ops/monitoring/loki-rules/fake/*.yaml
+# (Loki tự gửi alert sang Alertmanager theo "ruler.alertmanager_url" cấu hình
+# trong ops/monitoring/loki-config.yml — KHÔNG cấu hình alert rule ở file này).
 # ---------------------------------------------------------------------------
-# Các alert quan trọng cần có:
+# Đã có rule LogQL thật (xem ops/monitoring/loki-rules/fake/prodiab-alerts.yaml):
 #
-# 1. HTTP5xxRateHigh
-#    condition: error_rate > 1% trong 5 phút
+# 1. HTTP5xxRateHigh — ĐÃ TẠO, route sang "ops-email" (xem route ở trên)
+#    condition: tỷ lệ log 5xx / tổng log request backend > 1% trong 5 phút
 #    severity: critical
+#
+# Các alert sau CHƯA có rule LogQL thật (mô tả để làm sau, ngoài scope task này):
 #
 # 2. APILatencyHigh
 #    condition: p95 latency > 1000ms trong 5 phút

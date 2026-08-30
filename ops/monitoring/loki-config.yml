@@ -64,6 +64,21 @@ query_range:
 
 ruler:
   alertmanager_url: http://alertmanager:9093
+  enable_api: true
+  enable_alertmanager_v2: true
+  ring:
+    kvstore:
+      store: inmemory
+  # Thu muc scratch de ruler bien dich rule — KHAC voi thu muc chua rule goc
+  # (storage.local.directory) de tranh dung chung voi common.path_prefix (/loki).
+  rule_path: /loki/rules-temp
+  storage:
+    type: local
+    local:
+      # Mount tu ./loki-rules (xem docker-compose.yml) — cau truc bat buoc:
+      # loki-rules/<tenant>/<namespace>.yaml, tenant "fake" la mac dinh khi
+      # auth_enabled: false.
+      directory: /loki/rules-config
 
 analytics:
   reporting_enabled: false

@@ -1,0 +1,30 @@
+# Rule LogQL that duoc Loki ruler danh gia dinh ky, ket qua alert gui sang
+# Alertmanager (dia chi cau hinh trong ops/monitoring/loki-config.yml, muc
+# "ruler.alertmanager_url").
+#
+# Namespace thu muc "fake" LA BAT BUOC khi Loki chay auth_enabled: false —
+# "fake" la ten tenant mac dinh Loki tu gan trong che do khong xac thuc da
+# tenant. Doi ten thu muc se khien ruler khong tim thay rule nay.
+groups:
+  - name: prodiab-http-alerts
+    rules:
+      - alert: HTTP5xxRateHigh
+        # Ty le dong log co StatusCode >= 500 tren tong so dong log request
+        # cua backend, trong cua so 5 phut. Nguong 1% khop mo ta trong
+        # alertmanager-config.template.yml.
+        expr: |
+          (
+            sum(count_over_time({container=~"prodiab.*backend"} | json | Properties_StatusCode >= 500 [5m]))
+            or vector(0)
+          )
+          /
+          sum(count_over_time({container=~"prodiab.*backend"} | json | Properties_StatusCode > 0 [5m]))
+          > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          service: backend
+          category: availability
+        annotations:
+          summary: "Ty le loi 5xx cua backend Pro-Diab HIS dang cao bat thuong"
+          description: "Ty le request loi 5xx / tong request > 1% trong 5 phut gan nhat. Kiem tra Grafana dashboard 'Pro-Diab Backend Overview' de xem endpoint bi anh huong."

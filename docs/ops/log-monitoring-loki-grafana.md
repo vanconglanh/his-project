@@ -191,7 +191,80 @@ thành `Properties_XYZ` (Loki thay `.` bằng `_`).
 4. Test query trước bằng Grafana Explore (menu trái) hoặc `curl` thẳng Loki API trước khi nhúng vào
    panel — tránh panel "No data" mà không biết query sai hay chưa có log.
 
-## 8. Bảo mật
+## 8. Cấu hình cảnh báo qua email (Alertmanager)
+
+### 8.1. Vì sao trước đây Alertmanager crash-loop
+
+`ops/monitoring/alertmanager-config.yml` (bản cũ) dùng cú pháp `${SMTP_HOST:-smtp.gmail.com:587}`
+kiểu docker-compose. Nhưng **Alertmanager tự đọc file config của chính nó, KHÔNG chạy qua
+docker-compose interpolation** — nên biến không được thay thế, Alertmanager cố parse literal
+`"${SMTP_HOST:-smtp.gmail.com:587}"` làm giá trị `smtp_smarthost` → lỗi cú pháp → **crash-loop liên
+tục** (`prodiab_alertmanager` restart lặp lại, `docker ps -a` thấy `Exited (1)`).
+
+### 8.2. Cách đã sửa
+
+- File gốc đổi tên thành **template**: `ops/monitoring/alertmanager-config.template.yml` — dùng biến
+  envsubst thuần `${VAR}` (không default trong file này).
+- Thêm service `alertmanager-config` (image `alpine`, chạy 1 lần rồi thoát) trong
+  `ops/monitoring/docker-compose.yml`: đọc biến môi trường (đã có default an toàn ngay ở
+  `environment:` của chính service này, dùng `${VAR:-default}` — đây LÀ interpolation của
+  docker-compose, hợp lệ vì compose parse trước khi container chạy) → chạy `envsubst` → ghi ra
+  `alertmanager.yml` thật vào volume dùng chung `alertmanager_config`.
+- Service `alertmanager` chờ `alertmanager-config` chạy xong (`depends_on: condition:
+  service_completed_successfully`) rồi mới đọc `alertmanager.yml` đã render từ volume đó.
+- Kết quả: **container KHÔNG còn crash-loop dù chưa điền SMTP thật** — vì mọi biến đều có default
+  hợp lệ về cú pháp YAML (vd `SMTP_REQUIRE_TLS=true`, `OPS_ALERT_EMAIL=devops@example.com`).
+
+### 8.3. BO cần làm gì để bật gửi email thật (chỉ sửa `.env`, KHÔNG đụng code)
+
+1. Copy `ops/monitoring/.env.example` → `ops/monitoring/.env` nếu chưa có.
+2. Điền các biến SMTP thật (xem comment hướng dẫn ngay trong `.env.example`):
+   ```
+   SMTP_HOST=<host SMTP thật, KHÔNG kèm port, vd smtp.gmail.com>
+   SMTP_PORT=587
+   SMTP_FROM=<email hiển thị người gửi>
+   SMTP_USER=<tài khoản đăng nhập SMTP>
+   SMTP_PASSWORD=<mật khẩu / App Password — KHÔNG commit giá trị này vào git>
+   SMTP_REQUIRE_TLS=true
+   OPS_ALERT_EMAIL=<email nhận cảnh báo vận hành>
+   ```
+3. Chạy lại: `docker compose -f ops/monitoring/docker-compose.yml up -d alertmanager-config alertmanager`
+   (service `alertmanager-config` tự render lại config từ `.env` mới, `alertmanager` tự load lại).
+4. Không cần sửa bất kỳ file `.yml` nào — không cần restart cả stack monitoring.
+
+### 8.4. Route/receiver cảnh báo hiện có
+
+| Alert | Điều kiện | Kênh gửi |
+|---|---|---|
+| `HTTP5xxRateHigh` | tỷ lệ log 5xx / tổng log request backend > 1% trong 5 phút (rule LogQL thật, xem `ops/monitoring/loki-rules/fake/prodiab-alerts.yaml`, Loki ruler tự đánh giá định kỳ và gửi sang Alertmanager) | Email (`ops-email`) + PagerDuty (vì gắn `severity: critical`) |
+| `MySQLDown` | (mô tả, chưa có rule LogQL thật) | Slack + Email (`db-alert`) |
+| `DiskSpaceHigh` | (mô tả, chưa có rule LogQL thật) | Email (`ops-email`) |
+| `category: security` | (mô tả, chưa có rule LogQL thật) | Slack (`security-team`) |
+
+Template email dùng tiếng Việt có dấu, gồm: tên dịch vụ, mức độ (severity), nội dung, chi tiết, thời
+điểm bắt đầu, và link Grafana (`GF_ROOT_URL`/`GRAFANA_URL`).
+
+### 8.5. Verify thật đã thực hiện (2026-08-30)
+
+1. Xác nhận lại đúng nguyên nhân crash-loop: `docker ps -a` thấy `prodiab_alertmanager` ở trạng thái
+   `Exited (1)` từ trước, `docker logs` báo lỗi parse YAML do biến `${VAR:-default}` không được thay thế.
+2. Sau khi sửa: `docker compose up -d loki alertmanager-config alertmanager` với `ops/monitoring/.env`
+   **CHƯA điền SMTP thật** — Alertmanager load config thành công
+   (`Completed loading of configuration file`), `docker ps` báo `Up ... (healthy)`, theo dõi 2 phút
+   không thấy restart.
+3. Test thật với `.env` trỏ SMTP tới MailHog cục bộ (`SMTP_HOST=mailhog`, `SMTP_PORT=1025`,
+   `SMTP_REQUIRE_TLS=false` — MailHog không hỗ trợ TLS) — trigger 1 alert giả lập
+   `HTTP5xxRateHigh` qua `POST /api/v2/alerts`, xác nhận email THẬT đã tới MailHog
+   (`GET http://localhost:8025/api/v2/messages`), subject `[Pro-Diab HIS] CANH BAO: HTTP5xxRateHigh`,
+   nội dung HTML tiếng Việt có dấu hiển thị đúng.
+4. Xác nhận Loki ruler đã nạp rule `HTTP5xxRateHigh` (`GET http://localhost:3200/loki/api/v1/rules`
+   trả về đúng rule trong `ops/monitoring/loki-rules/fake/prodiab-alerts.yaml`).
+5. **Chưa test được**: rule `HTTP5xxRateHigh` tự động FIRE thật từ log 5xx thật (chưa tạo đủ lượng
+   log 5xx > 1% trong 5 phút để kích hoạt tự nhiên) — chỉ verify được luồng gửi email bằng cách bắn
+   alert giả trực tiếp vào API Alertmanager. Khuyến nghị: khi go-live, theo dõi thêm 1 lần alert thật
+   xảy ra (hoặc giả lập bằng cách tạm chặn route 200 để tạo 5xx thật) trước khi coi là đã verify đầu-cuối.
+
+## 9. Bảo mật
 
 - Grafana KHÔNG có auth mặc định ngoài user/pass admin — đổi `GF_ADMIN_PASSWORD` qua `.env`, KHÔNG
   dùng giá trị mặc định trong `docker-compose.yml` (`Grafana@ProDiab2026!`) ở môi trường có dữ liệu thật.

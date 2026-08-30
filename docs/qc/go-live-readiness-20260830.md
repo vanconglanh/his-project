@@ -120,6 +120,36 @@ Sentry + Serilog console/file cục bộ, không tập trung). Đã bổ sung tr
 tiếp khả năng vận hành/hỗ trợ sau go-live (điều tra sự cố, đối chiếu audit, phân tích UX) nên ghi nhận
 ở đây để BO/DevOps biết và lên kế hoạch bật trên server thật kèm phần bảo mật còn thiếu.
 
+## 5.2 Bổ sung sau audit (2026-08-30) — Fix Alertmanager crash-loop, sẵn sàng cảnh báo email
+
+`prodiab_alertmanager` bị crash-loop từ trước (nguyên nhân: `ops/monitoring/alertmanager-config.yml`
+dùng cú pháp `${SMTP_HOST:-...}` kiểu docker-compose interpolation, nhưng Alertmanager tự đọc config
+của chính nó, KHÔNG chạy qua docker-compose — biến không được thay thế → lỗi parse YAML → crash-loop).
+
+Đã sửa trong phiên này:
+- File config đổi thành template (`ops/monitoring/alertmanager-config.template.yml`), được 1 service
+  init nhỏ (`alertmanager-config`, image alpine + `envsubst`) render thành `alertmanager.yml` thật
+  trước khi Alertmanager khởi động (pattern chuẩn cho Alertmanager, vì bản thân nó không hỗ trợ env
+  interpolation trong file config).
+- Container **KHÔNG còn crash-loop** ngay cả khi CHƯA điền SMTP thật (mọi biến có default hợp lệ cú
+  pháp YAML) — verify thật: `docker compose up -d`, `Up ... (healthy)` ổn định > 2 phút, không restart.
+- Thêm rule cảnh báo LogQL thật `HTTP5xxRateHigh` (tỷ lệ log 5xx/tổng request backend > 1% trong 5
+  phút) chạy qua Loki ruler (`ops/monitoring/loki-rules/fake/prodiab-alerts.yaml`), route sang email.
+- Template email tiếng Việt có dấu (tên dịch vụ, mức độ, nội dung, thời điểm, link Grafana).
+- Verify thật luồng gửi email: trỏ SMTP tới MailHog cục bộ (đã có sẵn trong stack dev,
+  `ops/docker-compose.yml`), bắn 1 alert giả `HTTP5xxRateHigh` qua API Alertmanager, xác nhận email
+  THẬT đã tới MailHog (`http://localhost:8025`) với nội dung tiếng Việt đúng.
+- **Chưa test**: rule tự động FIRE từ log 5xx thật phát sinh tự nhiên (chỉ test bằng cách bắn alert
+  giả trực tiếp vào API Alertmanager) — không chặn go-live, nhưng nên quan sát thêm khi có traffic thật.
+
+**BO cần làm gì để bật gửi email thật khi deploy** (chỉ sửa `.env`, KHÔNG cần đụng code/YAML):
+1. Copy `ops/monitoring/.env.example` → `ops/monitoring/.env`.
+2. Điền `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_REQUIRE_TLS=true`,
+   `OPS_ALERT_EMAIL` (email nhận cảnh báo) — có comment hướng dẫn ngay trong `.env.example`.
+3. `docker compose -f ops/monitoring/docker-compose.yml up -d alertmanager-config alertmanager`.
+
+Chi tiết đầy đủ: `docs/ops/log-monitoring-loki-grafana.md` mục 8 "Cấu hình cảnh báo qua email".
+
 ## 6. Chấp nhận được sau go-live
 
 M-5 snapshot giá thuốc (P2, dịch vụ đã có snapshot); dọn bảng EMR trùng (P2); D-3 refactor 77 file token màu (P2); P2-08 ScopeMode (P2, branch filter đã đủ an toàn); K-4 tour trang còn lại (P2); tách audit cross-branch attempt (P2); xoá `user.read` sau khi FE chuyển `doctors/lookup` (P2); 13 warning build (P3).
