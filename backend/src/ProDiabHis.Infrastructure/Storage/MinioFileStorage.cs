@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Minio;
 using Minio.DataModel.Args;
@@ -10,11 +11,16 @@ namespace ProDiabHis.Infrastructure.Storage;
 public class MinioFileStorage : IFileStorage
 {
     private readonly IMinioClient _client;
+    private readonly IMinioClient _publicClient;
     private readonly ILogger<MinioFileStorage> _logger;
 
-    public MinioFileStorage(IMinioClient client, ILogger<MinioFileStorage> logger)
+    public MinioFileStorage(
+        IMinioClient client,
+        [FromKeyedServices("public")] IMinioClient publicClient,
+        ILogger<MinioFileStorage> logger)
     {
         _client = client;
+        _publicClient = publicClient;
         _logger = logger;
     }
 
@@ -50,7 +56,10 @@ public class MinioFileStorage : IFileStorage
             .WithObject(objectKey)
             .WithExpiry(ttlSeconds);
 
-        return await _client.PresignedGetObjectAsync(args);
+        // Dung client "public" (endpoint truy cap duoc tu ben ngoai docker network) de sinh URL
+        // tra ve cho FE/trinh duyet nguoi dung. _client (endpoint noi bo, vd "minio:9000") van
+        // dung cho cac thao tac server-to-server (Upload/Download/Delete/EnsureBucket) o tren.
+        return await _publicClient.PresignedGetObjectAsync(args);
     }
 
     public async Task DeleteAsync(

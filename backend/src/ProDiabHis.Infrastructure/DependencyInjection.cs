@@ -135,6 +135,23 @@ public static class DependencyInjection
             return client.Build();
         });
 
+        // Client MinIO rieng dung de sinh presigned URL TRA VE CHO CLIENT (trinh duyet nguoi dung).
+        // "Minio:Endpoint" chi resolve duoc trong docker network noi bo (vd "minio:9000") -> KHONG
+        // dung endpoint nay de tra ve FE. Dung "Minio:PublicEndpoint" (vd "localhost:9000" o dev,
+        // domain that o prod) rieng cho muc dich nay, giu nguyen Minio:Endpoint cho ket noi server-to-server.
+        var minioPublicEndpoint = configuration["Minio:PublicEndpoint"] ?? minioEndpoint;
+        var minioPublicUseSsl = configuration.GetValue<bool?>("Minio:PublicUseSsl") ?? minioUseSsl;
+
+        services.AddKeyedSingleton<IMinioClient>("public", (sp, _) =>
+        {
+            var client = new MinioClient()
+                .WithEndpoint(minioPublicEndpoint)
+                .WithCredentials(minioAccessKey, minioSecretKey);
+            if (minioPublicUseSsl)
+                client = client.WithSSL();
+            return client.Build();
+        });
+
         // Storage:Provider = "Local" dung khi may dev khong co MinIO/docker (xem appsettings.Development.json)
         var storageProvider = configuration["Storage:Provider"] ?? "Minio";
         if (string.Equals(storageProvider, "Local", StringComparison.OrdinalIgnoreCase))

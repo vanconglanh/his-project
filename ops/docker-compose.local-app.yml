@@ -23,6 +23,8 @@ services:
       Smtp__Host: mailhog
       Smtp__Port: "1025"
       Minio__Endpoint: "minio:9000"
+      # PublicEndpoint: host truy cap duoc tu browser nguoi dung (ngoai docker network) -> dung khi sinh presigned URL tra ve FE
+      Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
       Minio__AccessKey: ${MINIO_ROOT_USER:-minio}
       Minio__SecretKey: ${MINIO_ROOT_PASSWORD:-minio_dev_2026}
     ports:

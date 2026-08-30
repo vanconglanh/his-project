@@ -156,6 +156,10 @@ services:
       # Code doc qua GetConnectionString("Redis") => key phai la ConnectionStrings__Redis
       ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD},ssl=False,abortConnect=False"
       Minio__Endpoint: "minio:9000"
+      # PublicEndpoint: host/domain truy cap duoc tu browser nguoi dung (KHONG phai "minio:9000" noi bo).
+      # BAT BUOC set MINIO_PUBLIC_ENDPOINT trong .env khi deploy — xem ops/.env.example.
+      Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT}
+      Minio__PublicUseSsl: ${MINIO_PUBLIC_USE_SSL:-false}
       Minio__AccessKey: ${MINIO_ROOT_USER}
       Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
       Minio__UseSSL: "false"
