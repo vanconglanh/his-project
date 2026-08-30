@@ -141,6 +141,58 @@ public class BranchesController : ControllerBase
             return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
         return NoContent();
     }
+
+    /// <summary>Tinh trang tuan thu BHYT/DTQG theo tung chi nhanh trong pham vi (BR-107)</summary>
+    [HttpGet("bhyt-compliance")]
+    [RequirePermission("branch.read")]
+    public async Task<IActionResult> GetBhytCompliance(CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetBranchBhytComplianceQuery(), ct);
+        if (!result.IsSuccess)
+            return UnprocessableEntity(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
+    }
+
+    /// <summary>Nhan ban (clone) chi nhanh moi tu chi nhanh nguon — chi copy cau hinh, khong copy du lieu van hanh (BR-111)</summary>
+    [HttpPost("{id:int}/clone")]
+    [RequirePermission("branch.create")]
+    public async Task<IActionResult> CloneBranch(int id, [FromBody] CloneBranchRequest request, CancellationToken ct = default)
+    {
+        var req = request with { SourceBranchId = id };
+        var result = await _mediator.Send(new CloneBranchCommand(req), ct);
+        if (!result.IsSuccess)
+            return result.ErrorCode == "BRANCH_NOT_FOUND"
+                ? NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } })
+                : UnprocessableEntity(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return StatusCode(201, new { data = result.Value });
+    }
+
+    /// <summary>Checklist go-live chi nhanh (BR-112)</summary>
+    [HttpGet("{id:int}/readiness")]
+    [RequirePermission("branch.read")]
+    public async Task<IActionResult> GetReadiness(int id, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetBranchReadinessQuery(id), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
+    }
+
+    /// <summary>Kich hoat chi nhanh (DRAFT -> ACTIVE) — chan neu chua dat checklist go-live (AC-8.1.2)</summary>
+    [HttpPost("{id:int}/activate")]
+    [RequirePermission("branch.update")]
+    public async Task<IActionResult> ActivateBranch(int id, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ActivateBranchCommand(id), ct);
+        if (!result.IsSuccess)
+            return result.ErrorCode switch
+            {
+                "BRANCH_NOT_FOUND" => NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } }),
+                "BRANCH_NOT_READY" => BadRequest(new { error = new { code = result.ErrorCode, message = result.ErrorMessage, details = result.ErrorDetails } }),
+                _ => UnprocessableEntity(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } })
+            };
+        return Ok(new { data = result.Value });
+    }
 }
 
 public record SetBranchStatusRequest(bool IsActive);

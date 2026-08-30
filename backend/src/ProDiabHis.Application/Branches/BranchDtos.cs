@@ -15,6 +15,14 @@ public record BranchDto(
     bool IsDefault,
     int SortOrder,
     int UserCount,
+    string Status,
+    string? HospitalRank,
+    string? KcbTuyen,
+    string? BhytContractCode,
+    DateTime? BhytContractValidFrom,
+    DateTime? BhytContractValidTo,
+    bool BhytEnabled,
+    bool DtqgEnabled,
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
@@ -28,7 +36,14 @@ public record CreateBranchRequest(
     string? WorkingHours,
     string? Timezone,
     bool IsActive = true,
-    int SortOrder = 0);
+    int SortOrder = 0,
+    string? HospitalRank = null,
+    string? KcbTuyen = null,
+    string? BhytContractCode = null,
+    DateTime? BhytContractValidFrom = null,
+    DateTime? BhytContractValidTo = null,
+    bool BhytEnabled = false,
+    bool DtqgEnabled = false);
 
 public record UpdateBranchRequest(
     string? Code,
@@ -39,7 +54,14 @@ public record UpdateBranchRequest(
     string? Email,
     string? WorkingHours,
     string? Timezone,
-    int? SortOrder);
+    int? SortOrder,
+    string? HospitalRank = null,
+    string? KcbTuyen = null,
+    string? BhytContractCode = null,
+    DateTime? BhytContractValidFrom = null,
+    DateTime? BhytContractValidTo = null,
+    bool? BhytEnabled = null,
+    bool? DtqgEnabled = null);
 
 public record AssignUsersToBranchRequest(List<Guid> UserIds, bool? IsPrimary);
 
@@ -59,3 +81,31 @@ public record BranchContextResponse(
     bool CanCrossView);
 
 public record BranchOptionDto(int Id, string Code, string Name, bool IsDefault);
+
+// ─── NV1: BHYT compliance theo chi nhanh (BR-100..108) ─────────────────────────
+
+public record BranchBhytComplianceDto(
+    int BranchId,
+    string Name,
+    bool HasCskcb,
+    bool BhytEnabled,
+    bool BhytContractValid,
+    bool DtqgConnected,
+    bool DtqgTokenValid,
+    string? LastBhytExportPeriod);
+
+// ─── NV2: Clone chi nhanh + checklist go-live (BR-110/111/112) ─────────────────
+
+public record CloneBranchRequest(
+    int SourceBranchId,
+    string Code,
+    string Name,
+    string? Address,
+    string? Phone,
+    string? Email,
+    string? Timezone,
+    int? GroupId);
+
+public record ReadinessItemDto(string Key, string Label, bool Passed, string Detail);
+
+public record BranchReadinessDto(int BranchId, bool AllPassed, List<ReadinessItemDto> Items);

@@ -89,6 +89,9 @@ public interface IApplicationDbContext
     // API Partners
     DbSet<ApiPartner> ApiPartners { get; }
 
+    // Multi-branch (Dot 5)
+    DbSet<InternalReferral> InternalReferrals { get; }
+
     // BHYT
     DbSet<BhytExport> BhytExports { get; }
     DbSet<BhytExportItem> BhytExportItems { get; }

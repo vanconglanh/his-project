@@ -164,6 +164,21 @@ public class GenerateBhytXmlHandler : IRequestHandler<GenerateBhytXmlCommand, Re
         if (BhytExportStatus.IsLocked(status))
             return Result<BhytExportResponse>.Failure("BHYT_PERIOD_LOCKED", "Ky export da bi khoa, khong the generate lai");
 
+        // BR-108: chi nhanh cua export (hoac chi nhanh hien tai neu export chua gan branch) phai co
+        // ma CSKCB moi duoc phep xuat XML 4210 gui BHYT.
+        int? exportBranchId = row.branch_id;
+        int checkBranchId = exportBranchId ?? branchId;
+        if (checkBranchId > 0)
+        {
+            var cskcb = await conn.ExecuteScalarAsync<string?>(
+                "SELECT cskcb_code FROM diab_his_sys_branches WHERE id = @id AND tenant_id = @t AND deleted_at IS NULL",
+                new { id = checkBranchId, t = _tenant.TenantId });
+            if (string.IsNullOrWhiteSpace(cskcb))
+                return Result<BhytExportResponse>.Failure(
+                    "BRANCH_CSKCB_REQUIRED",
+                    "Chi nhánh chưa được cấu hình mã CSKCB, không thể xuất XML 4210 gửi BHYT.");
+        }
+
         _jobs.EnqueueBhytGenerateXml(cmd.ExportId, _tenant.TenantId, (string)row.period_month, (string?)row.scope_filter_json);
         _logger.LogInformation("BhytGenerateXml job enqueued for exportId={Id}", cmd.ExportId);
 

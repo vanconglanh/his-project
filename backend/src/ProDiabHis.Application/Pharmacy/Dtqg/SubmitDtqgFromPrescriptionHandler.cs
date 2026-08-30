@@ -82,6 +82,18 @@ public class SubmitDtqgFromPrescriptionHandler
             return Result<SubmitDtqgFromPrescriptionCommandResult>.Failure(
                 "PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
 
+        // BR-108: chi nhanh hien tai phai co ma CSKCB moi duoc phep day don len DTQG.
+        if (branchId > 0)
+        {
+            var cskcb = await conn.ExecuteScalarAsync<string?>(
+                "SELECT cskcb_code FROM diab_his_sys_branches WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { id = branchId, tenantId });
+            if (string.IsNullOrWhiteSpace(cskcb))
+                return Result<SubmitDtqgFromPrescriptionCommandResult>.Failure(
+                    "BRANCH_CSKCB_REQUIRED",
+                    "Chi nhánh chưa được cấu hình mã CSKCB, không thể đẩy đơn thuốc lên Đơn thuốc Quốc gia.");
+        }
+
         string? encounterId = pres.encounter_id;
 
         // Kiem tra co dong thuoc khong

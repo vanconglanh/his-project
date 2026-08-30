@@ -25,6 +25,15 @@ public class BranchConfiguration : IEntityTypeConfiguration<Branch>
         builder.Property(b => b.IsActive).HasColumnName("is_active").HasDefaultValue(true);
         builder.Property(b => b.IsDefault).HasColumnName("is_default").HasDefaultValue(false);
         builder.Property(b => b.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+        builder.Property(b => b.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue(Domain.Entities.BranchStatus.Active);
+        builder.Property(b => b.GroupId).HasColumnName("group_id");
+        builder.Property(b => b.HospitalRank).HasColumnName("hospital_rank").HasMaxLength(50);
+        builder.Property(b => b.KcbTuyen).HasColumnName("kcb_tuyen").HasMaxLength(50);
+        builder.Property(b => b.BhytContractCode).HasColumnName("bhyt_contract_code").HasMaxLength(100);
+        builder.Property(b => b.BhytContractValidFrom).HasColumnName("bhyt_contract_valid_from");
+        builder.Property(b => b.BhytContractValidTo).HasColumnName("bhyt_contract_valid_to");
+        builder.Property(b => b.BhytEnabled).HasColumnName("bhyt_enabled").HasDefaultValue(false);
+        builder.Property(b => b.DtqgEnabled).HasColumnName("dtqg_enabled").HasDefaultValue(false);
         builder.Property(b => b.CreatedAt).HasColumnName("created_at");
         builder.Property(b => b.CreatedBy).HasColumnName("created_by");
         builder.Property(b => b.UpdatedAt).HasColumnName("updated_at");

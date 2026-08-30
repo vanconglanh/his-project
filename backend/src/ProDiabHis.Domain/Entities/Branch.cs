@@ -34,10 +34,34 @@ public class Branch : IAuditTimestamps
 
     public int SortOrder { get; set; }
 
+    /// <summary>Trang thai vong doi chi nhanh — DRAFT|CONFIGURING|READY_CHECK|ACTIVE|SUSPENDED|CLOSED (BR-08/BR-110)</summary>
+    public string Status { get; set; } = BranchStatus.Active;
+
+    public int? GroupId { get; set; }
+
+    // --- BHYT/DTQG compliance theo chi nhanh (BR-100..108, migration 9175) ---
+    public string? HospitalRank { get; set; }
+    public string? KcbTuyen { get; set; }
+    public string? BhytContractCode { get; set; }
+    public DateTime? BhytContractValidFrom { get; set; }
+    public DateTime? BhytContractValidTo { get; set; }
+    public bool BhytEnabled { get; set; }
+    public bool DtqgEnabled { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public Guid? UpdatedBy { get; set; }
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
+}
+
+public static class BranchStatus
+{
+    public const string Draft = "DRAFT";
+    public const string Configuring = "CONFIGURING";
+    public const string ReadyCheck = "READY_CHECK";
+    public const string Active = "ACTIVE";
+    public const string Suspended = "SUSPENDED";
+    public const string Closed = "CLOSED";
 }

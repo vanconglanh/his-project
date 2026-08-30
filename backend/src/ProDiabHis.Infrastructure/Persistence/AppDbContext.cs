@@ -104,6 +104,9 @@ public class AppDbContext : DbContext, IApplicationDbContext
     // API Partners
     public DbSet<ApiPartner> ApiPartners => Set<ApiPartner>();
 
+    // Multi-branch (Dot 5)
+    public DbSet<InternalReferral> InternalReferrals => Set<InternalReferral>();
+
     // BHYT
     public DbSet<BhytExport> BhytExports => Set<BhytExport>();
     public DbSet<BhytExportItem> BhytExportItems => Set<BhytExportItem>();
