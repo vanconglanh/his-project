@@ -25,18 +25,21 @@ public static class ChainDashboardErrors
 /// </summary>
 public static class BranchScopeResolver
 {
-    public static IReadOnlyList<int>? ResolveAllowedBranchIds(IBranchProvider branchProvider)
+    // hasCrossView: user co quyen branch.cross_view (S3) — xem TAT CA chi nhanh tenant BAT KE dang chon
+    // chi nhanh nao qua X-Branch-Id. Phai dua vao QUYEN (entitlement), khong dua vao IgnoreBranchFilter
+    // (co bi tat khi user chon 1 chi nhanh cu the) — neu khong admin se chi thay 1 chi nhanh dang chon.
+    public static IReadOnlyList<int>? ResolveAllowedBranchIds(IBranchProvider branchProvider, bool hasCrossView = false)
     {
-        if (branchProvider.IgnoreBranchFilter) return null;
+        if (hasCrossView || branchProvider.IgnoreBranchFilter) return null;
         if (branchProvider.AllowedBranchIds.Count > 0) return branchProvider.AllowedBranchIds.ToList();
         return new List<int> { branchProvider.BranchId };
     }
 
     /// <summary>BR-93: user S1 (chinh xac 1 chi nhanh, khong co IgnoreBranchFilter) khong duoc phep
     /// thay so voi chi nhanh khac - dung de tra 403 khi drill-down sang branch ngoai scope.</summary>
-    public static bool IsBranchAllowed(IBranchProvider branchProvider, int branchId)
+    public static bool IsBranchAllowed(IBranchProvider branchProvider, int branchId, bool hasCrossView = false)
     {
-        if (branchProvider.IgnoreBranchFilter) return true;
+        if (hasCrossView || branchProvider.IgnoreBranchFilter) return true;
         var allowed = ResolveAllowedBranchIds(branchProvider);
         return allowed != null && allowed.Contains(branchId);
     }
@@ -47,16 +50,19 @@ public class GetBranchRankingHandler : IRequestHandler<GetBranchRankingQuery, Re
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
     private readonly IBranchProvider _branchProvider;
+    private readonly IPermissionChecker _permissionChecker;
 
-    public GetBranchRankingHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branchProvider)
+    public GetBranchRankingHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branchProvider,
+        IPermissionChecker permissionChecker)
     {
-        _db = db; _currentUser = currentUser; _branchProvider = branchProvider;
+        _db = db; _currentUser = currentUser; _branchProvider = branchProvider; _permissionChecker = permissionChecker;
     }
 
     public async Task<Result<BranchRankingResponse>> Handle(GetBranchRankingQuery q, CancellationToken ct)
     {
         var tenantId = _currentUser.TenantId!.Value;
-        var allowed = BranchScopeResolver.ResolveAllowedBranchIds(_branchProvider);
+        var hasCrossView = _permissionChecker.HasPermission("branch.cross_view");
+        var allowed = BranchScopeResolver.ResolveAllowedBranchIds(_branchProvider, hasCrossView);
 
         using var conn = (IDbConnection)_db.CreateConnection();
         conn.Open();
@@ -158,17 +164,19 @@ public class GetBranchDetailHandler : IRequestHandler<GetBranchDetailQuery, Resu
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
     private readonly IBranchProvider _branchProvider;
+    private readonly IPermissionChecker _permissionChecker;
 
-    public GetBranchDetailHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branchProvider)
+    public GetBranchDetailHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branchProvider,
+        IPermissionChecker permissionChecker)
     {
-        _db = db; _currentUser = currentUser; _branchProvider = branchProvider;
+        _db = db; _currentUser = currentUser; _branchProvider = branchProvider; _permissionChecker = permissionChecker;
     }
 
     public async Task<Result<BranchDetailResponse>> Handle(GetBranchDetailQuery q, CancellationToken ct)
     {
         // BR-91/AC-6.1.2 + AC-3.2.1: drill-down phai kiem tra branchId nam trong scope truoc,
-        // KHONG duoc cap S3 roi loc UI (BR-33).
-        if (!BranchScopeResolver.IsBranchAllowed(_branchProvider, q.BranchId))
+        // KHONG duoc cap S3 roi loc UI (BR-33). cross_view (S3) duoc phep moi chi nhanh tenant.
+        if (!BranchScopeResolver.IsBranchAllowed(_branchProvider, q.BranchId, _permissionChecker.HasPermission("branch.cross_view")))
             return Result<BranchDetailResponse>.Failure(ChainDashboardErrors.BranchAccessDenied,
                 "Không có quyền truy cập dữ liệu chi nhánh này");
 

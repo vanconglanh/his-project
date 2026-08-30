@@ -123,11 +123,17 @@ public class ListBranchesHandler : IRequestHandler<ListBranchesQuery, PagedResul
         if (!_permissionChecker.HasPermission("branch.create") && !_permissionChecker.HasPermission("branch.update"))
             where += " AND b.status IN ('ACTIVE', 'SUSPENDED')";
 
-        // User khong co branch.cross_view chi thay branch trong branch_ids duoc gan (7.1)
-        if (!_branchProvider.IgnoreBranchFilter && _branchProvider.AllowedBranchIds.Count > 0)
-            where += " AND b.id IN @allowedIds";
-        else if (!_branchProvider.IgnoreBranchFilter)
-            where += " AND 1 = 0";
+        // Man quan ly chi nhanh la READ cross-branch: pham vi theo ENTITLEMENT (quyen) cua user, KHONG
+        // phu thuoc chi nhanh dang chon qua X-Branch-Id. Neu dung IgnoreBranchFilter (phu thuoc branch
+        // dang chon) thi admin cross_view khi da chon 1 chi nhanh se chi thay dung chi nhanh do -> sai.
+        // => cross_view: thay tat ca chi nhanh tenant; nguoc lai: chi branch duoc gan/nhom (BR-33/7.1).
+        if (!_permissionChecker.HasPermission("branch.cross_view"))
+        {
+            if (_branchProvider.AllowedBranchIds.Count > 0)
+                where += " AND b.id IN @allowedIds";
+            else
+                where += " AND 1 = 0";
+        }
 
         var parameters = new
         {
@@ -602,10 +608,12 @@ public class GetBranchBhytComplianceHandler : IRequestHandler<GetBranchBhytCompl
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
     private readonly IBranchProvider _branchProvider;
+    private readonly IPermissionChecker _permissionChecker;
 
-    public GetBranchBhytComplianceHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branchProvider)
+    public GetBranchBhytComplianceHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branchProvider,
+        IPermissionChecker permissionChecker)
     {
-        _db = db; _currentUser = currentUser; _branchProvider = branchProvider;
+        _db = db; _currentUser = currentUser; _branchProvider = branchProvider; _permissionChecker = permissionChecker;
     }
 
     public async Task<Result<List<BranchBhytComplianceDto>>> Handle(GetBranchBhytComplianceQuery q, CancellationToken ct)
@@ -613,11 +621,15 @@ public class GetBranchBhytComplianceHandler : IRequestHandler<GetBranchBhytCompl
         using var conn = _db.CreateConnection();
         var tenantId = _currentUser.TenantId!.Value;
 
+        // READ cross-branch: pham vi theo entitlement (cross_view -> tat ca), khong theo branch dang chon.
         var where = "WHERE b.tenant_id = @tenantId AND b.deleted_at IS NULL";
-        if (!_branchProvider.IgnoreBranchFilter && _branchProvider.AllowedBranchIds.Count > 0)
-            where += " AND b.id IN @allowedIds";
-        else if (!_branchProvider.IgnoreBranchFilter)
-            where += " AND 1 = 0";
+        if (!_permissionChecker.HasPermission("branch.cross_view"))
+        {
+            if (_branchProvider.AllowedBranchIds.Count > 0)
+                where += " AND b.id IN @allowedIds";
+            else
+                where += " AND 1 = 0";
+        }
 
         var branches = await conn.QueryAsync<dynamic>(
             $@"SELECT b.id, b.name, b.cskcb_code, b.bhyt_enabled, b.bhyt_contract_valid_to
