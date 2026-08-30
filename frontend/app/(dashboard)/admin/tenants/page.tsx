@@ -111,7 +111,7 @@ export default function TenantsPage() {
             <Button
               variant="outline"
               size="sm"
-              className="text-yellow-700 border-yellow-400 hover:bg-yellow-50 min-h-[36px]"
+              className="text-status-warning border-status-warning/40 hover:bg-status-warning/10 min-h-[36px]"
               onClick={(e) => {
                 e.stopPropagation();
                 setSuspendTarget(row);
@@ -124,7 +124,7 @@ export default function TenantsPage() {
             <Button
               variant="outline"
               size="sm"
-              className="text-green-700 border-green-400 hover:bg-green-50 min-h-[36px]"
+              className="text-status-done border-status-done/40 hover:bg-status-done/10 min-h-[36px]"
               onClick={(e) => {
                 e.stopPropagation();
                 activateMutation.mutate(row.id);

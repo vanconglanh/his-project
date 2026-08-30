@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/format";
 import { useCloseShift } from "@/lib/hooks/use-cashier";
@@ -24,11 +25,12 @@ interface Props {
 }
 
 export function CashierShiftCloseDialog({ open, onOpenChange, shiftId, expectedCash }: Props) {
-  const { register, handleSubmit, watch, reset } = useForm({
+  const { register, handleSubmit, watch, setValue, reset } = useForm({
     defaultValues: { actual_cash: 0, note: "", accept_difference: false },
   });
   const closeShift = useCloseShift();
   const actualCash = watch("actual_cash") ?? 0;
+  const acceptDifference = watch("accept_difference");
   const difference = expectedCash != null ? actualCash - expectedCash : null;
 
   async function onSubmit(values: { actual_cash: number; note: string; accept_difference: boolean }) {
@@ -63,7 +65,7 @@ export function CashierShiftCloseDialog({ open, onOpenChange, shiftId, expectedC
               {difference !== null && actualCash > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Chênh lệch:</span>
-                  <span className={cn("font-semibold", difference >= 0 ? "text-green-600" : "text-destructive")}>
+                  <span className={cn("font-semibold", difference >= 0 ? "text-status-done" : "text-destructive")}>
                     {difference >= 0 ? "+" : ""}{formatCurrency(difference)}
                   </span>
                 </div>
@@ -90,7 +92,10 @@ export function CashierShiftCloseDialog({ open, onOpenChange, shiftId, expectedC
 
           {difference != null && difference !== 0 && actualCash > 0 && (
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" {...register("accept_difference")} />
+              <Checkbox
+                checked={acceptDifference}
+                onCheckedChange={(v) => setValue("accept_difference", v === true)}
+              />
               Chấp nhận chênh lệch và đóng ca
             </label>
           )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,14 +138,14 @@ export function SignPrescriptionWizard({ open, onClose, prescription }: Props) {
                 </Select>
               </div>
               <p className="text-xs text-muted-foreground">
-                Dev mode: chọn "Chứng thư phần mềm" để test không cần USB thật.
+                Chế độ thử nghiệm: chọn "Chứng thư phần mềm" để test không cần USB thật.
               </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={handleClose}>Hủy</Button>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleClose}>Huỷ</Button>
                 <Button onClick={() => setStep("enter_pin")} disabled={!tokenSlot}>
                   Tiếp theo
                 </Button>
-              </div>
+              </DialogFooter>
             </div>
           )}
 
@@ -165,19 +165,23 @@ export function SignPrescriptionWizard({ open, onClose, prescription }: Props) {
                 />
               </div>
               {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
-              <div className="flex justify-between gap-2">
-                <Button variant="ghost" onClick={() => setStep("select_token")}>Quay lại</Button>
+              <DialogFooter className="sm:justify-between">
+                <Button variant="outline" onClick={() => setStep("select_token")}>Quay lại</Button>
                 <Button onClick={handleSign} disabled={signMutation.isPending}>
                   Ký số
                 </Button>
-              </div>
+              </DialogFooter>
             </div>
           )}
 
           {/* Step: signing */}
           {step === "signing" && (
             <div className="flex flex-col items-center py-6 gap-3">
-              <div className="animate-spin rounded-full border-4 border-primary border-t-transparent h-10 w-10" />
+              <div
+                className="animate-spin rounded-full border-4 border-primary border-t-transparent h-10 w-10"
+                role="status"
+                aria-label="Đang xử lý ký số"
+              />
               <p className="text-sm text-muted-foreground">Đang xử lý ký số, vui lòng chờ...</p>
             </div>
           )}
@@ -185,20 +189,20 @@ export function SignPrescriptionWizard({ open, onClose, prescription }: Props) {
           {/* Step: submit dtqg */}
           {step === "submit_dtqg" && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-md p-3 border border-green-200">
+              <div className="flex items-center gap-2 text-status-done bg-status-done/10 rounded-md p-3 border border-status-done/20">
                 <CheckCircle className="h-5 w-5 shrink-0" />
                 <p className="text-sm font-medium">Ký số thành công!</p>
               </div>
               <p className="text-sm text-muted-foreground">
                 Gửi đơn thuốc lên Cổng Đơn Thuốc Quốc Gia để nhận mã đơn và QR code.
               </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={handleClose}>Bỏ qua</Button>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleClose}>Bỏ qua</Button>
                 <Button onClick={handleSubmitDtqg} disabled={submitDtqg.isPending}>
                   <Send className="h-4 w-4 mr-2" />
                   {submitDtqg.isPending ? "Đang gửi..." : "Gửi lên ĐTQG"}
                 </Button>
-              </div>
+              </DialogFooter>
             </div>
           )}
 
@@ -206,7 +210,7 @@ export function SignPrescriptionWizard({ open, onClose, prescription }: Props) {
           {step === "done" && (
             <div className="space-y-4">
               {errorMsg && (
-                <div className="flex items-center gap-2 text-orange-700 bg-orange-50 rounded-md p-3 border border-orange-200">
+                <div className="flex items-center gap-2 text-status-warning bg-status-warning/10 rounded-md p-3 border border-status-warning/20">
                   <AlertCircle className="h-5 w-5 shrink-0" />
                   <p className="text-sm">{errorMsg}</p>
                 </div>
@@ -219,13 +223,13 @@ export function SignPrescriptionWizard({ open, onClose, prescription }: Props) {
                   qrImageUrl={dtqgData.qr_image_url}
                 />
               ) : (
-                <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-md p-3 border border-green-200">
+                <div className="flex items-center gap-2 text-status-done bg-status-done/10 rounded-md p-3 border border-status-done/20">
                   <CheckCircle className="h-5 w-5 shrink-0" />
                   <p className="text-sm font-medium">Đơn thuốc đã được ký số</p>
                 </div>
               )}
 
-              <div className="flex justify-between gap-2">
+              <DialogFooter className="sm:justify-between">
                 <Button
                   variant="outline"
                   onClick={() => printPrescriptionPdf(prescription.id)}
@@ -234,7 +238,7 @@ export function SignPrescriptionWizard({ open, onClose, prescription }: Props) {
                   In đơn thuốc
                 </Button>
                 <Button onClick={handleClose}>Đóng</Button>
-              </div>
+              </DialogFooter>
             </div>
           )}
 
@@ -245,10 +249,10 @@ export function SignPrescriptionWizard({ open, onClose, prescription }: Props) {
                 <AlertCircle className="h-5 w-5 shrink-0" />
                 <p className="text-sm">{errorMsg}</p>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={handleClose}>Đóng</Button>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleClose}>Đóng</Button>
                 <Button onClick={handleReset}>Thử lại</Button>
-              </div>
+              </DialogFooter>
             </div>
           )}
         </div>

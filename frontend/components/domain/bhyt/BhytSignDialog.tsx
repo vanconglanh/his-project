@@ -34,7 +34,7 @@ export function BhytSignDialog({ open, onOpenChange, onSign, isPending }: Props)
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-violet-600" />
+            <ShieldCheck className="h-5 w-5 text-status-insurance" />
             <DialogTitle>Ký số XML BHYT</DialogTitle>
           </div>
           <DialogDescription>
@@ -47,7 +47,7 @@ export function BhytSignDialog({ open, onOpenChange, onSign, isPending }: Props)
             <Label htmlFor="cert">Thumbprint chứng thư số</Label>
             <Input
               id="cert"
-              placeholder="e.g. 4A:B2:..."
+              placeholder="VD: 4A:B2:..."
               value={cert}
               onChange={(e) => setCert(e.target.value)}
             />
@@ -71,7 +71,7 @@ export function BhytSignDialog({ open, onOpenChange, onSign, isPending }: Props)
           <Button
             onClick={handleSign}
             disabled={isPending || !pin}
-            className="bg-violet-600 hover:bg-violet-700"
+            className="bg-status-insurance hover:bg-status-insurance/90"
           >
             {isPending ? "Đang ký..." : "Ký số"}
           </Button>

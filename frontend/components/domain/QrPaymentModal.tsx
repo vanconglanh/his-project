@@ -89,12 +89,12 @@ export function QrPaymentModal({
           {isPaid ? (
             <div className="flex flex-col items-center gap-3 py-4">
               <div className={cn(
-                "flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-5xl",
+                "flex h-20 w-20 items-center justify-center rounded-full bg-status-done/10 text-5xl",
                 "animate-bounce"
               )}>
                 ✓
               </div>
-              <p className="text-lg font-semibold text-green-700">Thanh toán thành công!</p>
+              <p className="text-lg font-semibold text-status-done">Thanh toán thành công!</p>
             </div>
           ) : (
             <>
@@ -136,7 +136,7 @@ export function QrPaymentModal({
               )}
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-status-done" />
                 Đang chờ thanh toán...
               </div>
             </>

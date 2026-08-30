@@ -62,7 +62,7 @@ export function EmrSignDialog({ open, onClose, onSign, isLoading }: Props) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            Hủy
+            Huỷ
           </Button>
           <Button onClick={handleSign} disabled={!pin || isLoading}>
             {isLoading ? "Đang ký..." : "Ký số"}

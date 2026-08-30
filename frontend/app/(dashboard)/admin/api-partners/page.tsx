@@ -6,6 +6,7 @@ import { Plus, RefreshCw, Trash2, TestTube, BarChart2, FileText, Edit } from "lu
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -90,16 +91,16 @@ export default function ApiPartnersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">API Partners</h1>
-          <p className="text-sm text-muted-foreground">Quản lý đối tác tích hợp Public API</p>
-        </div>
-        <Button onClick={() => router.push("/admin/api-partners/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Tạo partner mới
-        </Button>
-      </div>
+      <PageHeader
+        title="API Partners"
+        description="Quản lý đối tác tích hợp Public API"
+        actions={
+          <Button onClick={() => router.push("/admin/api-partners/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tạo partner mới
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-3">

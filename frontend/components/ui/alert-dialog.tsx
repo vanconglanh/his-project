@@ -42,6 +42,7 @@ function AlertDialogContent({
         data-slot="alert-dialog-content"
         className={cn(
           "fixed top-1/2 left-1/2 z-50 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-background p-6 shadow-xl ring-1 ring-foreground/10 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "[&>[data-slot=alert-dialog-footer]]:-mx-6 [&>[data-slot=alert-dialog-footer]]:-mb-6",
           className
         )}
         {...props}
@@ -57,7 +58,16 @@ function AlertDialogHeader({ className, ...props }: React.ComponentProps<"div">)
 }
 
 function AlertDialogFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("mt-5 flex justify-end gap-2", className)} {...props} />;
+  return (
+    <div
+      data-slot="alert-dialog-footer"
+      className={cn(
+        "mt-5 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        className
+      )}
+      {...props}
+    />
+  );
 }
 
 function AlertDialogTitle({ className, ...props }: AlertDialogPrimitive.Title.Props) {

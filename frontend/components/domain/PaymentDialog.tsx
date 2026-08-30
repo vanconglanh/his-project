@@ -10,6 +10,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetFooter,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -287,7 +288,7 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
               <Input id="note" {...register("note")} className="mt-1" />
             </div>
 
-            <div className="flex justify-end gap-2 border-t pt-4">
+            <SheetFooter className="flex-row justify-end gap-2 p-0 -mx-6 -mb-6 mt-4 px-6 pb-6 pt-4 border-t bg-muted/50">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Huỷ
               </Button>
@@ -305,7 +306,7 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
                   {isPending ? "Đang xử lý..." : "Xác nhận thu tiền (F4)"}
                 </Button>
               )}
-            </div>
+            </SheetFooter>
           </form>
         </SheetContent>
       </Sheet>

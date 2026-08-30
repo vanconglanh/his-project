@@ -136,14 +136,14 @@ export default function UsersPage() {
             {row.status === "ACTIVE" || row.status === "PENDING" ? (
               <DropdownMenuItem
                 onClick={(e) => { e.stopPropagation(); disableMutation.mutate(row.id); }}
-                className="text-yellow-600"
+                className="text-status-warning"
               >
                 Khoá tài khoản
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
                 onClick={(e) => { e.stopPropagation(); enableMutation.mutate(row.id); }}
-                className="text-green-600"
+                className="text-status-done"
               >
                 Mở khoá
               </DropdownMenuItem>

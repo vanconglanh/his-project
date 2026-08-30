@@ -171,7 +171,7 @@ function RotateButton({ partnerId }: { partnerId: string }) {
       onClick={() => rotateMutation.mutate()}
       disabled={rotateMutation.isPending}
     >
-      {rotateMutation.isPending ? "Xoay..." : "Rotate Key"}
+      {rotateMutation.isPending ? "Đang đổi..." : "Đổi mã khoá"}
     </Button>
   );
 }

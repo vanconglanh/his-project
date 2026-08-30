@@ -16,20 +16,23 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
+import { HisStatusBadge, type HisStatusVariant } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
+import { PageHeader } from "@/components/ui/page-header";
 import { useAuditLogs } from "@/lib/hooks/use-roles";
 import type { AuditLogResponse, AuditAction } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/utils/format";
 
-const ACTION_COLORS: Record<AuditAction, string> = {
-  CREATE: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  UPDATE: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  DELETE: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  LOGIN: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  LOGOUT: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-  EXPORT: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  SIGN: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+const ACTION_VARIANTS: Record<AuditAction, HisStatusVariant> = {
+  CREATE: "done",
+  UPDATE: "progress",
+  DELETE: "critical",
+  LOGIN: "waiting",
+  LOGOUT: "waiting",
+  EXPORT: "insurance",
+  SIGN: "warning",
+  VIEW: "waiting",
+  CONFIRM: "waiting",
 };
 
 const ACTION_LABELS: Record<AuditAction, string> = {
@@ -40,6 +43,8 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   LOGOUT: "Đăng xuất",
   EXPORT: "Xuất file",
   SIGN: "Ký xác nhận",
+  VIEW: "Xem",
+  CONFIRM: "Xác nhận",
 };
 
 export default function AuditPage() {
@@ -77,12 +82,9 @@ export default function AuditPage() {
       key: "action",
       header: "Hành động",
       cell: (row) => (
-        <Badge
-          variant="secondary"
-          className={`text-xs ${ACTION_COLORS[row.action] ?? ""}`}
-        >
+        <HisStatusBadge variant={ACTION_VARIANTS[row.action] ?? "waiting"}>
           {ACTION_LABELS[row.action] ?? row.action}
-        </Badge>
+        </HisStatusBadge>
       ),
     },
     {
@@ -108,12 +110,10 @@ export default function AuditPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight">Nhật ký thao tác</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Theo dõi mọi thao tác trên hệ thống
-        </p>
-      </div>
+      <PageHeader
+        title="Nhật ký thao tác"
+        description="Theo dõi mọi thao tác trên hệ thống"
+      />
 
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
@@ -142,6 +142,8 @@ export default function AuditPage() {
             <SelectItem value="LOGOUT">Đăng xuất</SelectItem>
             <SelectItem value="EXPORT">Xuất file</SelectItem>
             <SelectItem value="SIGN">Ký xác nhận</SelectItem>
+            <SelectItem value="VIEW">Xem</SelectItem>
+            <SelectItem value="CONFIRM">Xác nhận</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -174,9 +176,9 @@ export default function AuditPage() {
               </div>
               <div className="grid grid-cols-[120px_1fr] gap-2 border-b pb-2">
                 <span className="text-muted-foreground">Hành động</span>
-                <Badge variant="secondary" className={ACTION_COLORS[selectedLog.action] ?? ""}>
+                <HisStatusBadge variant={ACTION_VARIANTS[selectedLog.action] ?? "waiting"}>
                   {ACTION_LABELS[selectedLog.action] ?? selectedLog.action}
-                </Badge>
+                </HisStatusBadge>
               </div>
               <div className="grid grid-cols-[120px_1fr] gap-2 border-b pb-2">
                 <span className="text-muted-foreground">Đối tượng</span>

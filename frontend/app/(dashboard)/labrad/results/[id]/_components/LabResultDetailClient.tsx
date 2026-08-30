@@ -109,7 +109,7 @@ export function LabResultDetailClient({ id }: Props) {
                 onClick={() => unverifyMutation.mutate(result.id)}
                 disabled={unverifyMutation.isPending}
               >
-                Hủy xác thực
+                Huỷ xác thực
               </Button>
               <Button variant="outline" onClick={() => window.open(getLabResultPdfUrl(result.id), "_blank")}>
                 In PDF
@@ -117,7 +117,7 @@ export function LabResultDetailClient({ id }: Props) {
             </>
           )}
           <Button variant="outline" onClick={() => setAmendDrawer(true)}>
-            Sửa / Amend
+            Sửa kết quả
           </Button>
         </div>
       </div>

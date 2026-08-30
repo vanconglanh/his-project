@@ -122,7 +122,7 @@ export function ExportReportDialog({ open, onOpenChange, reportType, filters, fi
           </div>
 
           {downloadUrl && (
-            <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+            <div className="flex items-center gap-2 rounded-md border border-status-done/20 bg-status-done/10 px-3 py-2 text-sm text-status-done">
               <span className="flex-1">File sẵn sàng tải xuống</span>
               <a
                 href={downloadUrl}

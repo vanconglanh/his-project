@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDrugs, useDeleteDrug, useSyncCucQld } from "@/lib/hooks/use-drugs";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/badge";
+import { HisStatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -48,8 +49,8 @@ export function DrugsPageClient() {
       header: "Tên thuốc",
       cell: (row: DrugMasterResponse) => (
         <div>
-          <p className="font-medium text-sm">{row.name_vi}</p>
-          {row.generic_name && <p className="text-xs text-muted-foreground">{row.generic_name}</p>}
+          <p className="font-medium text-sm">{row.name_vi || row.generic_name || row.code}</p>
+          {row.name_vi && row.generic_name && <p className="text-xs text-muted-foreground">{row.generic_name}</p>}
         </div>
       ),
     },
@@ -101,12 +102,9 @@ export function DrugsPageClient() {
       key: "status",
       header: "TT",
       cell: (row: DrugMasterResponse) => (
-        <Badge
-          className={row.status === "ACTIVE" ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100 text-gray-700 border-gray-300"}
-          variant="outline"
-        >
+        <HisStatusBadge variant={row.status === "ACTIVE" ? "done" : "waiting"} hideIcon>
           {row.status === "ACTIVE" ? "Hoạt động" : "Ẩn"}
-        </Badge>
+        </HisStatusBadge>
       ),
     },
     {
@@ -262,10 +260,10 @@ export function DrugsPageClient() {
       <ConfirmDialog
         open={!!deleteDrug}
         onOpenChange={(o) => !o && setDeleteDrug(null)}
-        title="Xóa thuốc"
-        description={`Bạn có chắc muốn xóa thuốc "${deleteDrug?.name_vi}"? Hành động này không thể hoàn tác.`}
+        title="Xoá thuốc"
+        description={`Bạn có chắc muốn xoá thuốc "${deleteDrug?.name_vi || deleteDrug?.generic_name || deleteDrug?.code}"? Hành động này không thể hoàn tác.`}
         variant="destructive"
-        confirmLabel="Xóa"
+        confirmLabel="Xoá"
         isLoading={deleteMutation.isPending}
         onConfirm={async () => {
           if (!deleteDrug) return;

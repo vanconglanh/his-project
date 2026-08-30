@@ -174,7 +174,7 @@ export function NotificationChannelsManager() {
                     <Icon className="h-4 w-4" />
                     {m.title}
                     {c.is_active ? (
-                      <Badge variant="outline" className="ml-auto border-green-300 text-green-700 bg-green-50">
+                      <Badge variant="outline" className="ml-auto border-status-done/30 text-status-done bg-status-done/10">
                         Đang bật
                       </Badge>
                     ) : (
@@ -187,7 +187,7 @@ export function NotificationChannelsManager() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2 text-sm">
                     {c.last_test_ok ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-300" variant="outline">
+                      <Badge className="bg-status-done/10 text-status-done border-status-done/30" variant="outline">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         Kết nối OK
                       </Badge>
@@ -277,7 +277,7 @@ export function NotificationChannelsManager() {
 
           <DialogFooter>
             <Button variant="outline" onClick={closeEditor} disabled={saving}>
-              Hủy
+              Huỷ
             </Button>
             <Button onClick={handleSubmit} disabled={saving}>
               {saving ? "Đang lưu..." : "Lưu cấu hình"}

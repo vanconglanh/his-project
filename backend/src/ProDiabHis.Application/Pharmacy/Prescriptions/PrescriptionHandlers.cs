@@ -137,8 +137,18 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
         var patientMap = new Dictionary<string, PatientSummary>();
         if (patientIds.Count > 0)
         {
+            // BUG FIX (BUG-01): bhyt_card_no_masked khong ton tai o bang diab_his_pat_patients,
+            // ma nam o bang diab_his_pat_insurances (cot card_no_masked). Lay so the BHYT
+            // (con hieu luc gan nhat) qua correlated subquery de tranh JOIN N-N lam trung dong.
             var patientRows = await conn.QueryAsync<dynamic>(
-                "SELECT id, full_name, gender, date_of_birth AS dob, bhyt_card_no_masked FROM diab_his_pat_patients WHERE id IN @ids AND deleted_at IS NULL",
+                @"SELECT p.id, p.full_name, p.gender, p.date_of_birth AS dob,
+                         (SELECT i.card_no_masked
+                          FROM diab_his_pat_insurances i
+                          WHERE i.patient_id = p.id AND i.deleted_at IS NULL
+                          ORDER BY i.valid_to DESC
+                          LIMIT 1) AS bhyt_card_no_masked
+                  FROM diab_his_pat_patients p
+                  WHERE p.id IN @ids AND p.deleted_at IS NULL",
                 new { ids = patientIds });
             foreach (var pr in patientRows)
             {

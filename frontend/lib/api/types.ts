@@ -900,7 +900,9 @@ export type AuditAction =
   | "LOGIN"
   | "LOGOUT"
   | "EXPORT"
-  | "SIGN";
+  | "SIGN"
+  | "VIEW"
+  | "CONFIRM";
 
 export interface AuditLogResponse {
   id: string;

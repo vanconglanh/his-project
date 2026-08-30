@@ -50,7 +50,7 @@ export function ConfirmDialog({
             variant={variant === "destructive" ? "destructive" : "default"}
             onClick={onConfirm}
             disabled={isLoading}
-            className={variant === "warning" ? "bg-yellow-600 hover:bg-yellow-700 text-white" : ""}
+            className={variant === "warning" ? "bg-status-warning hover:bg-status-warning/90 text-white" : ""}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {confirmLabel}

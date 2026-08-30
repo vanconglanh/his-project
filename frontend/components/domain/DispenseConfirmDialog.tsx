@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +62,7 @@ export function DispenseConfirmDialog({ open, onClose, item }: Props) {
 
         {lastDispenseId ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-md p-3 border border-green-200">
+            <div className="flex items-center gap-2 text-status-done bg-status-done/10 rounded-md p-3 border border-status-done/20">
               <p className="text-sm font-medium">Phát thuốc thành công!</p>
             </div>
             <div className="flex justify-between gap-2">
@@ -127,16 +127,18 @@ export function DispenseConfirmDialog({ open, onClose, item }: Props) {
               />
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={handleClose}>Hủy</Button>
-              <Button
-                onClick={handleDispense}
-                disabled={!warehouseId || dispense.isPending}
-              >
-                {dispense.isPending ? "Đang phát..." : "Xác nhận phát thuốc"}
-              </Button>
-            </div>
           </div>
+        )}
+        {!lastDispenseId && (
+          <SheetFooter className="flex-row justify-end gap-2 p-0 -mx-6 -mb-6 mt-4 px-6 pb-6 pt-4 border-t bg-muted/50">
+            <Button variant="outline" onClick={handleClose}>Huỷ</Button>
+            <Button
+              onClick={handleDispense}
+              disabled={!warehouseId || dispense.isPending}
+            >
+              {dispense.isPending ? "Đang phát..." : "Xác nhận phát thuốc"}
+            </Button>
+          </SheetFooter>
         )}
       </SheetContent>
     </Sheet>
