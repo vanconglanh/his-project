@@ -1,0 +1,79 @@
+So ban ghi lich su TRUOC = 5
+--- BANG XAC NHAN (full) ---
+Nhập kết quả máy InBody (PDF)
+Chưa chọn lượt khám (encounter) — không thể lưu cân nặng vào sinh hiệu. Vui lòng thao tác từ màn khám bệnh.
+Chỉ số
+Giá trị
+Trạng thái
+Dùng
+Cân nặng (kg)
+Đọc được
+BMI (kg/m²)
+Đọc được
+Khối cơ xương (SMM) (kg)
+Đọc được
+Khối lượng mỡ (kg)
+Đọc được
+Tỷ lệ mỡ cơ thể (PBF) (%)
+Đọc được
+Mỡ nội tạng
+Đọc được
+Tổng nước cơ thể (TBW) (L)
+Đọc được
+Chuyển hoá cơ bản (BMR) (kcal)
+Đọc được
+Điểm InBody (điểm)
+Đọc được
+Xác nhận & Lưu
+Huỷ, chọn file khác
+Close
+So field 'Doc duoc' = 9 ; 'Chua doc duoc' = 0
+So checkbox 'Dung' tich san = 9
+Toast sau confirm (patient dialog, KHONG co encounter) = ["Cần chọn lượt khám để ghi cân nặng vào sinh hiệu"]
+Canh bao encounter hien thi = 1
+--- BANG XAC NHAN (partial) ---
+Nhập kết quả máy InBody (PDF)
+Chưa chọn lượt khám (encounter) — không thể lưu cân nặng vào sinh hiệu. Vui lòng thao tác từ màn khám bệnh.
+Chỉ số
+Giá trị
+Trạng thái
+Dùng
+Cân nặng (kg)
+Đọc được
+BMI (kg/m²)
+Đọc được
+Khối cơ xương (SMM) (kg)
+Đọc được
+Khối lượng mỡ (kg)
+Chưa đọc được
+Tỷ lệ mỡ cơ thể (PBF) (%)
+Đọc được
+Mỡ nội tạng
+Chưa đọc được
+Tổng nước cơ thể (TBW) (L)
+Chưa đọc được
+Chuyển hoá cơ bản (BMR) (kcal)
+Chưa đọc được
+Điểm InBody (điểm)
+Chưa đọc được
+Xác nhận & Lưu
+Huỷ, chọn file khác
+Close
+partial: 'Doc duoc'=9 'Chua doc duoc'=5
+partial: nut Luu enabled = true
+Toast loi file rac = []
+Dialog con hien thi (khong crash) = true
+PAGEERROR: ["PAGEERROR: Request failed with status code 422","PAGEERROR: Request failed with status code 422"]
+So ban ghi lich su SAU = 7STEP9 toast (t=400ms) = ["Không đọc được file PDF, vui lòng kiểm tra lại file hoặc nhập tay"]
+STEP9 pageerror = ["Request failed with status code 422"]
+STEP9 dialog van song = true
+STEP2 trang encounter co chu 'sinh hieu' = true
+STEP2 cac nut tren trang: ["Tìm kiếm...⌘K","TDBS. Test Demo","Chờ kết quả CLS","Ký số bệnh án","In","Kết thúc khám","Xem tất cả","Ghi sinh hiệu","Xem chi tiết","Xem tất cả","Mẫu bệnh án","Lưu nháp"]STEP2 tab 'Nhap tu may InBody (PDF)' canh form nhap tay = true
+Canh bao thieu encounter (khong duoc hien) = 0
+STEP5 toast = ["Đã lưu kết quả InBody vào hồ sơ"]
+STEP8 trang encounter co '77.7' sau khi luu = false | co '77,7' = false
+PAGEERROR = []Card TRUOC (nhap tay):
+Sinh hiệu
+Xem tất cả
+Sau khi NHAP TAY 88.8 -> card hien 88.8 = false
+Sau RELOAD -> card hien 88.8 = trueDrawer sinh hieu chua 77.7 (InBody) = true | chua 88.8 (nhap tay) = true

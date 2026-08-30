@@ -1,0 +1,38 @@
+const fs = require("fs");
+const lib = require("D:/_Project/08.ATDS/02.Onetech/202501_CV10/_project/git/screen/_git/atds/his-project/frontend/e2e/qc-lib.js");
+const EVID = "D:/_Project/08.ATDS/02.Onetech/202501_CV10/_project/git/screen/_git/atds/his-project/docs/qc/evidence-inbody-ocr-20260830";
+const FULL = EVID + "/sample-inbody-full.pdf";
+const log = []; const L = s => { console.log(s); log.push(s); };
+(async () => {
+  const { browser, page } = await lib.newSession();
+  const errs = []; page.on("pageerror", e => errs.push(e.message));
+  await lib.quickLogin(page, "Bác sĩ");
+  await page.goto(lib.BASE + "/encounters/764e58fe-d048-4765-bb0e-8b3e0ac3b75b", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(4000);
+  await page.getByRole("button", { name: "Ghi sinh hiệu", exact: true }).click();
+  await page.waitForTimeout(2000);
+  await page.screenshot({ path: EVID + "/br-30-vital-sheet-tabs.png", fullPage: true });
+  const tab = page.getByRole("tab", { name: /Nhập từ máy InBody/ }).or(page.getByRole("button", { name: /Nhập từ máy InBody/ })).first();
+  L("STEP2 tab 'Nhap tu may InBody (PDF)' canh form nhap tay = " + await tab.isVisible().catch(()=>false));
+  await tab.click();
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: EVID + "/br-31-inbody-tab-in-sheet.png", fullPage: true });
+  const scope = page.locator('[role=dialog], [data-slot=sheet-content]').last();
+  await page.locator('input[type=file]').last().setInputFiles(FULL);
+  await page.waitForTimeout(600);
+  await page.getByRole("button", { name: /Tải lên & đọc/ }).click();
+  await page.waitForTimeout(5000);
+  await page.screenshot({ path: EVID + "/br-32-extract-in-encounter.png", fullPage: true });
+  L("Canh bao thieu encounter (khong duoc hien) = " + await page.locator("text=Chưa chọn lượt khám").count());
+  await page.getByLabel("Giá trị Cân nặng").fill("77.7");
+  await page.screenshot({ path: EVID + "/br-33-edit-weight-77.7.png", fullPage: true });
+  await page.getByRole("button", { name: /Xác nhận & Lưu/ }).click();
+  for (let i=0;i<12;i++){ const t = await page.locator("[data-sonner-toast]").allTextContents(); if(t.length){ L("STEP5 toast = " + JSON.stringify(t)); await page.screenshot({path: EVID+"/br-34-confirm-success-toast.png", fullPage:true}); break;} await page.waitForTimeout(400); if(i===11) L("STEP5 KHONG co toast"); }
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: EVID + "/br-35-after-save.png", fullPage: true });
+  const b = await page.locator("body").innerText();
+  L("STEP8 trang encounter co '77.7' sau khi luu = " + b.includes("77.7") + " | co '77,7' = " + b.includes("77,7"));
+  L("PAGEERROR = " + JSON.stringify(errs));
+  fs.writeFileSync("D:/tmp/inbodyqc/b4-log.txt", log.join("\n"));
+  await browser.close();
+})().catch(e => { console.error("FATAL", e.message); fs.writeFileSync("D:/tmp/inbodyqc/b4-log.txt", log.join("\n")+"\nFATAL "+e.message); });
