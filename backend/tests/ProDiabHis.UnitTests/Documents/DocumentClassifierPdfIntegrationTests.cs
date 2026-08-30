@@ -54,7 +54,7 @@ public class DocumentClassifierPdfIntegrationTests
         var rawText = ReadPdfText(pdfBytes);
 
         // Khong co encounter -> khong xet Lab; chi dua vao nhan dac trung InBody
-        var sut = new DocumentClassifierService(FakePendingLabTestsProvider.Empty());
+        var sut = new DocumentClassifierService(FakePendingLabTestsProvider.Empty(), FakePendingRadOrdersProvider.Empty());
         var result = await sut.ClassifyAsync(new DocumentClassifyInput(rawText, null), default);
 
         WriteEvidence("case1-inbody-tu-nhan-dien", pdfBytes, rawText, result);
@@ -72,7 +72,7 @@ public class DocumentClassifierPdfIntegrationTests
         var rawText = ReadPdfText(pdfBytes);
 
         // Ho so cu ngau nhien, khong khop InBody, khong co encounter/pending -> Legacy fallback an toan
-        var sut = new DocumentClassifierService(FakePendingLabTestsProvider.Empty());
+        var sut = new DocumentClassifierService(FakePendingLabTestsProvider.Empty(), FakePendingRadOrdersProvider.Empty());
         var result = await sut.ClassifyAsync(new DocumentClassifyInput(rawText, null), default);
 
         WriteEvidence("case2-ho-so-cu-mac-dinh-legacy", pdfBytes, rawText, result);
@@ -95,13 +95,30 @@ public class DocumentClassifierPdfIntegrationTests
             (Guid.NewGuid(), "HBA1C", "HbA1c"),
             (Guid.NewGuid(), "CHOL",  "Cholesterol toàn phần"),
         };
-        var sut = new DocumentClassifierService(new FakePendingLabTestsProvider(pending));
+        var sut = new DocumentClassifierService(new FakePendingLabTestsProvider(pending), FakePendingRadOrdersProvider.Empty());
         var result = await sut.ClassifyAsync(new DocumentClassifyInput(rawText, encounterId), default);
 
         WriteEvidence("case3-ket-qua-xet-nghiem", pdfBytes, rawText, result);
 
         Assert.Equal(DocumentType.LabResult, result.Type);
         Assert.True(result.Confidence >= 0.6, $"confidence={result.Confidence}");
+    }
+
+    [Fact]
+    public async Task RealRadPdf_WithMoTaVaKetLuan_ClassifiedAsRadResult()
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+        var pdfBytes = BuildRadResultPdf();
+        var rawText = ReadPdfText(pdfBytes);
+
+        var sut = new DocumentClassifierService(FakePendingLabTestsProvider.Empty(), FakePendingRadOrdersProvider.Empty());
+        var result = await sut.ClassifyAsync(new DocumentClassifyInput(rawText, null), default);
+
+        WriteEvidence("case4-ket-qua-cdha", pdfBytes, rawText, result);
+
+        Assert.Equal(DocumentType.RadResult, result.Type);
+        Assert.True(result.Confidence >= 0.6, $"confidence={result.Confidence}");
+        Assert.NotEmpty(result.Evidence);
     }
 
     private static byte[] BuildInBodyPdf() => Document.Create(container =>
@@ -154,6 +171,23 @@ public class DocumentClassifierPdfIntegrationTests
                 col.Item().Text("Glucose (đường huyết): 5.6 mmol/L");
                 col.Item().Text("HbA1c: 6.1 %");
                 col.Item().Text("Cholesterol toàn phần: 4.8 mmol/L");
+            });
+        });
+    }).GeneratePdf();
+
+    private static byte[] BuildRadResultPdf() => Document.Create(container =>
+    {
+        container.Page(page =>
+        {
+            page.Size(PageSizes.A4);
+            page.Margin(2, Unit.Centimetre);
+            page.DefaultTextStyle(x => x.FontSize(11));
+            page.Header().Text("KHOA CHẨN ĐOÁN HÌNH ẢNH - PHIẾU KẾT QUẢ X-QUANG").SemiBold().FontSize(14);
+            page.Content().PaddingVertical(10).Column(col =>
+            {
+                col.Item().Text("Mô tả: Phổi hai bên không thấy tổn thương. Tim không to. Vòm hoành hai bên đều.");
+                col.Item().Text("Kết luận: Chưa ghi nhận bất thường trên phim X-quang ngực thẳng.");
+                col.Item().Text("Bác sĩ đọc kết quả: BS. Nguyễn Văn A");
             });
         });
     }).GeneratePdf();

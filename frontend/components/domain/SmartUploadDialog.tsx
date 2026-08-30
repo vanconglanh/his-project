@@ -36,6 +36,7 @@ import type { LabOcrExtractedField } from "@/lib/api/lab-results";
 const TYPE_LABELS: Record<SmartDocumentType, string> = {
   InBody: "Kết quả InBody",
   LabResult: "Kết quả xét nghiệm",
+  RadResult: "Kết quả CĐHA",
   Legacy: "Hồ sơ cũ",
   Unknown: "Chưa xác định",
 };
@@ -92,6 +93,7 @@ export function SmartUploadDialog({
     !!result &&
     !result.in_body &&
     !result.lab_result &&
+    !result.rad_result &&
     !result.requires_encounter &&
     (result.classification.type === "Legacy" ||
       result.classification.type === "Unknown" ||
@@ -145,7 +147,7 @@ export function SmartUploadDialog({
             Tải tài liệu lên — tự nhận diện loại
           </DialogTitle>
           <DialogDescription>
-            Hệ thống sẽ đọc file (OCR) và tự phân loại: InBody / Kết quả xét nghiệm / Hồ sơ cũ.
+            Hệ thống sẽ đọc file (OCR) và tự phân loại: InBody / Kết quả xét nghiệm / Kết quả CĐHA / Hồ sơ cũ.
           </DialogDescription>
         </DialogHeader>
 
@@ -241,7 +243,20 @@ export function SmartUploadDialog({
               </>
             )}
 
-            {!result.in_body && !result.lab_result && result.requires_encounter && (
+            {!result.in_body && !result.lab_result && result.rad_result && (
+              <>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                  Đã nhận diện: Kết quả CĐHA — vui lòng chuyển sang tab &quot;Kết quả CLS&quot; để chọn chỉ định CĐHA tương ứng và xác nhận.
+                </p>
+                <RadResultSmartConfirm
+                  result={result.rad_result}
+                  onNavigateTab={onNavigateTab}
+                  onClose={() => handleClose(false)}
+                />
+              </>
+            )}
+
+            {!result.in_body && !result.lab_result && !result.rad_result && result.requires_encounter && (
               <RequiresEncounterPanel
                 encounterOptions={encounterOptions}
                 encounterId={encounterId}
@@ -276,7 +291,12 @@ export function SmartUploadDialog({
               {smartUploadMutation.isPending ? "Đang phân tích..." : "Phân tích"}
             </Button>
           )}
-          {result && !result.in_body && !result.lab_result && !result.requires_encounter && !isAmbiguous && (
+          {result &&
+            !result.in_body &&
+            !result.lab_result &&
+            !result.rad_result &&
+            !result.requires_encounter &&
+            !isAmbiguous && (
             <Button
               variant="outline"
               onClick={() => {
@@ -419,6 +439,7 @@ function AmbiguousTypePanel({
           <SelectContent>
             <SelectItem value="InBody">Kết quả InBody</SelectItem>
             <SelectItem value="LabResult">Kết quả xét nghiệm</SelectItem>
+            <SelectItem value="RadResult">Kết quả CĐHA</SelectItem>
             <SelectItem value="Legacy">Hồ sơ cũ</SelectItem>
           </SelectContent>
         </Select>
@@ -451,6 +472,24 @@ function AmbiguousTypePanel({
           <div className="space-y-2">
             <p className="text-xs">
               Vui lòng chuyển sang tab &quot;Kết quả CLS&quot; để tải lại file và xác nhận kết quả xét nghiệm.
+            </p>
+            <Button
+              size="sm"
+              className="min-h-[44px]"
+              onClick={() => {
+                onNavigateTab?.("cls");
+                onClose();
+              }}
+            >
+              Chuyển tới tab Kết quả CLS
+            </Button>
+          </div>
+        )}
+
+        {manualType === "RadResult" && (
+          <div className="space-y-2">
+            <p className="text-xs">
+              Vui lòng chuyển sang tab &quot;Kết quả CLS&quot; để tải lại file và xác nhận kết quả CĐHA.
             </p>
             <Button
               size="sm"
@@ -553,6 +592,46 @@ function InBodySmartConfirm({
       </div>
       <Button onClick={handleConfirm} disabled={confirmMutation.isPending} className="min-h-[44px]">
         {confirmMutation.isPending ? "Đang lưu..." : "Xác nhận & Lưu"}
+      </Button>
+    </div>
+  );
+}
+
+// ─── Khối kết quả CĐHA (chỉ đọc trước, cần chọn RadOrder ở tab CLS mới xác nhận
+// được — khác InBody/LabResult vì luồng xác nhận CĐHA yêu cầu chọn radOrderId) ─
+
+function RadResultSmartConfirm({
+  result,
+  onNavigateTab,
+  onClose,
+}: {
+  result: NonNullable<SmartUploadResponse["rad_result"]>;
+  onNavigateTab?: (tabId: "inbody" | "cls" | "legacy-docs") => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {result.findings && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Mô tả</p>
+          <p className="text-sm whitespace-pre-wrap">{result.findings}</p>
+        </div>
+      )}
+      {result.conclusion && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Kết luận</p>
+          <p className="text-sm whitespace-pre-wrap">{result.conclusion}</p>
+        </div>
+      )}
+      <Button
+        size="sm"
+        className="min-h-[44px]"
+        onClick={() => {
+          onNavigateTab?.("cls");
+          onClose();
+        }}
+      >
+        Chuyển tới tab Kết quả CLS để chọn chỉ định &amp; xác nhận
       </Button>
     </div>
   );

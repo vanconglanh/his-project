@@ -1,0 +1,10 @@
+File           : case4-ket-qua-cdha.pdf
+Loai nhan dien : RadResult
+Do tin cay     : 0.90
+Bang chung     : Mô tả/Nhận xét, Kết luận
+Ung vien       :
+   - RadResult  score=0.90 evidence=Mô tả/Nhận xét, Kết luận
+   - Legacy     score=0.50 evidence=
+
+--- RAW TEXT DOC TU PDF ---
+KHOA CHẨN ĐOÁN HÌNH ẢNH - PHIẾU KẾT QUẢ X-QUANGMô tả: Phổi hai bên không thấy tổn thương. Tim không to. Vòm hoành hai bên đều.Kết luận: Chưa ghi nhận bất thường trên phim X-quang ngực thẳng.Bác sĩ đọc kết quả: BS. Nguyễn Văn A

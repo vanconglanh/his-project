@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using ProDiabHis.Application.RadResults.Ocr;
 
 namespace ProDiabHis.Application.Documents;
 
@@ -14,6 +15,12 @@ namespace ProDiabHis.Application.Documents;
 //  - LabResult: chi xet khi co EncounterId (moi biet pending list). Dem so ten/ma XN
 //            dang cho khop trong text (word-boundary, tranh false positive voi ma <4 ky tu).
 //            >=3 khop -> 0.9, 2 khop -> 0.75, 1 khop -> 0.55.
+//  - RadResult: tai dung RadResultOcrParser (marker "Mo ta"/"Nhan xet"/"Ket luan"/"De nghi")
+//            de tach section. Ca Findings VA Conclusion cung khop -> 0.9 (2 nhan dac thu phieu
+//            CDHA, it trung voi van ban khac). Chi 1 trong 2 khop KHONG du de ket luan (vd chu
+//            "Chan doan" cung xuat hien trong ho so thong thuong) — chi tinh diem khi co
+//            EncounterId VA dang co RadOrder cho ket qua (0.55), giong cach LabResult chi xet
+//            khi co pending list doi chieu.
 //  - Uu tien InBody khi ca 2 cung khop (nhan InBody rat dac thu, it trung voi ten XN).
 //  - Khong khop gi -> Legacy, score 0.5 (fallback an toan, FE luon cho sua vi < nguong).
 //  - CONFIDENCE_THRESHOLD = 0.6: neu diem cao nhat < 0.6 VA co >1 candidate canh tranh
@@ -36,10 +43,14 @@ public class DocumentClassifierService : IDocumentClassifier
     };
 
     private readonly IPendingLabTestsProvider _pendingLabTestsProvider;
+    private readonly IPendingRadOrdersProvider _pendingRadOrdersProvider;
 
-    public DocumentClassifierService(IPendingLabTestsProvider pendingLabTestsProvider)
+    public DocumentClassifierService(
+        IPendingLabTestsProvider pendingLabTestsProvider,
+        IPendingRadOrdersProvider pendingRadOrdersProvider)
     {
         _pendingLabTestsProvider = pendingLabTestsProvider;
+        _pendingRadOrdersProvider = pendingRadOrdersProvider;
     }
 
     public async Task<DocumentClassifyResult> ClassifyAsync(DocumentClassifyInput input, CancellationToken ct)
@@ -48,11 +59,12 @@ public class DocumentClassifierService : IDocumentClassifier
 
         var inBodyCandidate = ClassifyInBody(normalized);
         var labCandidate = await ClassifyLabResultAsync(normalized, input.EncounterId, ct);
+        var radCandidate = await ClassifyRadResultAsync(input.OcrText, input.EncounterId, ct);
 
         // Legacy fallback luon co mat voi score co dinh 0.5 — dam bao luon co it nhat 1 candidate.
         var legacyCandidate = new DocumentTypeCandidate(DocumentType.Legacy, 0.5, Array.Empty<string>());
 
-        var candidates = new List<DocumentTypeCandidate> { inBodyCandidate, labCandidate, legacyCandidate }
+        var candidates = new List<DocumentTypeCandidate> { inBodyCandidate, labCandidate, radCandidate, legacyCandidate }
             .Where(c => c.Score > 0)
             .OrderByDescending(c => c.Score)
             .ToList();
@@ -120,6 +132,44 @@ public class DocumentClassifierService : IDocumentClassifier
             _ => 0.0
         };
         return new DocumentTypeCandidate(DocumentType.LabResult, score, evidence);
+    }
+
+    /// <summary>
+    /// RadResult: tai dung RadResultOcrParser (nhan "Mo ta"/"Nhan xet"/"Ket luan"/"De nghi"...)
+    /// de tach section tren text GOC (parser tu chuan hoa noi bo, khong dau nhung giu 1-1 index).
+    /// Ca Findings va Conclusion cung khop -> tin cay cao (phieu CDHA du 2 phan chinh); chi 1
+    /// trong 2 -> tin cay trung binh, co the boost bang pending RadOrder (giong cach LabResult
+    /// doi chieu pending list).
+    /// </summary>
+    private async Task<DocumentTypeCandidate> ClassifyRadResultAsync(
+        string rawText, Guid? encounterId, CancellationToken ct)
+    {
+        var parsed = RadResultOcrParser.Parse(rawText);
+        var hasFindings = !string.IsNullOrWhiteSpace(parsed.Findings);
+        var hasConclusion = !string.IsNullOrWhiteSpace(parsed.Conclusion);
+        var matchedCount = (hasFindings ? 1 : 0) + (hasConclusion ? 1 : 0);
+
+        if (matchedCount == 0)
+            return new DocumentTypeCandidate(DocumentType.RadResult, 0.0, Array.Empty<string>());
+
+        var evidence = new List<string>();
+        if (hasFindings) evidence.Add("Mô tả/Nhận xét");
+        if (hasConclusion) evidence.Add("Kết luận");
+
+        // Ca 2 nhan cung khop -> du dac thu de ket luan RadResult ngay ca khong co encounter.
+        if (matchedCount >= 2)
+            return new DocumentTypeCandidate(DocumentType.RadResult, 0.9, evidence);
+
+        // Chi 1 nhan khop -> chua chac chan (co the trung voi ho so thong thuong khac), chi tinh
+        // diem khi co EncounterId VA dang co RadOrder cho ket qua doi chieu.
+        if (encounterId is not null)
+        {
+            var hasPending = await _pendingRadOrdersProvider.HasPendingAsync(encounterId.Value, ct);
+            if (hasPending)
+                return new DocumentTypeCandidate(DocumentType.RadResult, 0.55, evidence);
+        }
+
+        return new DocumentTypeCandidate(DocumentType.RadResult, 0.0, Array.Empty<string>());
     }
 
     /// <summary>

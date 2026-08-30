@@ -17,6 +17,7 @@ public enum DocumentType
 {
     InBody,
     LabResult,
+    RadResult,
     Legacy,
     Unknown
 }
@@ -48,4 +49,14 @@ public interface IPendingLabTestsProvider
 {
     Task<IReadOnlyList<(Guid LabOrderItemId, string TestCode, string TestName)>> GetPendingAsync(
         Guid encounterId, CancellationToken ct);
+}
+
+/// <summary>
+/// Nguon lay danh sach chi dinh CDHA (RadOrder) dang cho ket qua cua 1 encounter, dung de
+/// doi chieu (boost do tin cay) khi phan loai tai lieu la RadResult. Impl o Infrastructure
+/// (Dapper), interface dat o Application de DocumentClassifierService thuan & unit-test duoc.
+/// </summary>
+public interface IPendingRadOrdersProvider
+{
+    Task<bool> HasPendingAsync(Guid encounterId, CancellationToken ct);
 }

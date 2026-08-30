@@ -2,12 +2,14 @@ using MediatR;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.InBody;
 using ProDiabHis.Application.LabResults.Ocr;
+using ProDiabHis.Application.RadResults.Ocr;
 
 namespace ProDiabHis.Application.Documents;
 
 /// <summary>
 /// Handler dieu phoi (orchestrator) — KHONG ghi DB truc tiep, chi goi lai
-/// UploadInBodyReportCommand / ExtractLabResultOcrCommand da co san qua IMediator.
+/// UploadInBodyReportCommand / ExtractLabResultOcrCommand / ExtractRadResultOcrCommand da co san
+/// qua IMediator.
 /// </summary>
 public class SmartUploadCommandHandler : IRequestHandler<SmartUploadCommand, Result<SmartUploadResponse>>
 {
@@ -38,6 +40,7 @@ public class SmartUploadCommandHandler : IRequestHandler<SmartUploadCommand, Res
 
         InBodyReportResponse? inBody = null;
         LabOcrExtractResponse? labResult = null;
+        RadOcrExtractResponse? radResult = null;
         var requiresEncounter = false;
 
         if (classification.Type == DocumentType.InBody && classification.Confidence >= ConfidenceThreshold)
@@ -63,8 +66,18 @@ public class SmartUploadCommandHandler : IRequestHandler<SmartUploadCommand, Res
                     labResult = labOcrResult.Value;
             }
         }
+        else if (classification.Type == DocumentType.RadResult && classification.Confidence >= ConfidenceThreshold)
+        {
+            // ExtractRadResultOcrCommand khong ghi DB (stateless), chua can RadOrderId/EncounterId
+            // o buoc extract — nguoi dung chon RadOrder khi xac nhan (ocr-confirm) nen khong yeu cau
+            // EncounterId ngay tai day.
+            var radOcrResult = await _mediator.Send(
+                new ExtractRadResultOcrCommand(new MemoryStream(cmd.FileBytes), cmd.FileName, cmd.ContentType), ct);
+            if (radOcrResult.IsSuccess)
+                radResult = radOcrResult.Value;
+        }
 
-        var response = new SmartUploadResponse(classification, requiresEncounter, preview, inBody, labResult);
+        var response = new SmartUploadResponse(classification, requiresEncounter, preview, inBody, labResult, radResult);
         return Result<SmartUploadResponse>.Success(response);
     }
 }

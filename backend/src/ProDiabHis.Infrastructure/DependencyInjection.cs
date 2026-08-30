@@ -586,8 +586,9 @@ public static class DependencyInjection
         // Rad OCR (CDHA X-quang/Sieu am/CT) — tai dung IPdfTextExtractor + IOcrTextProvider, chi them provider dieu phoi.
         services.AddScoped<Application.RadResults.Ocr.IRadOcrTextProvider, Rad.RadOcrTextProvider>();
 
-        // Document smart-upload classifier — dieu phoi tai lieu OCR sang dung luong (InBody/LabResult).
+        // Document smart-upload classifier — dieu phoi tai lieu OCR sang dung luong (InBody/LabResult/RadResult).
         services.AddScoped<Application.Documents.IPendingLabTestsProvider, Documents.PendingLabTestsProvider>();
+        services.AddScoped<Application.Documents.IPendingRadOrdersProvider, Documents.PendingRadOrdersProvider>();
         services.AddScoped<Application.Documents.IDocumentClassifier, Application.Documents.DocumentClassifierService>();
 
         return services;

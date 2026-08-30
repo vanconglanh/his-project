@@ -16,12 +16,28 @@ public class FakePendingLabTestsProvider : IPendingLabTestsProvider
         Guid encounterId, CancellationToken ct) => Task.FromResult(_pending);
 }
 
+/// <summary>Fake IPendingRadOrdersProvider — khong can DB thuc, tra co/khong co pending cau hinh san.</summary>
+public class FakePendingRadOrdersProvider : IPendingRadOrdersProvider
+{
+    private readonly bool _hasPending;
+
+    public FakePendingRadOrdersProvider(bool hasPending) => _hasPending = hasPending;
+
+    public static FakePendingRadOrdersProvider Empty() => new(false);
+
+    public Task<bool> HasPendingAsync(Guid encounterId, CancellationToken ct) => Task.FromResult(_hasPending);
+}
+
 public class DocumentClassifierServiceTests
 {
+    private static DocumentClassifierService CreateSut(
+        IPendingLabTestsProvider? lab = null, IPendingRadOrdersProvider? rad = null)
+        => new(lab ?? FakePendingLabTestsProvider.Empty(), rad ?? FakePendingRadOrdersProvider.Empty());
+
     [Fact]
     public async Task ClassifyAsync_InBodyText_ReturnsInBodyWithHighConfidence()
     {
-        var sut = new DocumentClassifierService(FakePendingLabTestsProvider.Empty());
+        var sut = CreateSut();
         var text = "KET QUA DO THANH PHAN CO THE\nInBody Score: 78\nPercent Body Fat: 22.5%\n";
 
         var result = await sut.ClassifyAsync(new DocumentClassifyInput(text, null), default);
@@ -34,7 +50,7 @@ public class DocumentClassifierServiceTests
     [Fact]
     public async Task ClassifyAsync_RandomTextNoPending_ReturnsLegacyWithFallbackConfidence()
     {
-        var sut = new DocumentClassifierService(FakePendingLabTestsProvider.Empty());
+        var sut = CreateSut();
         var text = "Day la mot van ban bat ky khong lien quan gi den y te ca.";
 
         var result = await sut.ClassifyAsync(new DocumentClassifyInput(text, null), default);
@@ -53,7 +69,7 @@ public class DocumentClassifierServiceTests
             (Guid.NewGuid(), "HBA1C", "HbA1c"),
             (Guid.NewGuid(), "CHOL", "Cholesterol toan phan")
         };
-        var sut = new DocumentClassifierService(new FakePendingLabTestsProvider(pending));
+        var sut = CreateSut(lab: new FakePendingLabTestsProvider(pending));
         var text = "PHIEU KET QUA XET NGHIEM\nGlucose: 5.6 mmol/L\nHbA1c: 6.1 %\nCholesterol toan phan: 4.8 mmol/L\n";
 
         var result = await sut.ClassifyAsync(new DocumentClassifyInput(text, encounterId), default);
@@ -65,7 +81,7 @@ public class DocumentClassifierServiceTests
     [Fact]
     public async Task ClassifyAsync_SingleInBodyLabelNoPending_ReturnsLowConfidenceWithCandidates()
     {
-        var sut = new DocumentClassifierService(FakePendingLabTestsProvider.Empty());
+        var sut = CreateSut();
         var text = "Bao cao co PBF trong do nhung khong co nhan nao khac.";
 
         var result = await sut.ClassifyAsync(new DocumentClassifyInput(text, null), default);
@@ -75,5 +91,49 @@ public class DocumentClassifierServiceTests
         // diem so "1 khop -> 0.6" trung dung nguong CONFIDENCE_THRESHOLD.
         Assert.True(result.Confidence <= 0.6);
         Assert.NotEmpty(result.Candidates);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_RadResultTextWithFindingsAndConclusion_ReturnsRadResultWithHighConfidence()
+    {
+        var sut = CreateSut();
+        var text = "PHIEU KET QUA X-QUANG\n" +
+                    "Mo ta: Phoi hai ben khong thay thuong ton. Tim khong to.\n" +
+                    "Ket luan: Chua ghi nhan bat thuong.\n" +
+                    "Bac si doc ket qua: Nguyen Van A\n";
+
+        var result = await sut.ClassifyAsync(new DocumentClassifyInput(text, null), default);
+
+        Assert.Equal(DocumentType.RadResult, result.Type);
+        Assert.True(result.Confidence >= 0.6);
+        Assert.Contains(result.Evidence, e => e.Contains("Kết luận"));
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_RadResultSingleMarkerNoPending_ReturnsZeroScoreForRadResult()
+    {
+        // Chi 1 nhan ("Mo ta") khop VA khong co RadOrder dang cho -> chua du can cu, khong tinh
+        // diem cho RadResult (tranh nham voi van ban khac cung co tu "mo ta").
+        var text = "Mo ta chung ve tinh trang suc khoe, khong co gi dac biet.";
+
+        var sut = CreateSut();
+        var result = await sut.ClassifyAsync(new DocumentClassifyInput(text, null), default);
+
+        Assert.DoesNotContain(result.Candidates, c => c.Type == DocumentType.RadResult);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_RadResultSingleMarkerWithPendingRadOrder_ReturnsUnknownButCandidateListed()
+    {
+        // Chi 1 nhan khop nhung co RadOrder dang cho ket qua -> co diem (0.55) nhung < nguong
+        // 0.6 va canh tranh voi Legacy (0.5) -> Type = Unknown, van kem Candidates de FE cho chon.
+        var encounterId = Guid.NewGuid();
+        var sut = CreateSut(rad: new FakePendingRadOrdersProvider(true));
+        var text = "PHIEU KET QUA SIEU AM\nMo ta: Gan, mat, tuy, lach, than trong gioi han binh thuong.\n";
+
+        var result = await sut.ClassifyAsync(new DocumentClassifyInput(text, encounterId), default);
+
+        Assert.Equal(DocumentType.Unknown, result.Type);
+        Assert.Contains(result.Candidates, c => c.Type == DocumentType.RadResult && c.Score == 0.55);
     }
 }
