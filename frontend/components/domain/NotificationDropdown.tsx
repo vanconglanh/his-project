@@ -39,7 +39,7 @@ export function NotificationDropdown() {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon" className="relative" aria-label="Thông báo">
+          <Button variant="ghost" size="icon" className="relative" aria-label="Thông báo" data-tour="notifications">
             <Bell className="h-4 w-4" />
             {unreadCount !== null && unreadCount > 0 && (
               <Badge

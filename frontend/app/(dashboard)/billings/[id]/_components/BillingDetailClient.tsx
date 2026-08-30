@@ -125,19 +125,19 @@ export function BillingDetailClient({ id }: Props) {
 
         <div className="flex flex-wrap items-center gap-2">
           {canFinalize && (
-            <Button variant="outline" size="sm" onClick={handleFinalize} disabled={finalize.isPending}>
+            <Button data-tour="bill-confirm" variant="outline" size="sm" onClick={handleFinalize} disabled={finalize.isPending}>
               <CheckCircle className="mr-2 h-4 w-4" />
               Xác nhận hoá đơn
             </Button>
           )}
           {canPay && (
-            <Button size="sm" onClick={() => setPayOpen(true)}>
+            <Button data-tour="bill-pay" size="sm" onClick={() => setPayOpen(true)}>
               <CreditCard className="mr-2 h-4 w-4" />
               Thu tiền
             </Button>
           )}
           {canPay && (
-            <Button variant="outline" size="sm" onClick={() => setQrOpen(true)}>
+            <Button data-tour="bill-qr" variant="outline" size="sm" onClick={() => setQrOpen(true)}>
               <QrCode className="mr-2 h-4 w-4" />
               Thanh toán QR
             </Button>
@@ -159,7 +159,7 @@ export function BillingDetailClient({ id }: Props) {
         {/* Left: items + summary */}
         <div className="space-y-6 lg:col-span-2">
           {/* Items table */}
-          <Card>
+          <Card data-tour="bill-items">
             <CardHeader>
               <CardTitle className="text-base">Mục hoá đơn</CardTitle>
             </CardHeader>
@@ -233,7 +233,7 @@ export function BillingDetailClient({ id }: Props) {
         {/* Right: summary + BHYT + eInvoice */}
         <div className="space-y-4">
           {/* Summary */}
-          <Card>
+          <Card data-tour="bill-summary">
             <CardHeader>
               <CardTitle className="text-base">Tổng hợp</CardTitle>
             </CardHeader>
@@ -262,6 +262,7 @@ export function BillingDetailClient({ id }: Props) {
             <Card>
               <CardContent className="pt-4">
                 <Button
+                  data-tour="bill-bhyt"
                   variant="outline"
                   className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
                   onClick={() => setBhytOpen(true)}

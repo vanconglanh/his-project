@@ -85,6 +85,7 @@ export function EncounterTabs({
           "sticky top-14 z-10 flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-none",
           "border-b border-border bg-card/95 p-0 backdrop-blur"
         )}
+        data-tour="enc-tabs"
       >
         {ENCOUNTER_TAB_VALUES.map((tab) => {
           const meta = TAB_META[tab];

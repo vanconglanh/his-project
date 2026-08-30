@@ -59,6 +59,7 @@ export function DispenseTab() {
               <div className="relative max-w-sm">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
+                  data-tour="pharmacy-dispense-search"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Tìm bệnh nhân..."

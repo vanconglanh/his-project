@@ -38,7 +38,7 @@ export function PharmacyPageClient() {
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <TabsList className="flex-wrap h-auto">
+        <TabsList data-tour="pharmacy-tabs" className="flex-wrap h-auto">
           <TabsTrigger value="stock">Tồn kho</TabsTrigger>
           <TabsTrigger value="warehouse">Nhập kho</TabsTrigger>
           <TabsTrigger value="dispense">Phát thuốc</TabsTrigger>

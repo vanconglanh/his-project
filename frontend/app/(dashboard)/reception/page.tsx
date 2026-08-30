@@ -77,7 +77,11 @@ export default function ReceptionPage() {
         title="Tiếp đón bệnh nhân"
         description="Quản lý danh sách bệnh nhân chờ khám"
         actions={
-          <Link href="/patients/new?returnTo=/reception" className={cn(buttonVariants({ variant: "default" }), "gap-2")}>
+          <Link
+            href="/patients/new?returnTo=/reception"
+            className={cn(buttonVariants({ variant: "default" }), "gap-2")}
+            data-tour="reception-add-patient"
+          >
             <UserPlus className="h-4 w-4" />
             Thêm bệnh nhân
             <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
@@ -86,7 +90,7 @@ export default function ReceptionPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-tour="reception-stats">
         {statsCards.map(({ label, value, icon: Icon, color }) => (
           <Card key={label}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -107,14 +111,14 @@ export default function ReceptionPage() {
       {/* Main split layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
         {/* Left: Check-in form */}
-        <div className="border rounded-lg p-4 bg-card">
+        <div className="border rounded-lg p-4 bg-card" data-tour="reception-checkin-form">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
             <ReceptionCheckInPanel />
           </Suspense>
         </div>
 
         {/* Right: Queue board */}
-        <div className="border rounded-lg p-4 bg-card">
+        <div className="border rounded-lg p-4 bg-card" data-tour="reception-queue">
           <h3 className="font-semibold mb-4">Bảng hàng đợi</h3>
           <ReceptionQueueBoard />
         </div>

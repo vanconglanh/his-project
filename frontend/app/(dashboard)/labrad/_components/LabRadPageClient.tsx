@@ -17,7 +17,7 @@ export function LabRadPageClient() {
       </div>
 
       <Tabs defaultValue="lab-results">
-        <TabsList className="flex-wrap h-auto gap-1">
+        <TabsList className="flex-wrap h-auto gap-1" data-tour="labrad-tabs">
           <TabsTrigger value="lab-results">Kết quả xét nghiệm</TabsTrigger>
           <TabsTrigger value="rad-results">Kết quả CĐHA</TabsTrigger>
           <TabsTrigger value="partners">Đối tác lab</TabsTrigger>

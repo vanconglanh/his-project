@@ -189,6 +189,7 @@ export function BranchesPageClient() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            data-tour="branch-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Tìm chi nhánh..."
@@ -196,6 +197,7 @@ export function BranchesPageClient() {
           />
         </div>
         <Button
+          data-tour="branch-clone"
           size="sm"
           variant="outline"
           onClick={() => {
@@ -206,7 +208,7 @@ export function BranchesPageClient() {
           <Copy className="h-4 w-4 mr-2" />
           Nhân bản
         </Button>
-        <Button size="sm" onClick={() => router.push("/admin/branches/new")}>
+        <Button data-tour="branch-create" size="sm" onClick={() => router.push("/admin/branches/new")}>
           <Plus className="h-4 w-4 mr-2" />
           Tạo chi nhánh
         </Button>
@@ -219,16 +221,18 @@ export function BranchesPageClient() {
           ))}
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={branches}
-          onRowDoubleClick={(row) => router.push(`/admin/branches/${row.id}/edit`)}
-          emptyState={
-            <div className="py-10 text-center text-sm text-muted-foreground">
-              Chưa có chi nhánh nào. Bấm "Tạo chi nhánh" để thêm mới.
-            </div>
-          }
-        />
+        <div data-tour="branch-table">
+          <DataTable
+            columns={columns}
+            data={branches}
+            onRowDoubleClick={(row) => router.push(`/admin/branches/${row.id}/edit`)}
+            emptyState={
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                Chưa có chi nhánh nào. Bấm "Tạo chi nhánh" để thêm mới.
+              </div>
+            }
+          />
+        </div>
       )}
 
       <ConfirmDialog

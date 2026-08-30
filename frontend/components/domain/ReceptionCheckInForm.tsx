@@ -226,7 +226,9 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
       </div>
 
       {/* Quét CCCD để tự động tìm/tạo bệnh nhân (US-QR-001) */}
-      <CccdQrScanner onScanned={handleCccdScanned} />
+      <div data-tour="reception-qr-scan">
+        <CccdQrScanner onScanned={handleCccdScanned} />
+      </div>
 
       {/* Patient search */}
       <div className="space-y-1">

@@ -80,6 +80,7 @@ export function BranchSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Chọn chi nhánh đang làm việc"
+        data-tour="branch-switcher"
         className="flex items-center gap-1.5 px-2.5 min-h-[36px] text-sm font-medium rounded-md border border-border hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />

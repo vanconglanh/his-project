@@ -3,6 +3,7 @@ import { AppTopbar } from "@/components/layout/AppTopbar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ShortcutsModal } from "@/components/layout/ShortcutsModal";
 import { GlobalKeyHandler } from "@/components/layout/GlobalKeyHandler";
+import { OnboardingTour } from "@/components/domain/OnboardingTour";
 
 export default function DashboardLayout({
   children,
@@ -20,6 +21,7 @@ export default function DashboardLayout({
       <CommandPalette />
       <ShortcutsModal />
       <GlobalKeyHandler />
+      <OnboardingTour />
     </div>
   );
 }

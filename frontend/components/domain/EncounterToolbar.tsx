@@ -91,7 +91,12 @@ export function EncounterToolbar({
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
         {isWaiting && (
-          <Button className="min-h-[44px] gap-2" onClick={onStart} disabled={isPending}>
+          <Button
+            className="min-h-[44px] gap-2"
+            onClick={onStart}
+            disabled={isPending}
+            data-tour="enc-start"
+          >
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
@@ -132,6 +137,7 @@ export function EncounterToolbar({
             className="min-h-[44px] gap-2"
             onClick={onSignEmr}
             disabled={isEmrSigned}
+            data-tour="enc-sign"
           >
             <PenTool className="h-4 w-4" aria-hidden="true" />
             {isEmrSigned ? "Đã ký số bệnh án" : "Ký số bệnh án"}
@@ -157,6 +163,7 @@ export function EncounterToolbar({
             className="min-h-[44px] gap-2"
             onClick={() => setConfirmClose(true)}
             disabled={!canEdit || isPending}
+            data-tour="enc-finish"
           >
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

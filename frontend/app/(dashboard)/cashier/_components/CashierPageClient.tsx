@@ -54,17 +54,18 @@ export function CashierPageClient() {
             {shiftLoading ? (
               <Skeleton className="h-9 w-32" />
             ) : isOpen ? (
-              <Button variant="destructive" size="sm" onClick={() => setCloseShiftDialog(true)}>
+              <Button data-tour="cashier-shift" variant="destructive" size="sm" onClick={() => setCloseShiftDialog(true)}>
                 <StopCircle className="mr-2 h-4 w-4" />
                 Đóng ca
               </Button>
             ) : (
-              <Button size="sm" onClick={() => setOpenShiftDialog(true)}>
+              <Button data-tour="cashier-shift" size="sm" onClick={() => setOpenShiftDialog(true)}>
                 <Play className="mr-2 h-4 w-4" />
                 Mở ca
               </Button>
             )}
             <Badge
+              data-tour="cashier-shift-status"
               variant="outline"
               className={cn(
                 "px-3 py-1 text-sm font-semibold",
@@ -80,7 +81,7 @@ export function CashierPageClient() {
       />
 
       {/* Stats cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div data-tour="cashier-stats" className="grid gap-4 md:grid-cols-4">
         <StatCard
           title="Tổng thu hôm nay"
           value={formatCurrency(totalToday)}
@@ -113,7 +114,7 @@ export function CashierPageClient() {
 
       {/* Tabs */}
       <Tabs defaultValue="pending">
-        <TabsList className="w-full md:w-auto">
+        <TabsList data-tour="cashier-tabs" className="w-full md:w-auto">
           <TabsTrigger value="pending">Hoá đơn chờ thu</TabsTrigger>
           <TabsTrigger value="history">Lịch sử hôm nay</TabsTrigger>
           <TabsTrigger value="debts">Công nợ</TabsTrigger>

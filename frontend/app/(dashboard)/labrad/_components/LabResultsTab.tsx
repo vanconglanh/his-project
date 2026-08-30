@@ -78,6 +78,7 @@ export function LabResultsTab() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Tìm chỉ số xét nghiệm"
+          data-tour="labrad-search"
         />
 
         <Select
@@ -85,7 +86,7 @@ export function LabResultsTab() {
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as LabResultStatus | "ALL")}
         >
-          <SelectTrigger className="w-40" aria-label="Lọc trạng thái">
+          <SelectTrigger className="w-40" aria-label="Lọc trạng thái" data-tour="labrad-filter">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -131,6 +132,7 @@ export function LabResultsTab() {
       </div>
 
       {/* Table */}
+      <div data-tour="labrad-table">
       <LabResultTable
         data={filtered}
         loading={isLoading}
@@ -140,6 +142,7 @@ export function LabResultsTab() {
         onPrint={handlePrint}
         onViewDetail={(r) => window.open(`/labrad/results/${r.id}`, "_self")}
       />
+      </div>
 
       {/* Pagination info */}
       {data?.meta && (

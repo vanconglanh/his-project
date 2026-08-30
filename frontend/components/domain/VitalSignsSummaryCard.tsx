@@ -107,6 +107,7 @@ export function VitalSignsSummaryCard({
                 size="sm"
                 className="w-full gap-1 min-h-[44px]"
                 onClick={onAddNew}
+                data-tour="enc-vital"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 Ghi sinh hiệu

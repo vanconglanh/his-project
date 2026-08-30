@@ -66,7 +66,11 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        {canEdit && !isSigned && <EmrTemplateSelector onSelect={handleTemplateSelect} />}
+        {canEdit && !isSigned && (
+          <div data-tour="enc-emr-template">
+            <EmrTemplateSelector onSelect={handleTemplateSelect} />
+          </div>
+        )}
         {isSigned && (
           <HisStatusBadge variant="done">
             {emr?.signed_by_name ? `Đã ký số — ${emr.signed_by_name}` : "Đã ký số"}

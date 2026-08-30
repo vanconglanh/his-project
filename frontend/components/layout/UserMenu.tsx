@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { LogOut, User, Bell, ShieldCheck } from "lucide-react";
+import { LogOut, User, Bell, ShieldCheck, HelpCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +36,7 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Menu tài khoản"
+        data-tour="user-menu"
         className="inline-flex h-10 items-center gap-2 rounded-md px-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Avatar className="h-8 w-8">
@@ -73,6 +74,10 @@ export function UserMenu() {
           <DropdownMenuItem onClick={() => router.push("/account/notifications")}>
             <Bell className="mr-2 h-4 w-4" />
             Thông báo
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/help")}>
+            <HelpCircle className="mr-2 h-4 w-4" />
+            Trung tâm trợ giúp
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

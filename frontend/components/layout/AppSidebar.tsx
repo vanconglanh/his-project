@@ -71,6 +71,7 @@ export function AppSidebar() {
       <nav
         className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-4"
         aria-label="Điều hướng chính"
+        data-tour="sidebar-nav"
       >
         {NAV_GROUPS.map((group) => {
           const visibleItems = group.items.filter((item) =>

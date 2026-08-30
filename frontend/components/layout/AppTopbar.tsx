@@ -8,6 +8,7 @@ import { UserMenu } from "./UserMenu";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { NotificationDropdown } from "@/components/domain/NotificationDropdown";
+import { TourButton } from "@/components/domain/TourButton";
 import { BranchSwitcher } from "./BranchSwitcher";
 
 const BREADCRUMB_MAP: Record<string, string> = {
@@ -26,6 +27,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/drugs": "Danh mục thuốc",
   "/nurse": "Điều dưỡng",
   "/services": "Dịch vụ",
+  "/help": "Trung tâm trợ giúp",
 };
 
 export function AppTopbar() {
@@ -58,6 +60,7 @@ export function AppTopbar() {
         onClick={() => setCommandPaletteOpen(true)}
         className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted/60 hover:bg-muted rounded-md border border-border transition-colors ml-2 min-h-[36px]"
         aria-label="Mở tìm kiếm (Ctrl+K)"
+        data-tour="global-search"
       >
         <Search className="h-3.5 w-3.5" aria-hidden="true" />
         <span className="hidden lg:inline">Tìm kiếm...</span>
@@ -81,6 +84,7 @@ export function AppTopbar() {
           <Search className="h-5 w-5" aria-hidden="true" />
         </Button>
         <BranchSwitcher />
+        <TourButton />
         <NotificationDropdown />
         <ThemeToggle />
         <Separator orientation="vertical" className="h-6 mx-1" />
