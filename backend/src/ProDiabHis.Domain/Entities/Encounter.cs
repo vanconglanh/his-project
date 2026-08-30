@@ -31,6 +31,10 @@ public class Encounter : BaseEntity, ITenantScoped, IBranchScoped
 
     /// <summary>FR-803: khac null = luot kham phat sinh tu phien tu van tu xa Docosan (FK mem -> diab_his_tel_sessions.id)</summary>
     public string? TelehealthSessionId { get; set; }
+
+    /// <summary>§4.7.5 (T2) — Luot kham thuoc goi dinh muc nao (denormalize tu pkg_usage_logs de hien thi/loc nhanh
+    /// badge "Thuoc goi X"). Set khi tru dinh muc VISIT thanh cong luc mo kham. FK mem -> diab_his_pkg_subscriptions.id.</summary>
+    public string? CoveredBySubscriptionId { get; set; }
 }
 
 public static class EncounterStatus

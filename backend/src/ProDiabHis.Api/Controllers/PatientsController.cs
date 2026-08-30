@@ -54,6 +54,17 @@ public class PatientsController : ControllerBase
         });
     }
 
+    // GET /api/v1/patients/{id}/external-pathway?force=false
+    // §4.7.3 — LUON tra HTTP 200 kem data.status (OK|NOT_FOUND|UNAVAILABLE|NOT_CONFIGURED).
+    // KHONG BAO GIO chan luong kham; diaB loi/timeout van tra 200.
+    [HttpGet("{id:guid}/external-pathway")]
+    [RequirePermission("patient.read")]
+    public async Task<IActionResult> ExternalPathway(Guid id, [FromQuery] bool force = false, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetExternalPathwayQuery(id, force), ct);
+        return Ok(new { data = result.Value });
+    }
+
     // POST /api/v1/patients
     [HttpPost]
     [RequirePermission("patient.write")]

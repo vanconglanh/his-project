@@ -2,8 +2,10 @@ using System.Data;
 using Dapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Application.Common.Interfaces;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Encounters;
@@ -245,11 +247,17 @@ public class StartEncounterCommandHandler : IRequestHandler<StartEncounterComman
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
     private readonly IDapperConnectionFactory _dapper;
+    private readonly IBranchProvider _branch;
+    private readonly IPackageEntitlementService _packageEntitlement;
+    private readonly ILogger<StartEncounterCommandHandler> _logger;
 
     public StartEncounterCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapper)
+        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapper,
+        IBranchProvider branch, IPackageEntitlementService packageEntitlement,
+        ILogger<StartEncounterCommandHandler> logger)
     {
         _db = db; _tenant = tenant; _user = user; _audit = audit; _dapper = dapper;
+        _branch = branch; _packageEntitlement = packageEntitlement; _logger = logger;
     }
 
     public async Task<Result<EncounterResponse>> Handle(StartEncounterCommand cmd, CancellationToken ct)
@@ -268,6 +276,13 @@ public class StartEncounterCommandHandler : IRequestHandler<StartEncounterComman
         enc.UpdatedBy = _user.UserId;
 
         await _db.SaveChangesAsync(ct);
+
+        // §4.7.5 (fix T1) — tru dinh muc "luot kham" (VISIT) tai diem MO KHAM (WAITING->IN_PROGRESS).
+        // Diem nay chung cho CA walk-in LAN co hen => 2 luong hoi tu, khong con that thoat walk-in.
+        // Idempotent theo (source_type=ENCOUNTER, source_id=encounterId, balance_id) => mo/dong nhieu
+        // lan van chi tru 1 lan. Best-effort: het dinh muc / loi goi -> KHONG chan kham.
+        await TryConsumeVisitAsync(enc, ct);
+
         await _audit.LogAsync("START", "Encounter", enc.Id.ToString(), null, ct);
 
         // Dong bo VE hang doi: bac si "Bat dau kham" -> ve chuyen sang "Dang kham"
@@ -277,6 +292,61 @@ public class StartEncounterCommandHandler : IRequestHandler<StartEncounterComman
 
         var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit);
         return Result<EncounterResponse>.Success(await helper.BuildEncounterResponse(enc, ct));
+    }
+
+    /// <summary>
+    /// §4.7.5 — Tru 1 dinh muc VISIT cho luot kham (neu benh nhan co goi active con luot kham).
+    /// Best-effort: moi loi/khong co goi/het dinh muc deu KHONG chan kham. Khi tru duoc, ghi
+    /// enc.CoveredBySubscriptionId de UI hien badge "Thuoc goi X" khong can join.
+    /// </summary>
+    private async Task TryConsumeVisitAsync(Encounter enc, CancellationToken ct)
+    {
+        if (!Guid.TryParse(enc.PatientId, out var patientGuid)) return;
+
+        try
+        {
+            using var conn = (IDbConnection)_dapper.CreateConnection();
+            var tenantId = _tenant.TenantId;
+
+            // Tim balance VISIT con dinh muc (uu tien goi sap het han truoc) — dong logic voi
+            // luong check-in cu, nay dat o day de gom ve 1 diem tru duy nhat.
+            var visitBalance = await conn.QueryFirstOrDefaultAsync<string?>(
+                @"SELECT b.item_ref_id
+                  FROM diab_his_pkg_entitlement_balances b
+                  JOIN diab_his_pkg_subscriptions s ON s.id = b.subscription_id
+                  WHERE s.tenant_id=@tenantId AND s.patient_id=@patientId AND s.status='active'
+                    AND s.expiry_date >= CURDATE()
+                    AND b.item_type='VISIT' AND b.remaining_quantity > 0
+                  ORDER BY s.expiry_date ASC, s.purchase_date ASC, b.id ASC
+                  LIMIT 1",
+                new { tenantId, patientId = patientGuid.ToString() });
+
+            if (visitBalance == null || !Guid.TryParse(visitBalance, out var visitItemRefId))
+                return;
+
+            var branchId = _branch.BranchId;
+            var quote = await _packageEntitlement.ConsumeAsync(
+                new PackageCoverageRequest(
+                    patientGuid, "ENCOUNTER", enc.Id,
+                    new[] { new PackageCoverageLineRequest(PackageItemType.VISIT, visitItemRefId, 1) },
+                    _user.UserId, branchId > 0 ? branchId : null),
+                ct);
+
+            var covered = quote.Lines.FirstOrDefault(l => l.CoveredQuantity > 0);
+            if (covered?.SubscriptionId is Guid subId)
+            {
+                enc.CoveredBySubscriptionId = subId.ToString();
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+        catch (PackageBalanceConflictException ex)
+        {
+            _logger.LogWarning(ex, "PackageEntitlement conflict khi mo kham encounter {Id}, bo qua tru dinh muc lan nay", enc.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Khong the tru dinh muc VISIT khi mo kham encounter {Id}, bo qua (khong chan kham)", enc.Id);
+        }
     }
 }
 

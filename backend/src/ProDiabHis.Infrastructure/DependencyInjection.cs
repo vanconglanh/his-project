@@ -237,6 +237,11 @@ public static class DependencyInjection
             services.AddScoped<Application.Common.IDigitalSignatureProvider, Security.MockDigitalSignatureProvider>();
         }
 
+        // §4.7.3 — Tich hop lo trinh diaB. Hien dung NullExternalPathwayProvider (diaB chua co endpoint).
+        // Khi diaB co API that -> thay bang DiabPathwayProvider, khong doi tang Application/UI.
+        services.AddScoped<Application.Common.Interfaces.IExternalPathwayProvider,
+            Integrations.Diab.NullExternalPathwayProvider>();
+
         // EMR services
         services.AddScoped<IEmrSignatureVerifier, EmrSignatureVerifierAdapter>();
         services.AddScoped<IEmrPdfExporter, QuestPdfEmrExporter>();

@@ -331,45 +331,11 @@ public class UpdateAppointmentStatusCommandHandler : IRequestHandler<UpdateAppoi
             $"{AppointmentSql.SelectBase} WHERE a.id=@id AND a.tenant_id=@tenantId",
             new { id = command.Id, tenantId });
 
-        // FR-1204 (D7) - tru dinh muc "lan kham" (item_type=VISIT) khi check-in thanh cong.
-        // Best-effort: khong duoc chan luong tiep don neu goi dinh muc loi/khong co (giong pattern
-        // da ap dung o CreatePrescriptionHandler). ConsumeAsync idempotent theo (source_type,
-        // source_id, balance_id) nen goi lai (retry, doi trang thai nhieu lan) khong tru trung.
-        if (row != null && string.Equals(command.Status, AppointmentStatus.CheckedIn, StringComparison.Ordinal)
-            && Guid.TryParse(row.PatientRef, out var patientGuid))
-        {
-            try
-            {
-                var visitBalance = await conn.QueryFirstOrDefaultAsync<string?>(
-                    @"SELECT b.item_ref_id
-                      FROM diab_his_pkg_entitlement_balances b
-                      JOIN diab_his_pkg_subscriptions s ON s.id = b.subscription_id
-                      WHERE s.tenant_id=@tenantId AND s.patient_id=@patientId AND s.status='active'
-                        AND s.expiry_date >= CURDATE()
-                        AND b.item_type='VISIT' AND b.remaining_quantity > 0
-                      ORDER BY s.expiry_date ASC, s.purchase_date ASC, b.id ASC
-                      LIMIT 1",
-                    new { tenantId, patientId = patientGuid.ToString() });
-
-                if (visitBalance != null && Guid.TryParse(visitBalance, out var visitItemRefId))
-                {
-                    await _packageEntitlement.ConsumeAsync(
-                        new PackageCoverageRequest(
-                            patientGuid, "APPOINTMENT", AppointmentIdToGuid(command.Id),
-                            new[] { new PackageCoverageLineRequest(PackageItemType.VISIT, visitItemRefId, 1) },
-                            null, branchId > 0 ? branchId : null),
-                        ct);
-                }
-            }
-            catch (PackageBalanceConflictException ex)
-            {
-                _logger.LogWarning(ex, "PackageEntitlement conflict khi check-in appointment {Id}, bo qua tru dinh muc lan nay", command.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Khong the tru dinh muc goi khi check-in appointment {Id}, bo qua (khong chan tiep don)", command.Id);
-            }
-        }
+        // §4.7.5 (fix T1) — KHONG con tru dinh muc VISIT tai check-in appointment.
+        // Diem tru VISIT da duoc CHUYEN sang StartEncounter (WAITING->IN_PROGRESS, mo kham) de
+        // GOM ca 2 luong (walk-in + co hen) ve MOT diem tru duy nhat, idempotent theo
+        // (source_type=ENCOUNTER, source_id=encounterId). Tru tai check-in se trung/lech voi walk-in
+        // va tru oan ca nhung ca benh nhan bo ve truoc khi kham. Xem EncounterHandlers.StartEncounterCommandHandler.
 
         return Result<AppointmentResponse>.Success(AppointmentSql.ToResponse(row!));
     }
