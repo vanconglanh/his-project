@@ -78,8 +78,11 @@ public class CreatePaymentHandler : IRequestHandler<CreatePaymentCommand, Result
     public async Task<Result<PaymentResponse>> Handle(CreatePaymentCommand cmd, CancellationToken ct)
     {
         var req = cmd.Request;
-        var billing = await _db.Billings
-            .FirstOrDefaultAsync(b => b.Id == req.BillingId && b.TenantId == _tenant.TenantId, ct);
+        // BR-85: cho phep tra no HOA DON CUA CHI NHANH KHAC (benh nhan xuat trinh dung ma hoa don).
+        // Billing co global query filter theo chi nhanh hien tai -> phai IgnoreQueryFilters de tra ho
+        // hoa don CN khac, van dam bao cach ly tenant (tra theo id chinh xac, tuong tu BR-22/BR-25).
+        var billing = await _db.Billings.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(b => b.Id == req.BillingId && b.TenantId == _tenant.TenantId && b.DeletedAt == null, ct);
         if (billing == null)
             return Result<PaymentResponse>.Failure("BILLING_NOT_FOUND", "Khong tim thay hoa don");
         if (billing.Status == BillingStatus.Void)
