@@ -1,5 +1,6 @@
 # Thiết kế kiến trúc — Master data Thuốc/Dịch vụ, Tham chiếu lộ trình diaB, EMR đa khoa template hoá
 
+- **Phiên bản**: 1.2 — bổ sung **§5.8** (Quyết định 4 & 5: tách giá trị form khỏi template + snapshot schema tại thời điểm ký + mở rộng hash chữ ký số). Nội dung v1.1 giữ nguyên.
 - **Phiên bản**: 1.1 — **BO đã chốt 3 quyết định**, 3 mục đỏ đã đóng
 - **Ngày**: 2026-08-30 (v1.0 sáng, v1.1 chiều cùng ngày)
 - **Tác giả**: Lành (architect)
@@ -1090,6 +1091,153 @@ Gồm: **(1)** thêm `structured_json`, `is_default`, `legacy_source`, `legacy_s
 
 ---
 
+## 5.8 QUYẾT ĐỊNH 4 & 5 (chốt với BO, bổ sung v1.2) — tách giá trị nhập khỏi định nghĩa template + snapshot schema tại thời điểm ký
+
+> Bổ sung sau §5.7. **Không thay đổi** bất kỳ nội dung nào ở trên; đây là 2 quyết định mới, đóng phần còn hở của §5.7 (chỉ mới nói "có `structured_json` thì hiện checklist", chưa nói **giá trị bác sĩ nhập lưu ở đâu** và **điều gì xảy ra khi admin sửa template sau này**).
+
+### 5.8.0 Tên bảng / entity thật (đã đọc code, không phỏng đoán)
+
+| Vai trò | Entity (C#) | Bảng MySQL | Nguồn xác nhận |
+|---|---|---|---|
+| Bệnh án hiện hành của 1 lượt khám | `EmrContent` (`Domain/Entities/EmrContent.cs:6`) | `diab_his_enc_emr_contents` | `Persistence/Configurations/EncounterConfiguration.cs:112` |
+| **Bản chụp (snapshot) từng phiên bản bệnh án** | **`EmrVersion`** (`EmrContent.cs:19`) | **`diab_his_cli_emr_versions`** | `EncounterConfiguration.cs:139`, DDL `db/migrations/0027_create_emr_signatures.sql:33` |
+| Chữ ký số | `EmrSignature` (`EmrContent.cs:33`) | `diab_his_cli_emr_signatures` | `EncounterConfiguration.cs:160` |
+| Mẫu bệnh án | `EmrTemplate` (`EmrContent.cs:49`) | `diab_his_cli_emr_templates` | `EncounterConfiguration.cs:185` |
+| Lượt khám | `Encounter` | `diab_his_enc_encounters` | đã sửa ở v1.1 (§0.1) |
+
+Trạng thái hiện tại của `EmrVersion` (code thật) — **chỉ có 9 trường**, không có chỗ chứa giá trị form và không có template:
+
+```csharp
+public class EmrVersion {
+    public Guid Id; public string EmrId; public int TenantId; public int Version;
+    public string ContentJson = "{}";   // TipTap ProseMirror doc
+    public int BytesSize; public DateTime SavedAt; public string? SavedBy; public bool IsSigned;
+}
+```
+
+> ⚠️ Lưu ý về `structured_json`: cột này **thuộc `diab_his_cli_emr_templates`** và **chỉ được thêm ở migration `9181_..._draft` (CHƯA CHẠY)**. Trong entity `EmrTemplate` hiện tại chỉ có `ContentJson`. ⇒ **`9182` phụ thuộc `9181`.**
+
+### 5.8.1 QUYẾT ĐỊNH 4 — giá trị đã nhập lưu TÁCH KHỎI định nghĩa template
+
+**Nguyên tắc:** `EmrTemplate.structured_json` = **ĐỊNH NGHĨA cấu trúc form** (danh sách field: `key`, `label`, `type`, `options`, `required`). Nó là **danh mục dùng chung cho mọi lượt khám**, tuyệt đối **không** chứa dữ liệu của bệnh nhân nào.
+
+Giá trị bác sĩ nhập cho **1 lượt khám cụ thể** lưu trên **bản ghi bệnh án của chính lượt khám đó**:
+
+| Cột mới | Bảng | Kiểu | Ý nghĩa |
+|---|---|---|---|
+| `structured_values_json` | `diab_his_cli_emr_versions` (**`EmrVersion`**) | `JSON NULL` | Giá trị form của **phiên bản này**: `{ "key1": "...", "key2": true, "key3": ["a","b"] }` — key khớp 1-1 với key trong `structured_json` của template đã dùng |
+| `template_id` | `diab_his_cli_emr_versions` | `CHAR(36) NULL` (FK logic → `diab_his_cli_emr_templates.id`) | Lượt khám/phiên bản này dùng mẫu nào. **Hiện `EmrVersion` KHÔNG có cột này** (`EmrContent` thì đã có `template_id` — `EmrContent.cs:12`), nên phải thêm |
+| `structured_values_json` | `diab_his_enc_emr_contents` (`EmrContent`) | `JSON NULL` | Bản **đang soạn** (working copy) — đọc/ghi ở màn khám. Mỗi lần lưu nháp được chụp sang `EmrVersion` giống hệt cách `content_json` đang làm (`EmrHandlers.cs:136-148`) |
+
+**FK**: dùng **ràng buộc logic ở application layer**, KHÔNG tạo `FOREIGN KEY` cứng — vì (a) template có thể bị soft-delete/ẩn nhưng bệnh án cũ vẫn phải giữ tham chiếu, (b) toàn bộ bảng EMR hiện dùng khoá `CHAR(36)` dạng chuỗi, không có FK vật lý (xem `0027_create_emr_signatures.sql`). Chỉ tạo **index** `(tenant_id, template_id)`.
+
+**Bất biến bắt buộc giữ (kế thừa R5.4, §5.7 mục 3):** `content_json` **không đổi ý nghĩa** — vẫn là TipTap ProseMirror doc. Không nhét key-value form vào `content_json`.
+
+**Mã hoá AES-256-GCM:** `structured_values_json` **là dữ liệu lâm sàng của bệnh nhân (PHI)** — khác hoàn toàn `structured_json` của template (chỉ là danh mục). Xếp cùng nhóm bảo mật với `content_json` hiện tại. Ở giai đoạn này `content_json` **chưa mã hoá at-rest**, nên `structured_values_json` **giữ cùng mức** (không mã hoá riêng lẻ) để không tạo 2 chế độ bảo mật lệch nhau trên cùng 1 bệnh án; khi làm mã hoá bệnh án at-rest thì **phải làm cả 3 cột cùng lúc** (`content_json`, `structured_values_json`, `schema_snapshot_json`). Ghi vào backlog bảo mật.
+
+### 5.8.2 QUYẾT ĐỊNH 5 — snapshot schema tại thời điểm ký (tái dùng pattern gói dịch vụ)
+
+**Vấn đề (rủi ro tuân thủ, mức 🔴):** nếu bệnh án chỉ giữ `template_id`, khi admin sửa `structured_json` của template gốc (đổi label, xoá field, đổi `options`), **mọi bệnh án CŨ đã ký sẽ render theo cấu trúc MỚI** ⇒ nội dung hiển thị khác nội dung đã ký. Vi phạm yêu cầu khoá cứng bệnh án sau ký (Luật KCB 2023 — không hard delete, không đổi nội dung sau ký; hệ thống hiện đã chặn sửa bằng `EMR_ALREADY_SIGNED`, `EmrHandlers.cs:99-100,178-179` — nhưng chặn đó **vô hiệu** nếu cấu trúc hiển thị bị thay từ phía template).
+
+**Pattern đã có sẵn trong repo — dùng lại, không phát minh mới.** Module gói dịch vụ đã giải đúng bài toán này (`backend/src/ProDiabHis.Application/Packages/PackageSubscriptionHandlers.cs`):
+
+| Ở gói dịch vụ | Bằng chứng code |
+|---|---|
+| Khi **bán gói**, không chỉ lưu `package_id` mà **chụp lại giá trị của package tại thời điểm bán** vào chính bản ghi subscription: `package_code_snapshot`, `package_name_snapshot`, `duration_days_snapshot` | `PackageSubscriptionHandlers.cs:171-183` |
+| Toàn bộ `PackageEntitlementDefinition` của gói được **nhân bản** thành các dòng `diab_his_pkg_entitlement_balances` riêng của subscription đó, kèm `unit_price_snapshot` | `PackageSubscriptionHandlers.cs:186-202` (comment nguyên văn: *"D5: snapshot dinh muc vao balances"*) |
+| Hệ quả: admin sửa định nghĩa gói sau này **không ảnh hưởng gói đã bán** | Balances đã tách hẳn khỏi definitions; khi trừ định mức chỉ đọc balances |
+
+⇒ **Áp dụng tư duy y hệt cho EMR** (không cần trùng 100% cấu trúc: gói *nhân bản ra nhiều dòng*, EMR *chụp nguyên khối JSON* vì schema vốn đã là 1 tài liệu JSON):
+
+| Cột mới | Bảng | Kiểu | Ý nghĩa |
+|---|---|---|---|
+| `schema_snapshot_json` | `diab_his_cli_emr_versions` (**`EmrVersion`**) | `JSON NULL` | **Chụp nguyên vẹn `EmrTemplate.structured_json`** tại đúng thời điểm tạo/ký bản ghi này |
+
+**Quy tắc render — bắt buộc, không có ngoại lệ:**
+
+> Khi hiển thị lại 1 bệnh án, **luôn render theo `schema_snapshot_json` của chính bản ghi đó**. **KHÔNG BAO GIỜ** đọc lại `EmrTemplate.structured_json` hiện tại để render bệnh án cũ.
+> `template_id` chỉ dùng cho **truy vết/báo cáo** ("bệnh án này xuất phát từ mẫu nào"), **không** dùng làm nguồn hiển thị.
+
+Thời điểm chụp: **ngay khi tạo phiên bản** (`SaveDraft` — `EmrHandlers.cs:136`), không đợi tới lúc ký. Lý do: mỗi `EmrVersion` là một ảnh chụp độc lập; chụp muộn sẽ khiến các version nháp trước đó không tự giải thích được. Bản ghi tại thời điểm ký (`IsSigned = true`, `EmrHandlers.cs:214-219`) khi đó đã có sẵn snapshot đúng.
+
+### 5.8.3 Chữ ký số phải hash cả 3 phần — lỗ hổng tuân thủ nếu không sửa
+
+**Hiện trạng (đọc code thật):** hash **chỉ tính trên `content_json`**.
+
+- `backend/src/ProDiabHis.Application/EMR/EmrHandlers.cs:182` — `SignEmrCommandHandler.Handle`:
+  ```csharp
+  var contentBytes = Encoding.UTF8.GetBytes(emr.ContentJson);
+  var verifyResult = await _verifier.VerifyAsync(contentBytes, sigBytes, ct);
+  ```
+- `backend/src/ProDiabHis.Infrastructure/EMR/EmrSignatureVerifierAdapter.cs:30` — `var hash = SHA256.HashData(contentBytes);` rồi đưa xuống `IDigitalSignatureProvider.VerifySignatureAsync`.
+
+⇒ **Đây chính xác là 2 điểm phải sửa.**
+
+**Lỗ hổng nếu giữ nguyên:** sau khi ký, `structured_values_json` (giá trị form — dữ liệu lâm sàng) và `schema_snapshot_json` (cấu trúc hiển thị) **nằm ngoài phạm vi ký**. Ai có quyền ghi DB đều có thể sửa chỉ số lâm sàng trong form, hoặc đổi `options`/`label` trong snapshot để cùng một giá trị hiển thị ra nghĩa khác — mà **chữ ký vẫn verify hợp lệ**. Bệnh án "đã ký" trở thành **không đáng tin**.
+
+**Đề xuất sửa — hash trên payload gộp có định dạng cố định (canonical payload):**
+
+```
+Payload ký = UTF8(
+    "v2\n" +
+    content_json           + "\n" +
+    (structured_values_json ?? "") + "\n" +
+    (schema_snapshot_json   ?? "")
+)
+```
+
+Yêu cầu triển khai:
+1. **Đóng gói payload ở 1 chỗ duy nhất** — thêm hàm `BuildSignPayload(EmrContent emr)` (đề xuất đặt trong `EmrHandlers.cs` cạnh `SignEmrCommandHandler`, hoặc tách `EmrSignPayloadBuilder` trong `Application/EMR/`). **Cả FE (khi tạo chữ ký) và BE (khi verify) phải dùng cùng một định nghĩa**, nếu lệch → mọi lần ký đều fail.
+2. **JSON phải được chuẩn hoá (canonical) trước khi nối** — cùng thứ tự key, không khoảng trắng thừa. Hiện `content_json` được sinh bằng `JsonSerializer.Serialize` (`EmrHandlers.cs:102`) rồi lưu nguyên chuỗi và ký lại đúng chuỗi đó ⇒ an toàn miễn là **luôn hash đúng chuỗi đã lưu trong DB**, không serialize lại. Áp dụng quy tắc này cho cả 3 cột.
+3. **Version hoá payload** bằng tiền tố `"v2\n"` để phân biệt với chữ ký cũ (v1 = chỉ `content_json`). Chữ ký cũ **không** re-verify theo v2.
+4. Cập nhật test `backend/tests/ProDiabHis.UnitTests/EMR/EmrSignFlowTests.cs` — bổ sung case: *sửa `structured_values_json` sau khi ký ⇒ verify PHẢI fail*.
+5. **Không đổi** `EmrSignatureVerifierAdapter` ở phần thuật toán (vẫn `SHA256` + `IDigitalSignatureProvider`); chỉ đổi **đầu vào** `contentBytes` mà `EmrHandlers.cs:182` truyền xuống.
+
+### 5.8.4 ⚠️ ẢNH HƯỞNG TỚI BỆNH ÁN ĐÃ KÝ TRƯỚC MIGRATION — bắt buộc đọc
+
+Đây là thay đổi **có ảnh hưởng ngược** tới dữ liệu đã tồn tại. Quy tắc xử lý:
+
+| Tình huống | Xử lý bắt buộc |
+|---|---|
+| Bệnh án cũ đã ký, `schema_snapshot_json` = `NULL`, `structured_values_json` = `NULL` | **Hiển thị y như hiện tại — render `content_json` (TipTap)**. **KHÔNG** cố suy ra structured form từ `template_id` hay từ template hiện tại. Không có dữ liệu thì không bịa. |
+| Chữ ký của bệnh án cũ | **Vẫn hợp lệ theo payload v1** (`content_json` đơn thuần). Hệ thống phải giữ đường verify v1 cho bản ghi có `schema_snapshot_json IS NULL AND structured_values_json IS NULL`. |
+| Có cần ký lại hàng loạt không? | **KHÔNG.** Tuyệt đối **không** yêu cầu bác sĩ ký lại bệnh án cũ, và **không** có job backfill nào ghi vào bản ghi đã ký (vi phạm chính nguyên tắc bất biến ta đang bảo vệ). |
+| Backfill `schema_snapshot_json` cho bản ghi cũ | **KHÔNG backfill.** Chụp lại template *hiện tại* vào bệnh án *quá khứ* là **làm giả bằng chứng** — đúng thứ quyết định này sinh ra để ngăn. Để `NULL` là câu trả lời đúng: *"bản ghi này được tạo trước khi có cơ chế snapshot"*. |
+| UI | Bệnh án `NULL` snapshot hiển thị nhãn nhỏ: *"Bệnh án tạo trước 30/08/2026 — không có dữ liệu biểu mẫu có cấu trúc"*. |
+
+**Ranh giới v1/v2 rõ ràng:** mọi `EmrVersion` tạo **sau** khi migration `9182` chạy + code deploy → luôn có `schema_snapshot_json` (nếu bác sĩ dùng template có `structured_json`) và ký theo payload **v2**. Mọi bản ghi trước → **v1, đóng băng, chỉ đọc**.
+
+### 5.8.5 Migration mẫu
+
+📄 **`db/migrations/9182_emr_structured_values_schema_snapshot.sql.draft`** — *đuôi `.draft` = CHƯA CHẠY, chưa vào APPLY_ORDER.* Số `9182` = kế tiếp số lớn nhất hiện có trong `db/migrations/` (`9181_emr_template_merge_diabetes.sql.draft`).
+
+Gồm: **(1)** `structured_values_json` + `template_id` + `schema_snapshot_json` trên `diab_his_cli_emr_versions` · **(2)** `structured_values_json` trên `diab_his_enc_emr_contents` (working copy) · **(3)** index `(tenant_id, template_id)` · **(4)** **không** backfill, **không** FK cứng.
+
+**Phụ thuộc:** `9181_emr_template_merge_diabetes.sql.draft` (tạo `structured_json` trên `diab_his_cli_emr_templates`) — chạy `9181` trước.
+
+### 5.8.6 Việc code phải làm kèm (ngoài migration)
+
+| # | Việc | File |
+|---|---|---|
+| 1 | Thêm 3 property vào entity: `EmrVersion.StructuredValuesJson`, `EmrVersion.TemplateId`, `EmrVersion.SchemaSnapshotJson`; `EmrContent.StructuredValuesJson` | `Domain/Entities/EmrContent.cs` |
+| 2 | Map cột mới | `Infrastructure/Persistence/Configurations/EncounterConfiguration.cs:112,139` |
+| 3 | `SaveDraft`: nhận `structuredValues` từ request, ghi vào `EmrContent`; **chụp `structured_json` của template đang chọn** vào `EmrVersion.SchemaSnapshotJson` + set `TemplateId` | `Application/EMR/EmrHandlers.cs:102-148` |
+| 4 | `Sign`: đổi `contentBytes` sang payload v2 gộp 3 phần (§5.8.3) | `Application/EMR/EmrHandlers.cs:182` |
+| 5 | DTO: bổ sung `StructuredValues` vào request/response | `Application/EMR/EmrDto.cs`, `EmrCommands.cs` |
+| 6 | OpenAPI: bổ sung field mới + ghi rõ quy tắc render theo snapshot | `docs/api/openapi/emr.yaml` |
+| 7 | FE: render form theo `schemaSnapshot` của bản ghi (không gọi lại API template); tính chữ ký theo payload v2 | `frontend/app/(dashboard)/encounters/[id]/_components/tabs/EmrTabPanel.tsx`, `frontend/lib/api/emr.ts` |
+| 8 | Test: sửa `structured_values_json` sau ký ⇒ verify fail; bệnh án v1 vẫn verify được | `backend/tests/ProDiabHis.UnitTests/EMR/EmrSignFlowTests.cs` |
+
+### 5.8.7 Câu hỏi mở phát sinh
+
+| ID | Câu hỏi |
+|---|---|
+| **Q5.5** | Khi bác sĩ **đổi template giữa chừng** (đã nhập vài field theo mẫu A rồi đổi sang mẫu B): giữ giá trị các key trùng tên hay xoá sạch? Đề xuất: **giữ key trùng, cảnh báo các key bị bỏ**, ghi audit (thống nhất với R5.5 §5.7.3). |
+| **Q5.6** | Bệnh án có `structured_values_json` nhưng bác sĩ **không dùng template** (mẫu trống): `schema_snapshot_json` để `NULL` hay `{}`? Đề xuất: **`NULL`** — thống nhất với bản ghi cũ, giảm nhánh xử lý. |
+| **Q5.7** | XML BHYT / xuất PDF bệnh án có cần lấy dữ liệu từ `structured_values_json` không, hay vẫn chỉ từ `content_json`? Ảnh hưởng `EmrExport`/`BhytXmlGenerator`. |
+
+---
+
 ## 6. Tóm tắt hành động đề xuất (thứ tự ưu tiên cho dev)
 
 *(Cập nhật v1.1 — sau khi BO chốt 3 quyết định)*
@@ -1108,6 +1256,9 @@ Gồm: **(1)** thêm `structured_json`, `is_default`, `legacy_source`, `legacy_s
 | 10 | Dọn code còn đọc/ghi bộ `9010` (`ReportRegistry.cs`, `ReportingServiceImpl.cs`) → rồi mới DROP cột | #6 | 🟡 TB |
 | 11 | ADR `docs/adr/0012-tich-hop-lo-trinh-diab.md` — ghi trade-off **A (tĩnh) vs B (model cục bộ) vs C (real-time, đã chọn)** | — | 🟡 TB |
 | 12 | Migration `9182` (các cột master data còn lại: SĐK, đóng gói, quy chế…) — đợt sau, không gấp | Q3.1, Q3.6 | 🟡 TB |
+
+| 13 | **Mở rộng hash chữ ký số EMR sang payload v2** (§5.8.3) — hiện chỉ hash `content_json`, ai sửa `structured_values_json`/`schema_snapshot_json` sau khi ký thì chữ ký **vẫn hợp lệ** ⇒ lỗ hổng tuân thủ | #7 (9181), 9182 | 🔴 Ngay khi làm 9182 |
+| 14 | Migration `9182` + code kèm (§5.8.5, §5.8.6): `structured_values_json`, `template_id`, `schema_snapshot_json` | #7 (9181) | 🟠 Cao |
 
 > ❌ **Đã huỷ khỏi backlog v1.0**: migration `9183` (6 cột `external_pathway_*`) — không cần nữa vì gọi real-time; `9184` — đã gộp vào `9181`; `9185` `schema_json` đầy đủ — thay bằng `structured_json` mức đơn giản.
 
