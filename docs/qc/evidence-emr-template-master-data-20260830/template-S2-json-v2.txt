@@ -1,0 +1,17 @@
+[
+  {
+    "key": "chief_complaint",
+    "type": "textarea",
+    "group": "Doi ten",
+    "label": "LY DO KHAM (DA SUA)",
+    "colSpan": 2,
+    "required": true
+  },
+  {
+    "key": "new_field",
+    "type": "text",
+    "group": "Moi",
+    "label": "Truong moi them sau khi ky",
+    "colSpan": 1
+  }
+]

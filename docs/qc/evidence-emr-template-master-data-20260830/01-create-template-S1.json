@@ -1,0 +1,50 @@
+{
+  "data": {
+    "id": "a3aa2a8f-b83e-4446-89c2-0e6351e5082e",
+    "tenant_id": 1,
+    "name": "TEST Snapshot DTD 20260830",
+    "content_json": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph"
+        }
+      ]
+    },
+    "speciality": "DIABETES",
+    "is_system": false,
+    "created_by": "14ab91a9-a65d-4279-8886-5c331e925c55",
+    "created_at": "2026-08-30T06:30:26.9302027Z",
+    "structured_json": [
+      {
+        "key": "chief_complaint",
+        "label": "Lý do khám",
+        "type": "text",
+        "required": true,
+        "group": "Hành chính",
+        "colSpan": 2
+      },
+      {
+        "key": "bp_sys",
+        "label": "Huyết áp tâm thu",
+        "type": "number",
+        "unit": "mmHg",
+        "group": "Sinh hiệu",
+        "colSpan": 1
+      },
+      {
+        "key": "foot_exam",
+        "label": "Khám bàn chân ĐTĐ",
+        "type": "select",
+        "options": [
+          "Bình thường",
+          "Giảm cảm giác",
+          "Loét"
+        ],
+        "group": "Chuyên khoa",
+        "colSpan": 1
+      }
+    ],
+    "is_default": false
+  }
+}

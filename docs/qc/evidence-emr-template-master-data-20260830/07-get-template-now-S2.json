@@ -1,0 +1,37 @@
+{
+  "data": {
+    "id": "a3aa2a8f-b83e-4446-89c2-0e6351e5082e",
+    "tenant_id": 1,
+    "name": "TEST Snapshot DTD 20260830 (DA SUA)",
+    "content_json": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph"
+        }
+      ]
+    },
+    "speciality": "DIABETES",
+    "is_system": false,
+    "created_by": "14ab91a9-a65d-4279-8886-5c331e925c55",
+    "created_at": "2026-08-30T06:30:27",
+    "structured_json": [
+      {
+        "key": "chief_complaint",
+        "type": "textarea",
+        "group": "Doi ten",
+        "label": "LY DO KHAM (DA SUA)",
+        "colSpan": 2,
+        "required": true
+      },
+      {
+        "key": "new_field",
+        "type": "text",
+        "group": "Moi",
+        "label": "Truong moi them sau khi ky",
+        "colSpan": 1
+      }
+    ],
+    "is_default": false
+  }
+}

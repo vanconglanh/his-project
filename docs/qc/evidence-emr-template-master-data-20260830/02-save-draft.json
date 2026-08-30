@@ -1,0 +1,64 @@
+{
+  "data": {
+    "id": "a0469367-d445-4c51-8a69-c55d611c7632",
+    "encounter_id": "1c49b2c1-3f08-40a8-abbe-f3034553b0bd",
+    "content_json": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Benh an test snapshot"
+            }
+          ]
+        }
+      ]
+    },
+    "content_html": "<p>Benh an test snapshot</p>",
+    "template_id": "a3aa2a8f-b83e-4446-89c2-0e6351e5082e",
+    "signed_at": null,
+    "signed_by": null,
+    "signed_by_name": null,
+    "signature_certificate": null,
+    "version": 1,
+    "updated_at": "2026-08-30T06:30:26.9862581Z",
+    "updated_by": null,
+    "structured_values": {
+      "chief_complaint": "Khó khát nhiều",
+      "bp_sys": 140,
+      "foot_exam": "Giảm cảm giác"
+    },
+    "schema_snapshot": [
+      {
+        "key": "chief_complaint",
+        "type": "text",
+        "group": "Hành chính",
+        "label": "Lý do khám",
+        "colSpan": 2,
+        "required": true
+      },
+      {
+        "key": "bp_sys",
+        "type": "number",
+        "unit": "mmHg",
+        "group": "Sinh hiệu",
+        "label": "Huyết áp tâm thu",
+        "colSpan": 1
+      },
+      {
+        "key": "foot_exam",
+        "type": "select",
+        "group": "Chuyên khoa",
+        "label": "Khám bàn chân ĐTĐ",
+        "colSpan": 1,
+        "options": [
+          "Bình thường",
+          "Giảm cảm giác",
+          "Loét"
+        ]
+      }
+    ]
+  }
+}

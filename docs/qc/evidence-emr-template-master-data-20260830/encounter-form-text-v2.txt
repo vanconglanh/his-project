@@ -1,0 +1,115 @@
+KHÁM BỆNH
+
+Lịch hẹn
+Bệnh nhân
+Khám bệnh
+Danh sách nguy cơ ĐTĐ
+Nhắc tái khám
+Chuyển cơ sở nội bộ
+
+DƯỢC
+
+Kê đơn
+Danh mục thuốc
+
+TÀI CHÍNH
+
+Hoá đơn
+Dịch vụ
+BHYT
+
+PHÂN TÍCH
+
+Tổng quan
+Báo cáo
+Trình tạo báo cáo
+Bảng điều khiển
+Dashboard chuỗi
+Lịch báo cáo
+
+HỆ THỐNG
+
+Người dùng
+Khám bệnh
+Tìm kiếm...
+⌘K
+Chi nhánh
+TD
+BS. Test Demo
+Khám bệnh
+/
+Trần Quốc Hưng 005752
+Đang khám
+Chọn phòng khám
+Chờ kết quả CLS
+Đã ký số bệnh án
+In
+Kết thúc khám
+T0
+
+Trần Quốc Hưng 005752
+
+Nam · 51 tuổi
+
+BNT01000023
+
+0912005752
+
+Không có BHYT
+Bác sĩ
+QC Admin Test
+Phòng
+Chưa phân phòng
+Lý do khám
+Khát nhiều, tiểu nhiều 2 tuần - nghi ĐTĐ típ 2
+Sinh hiệu
+Xem tất cả
+
+Nhiệt độ
+
+37°C
+
+Mạch
+
+82 l/ph
+
+Đo lúc 10:26
+
+Ghi sinh hiệu
+Tiền sử
+
+Chưa ghi nhận tiền sử bệnh.
+
+Xem chi tiết
+Lịch sử khám
+
+Lần khám đầu tiên — bệnh nhân chưa có lượt khám nào trước đây.
+
+Xem tất cả
+Bệnh án
+Tiền sử
+Cận lâm sàng
+Kết quả CLS
+Chẩn đoán
+1
+Đơn thuốc
+Tái khám
+Tập tin
+Đã ký số — BS. Test Demo
+
+Bệnh án đã ký số, nội dung không thể chỉnh sửa.
+
+Thông tin biểu mẫu có cấu trúc
+Hành chính
+Lý do khám
+*
+Sinh hiệu
+Huyết áp tâm thu
+mmHg
+Chuyên khoa
+Khám bàn chân ĐTĐ
+Giảm cảm giác
+
+Benh an test snapshot
+
+Bệnh án đã được ký số — chỉ đọc
