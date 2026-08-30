@@ -4,9 +4,11 @@ using ProDiabHis.Application.Common;
 namespace ProDiabHis.Application.EMR;
 
 // Requests
-public record EmrSaveRequest(object ContentJson, string? ContentHtml, Guid? TemplateId);
+// §5.8.1 (QD4) — StructuredValues: gia tri form {key: value} theo structured_json cua template dang chon.
+public record EmrSaveRequest(object ContentJson, string? ContentHtml, Guid? TemplateId, object? StructuredValues = null);
 public record SignEmrRequest(string SignatureData, string CertificateId, string SignatureAlgorithm = "SHA256withRSA");
-public record EmrTemplateRequest(string Name, object ContentJson, string Speciality);
+// §5.7.2 — StructuredJson: DINH NGHIA form (mang field). IsDefault: mau mac dinh theo speciality.
+public record EmrTemplateRequest(string Name, object ContentJson, string Speciality, object? StructuredJson = null, bool IsDefault = false);
 
 // Commands / Queries
 public record GetEmrQuery(Guid EncounterId) : IRequest<Result<EmrContentResponse?>>;
@@ -30,8 +32,12 @@ public record GetEmrVersionDiffQuery(Guid EncounterId, Guid VersionId, Guid? Com
     : IRequest<Result<EmrVersionDiffDto>>;
 
 // Template commands
-public record ListEmrTemplatesQuery(string? Speciality, bool? IsSystem)
+// §5.7.3 — loc theo speciality + (tuy chon) goi benh nhan dang dung (PackageId qua bang noi).
+public record ListEmrTemplatesQuery(string? Speciality, bool? IsSystem, Guid? PackageId = null)
     : IRequest<Result<IReadOnlyList<EmrTemplateResponse>>>;
+
+public record GetEmrTemplateQuery(Guid TemplateId)
+    : IRequest<Result<EmrTemplateResponse?>>;
 
 public record CreateEmrTemplateCommand(EmrTemplateRequest Request)
     : IRequest<Result<EmrTemplateResponse>>;

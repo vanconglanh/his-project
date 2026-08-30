@@ -9,6 +9,7 @@ export const emrKeys = {
   content: (encounterId: string) => ["emr", "content", encounterId] as const,
   versions: (encounterId: string) => ["emr", "versions", encounterId] as const,
   templates: (params?: object) => ["emr", "templates", params] as const,
+  template: (id: string) => ["emr", "template", id] as const,
 };
 
 export function useEmr(encounterId: string) {
@@ -62,6 +63,16 @@ export function useEmrTemplates(params?: { speciality?: string; is_system?: bool
   return useQuery({
     queryKey: emrKeys.templates(params),
     queryFn: () => emrApi.listEmrTemplates(params),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Nạp chi tiết 1 mẫu bệnh án (kèm structured_json) khi bác sĩ chọn mẫu trên màn khám */
+export function useEmrTemplate(id: string | undefined) {
+  return useQuery({
+    queryKey: emrKeys.template(id ?? ""),
+    queryFn: () => emrApi.getEmrTemplate(id as string),
+    enabled: !!id,
     staleTime: 5 * 60_000,
   });
 }

@@ -12,7 +12,10 @@ public record EmrContentResponse(
     SignatureCertDto? SignatureCertificate,
     int Version,
     DateTime UpdatedAt,
-    Guid? UpdatedBy);
+    Guid? UpdatedBy,
+    // §5.8 — gia tri form dang soan + schema snapshot cua ban ghi (FE render theo schemaSnapshot, KHONG goi lai template)
+    object? StructuredValues = null,
+    object? SchemaSnapshot = null);
 
 public record SignatureCertDto(string? Serial, string? Subject, string? Algorithm);
 
@@ -33,6 +36,9 @@ public record EmrTemplateResponse(
     string Speciality,
     bool IsSystem,
     Guid? CreatedBy,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    // §5.7.2 — dinh nghia form (mang field) + co phai mau mac dinh
+    object? StructuredJson = null,
+    bool IsDefault = false);
 
 public record EmrVersionDiffDto(IReadOnlyList<object> Ops);

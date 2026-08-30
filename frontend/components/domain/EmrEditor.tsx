@@ -37,9 +37,18 @@ interface Props {
   isSigned?: boolean;
   onSaved?: (savedAt: Date) => void;
   templateId?: string;
+  /** Giá trị form có cấu trúc (structured_json của template) — gửi kèm khi lưu nháp (§5.8.1) */
+  structuredValues?: Record<string, unknown>;
 }
 
-export function EmrEditor({ encounterId, initialContent, isSigned, onSaved, templateId }: Props) {
+export function EmrEditor({
+  encounterId,
+  initialContent,
+  isSigned,
+  onSaved,
+  templateId,
+  structuredValues,
+}: Props) {
   const saveDraft = useSaveEmrDraft(encounterId);
   const lastSavedRef = useRef<Date | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,7 +101,7 @@ export function EmrEditor({ encounterId, initialContent, isSigned, onSaved, temp
     const content_json = editor.getJSON() as Record<string, unknown>;
     const content_html = editor.getHTML();
     await saveDraft.mutateAsync(
-      { content_json, content_html, template_id: templateId },
+      { content_json, content_html, template_id: templateId, structured_values: structuredValues },
       {
         onSuccess: () => {
           lastSavedRef.current = new Date();
@@ -100,7 +109,7 @@ export function EmrEditor({ encounterId, initialContent, isSigned, onSaved, temp
         },
       }
     );
-  }, [editor, isSigned, saveDraft, templateId, onSaved]);
+  }, [editor, isSigned, saveDraft, templateId, structuredValues, onSaved]);
 
   function handleManualSave() {
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
@@ -110,6 +119,7 @@ export function EmrEditor({ encounterId, initialContent, isSigned, onSaved, temp
         content_json: editor?.getJSON() as Record<string, unknown>,
         content_html: editor?.getHTML(),
         template_id: templateId,
+        structured_values: structuredValues,
       }),
       {
         loading: "Đang lưu...",

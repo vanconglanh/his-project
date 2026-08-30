@@ -60,6 +60,11 @@ export async function listEmrTemplates(params?: { speciality?: string; is_system
   return res.data.data;
 }
 
+export async function getEmrTemplate(id: string) {
+  const res = await apiClient.get<ApiResponse<EmrTemplateResponse>>(`/emr-templates/${id}`);
+  return res.data.data;
+}
+
 export async function createEmrTemplate(body: EmrTemplateRequest) {
   const res = await apiClient.post<ApiResponse<EmrTemplateResponse>>("/emr-templates", body);
   return res.data.data;

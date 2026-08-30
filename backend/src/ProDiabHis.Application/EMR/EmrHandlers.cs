@@ -37,10 +37,19 @@ public class GetEmrQueryHandler : IRequestHandler<GetEmrQuery, Result<EmrContent
             signerName = signer?.FullName;
         }
 
-        return Result<EmrContentResponse?>.Success(MapEmrEntity(emr, sig, signerName));
+        // §5.8.2 — schema snapshot cua ban ghi lay tu phien ban moi nhat; FE render theo cot nay.
+        var emrIdStr = emr.Id.ToString();
+        var latestVersion = await _db.EmrVersions
+            .Where(v => v.EmrId == emrIdStr)
+            .OrderByDescending(v => v.Version)
+            .FirstOrDefaultAsync(ct);
+
+        return Result<EmrContentResponse?>.Success(
+            MapEmrEntity(emr, sig, signerName, latestVersion?.SchemaSnapshotJson));
     }
 
-    internal static EmrContentResponse MapEmrEntity(EmrContent e, EmrSignature? sig, string? signerName)
+    internal static EmrContentResponse MapEmrEntity(EmrContent e, EmrSignature? sig, string? signerName,
+        string? schemaSnapshotJson = null)
     {
         SignatureCertDto? cert = sig is null ? null
             : new SignatureCertDto(sig.CertificateSerial, sig.CertificateSubject, sig.SignatureAlgorithm);
@@ -59,7 +68,9 @@ public class GetEmrQueryHandler : IRequestHandler<GetEmrQuery, Result<EmrContent
             cert,
             e.Version,
             e.UpdatedAt,
-            e.UpdatedBy);
+            e.UpdatedBy,
+            StructuredValues: TryParseJson(e.StructuredValuesJson),
+            SchemaSnapshot: TryParseJson(schemaSnapshotJson));
     }
 
     private static object? TryParseJson(string? json)
@@ -100,6 +111,11 @@ public class SaveEmrDraftCommandHandler : IRequestHandler<SaveEmrDraftCommand, R
             return Result<EmrContentResponse>.Failure("EMR_ALREADY_SIGNED", "Bệnh án đã được ký số, không thể chỉnh sửa");
 
         var contentJsonStr = JsonSerializer.Serialize(cmd.Request.ContentJson);
+        // §5.8.1 (QD4) — gia tri form: giu nguyen chuoi JSON da serialize de hash ky so on dinh (§5.8.3 muc 2).
+        var structuredValuesStr = cmd.Request.StructuredValues is null
+            ? null
+            : JsonSerializer.Serialize(cmd.Request.StructuredValues);
+
         int newVersion;
         EmrContent emrEntity;
 
@@ -108,13 +124,14 @@ public class SaveEmrDraftCommandHandler : IRequestHandler<SaveEmrDraftCommand, R
             newVersion = 1;
             emrEntity = new EmrContent
             {
-                TenantId    = _tenant.TenantId,
-                EncounterId = encIdStr,
-                ContentJson = contentJsonStr,
-                ContentHtml = cmd.Request.ContentHtml,
-                TemplateId  = cmd.Request.TemplateId?.ToString(),
-                Version     = 1,
-                CreatedBy   = _user.UserId,
+                TenantId             = _tenant.TenantId,
+                EncounterId          = encIdStr,
+                ContentJson          = contentJsonStr,
+                ContentHtml          = cmd.Request.ContentHtml,
+                TemplateId           = cmd.Request.TemplateId?.ToString(),
+                StructuredValuesJson = structuredValuesStr,
+                Version              = 1,
+                CreatedBy            = _user.UserId,
             };
             _db.EmrContents.Add(emrEntity);
         }
@@ -125,6 +142,8 @@ public class SaveEmrDraftCommandHandler : IRequestHandler<SaveEmrDraftCommand, R
             existing.ContentHtml = cmd.Request.ContentHtml;
             if (cmd.Request.TemplateId.HasValue)
                 existing.TemplateId = cmd.Request.TemplateId.Value.ToString();
+            if (cmd.Request.StructuredValues is not null)
+                existing.StructuredValuesJson = structuredValuesStr;
             existing.Version  = newVersion;
             existing.UpdatedBy = _user.UserId;
             emrEntity = existing;
@@ -132,25 +151,39 @@ public class SaveEmrDraftCommandHandler : IRequestHandler<SaveEmrDraftCommand, R
 
         await _db.SaveChangesAsync(ct);
 
-        // Snapshot version
+        // §5.8.2 (QD5) — CHUP structured_json cua template dang chon vao schema_snapshot_json NGAY khi tao
+        // version (khong doi ky). Render benh an LUON theo snapshot nay, khong doc lai template hien tai.
+        var effectiveTemplateId = emrEntity.TemplateId;
+        string? schemaSnapshotStr = null;
+        if (!string.IsNullOrEmpty(effectiveTemplateId) && Guid.TryParse(effectiveTemplateId, out var tplGuid))
+        {
+            var tpl = await _db.EmrTemplates.FirstOrDefaultAsync(t => t.Id == tplGuid, ct);
+            schemaSnapshotStr = tpl?.StructuredJson;
+        }
+
+        // Snapshot version — chup content + gia tri form + schema tai thoi diem nay
         var versionEntry = new EmrVersion
         {
-            Id          = Guid.NewGuid(),
-            EmrId       = emrEntity.Id.ToString(),
-            TenantId    = _tenant.TenantId,
-            Version     = newVersion,
-            ContentJson = contentJsonStr,
-            BytesSize   = Encoding.UTF8.GetByteCount(contentJsonStr),
-            SavedAt     = DateTime.UtcNow,
-            SavedBy     = _user.UserId?.ToString(),
-            IsSigned    = false,
+            Id                   = Guid.NewGuid(),
+            EmrId                = emrEntity.Id.ToString(),
+            TenantId             = _tenant.TenantId,
+            Version              = newVersion,
+            ContentJson          = contentJsonStr,
+            TemplateId           = effectiveTemplateId,
+            StructuredValuesJson = emrEntity.StructuredValuesJson,
+            SchemaSnapshotJson   = schemaSnapshotStr,
+            BytesSize            = Encoding.UTF8.GetByteCount(contentJsonStr),
+            SavedAt              = DateTime.UtcNow,
+            SavedBy              = _user.UserId?.ToString(),
+            IsSigned             = false,
         };
         _db.EmrVersions.Add(versionEntry);
         await _db.SaveChangesAsync(ct);
 
         await _audit.LogAsync("SAVE_DRAFT", "EMR", emrEntity.Id.ToString(), new { version = newVersion }, ct);
 
-        return Result<EmrContentResponse>.Success(GetEmrQueryHandler.MapEmrEntity(emrEntity, null, null));
+        return Result<EmrContentResponse>.Success(
+            GetEmrQueryHandler.MapEmrEntity(emrEntity, null, null, schemaSnapshotStr));
     }
 }
 
@@ -178,8 +211,22 @@ public class SignEmrCommandHandler : IRequestHandler<SignEmrCommand, Result<EmrC
         if (emr.SignedAt is not null)
             return Result<EmrContentResponse>.Failure("EMR_ALREADY_SIGNED", "Bệnh án đã được ký số");
 
-        var sigBytes     = Convert.FromBase64String(cmd.Request.SignatureData);
-        var contentBytes = Encoding.UTF8.GetBytes(emr.ContentJson);
+        // §5.8.2/§5.8.3 — lay phien ban moi nhat de dung dung content/gia tri/schema da chup.
+        var latestVersion = await _db.EmrVersions
+            .Where(v => v.EmrId == emr.Id.ToString())
+            .OrderByDescending(v => v.Version)
+            .FirstOrDefaultAsync(ct);
+
+        var sigBytes = Convert.FromBase64String(cmd.Request.SignatureData);
+
+        // §5.8.3 — hash payload gop 3 phan (v2) cho ban ghi moi; ban ghi cu (ca 2 cot NULL) tu roi ve v1.
+        // LUON hash dung chuoi JSON DA LUU (khong serialize lai). Uu tien lay tu version snapshot;
+        // fallback ve EmrContent neu chua co version (bao toan luong cu).
+        var contentJson         = latestVersion?.ContentJson ?? emr.ContentJson;
+        var structuredValues    = latestVersion?.StructuredValuesJson ?? emr.StructuredValuesJson;
+        var schemaSnapshot      = latestVersion?.SchemaSnapshotJson;
+        var contentBytes = EmrSignPayload.Build(contentJson, structuredValues, schemaSnapshot);
+
         var verifyResult = await _verifier.VerifyAsync(contentBytes, sigBytes, ct);
 
         if (!verifyResult.IsValid)
@@ -210,11 +257,7 @@ public class SignEmrCommandHandler : IRequestHandler<SignEmrCommand, Result<EmrC
         };
         _db.EmrSignatures.Add(sigEntity);
 
-        // Update latest version snapshot as signed
-        var latestVersion = await _db.EmrVersions
-            .Where(v => v.EmrId == emr.Id.ToString())
-            .OrderByDescending(v => v.Version)
-            .FirstOrDefaultAsync(ct);
+        // Update latest version snapshot as signed (dung lai latestVersion da lay o tren)
         if (latestVersion is not null)
             latestVersion.IsSigned = true;
 
@@ -463,8 +506,10 @@ public class GetEmrVersionDiffQueryHandler : IRequestHandler<GetEmrVersionDiffQu
 public class ListEmrTemplatesQueryHandler : IRequestHandler<ListEmrTemplatesQuery, Result<IReadOnlyList<EmrTemplateResponse>>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly IDapperConnectionFactory _dapper;
 
-    public ListEmrTemplatesQueryHandler(IApplicationDbContext db) => _db = db;
+    public ListEmrTemplatesQueryHandler(IApplicationDbContext db, IDapperConnectionFactory dapper)
+    { _db = db; _dapper = dapper; }
 
     public async Task<Result<IReadOnlyList<EmrTemplateResponse>>> Handle(ListEmrTemplatesQuery q, CancellationToken ct)
     {
@@ -478,23 +523,68 @@ public class ListEmrTemplatesQueryHandler : IRequestHandler<ListEmrTemplatesQuer
             .ThenBy(e => e.Name)
             .ToListAsync(ct);
 
-        var result = templates.Select(t => new EmrTemplateResponse(
-            t.Id,
-            t.TenantId,
-            t.Name,
-            TryParseJson(t.ContentJson) ?? (object)t.ContentJson,
-            t.Speciality,
-            t.IsSystem,
-            t.CreatedBy,
-            t.CreatedAt)).ToList();
+        // §5.7.3 — neu loc theo goi benh nhan: mau gan voi goi (bang noi) hien len DAU.
+        HashSet<string> packageTemplateIds = new();
+        if (q.PackageId.HasValue)
+        {
+            using var conn = (System.Data.IDbConnection)_dapper.CreateConnection();
+            var ids = await Dapper.SqlMapper.QueryAsync<string>(conn,
+                @"SELECT template_id FROM diab_his_cli_emr_template_package_map
+                  WHERE package_id = @packageId AND deleted_at IS NULL",
+                new { packageId = q.PackageId.Value.ToString() });
+            packageTemplateIds = ids.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var result = templates
+            .OrderByDescending(t => packageTemplateIds.Contains(t.Id.ToString()))
+            .ThenByDescending(t => t.IsSystem)
+            .ThenBy(t => t.Name)
+            .Select(t => MapTemplate(t))
+            .ToList();
 
         return Result<IReadOnlyList<EmrTemplateResponse>>.Success(result.AsReadOnly());
     }
 
-    private static object? TryParseJson(string? json)
+    internal static EmrTemplateResponse MapTemplate(EmrTemplate t) => new(
+        t.Id,
+        t.TenantId,
+        t.Name,
+        TryParseJson(t.ContentJson) ?? (object)t.ContentJson,
+        t.Speciality,
+        t.IsSystem,
+        t.CreatedBy,
+        t.CreatedAt,
+        StructuredJson: TryParseJson(t.StructuredJson),
+        IsDefault: t.IsDefault);
+
+    internal static object? TryParseJson(string? json)
     {
         if (string.IsNullOrEmpty(json)) return null;
         try { return JsonSerializer.Deserialize<object>(json); } catch { return null; }
+    }
+
+    /// <summary>§5.7.2 — serialize structured_json; null -> null (rong, hop le); loi serialize -> false.</summary>
+    internal static bool TrySerializeStructured(object? structured, out string? json)
+    {
+        json = null;
+        if (structured is null) return true;
+        try { json = JsonSerializer.Serialize(structured); return true; }
+        catch { return false; }
+    }
+}
+
+// §5.7.3 — GET /api/v1/emr-templates/{id} — tra du structuredJson de FE nap form
+public class GetEmrTemplateQueryHandler : IRequestHandler<GetEmrTemplateQuery, Result<EmrTemplateResponse?>>
+{
+    private readonly IApplicationDbContext _db;
+
+    public GetEmrTemplateQueryHandler(IApplicationDbContext db) => _db = db;
+
+    public async Task<Result<EmrTemplateResponse?>> Handle(GetEmrTemplateQuery q, CancellationToken ct)
+    {
+        var t = await _db.EmrTemplates.FirstOrDefaultAsync(e => e.Id == q.TemplateId, ct);
+        return Result<EmrTemplateResponse?>.Success(
+            t is null ? null : ListEmrTemplatesQueryHandler.MapTemplate(t));
     }
 }
 
@@ -510,22 +600,28 @@ public class CreateEmrTemplateCommandHandler : IRequestHandler<CreateEmrTemplate
     public async Task<Result<EmrTemplateResponse>> Handle(CreateEmrTemplateCommand cmd, CancellationToken ct)
     {
         var req    = cmd.Request;
+        // §5.7.2 — structured_json (dinh nghia form) — validate la JSON hop le neu khong rong
+        if (!ListEmrTemplatesQueryHandler.TrySerializeStructured(req.StructuredJson, out var structuredJsonStr))
+            return Result<EmrTemplateResponse>.Failure("EMR_TEMPLATE_STRUCTURED_INVALID",
+                "Cấu hình biểu mẫu (structuredJson) không phải JSON hợp lệ");
+
         var entity = new EmrTemplate
         {
-            TenantId    = _tenant.TenantId,
-            Name        = req.Name,
-            ContentJson = JsonSerializer.Serialize(req.ContentJson),
-            Speciality  = req.Speciality,
-            IsSystem    = false,
-            CreatedBy   = _user.UserId,
+            TenantId       = _tenant.TenantId,
+            Name           = req.Name,
+            ContentJson    = JsonSerializer.Serialize(req.ContentJson),
+            StructuredJson = structuredJsonStr,
+            Speciality     = req.Speciality,
+            IsSystem       = false,
+            IsDefault      = req.IsDefault,
+            CreatedBy      = _user.UserId,
         };
 
         _db.EmrTemplates.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        return Result<EmrTemplateResponse>.Success(new EmrTemplateResponse(
-            entity.Id, entity.TenantId, entity.Name, req.ContentJson, entity.Speciality,
-            false, _user.UserId, entity.CreatedAt));
+        return Result<EmrTemplateResponse>.Success(
+            ListEmrTemplatesQueryHandler.MapTemplate(entity));
     }
 }
 
@@ -543,10 +639,17 @@ public class UpdateEmrTemplateCommandHandler : IRequestHandler<UpdateEmrTemplate
         if (entity is null)
             return Result<bool>.Failure("TEMPLATE_NOT_FOUND", "Không tìm thấy mẫu bệnh án");
 
-        entity.Name        = cmd.Request.Name;
-        entity.ContentJson = JsonSerializer.Serialize(cmd.Request.ContentJson);
-        entity.Speciality  = cmd.Request.Speciality;
-        entity.UpdatedBy   = _user.UserId;
+        // §5.7.2 — validate structured_json
+        if (!ListEmrTemplatesQueryHandler.TrySerializeStructured(cmd.Request.StructuredJson, out var structuredJsonStr))
+            return Result<bool>.Failure("EMR_TEMPLATE_STRUCTURED_INVALID",
+                "Cấu hình biểu mẫu (structuredJson) không phải JSON hợp lệ");
+
+        entity.Name           = cmd.Request.Name;
+        entity.ContentJson    = JsonSerializer.Serialize(cmd.Request.ContentJson);
+        entity.StructuredJson = structuredJsonStr;
+        entity.Speciality     = cmd.Request.Speciality;
+        entity.IsDefault      = cmd.Request.IsDefault;
+        entity.UpdatedBy      = _user.UserId;
 
         await _db.SaveChangesAsync(ct);
         return Result<bool>.Success(true);

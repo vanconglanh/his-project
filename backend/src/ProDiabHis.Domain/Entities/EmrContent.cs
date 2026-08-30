@@ -10,6 +10,8 @@ public class EmrContent : BaseEntity, ITenantScoped
     public string ContentJson { get; set; } = "{}";
     public string? ContentHtml { get; set; }
     public string? TemplateId { get; set; }
+    /// <summary>§5.8.1 (QD4) — PHI: gia tri form dang soan (working copy) {key: value}. Migration 9182.</summary>
+    public string? StructuredValuesJson { get; set; }
     public int Version { get; set; } = 1;
     public DateTime? SignedAt { get; set; }
     public string? SignedBy { get; set; }
@@ -23,6 +25,13 @@ public class EmrVersion
     public int TenantId { get; set; }
     public int Version { get; set; }
     public string ContentJson { get; set; } = "{}";
+    /// <summary>§5.8.1 (QD4) — Mau benh an da dung (tham chieu logic, KHONG FK cung). Chi truy vet/bao cao. Migration 9182.</summary>
+    public string? TemplateId { get; set; }
+    /// <summary>§5.8.1 (QD4) — PHI: gia tri form cua PHIEN BAN nay {key: value}. Migration 9182.</summary>
+    public string? StructuredValuesJson { get; set; }
+    /// <summary>§5.8.2 (QD5) — Chup nguyen ven EmrTemplate.structured_json tai thoi diem tao ban ghi.
+    /// LUON render benh an theo cot nay, KHONG doc lai template hien tai. NULL = ban ghi truoc migration 9182. Migration 9182.</summary>
+    public string? SchemaSnapshotJson { get; set; }
     public int BytesSize { get; set; }
     public DateTime SavedAt { get; set; } = DateTime.UtcNow;
     public string? SavedBy { get; set; }
@@ -51,6 +60,10 @@ public class EmrTemplate : BaseEntity
     public int? TenantId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string ContentJson { get; set; } = "{}";
+    /// <summary>§5.7.2 / §5.8.1 — DINH NGHIA cau truc form (mang field). Danh muc dung chung, KHONG chua PHI. Migration 9181.</summary>
+    public string? StructuredJson { get; set; }
     public string Speciality { get; set; } = "GENERAL";
     public bool IsSystem { get; set; }
+    /// <summary>§5.7 — Template mac dinh cua tenant theo speciality (goi y khi mo man kham). Migration 9181.</summary>
+    public bool IsDefault { get; set; }
 }

@@ -716,10 +716,48 @@ export interface VitalSignsResponse extends VitalSignsRequest {
 
 // ─── EMR ──────────────────────────────────────────────────────────────────────
 
+/**
+ * Định nghĩa 1 field của form có cấu trúc (structured_json trên EmrTemplate,
+ * schema_snapshot trên EmrVersion/EmrContent đã ký).
+ * Xem docs/prd/kien-truc-master-data-package-emr-20260830.md §5.8.1
+ */
+export type EmrFormFieldType =
+  | "text"
+  | "number"
+  | "textarea"
+  | "select"
+  | "checkbox"
+  | "checklist"
+  | "date"
+  | "radio";
+
+export interface EmrFormFieldOption {
+  value: string;
+  label: string;
+}
+
+export interface EmrFormField {
+  key: string;
+  label: string;
+  type: EmrFormFieldType;
+  unit?: string;
+  required?: boolean;
+  group?: string;
+  colSpan?: 1 | 2;
+  options?: EmrFormFieldOption[] | string[];
+}
+
+export type EmrFormSchema = EmrFormField[];
+
+/** Giá trị đã nhập cho 1 form có cấu trúc, key khớp EmrFormField.key */
+export type EmrFormValues = Record<string, unknown>;
+
 export interface EmrSaveRequest {
   content_json: Record<string, unknown>;
   content_html?: string;
   template_id?: string;
+  /** Giá trị bác sĩ nhập cho form có cấu trúc — tách khỏi content_json (§5.8.1) */
+  structured_values?: EmrFormValues;
 }
 
 export interface EmrContentResponse {
@@ -739,6 +777,14 @@ export interface EmrContentResponse {
   version: number;
   updated_at: string;
   updated_by: string;
+  /** Giá trị đã nhập cho form có cấu trúc của phiên bản hiện hành */
+  structured_values?: EmrFormValues | null;
+  /**
+   * Bản chụp structured_json của template tại thời điểm tạo/ký bản ghi này.
+   * NULL = bệnh án tạo trước khi có cơ chế snapshot (§5.8.4) — chỉ hiển thị content_json.
+   * BẮT BUỘC render theo trường này khi hiển thị lại, KHÔNG gọi lại API template.
+   */
+  schema_snapshot?: EmrFormSchema | null;
 }
 
 export interface SignEmrRequest {
@@ -763,6 +809,8 @@ export interface EmrTemplateRequest {
   name: string;
   content_json: Record<string, unknown>;
   speciality: EmrTemplateSpeciality;
+  /** Định nghĩa form có cấu trúc đi kèm mẫu (§5.7.2 mục 2). NULL/undefined = mẫu tự do */
+  structured_json?: EmrFormSchema | null;
 }
 
 export interface EmrTemplateResponse extends EmrTemplateRequest {

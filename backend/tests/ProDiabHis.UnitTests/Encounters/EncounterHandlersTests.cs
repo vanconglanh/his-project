@@ -1,7 +1,9 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Application.Common.Interfaces;
 using ProDiabHis.Application.Encounters;
 using ProDiabHis.Domain.Entities;
 using Xunit;
@@ -15,6 +17,9 @@ public class EncounterHandlersTests
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
     private readonly IDapperConnectionFactory _dapper;
+    private readonly IBranchProvider _branch;
+    private readonly IPackageEntitlementService _packageEntitlement;
+    private readonly ILogger<StartEncounterCommandHandler> _startLogger;
 
     public EncounterHandlersTests()
     {
@@ -25,6 +30,9 @@ public class EncounterHandlersTests
         // PHAI dung DbConnection that (khong phai mock IDbConnection) de Dapper chay duoc nhanh async
         // that (QueryFirstOrDefaultAsync/ExecuteAsync) — xem FakeEmptyDapperConnectionFactory.
         _dapper = new FakeEmptyDapperConnectionFactory();
+        _branch = Substitute.For<IBranchProvider>();
+        _packageEntitlement = Substitute.For<IPackageEntitlementService>();
+        _startLogger = Substitute.For<ILogger<StartEncounterCommandHandler>>();
     }
 
     // ──────────────────────────────────────────
@@ -159,7 +167,7 @@ public class EncounterHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new StartEncounterCommandHandler(db, _tenant, _user, _audit, _dapper);
+        var handler = new StartEncounterCommandHandler(db, _tenant, _user, _audit, _dapper, _branch, _packageEntitlement, _startLogger);
         var result = await handler.Handle(new StartEncounterCommand(encId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -183,7 +191,7 @@ public class EncounterHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new StartEncounterCommandHandler(db, _tenant, _user, _audit, _dapper);
+        var handler = new StartEncounterCommandHandler(db, _tenant, _user, _audit, _dapper, _branch, _packageEntitlement, _startLogger);
         var result = await handler.Handle(new StartEncounterCommand(encId), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();

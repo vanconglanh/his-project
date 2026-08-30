@@ -104,11 +104,25 @@ public class EmrTemplatesController : ControllerBase
 
     public EmrTemplatesController(IMediator mediator) => _mediator = mediator;
 
+    // GET /api/v1/emr-templates?speciality=&packageId=&isActive=true&is_system=
+    // §5.7.3 — danh sach mau cho man kham (id, name, speciality, structuredJson, isDefault).
     [HttpGet]
     [RequirePermission("emr_template.read")]
-    public async Task<IActionResult> List([FromQuery] string? speciality, [FromQuery] bool? is_system, CancellationToken ct)
+    public async Task<IActionResult> List([FromQuery] string? speciality, [FromQuery] bool? is_system,
+        [FromQuery] Guid? packageId, CancellationToken ct)
     {
-        var result = await _mediator.Send(new ListEmrTemplatesQuery(speciality, is_system), ct);
+        var result = await _mediator.Send(new ListEmrTemplatesQuery(speciality, is_system, packageId), ct);
+        return Ok(new { data = result.Value });
+    }
+
+    // GET /api/v1/emr-templates/{id} — tra du structuredJson de FE nap form
+    [HttpGet("{id:guid}")]
+    [RequirePermission("emr_template.read")]
+    public async Task<IActionResult> Get(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetEmrTemplateQuery(id), ct);
+        if (result.Value is null)
+            return NotFound(new { error = new { code = "EMR_TEMPLATE_NOT_FOUND", message = "Không tìm thấy mẫu bệnh án" } });
         return Ok(new { data = result.Value });
     }
 
@@ -126,7 +140,11 @@ public class EmrTemplatesController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] EmrTemplateRequest request, CancellationToken ct)
     {
         var result = await _mediator.Send(new UpdateEmrTemplateCommand(id, request), ct);
-        if (!result.IsSuccess) return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        if (!result.IsSuccess)
+        {
+            var code = result.ErrorCode == "EMR_TEMPLATE_STRUCTURED_INVALID" ? 400 : 404;
+            return StatusCode(code, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
         return Ok();
     }
 

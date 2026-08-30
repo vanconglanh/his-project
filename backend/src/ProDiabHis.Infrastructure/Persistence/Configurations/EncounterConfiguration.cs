@@ -29,6 +29,8 @@ public class EncounterConfiguration : IEntityTypeConfiguration<Encounter>
         builder.Property(e => e.AmendmentCount).HasColumnName("amendment_count").HasDefaultValue(0);
         builder.Ignore(e => e.IsLocked);
         builder.Property(e => e.TelehealthSessionId).HasColumnName("telehealth_session_id").HasMaxLength(36);
+        // §4.7.5 (T2) — luot kham thuoc goi dinh muc nao (migration 9181)
+        builder.Property(e => e.CoveredBySubscriptionId).HasColumnName("covered_by_subscription_id").HasMaxLength(36);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
@@ -117,6 +119,8 @@ public class EmrContentConfiguration : IEntityTypeConfiguration<EmrContent>
         builder.Property(e => e.ContentJson).HasColumnName("content_json").HasColumnType("MEDIUMTEXT").IsRequired();
         builder.Property(e => e.ContentHtml).HasColumnName("content_html").HasColumnType("MEDIUMTEXT");
         builder.Property(e => e.TemplateId).HasColumnName("template_id").HasMaxLength(36);
+        // §5.8.1 (QD4) — working copy gia tri form (migration 9182)
+        builder.Property(e => e.StructuredValuesJson).HasColumnName("structured_values_json").HasColumnType("JSON");
         builder.Property(e => e.Version).HasColumnName("version").HasDefaultValue(1);
         builder.Property(e => e.SignedAt).HasColumnName("signed_at");
         builder.Property(e => e.SignedBy).HasColumnName("signed_by").HasMaxLength(36);
@@ -143,6 +147,10 @@ public class EmrVersionConfiguration : IEntityTypeConfiguration<EmrVersion>
         builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
         builder.Property(e => e.Version).HasColumnName("version").IsRequired();
         builder.Property(e => e.ContentJson).HasColumnName("content_json").HasColumnType("MEDIUMTEXT").IsRequired();
+        // §5.8.1/§5.8.2 (QD4+QD5) — migration 9182
+        builder.Property(e => e.TemplateId).HasColumnName("template_id").HasMaxLength(36);
+        builder.Property(e => e.StructuredValuesJson).HasColumnName("structured_values_json").HasColumnType("JSON");
+        builder.Property(e => e.SchemaSnapshotJson).HasColumnName("schema_snapshot_json").HasColumnType("JSON");
         builder.Property(e => e.BytesSize).HasColumnName("bytes_size").HasDefaultValue(0);
         builder.Property(e => e.SavedAt).HasColumnName("saved_at");
         builder.Property(e => e.SavedBy).HasColumnName("saved_by").HasMaxLength(36);
@@ -188,8 +196,11 @@ public class EmrTemplateConfiguration : IEntityTypeConfiguration<EmrTemplate>
         builder.Property(e => e.TenantId).HasColumnName("tenant_id");
         builder.Property(e => e.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
         builder.Property(e => e.ContentJson).HasColumnName("content_json").HasColumnType("MEDIUMTEXT").IsRequired();
+        // §5.7.2 — dinh nghia form (migration 9181)
+        builder.Property(e => e.StructuredJson).HasColumnName("structured_json").HasColumnType("JSON");
         builder.Property(e => e.Speciality).HasColumnName("speciality").HasMaxLength(50).HasDefaultValue("GENERAL");
         builder.Property(e => e.IsSystem).HasColumnName("is_system").HasDefaultValue(false);
+        builder.Property(e => e.IsDefault).HasColumnName("is_default").HasDefaultValue(false);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
