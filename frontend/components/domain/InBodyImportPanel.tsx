@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUploadInBodyReport, useConfirmInBodyReport } from "@/lib/hooks/use-inbody-reports";
 import type { InBodyFieldDto, InBodyIndicatorType, InBodyReportResponse } from "@/lib/api/inbody-reports";
 
@@ -53,7 +54,9 @@ function toEditable(fields: InBodyFieldDto[]): EditableField[] {
       value: f?.value != null ? String(f.value) : "",
       unit: f?.unit ?? meta.unit,
       extracted: f?.extracted ?? false,
-      include: f?.extracted ?? false,
+      // BMI: backend co tinh KHONG luu rieng (tinh lai tu can nang + chieu cao) -> khong tich mac dinh,
+      // checkbox se bi disable ben duoi de tranh gay hieu nham cho dieu duong.
+      include: type === "BMI" ? false : f?.extracted ?? false,
     };
   });
 }
@@ -80,10 +83,14 @@ export function InBodyImportPanel({ patientId, encounterId, onSaved }: InBodyImp
 
   const handleUpload = async () => {
     if (!pendingFile) return;
-    const result = await uploadMutation.mutateAsync({ file: pendingFile, encounterId });
-    setReport(result);
-    setFields(toEditable(result.fields));
-    setPendingFile(null);
+    try {
+      const result = await uploadMutation.mutateAsync({ file: pendingFile, encounterId });
+      setReport(result);
+      setFields(toEditable(result.fields));
+      setPendingFile(null);
+    } catch {
+      // Loi da duoc xu ly qua onError cua uploadMutation (hien toast) — chan unhandled rejection.
+    }
   };
 
   const updateField = (type: InBodyIndicatorType, patch: Partial<EditableField>) => {
@@ -106,16 +113,20 @@ export function InBodyImportPanel({ patientId, encounterId, onSaved }: InBodyImp
         include: true,
       }));
 
-    await confirmMutation.mutateAsync(
-      { id: report.id, encounter_id: encounterId, fields: payloadFields },
-      {
-        onSuccess: () => {
-          setReport(null);
-          setFields([]);
-          onSaved?.();
-        },
-      }
-    );
+    try {
+      await confirmMutation.mutateAsync(
+        { id: report.id, encounter_id: encounterId, fields: payloadFields },
+        {
+          onSuccess: () => {
+            setReport(null);
+            setFields([]);
+            onSaved?.();
+          },
+        }
+      );
+    } catch {
+      // Loi da duoc xu ly qua onError cua confirmMutation (hien toast) — chan unhandled rejection.
+    }
   };
 
   if (!report) {
@@ -224,12 +235,27 @@ export function InBodyImportPanel({ patientId, encounterId, onSaved }: InBodyImp
                 <span className="text-xs text-amber-600 font-medium">Chưa đọc được</span>
               )}
               <div className="flex justify-center">
-                <Checkbox
-                  checked={f.include}
-                  aria-label={`Lưu chỉ số ${meta.label}`}
-                  onCheckedChange={(v) => updateField(f.indicator_type, { include: !!v })}
-                  disabled={f.value === ""}
-                />
+                {f.indicator_type === "BMI" ? (
+                  <Tooltip>
+                    <TooltipTrigger className="cursor-not-allowed">
+                      <Checkbox
+                        checked={false}
+                        aria-label={`Lưu chỉ số ${meta.label}`}
+                        disabled
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      BMI được tính tự động từ cân nặng và chiều cao, không cần xác nhận riêng
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Checkbox
+                    checked={f.include}
+                    aria-label={`Lưu chỉ số ${meta.label}`}
+                    onCheckedChange={(v) => updateField(f.indicator_type, { include: !!v })}
+                    disabled={f.value === ""}
+                  />
+                )}
               </div>
             </div>
           );
