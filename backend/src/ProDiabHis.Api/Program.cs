@@ -177,6 +177,63 @@ try
 
     var app = builder.Build();
 
+    // ---------------------------------------------------------------------------------------------
+    // CONSOLE COMMAND chay-1-lan: backfill blind index PII (khong listen HTTP).
+    // Cach chay:  dotnet run --project backend/src/ProDiabHis.Api -- backfill-bidx [tenantId]
+    // Muc dich:   du lieu cu co id_number_enc/card_no_enc day du nhung *_bidx = NULL -> tra cuu benh
+    //             nhan theo CCCD/SDT/so the BHYT khong ra. Tai dung PiiBackfillService (idempotent).
+    // Neu truyen tenantId -> chi chay tenant do; neu khong -> quet distinct tenant_id tu benh nhan.
+    // Xu ly xong -> THOAT, KHONG chay web server.
+    // ---------------------------------------------------------------------------------------------
+    if (args.Length > 0 && (args[0] == "backfill-bidx" || args[0] == "--backfill-pii"))
+    {
+        using var scope = app.Services.CreateScope();
+        var sp = scope.ServiceProvider;
+        var backfill = sp.GetRequiredService<ProDiabHis.Application.Common.IPiiBackfillService>();
+        var dbFactory = sp.GetRequiredService<ProDiabHis.Application.Common.IDapperConnectionFactory>();
+
+        // Batch mac dinh 500 (RunAsync tu ep ve 500 neu ngoai khoang hop le)
+        const int batchSize = 500;
+
+        // Xac dinh danh sach tenant can chay
+        List<int> tenantIds;
+        if (args.Length > 1 && int.TryParse(args[1], out var singleTenant))
+        {
+            tenantIds = new List<int> { singleTenant };
+            Log.Information("PII backfill: chay cho tenant chi dinh {TenantId}", singleTenant);
+        }
+        else
+        {
+            using var conn = dbFactory.CreateConnection();
+            tenantIds = (await Dapper.SqlMapper.QueryAsync<int>(conn,
+                "SELECT DISTINCT tenant_id FROM diab_his_pat_patients ORDER BY tenant_id"))
+                .ToList();
+            Log.Information("PII backfill: tim thay {Count} tenant co du lieu benh nhan: {Tenants}",
+                tenantIds.Count, string.Join(",", tenantIds));
+        }
+
+        int totalIndexed = 0, totalInsIndexed = 0, totalErrors = 0;
+        foreach (var tid in tenantIds)
+        {
+            Log.Information("PII backfill: bat dau tenant {TenantId} (batchSize={BatchSize})...", tid, batchSize);
+            var result = await backfill.RunAsync(tid, batchSize, dryRun: false);
+            totalIndexed += result.PatientsBlindIndexed;
+            totalInsIndexed += result.InsurancesBlindIndexed;
+            totalErrors += result.Errors.Count;
+            Log.Information(
+                "PII backfill: xong tenant {TenantId} - scanned={Scanned} encrypted={Enc} bidx={Bidx} insBidx={InsBidx} errors={Err}",
+                tid, result.PatientsScanned, result.PatientsEncrypted,
+                result.PatientsBlindIndexed, result.InsurancesBlindIndexed, result.Errors.Count);
+            foreach (var e in result.Errors) Log.Warning("PII backfill loi: {Error}", e);
+        }
+
+        Log.Information(
+            "PII backfill HOAN TAT: tenants={TenantCount} tong bidx benh nhan={Bidx} tong bidx the BHYT={InsBidx} tong loi={Err}",
+            tenantIds.Count, totalIndexed, totalInsIndexed, totalErrors);
+        Log.CloseAndFlush();
+        return; // thoat, khong chay web server
+    }
+
     // Hang muc 6: kich hoat ambient PII protector (dung boi cac read-path Dapper raw SQL)
     var piiProtector = app.Services.GetRequiredService<ProDiabHis.Application.Common.IPiiProtector>();
     ProDiabHis.Application.Common.PiiCrypto.Configure(piiProtector);

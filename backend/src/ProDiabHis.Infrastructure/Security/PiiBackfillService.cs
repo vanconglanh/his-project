@@ -19,17 +19,27 @@ public class PiiBackfillService : IPiiBackfillService
 {
     private readonly IDapperConnectionFactory _db;
     private readonly IPiiProtector _pii;
+    private readonly IEncryptionService _enc;
     private readonly IAuditService _audit;
     private readonly ILogger<PiiBackfillService> _logger;
 
     public PiiBackfillService(
         IDapperConnectionFactory db,
         IPiiProtector pii,
+        IEncryptionService enc,
         IAuditService audit,
         ILogger<PiiBackfillService> logger)
     {
-        _db = db; _pii = pii; _audit = audit; _logger = logger;
+        _db = db; _pii = pii; _enc = enc; _audit = audit; _logger = logger;
     }
+
+    /// <summary>Giai ma gia tri cot *_enc. id_number_enc/card_no_enc duoc luu bang IEncryptionService.Encrypt
+    /// (RAW, khong co tien to "enc:v1:"), khac voi phone_enc luu qua IPiiProtector.Protect (co tien to).
+    /// Neu dung _pii.Unprotect cho chuoi RAW -> IsProtected=false -> tra ve nguyen ciphertext (coi la plaintext)
+    /// -> blind index tinh tren ciphertext, KHONG khop voi blind index luc tim kiem (tinh tren CCCD that) ->
+    /// tra cuu theo CCCD/so the truot toan bo. Vi vay phai giai ma marker-aware.</summary>
+    private string DecryptEnc(string enc)
+        => _pii.IsProtected(enc) ? _pii.Unprotect(enc)! : _enc.Decrypt(enc);
 
     public async Task<PiiBackfillResult> RunAsync(int tenantId, int batchSize, bool dryRun, CancellationToken ct = default)
     {
@@ -113,7 +123,7 @@ public class PiiBackfillService : IPiiBackfillService
         {
             try
             {
-                var plain = _pii.Unprotect(enc);
+                var plain = DecryptEnc(enc);
                 var bidx = _pii.BlindIndex(plain, PiiField.IdNumber);
                 if (bidx == null) continue;
                 if (dryRun) { indexed++; continue; }
@@ -130,6 +140,37 @@ public class PiiBackfillService : IPiiBackfillService
             }
         }
 
+        // ---------- Blind index SDT (du lieu da ma hoa san, plaintext da bi NULL sau lan backfill truoc) ----------
+        // Vong lap dau chi tinh phone_bidx tu cot plaintext `phone`; nhung sau khi da ma hoa xong plaintext
+        // bi set NULL -> nhung ban ghi cu chi con phone_enc (co tien to enc:v1:) van thieu phone_bidx.
+        // Giai ma phone_enc marker-aware roi tinh lai blind index de tra cuu theo SDT hoat dong.
+        var phoneRows = (await conn.QueryAsync<(string Id, string PhoneEnc)>(
+            @"SELECT id, phone_enc FROM diab_his_pat_patients
+              WHERE tenant_id = @tenantId AND phone_enc IS NOT NULL AND (phone_bidx IS NULL OR phone_bidx = '')
+              LIMIT 100000",
+            new { tenantId })).ToList();
+
+        foreach (var (id, enc) in phoneRows)
+        {
+            try
+            {
+                var plain = DecryptEnc(enc);
+                var bidx = _pii.BlindIndex(plain, PiiField.Phone);
+                if (bidx == null) continue;
+                if (dryRun) { indexed++; continue; }
+
+                await conn.ExecuteAsync(
+                    "UPDATE diab_his_pat_patients SET phone_bidx = @bidx WHERE id = @id AND tenant_id = @tenantId",
+                    new { bidx, id, tenantId });
+                indexed++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PiiBackfill: loi blind index SDT benh nhan {PatientId}", id);
+                errors.Add($"patient-phone:{id}:{ex.Message}");
+            }
+        }
+
         // ---------- Blind index so the BHYT ----------
         var cardRows = (await conn.QueryAsync<(string Id, string CardNoEnc)>(
             @"SELECT id, card_no_enc FROM diab_his_pat_insurances
@@ -141,7 +182,7 @@ public class PiiBackfillService : IPiiBackfillService
         {
             try
             {
-                var plain = _pii.Unprotect(enc);
+                var plain = DecryptEnc(enc);
                 var bidx = _pii.BlindIndex(plain, PiiField.InsuranceCardNo);
                 if (bidx == null) continue;
                 if (dryRun) { insIndexed++; continue; }
