@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProDiabHis.Api.Filters;
 using ProDiabHis.Application.RadResults;
+using ProDiabHis.Application.RadResults.Ocr;
 
 namespace ProDiabHis.Api.Controllers;
 
@@ -109,6 +110,64 @@ public class RadResultsController : ControllerBase
         return File(result.Value!, "application/pdf", $"rad-result-{id}.pdf");
     }
 
+    // POST /api/v1/rad-results/ocr-extract
+    // Upload file phieu KQ CDHA (PDF/anh) -> OCR doc + tach 2 doan Mo ta/Ket luan.
+    // KHONG luu — chi tra ve text doc duoc de nguoi dung xac nhan/sua truoc khi luu (buoc ocr-confirm).
+    [HttpPost("api/v1/rad-results/ocr-extract")]
+    [RequirePermission("rad_result.write")]
+    public async Task<IActionResult> OcrExtract(IFormFile file, CancellationToken ct = default)
+    {
+        if (file is null || file.Length == 0)
+            return UnprocessableEntity(Error("RAD_OCR_UPLOAD_FAILED", "Tải tệp thất bại, vui lòng thử lại"));
+
+        using var stream = file.OpenReadStream();
+        var result = await _mediator.Send(
+            new ExtractRadResultOcrCommand(stream, file.FileName, file.ContentType), ct);
+
+        if (!result.IsSuccess)
+        {
+            var code = result.ErrorCode switch
+            {
+                "RAD_OCR_TOO_LARGE" => 413,
+                _ => 422
+            };
+            return StatusCode(code, Error(result.ErrorCode!, result.ErrorMessage!));
+        }
+
+        return Ok(new { data = result.Value });
+    }
+
+    // POST /api/v1/rad-results/ocr-confirm
+    // Xac nhan (da sua tay neu can) 2 o Mo ta/Ket luan -> tao RadResult qua luong nhap KQ san co.
+    [HttpPost("api/v1/rad-results/ocr-confirm")]
+    [RequirePermission("rad_result.write")]
+    public async Task<IActionResult> OcrConfirm([FromBody] RadOcrConfirmBody body, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ConfirmRadResultOcrCommand(
+            body.rad_order_id,
+            body.findings ?? string.Empty,
+            body.impression,
+            body.conclusion ?? string.Empty,
+            body.recommendations,
+            body.performed_at ?? DateTime.UtcNow), ct);
+
+        if (!result.IsSuccess)
+        {
+            var code = result.ErrorCode == "RAD_RESULT_NOT_FOUND" ? 404 : 400;
+            return StatusCode(code, Error(result.ErrorCode!, result.ErrorMessage!));
+        }
+
+        return StatusCode(201, new { data = result.Value });
+    }
+
     private static object Error(string code, string message) =>
         new { error = new { code, message } };
 }
+
+public record RadOcrConfirmBody(
+    Guid      rad_order_id,
+    string?   findings,
+    string?   impression,
+    string?   conclusion,
+    string?   recommendations,
+    DateTime? performed_at);
