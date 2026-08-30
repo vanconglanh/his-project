@@ -29,8 +29,13 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
 # curl cho healthcheck; libfontconfig1/libfreetype6 cho SkiaSharp (QuestPDF sinh bao cao PDF)
+# libtesseract5/libleptonica6 cho OCR (NuGet Tesseract 5.2.0 P/Invoke native lib tren Linux,
+#   NuGet nay chi bundle native cho Windows -> Linux BAT BUOC cai lib he thong).
+# NuGet tim libtesseract.so/libleptonica.so (khong hau to phien ban) nen tao symlink.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl libfontconfig1 libfreetype6 \
+        curl libfontconfig1 libfreetype6 libtesseract5 libleptonica6 \
+    && ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so.5 /usr/lib/x86_64-linux-gnu/libtesseract.so \
+    && ln -sf /usr/lib/x86_64-linux-gnu/liblept.so.5 /usr/lib/x86_64-linux-gnu/libleptonica.so \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish ./

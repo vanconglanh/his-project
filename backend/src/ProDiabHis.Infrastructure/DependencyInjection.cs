@@ -287,7 +287,13 @@ public static class DependencyInjection
                     TransactionTimeout = TimeSpan.FromMinutes(1)
                 })));
 
-        services.AddHangfireServer(opts => opts.WorkerCount = 2);
+        services.AddHangfireServer(opts =>
+        {
+            opts.WorkerCount = 2;
+            // "ocr": batch OCR nhap lieu ho so giay cu (LegacyOcrBatchJob). "default": queue mac dinh
+            // Hangfire dung khi 1 job khong khai bao [Queue] rieng.
+            opts.Queues = new[] { "default", "bhyt", "ocr" };
+        });
         services.AddScoped<EncounterOver12hAlertJob>();
         services.AddScoped<SendOutboundJob>();
         services.AddScoped<ProcessInboundJob>();
@@ -558,6 +564,10 @@ public static class DependencyInjection
 
         // InBody OCR (doc PDF ket qua may InBody — xem docs/prd/inbody-ocr-20260830.md)
         services.AddScoped<Application.InBody.IInBodyDataProvider, InBody.InBodyPdfTextProvider>();
+
+        // Legacy scan import - nhap lieu hang loat ho so giay cu (OCR anh scan bang Tesseract)
+        services.AddScoped<Application.LegacyImport.IOcrTextProvider, Ocr.TesseractOcrProvider>();
+        services.AddScoped<Jobs.LegacyOcrBatchJob>();
 
         // Lab integration services
         services.AddHttpClient("LabPartner");

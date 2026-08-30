@@ -26,4 +26,12 @@
     <ProjectReference Include="..\ProDiabHis.Infrastructure\ProDiabHis.Infrastructure.csproj" />
     <ProjectReference Include="..\ProDiabHis.Contracts\ProDiabHis.Contracts.csproj" />
   </ItemGroup>
+
+  <!-- tessdata (eng/vie.traineddata) cho Tesseract OCR - nam ngoai project tai backend/tessdata,
+       copy vao output de TesseractOcrProvider tim thay qua AppContext.BaseDirectory/tessdata -->
+  <ItemGroup>
+    <None Include="..\..\tessdata\**" LinkBase="tessdata">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

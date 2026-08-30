@@ -44,4 +44,5 @@ public static class FileBuckets
     public const string FilesGeneric = "files-generic";
     public const string BhytExports = "bhyt-exports";
     public const string InBodyReports = "inbody-reports";
+    public const string LegacyScans = "legacy-scans";
 }

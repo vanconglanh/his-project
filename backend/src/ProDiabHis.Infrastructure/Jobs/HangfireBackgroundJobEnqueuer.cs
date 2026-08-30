@@ -27,4 +27,7 @@ public class HangfireBackgroundJobEnqueuer : IBackgroundJobEnqueuer
 
     public string EnqueueQueueTurnNotify(string roomId, int tenantId, string calledTicketId)
         => _client.Enqueue<QueueTurnNotifyJob>(j => j.ExecuteAsync(roomId, tenantId, calledTicketId, default));
+
+    public string EnqueueLegacyOcrBatch(string batchId, int tenantId)
+        => _client.Enqueue<LegacyOcrBatchJob>(j => j.ExecuteAsync(batchId, tenantId, default));
 }

@@ -20,4 +20,7 @@ public interface IBackgroundJobEnqueuer
 
     /// <summary>Enqueue thong bao "sap den luot" cho benh nhan cung phong khi 1 phieu chuyen sang CALLED</summary>
     string EnqueueQueueTurnNotify(string roomId, int tenantId, string calledTicketId);
+
+    /// <summary>Enqueue batch OCR nhap lieu ho so giay cu (giai nen ZIP + OCR tung anh)</summary>
+    string EnqueueLegacyOcrBatch(string batchId, int tenantId);
 }
