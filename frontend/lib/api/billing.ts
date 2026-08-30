@@ -159,6 +159,21 @@ export async function getBillingsByEncounter(encounterId: string): Promise<Billi
   return data.data;
 }
 
+/** FR-911 H-9 — QR VietQR động theo số tiền phải thu THẬT SỰ của hoá đơn (server tự tính). */
+export interface DynamicBillingQrResponse {
+  billing_id: string;
+  amount: number;
+  qr_payload: string;
+  qr_payload_image_base64: string;
+  qr_url: string | null;
+  transaction_ref: string;
+}
+
+export async function generateDynamicBillingQr(id: string): Promise<DynamicBillingQrResponse> {
+  const { data } = await apiClient.post<{ data: DynamicBillingQrResponse }>(`/billings/${id}/qr-dynamic`);
+  return data.data;
+}
+
 export function printBillingPdf(id: string): void {
   const url = `${apiClient.defaults.baseURL}/billings/${id}/pdf`;
   window.open(url, "_blank");

@@ -10,6 +10,7 @@ import {
   voidBilling,
   applyBhyt,
   getBillingsByEncounter,
+  generateDynamicBillingQr,
   type BillingListParams,
   type BillingItemUpsert,
   type PayerType,
@@ -107,6 +108,13 @@ export function useVoidBilling() {
       qc.invalidateQueries({ queryKey: BILLING_KEYS.detail(data.id) });
       qc.invalidateQueries({ queryKey: BILLING_KEYS.all });
     },
+  });
+}
+
+/** FR-911 H-9 — sinh QR VietQR động theo số tiền phải thu thật sự của hoá đơn. */
+export function useGenerateDynamicBillingQr() {
+  return useMutation({
+    mutationFn: (id: string) => generateDynamicBillingQr(id),
   });
 }
 

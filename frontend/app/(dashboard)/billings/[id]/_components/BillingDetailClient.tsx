@@ -24,6 +24,7 @@ import {
   CheckCircle,
   XCircle,
   ShieldCheck,
+  QrCode,
 } from "lucide-react";
 import { useBilling, useFinalizeBilling, useVoidBilling, useApplyBhyt } from "@/lib/hooks/use-billing";
 import { usePayments } from "@/lib/hooks/use-payments";
@@ -32,6 +33,7 @@ import { BillingStatusBadge } from "@/components/domain/BillingStatusBadge";
 import { PaymentDialog } from "@/components/domain/PaymentDialog";
 import { EInvoiceIssueDialog } from "@/components/domain/EInvoiceIssueDialog";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
+import { DynamicQrPaymentDialog } from "@/components/domain/DynamicQrPaymentDialog";
 import { formatCurrency } from "@/lib/utils/format";
 import { printBillingPdf } from "@/lib/api/billing";
 import { downloadEInvoiceXml as downloadXml } from "@/lib/api/einvoice";
@@ -44,6 +46,7 @@ interface Props {
 
 export function BillingDetailClient({ id }: Props) {
   const [payOpen, setPayOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [einvoiceOpen, setEinvoiceOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidReason, setVoidReason] = useState("");
@@ -131,6 +134,12 @@ export function BillingDetailClient({ id }: Props) {
             <Button size="sm" onClick={() => setPayOpen(true)}>
               <CreditCard className="mr-2 h-4 w-4" />
               Thu tiền
+            </Button>
+          )}
+          {canPay && (
+            <Button variant="outline" size="sm" onClick={() => setQrOpen(true)}>
+              <QrCode className="mr-2 h-4 w-4" />
+              Thanh toán QR
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => printBillingPdf(id)}>
@@ -323,6 +332,8 @@ export function BillingDetailClient({ id }: Props) {
         billingId={id}
         balance={billing.balance}
       />
+
+      <DynamicQrPaymentDialog open={qrOpen} onOpenChange={setQrOpen} billingId={id} />
 
       <EInvoiceIssueDialog
         open={einvoiceOpen}
