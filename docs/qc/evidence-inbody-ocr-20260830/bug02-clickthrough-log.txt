@@ -1,0 +1,20 @@
+B1 dang nhap OK, url = http://localhost:3000/
+B2 so luong link 'Xem file goc' = 8
+B3 href thuc te tren the <a> = http://localhost:9000/inbody-reports/inbody/1/f0000000-0000-0000-0000-000000000008/2026/08/30/7637516b-48b9-4db5-a022-c98297c399a6.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20260830%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260830T024140Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=5ff7f8f6767107b570ff6e21d2e5b8da784479dab9703593d3972792e6c8e266
+B3 href chua 'minio:9000' (host noi bo)? = false
+B3 host = localhost:9000
+B4 CLICK -> mo tab moi, url = ...
+  (khong chup duoc popup: page.screenshot: Timeout 30000ms exceeded.
+Call log:
+[2m  - taking page screenshot[22m
+[2m  - waiting for fonts to load...[22m
+[2m  - fonts loaded[22m
+)
+B4 noi dung text tab moi (200 ky tu) = ""
+B4 CLICK -> trinh duyet tai file: 7637516b-48b9-4db5-a022-c98297c399a6.pdf
+B5 browser goi truc tiep URL: HTTP 200, content-type = application/pdf, size = 17019 bytes
+B5 magic bytes = "%PDF-"
+B6 cac request browser gui toi MinIO:
+   GET http://localhost:9000/inbody-reports/inbody/1/f0000000-0000-0000-0000-000000000008/2026/08/30/7637516b-48b9-4db5-a022-c98297c399a6.pdf?X-Amz-Algor
+B6 co request nao toi host noi bo 'minio:9000'? = false
+PAGEERROR = []

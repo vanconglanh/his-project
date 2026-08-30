@@ -195,3 +195,39 @@ Lan chay dau tien tab "Lich su InBody" **khong hien thi** — nguyen nhan la ima
 `prodiab-dev-frontend` dang chay duoc build luc 00:32 UTC, TRUOC commit FE `9064452` (02:12 UTC).
 Sau khi `docker compose ... up -d --build frontend` thi hien thi dung. Day la van de moi truong,
 khong phai bug san pham — nhung luu y: **image local phai rebuild sau moi commit FE** truoc khi test.
+
+---
+
+## Verify BUG-02 qua UI click-through
+
+**Ket qua: PASS**
+
+Lan verify truoc chi dung `curl` doc `file_url` tu API, chua bam that tren trinh duyet. Lan nay chay
+click-through that bang Playwright (Chromium, locale vi-VN) tren stack local dang chay
+(`prodiab-frontend`, `prodiab-backend`, `prodiab-minio` deu Up):
+dang nhap `Bac si` qua panel dang nhap nhanh `/login` -> vao `/patients/f0000000-0000-0000-0000-000000000008`
+-> mo tab **"Lich su InBody"** (hien thi 8 ban ghi, moi ban ghi deu co link "Xem file goc")
+-> **bam that** vao link "Xem file goc" cua ban ghi dau tien.
+
+Ket qua tung diem:
+
+- **Href tren the `<a>`**: `http://localhost:9000/inbody-reports/inbody/1/.../7637516b-...pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&...`
+  — host = `localhost:9000`, **KHONG** phai `minio:9000` noi bo.
+- **Click that**: trinh duyet mo tab moi (`target="_blank"`) va tai file ve thanh cong
+  (`7637516b-48b9-4db5-a022-c98297c399a6.pdf`). Headless Chromium khong co PDF viewer nen ket qua la
+  download thay vi render inline — dung nhu ky vong, khong co loi ket noi / `ERR_NAME_NOT_RESOLVED`.
+- **File tai ve hop le**: `PDF document, version 1.7, 1 page(s)`, 17.019 bytes, magic bytes `%PDF-`.
+- **Network tab (bat toan bo request cua browser context)**: chi co dung 1 request toi MinIO va la
+  `GET http://localhost:9000/inbody-reports/...`; kiem tra `//minio:9000` trong toan bo danh sach
+  request = `false`.
+- **Goi lai URL bang network stack cua browser**: `HTTP 200`, `content-type: application/pdf`, 17.019 bytes.
+- **Page error / console error**: khong co (`PAGEERROR = []`).
+
+=> BUG-02 (presigned URL MinIO sinh bang host noi bo `minio:9000` khien browser khong resolve duoc)
+da duoc fix trong commit `2b4c6dc` va **xac nhan dong qua thao tac click that tren UI**.
+
+**Evidence** (`docs/qc/evidence-inbody-ocr-20260830/`):
+- `qc-script-bug02-clickthrough.js` — script tai hien
+- `bug02-clickthrough-log.txt` — log tung buoc B1..B6
+- `bug02-01-patient-page.png`, `bug02-02-inbody-history-tab.png`, `bug02-03-link-xem-file-goc.png`
+- `bug02-clickthrough-downloaded.pdf` — file PDF tai ve tu cu click that
