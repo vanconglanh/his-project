@@ -300,6 +300,13 @@ export interface PatientResponse {
   updated_at: string;
 }
 
+export interface GuardianRequest {
+  full_name: string;
+  relationship: string;
+  phone: string;
+  id_number?: string;
+}
+
 export interface CreatePatientRequest {
   full_name: string;
   gender?: Gender;
@@ -317,10 +324,80 @@ export interface CreatePatientRequest {
   patient_type?: PatientType;
   marital_status?: MaritalStatus;
   visit_type?: VisitType;
+  guardians?: GuardianRequest[];
+  confirm_create_despite_duplicate?: boolean;
 }
 
 export interface UpdatePatientRequest extends CreatePatientRequest {
   status?: PatientStatus;
+}
+
+// ─── Nghi trùng khi tạo bệnh nhân (FR-101) ─────────────────────────────────────
+
+export interface PatientDuplicateCandidate {
+  id: string;
+  code: string;
+  full_name: string;
+  date_of_birth?: string | null;
+  phone?: string;
+  match_reason: string;
+}
+
+/**
+ * Kết quả trả về khi backend phát hiện nghi trùng lúc tạo BN (HTTP 200, chưa tạo hồ sơ).
+ * LƯU Ý: backend dùng JsonNamingPolicy.SnakeCaseLower toàn cục -> object anonymous
+ * { possibleDuplicate, duplicateCandidates } trong PatientsController.Create bị convert
+ * thành possible_duplicate/duplicate_candidates khi serialize, không giữ nguyên camelCase.
+ */
+export interface CreatePatientPossibleDuplicateResponse {
+  possible_duplicate: true;
+  duplicate_candidates: PatientDuplicateCandidate[];
+}
+
+export type CreatePatientResult = PatientResponse | CreatePatientPossibleDuplicateResponse;
+
+export function isPossibleDuplicateResult(
+  result: CreatePatientResult
+): result is CreatePatientPossibleDuplicateResponse {
+  return (result as CreatePatientPossibleDuplicateResponse).possible_duplicate === true;
+}
+
+// ─── Quét QR CCCD (docs/prd/quet-qr-cccd-20260830.md) ──────────────────────────
+
+export type CccdDuplicateCase = "NONE" | "EXACT_MATCH" | "FIELD_MISMATCH";
+
+export type CccdComparableField = "full_name" | "gender" | "date_of_birth" | "address";
+
+export interface CccdFieldDiff {
+  field: CccdComparableField;
+  old_value: string | null;
+  new_value: string | null;
+}
+
+export interface CccdDuplicateCheckResult {
+  case: CccdDuplicateCase;
+  patient_id: string | null;
+  patient_code: string | null;
+  patient_full_name: string | null;
+  patient_date_of_birth: string | null;
+  field_diffs: CccdFieldDiff[];
+}
+
+export interface CheckCccdDuplicateParams {
+  id_number: string;
+  full_name?: string;
+  date_of_birth?: string;
+  gender?: string;
+  address?: string;
+}
+
+export interface CccdFieldUpdateItem {
+  field: CccdComparableField;
+  new_value: string;
+}
+
+export interface ApplyCccdFieldUpdatesRequest {
+  fields: CccdFieldUpdateItem[];
 }
 
 export interface EncounterSummary {

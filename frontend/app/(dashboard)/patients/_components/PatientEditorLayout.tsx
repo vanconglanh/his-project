@@ -13,8 +13,21 @@ import { PatientGeneralTab } from "./PatientGeneralTab";
 import { PatientBhytTab } from "./PatientBhytTab";
 import { PatientEmergencyTab } from "./PatientEmergencyTab";
 import { PatientAllergiesTab } from "./PatientAllergiesTab";
-import type { CreatePatientRequest, PatientResponse } from "@/lib/api/types";
+import type { CreatePatientRequest, PatientResponse, CccdDuplicateCheckResult } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/utils/errors";
+import { CccdQrScanner } from "@/components/domain/CccdQrScanner";
+import { CccdMismatchDialog, type CccdFieldUpdateSelection } from "@/components/domain/CccdMismatchDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useCheckCccdDuplicate, useApplyCccdFields } from "@/lib/hooks/use-patients";
+import type { CccdQrData } from "@/lib/utils/cccd-qr";
+import { toast } from "sonner";
 
 // Tab định nghĩa
 const EDITOR_TABS = [
@@ -31,6 +44,8 @@ export interface PatientEditorLayoutProps {
   onCancel: () => void;
   isLoading?: boolean;
   title?: string;
+  /** Dữ liệu đã quét CCCD từ nơi khác (vd ReceptionCheckInForm) để tự điền + check trùng ngay khi mở trang. */
+  initialCccdData?: CccdQrData | null;
 }
 
 function buildPayload(values: PatientFormValues): CreatePatientRequest {
@@ -83,10 +98,17 @@ export function PatientEditorLayout({
   onCancel,
   isLoading,
   title,
+  initialCccdData,
 }: PatientEditorLayoutProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("general");
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // ── Quét QR CCCD (US-QR-001..005) ──
+  const [exactMatch, setExactMatch] = useState<CccdDuplicateCheckResult | null>(null);
+  const [mismatch, setMismatch] = useState<CccdDuplicateCheckResult | null>(null);
+  const checkCccdDuplicate = useCheckCccdDuplicate();
+  const applyCccdFields = useApplyCccdFields(mismatch?.patient_id ?? "");
 
   const pageTitle =
     title ??
@@ -142,6 +164,61 @@ export function PatientEditorLayout({
     return () => document.removeEventListener("keydown", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDirty]);
+
+  // US-QR-001: điền form từ dữ liệu quét CCCD rồi check trùng (BR-DUP-001..005)
+  const handleCccdScanned = useCallback(
+    async (data: CccdQrData) => {
+      if (data.full_name) setValue("full_name", data.full_name, { shouldDirty: true });
+      if (data.gender) setValue("gender", data.gender, { shouldDirty: true });
+      if (data.date_of_birth) setValue("date_of_birth", data.date_of_birth, { shouldDirty: true });
+      if (data.id_number) setValue("id_number", data.id_number, { shouldDirty: true });
+      if (data.address) setValue("street", data.address, { shouldDirty: true });
+      if (data.issued_date) setValue("id_card_issued_date", data.issued_date, { shouldDirty: true });
+
+      if (data.has_encoding_warning) {
+        toast.warning("Có thể có lỗi encoding — vui lòng kiểm tra lại họ tên / địa chỉ");
+      }
+
+      if (!data.id_number) return; // BR-DUP-001: check trùng dựa trên số CCCD
+
+      try {
+        const result = await checkCccdDuplicate.mutateAsync({
+          id_number: data.id_number,
+          full_name: data.full_name ?? undefined,
+          date_of_birth: data.date_of_birth ?? undefined,
+          gender: data.gender ?? undefined,
+          address: data.address ?? undefined,
+        });
+        if (result.case === "EXACT_MATCH") {
+          setExactMatch(result);
+        } else if (result.case === "FIELD_MISMATCH") {
+          setMismatch(result);
+        }
+      } catch {
+        // Loi check trung khong nen chan luong dien form (da toast trong hook)
+      }
+    },
+    [setValue, checkCccdDuplicate]
+  );
+
+  const handleSaveMismatch = (fields: CccdFieldUpdateSelection[]) => {
+    if (!mismatch?.patient_id) return;
+    if (fields.length === 0) {
+      setMismatch(null);
+      return;
+    }
+    applyCccdFields.mutate(fields, {
+      onSuccess: () => setMismatch(null),
+    });
+  };
+
+  // Prefill từ nơi khác (vd quét CCCD tại quầy tiếp đón trước khi điều hướng sang đây)
+  useEffect(() => {
+    if (initialCccdData) {
+      handleCccdScanned(initialCccdData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCccdData]);
 
   const handleCancel = useCallback(() => {
     if (isDirty) {
@@ -220,7 +297,7 @@ export function PatientEditorLayout({
               type="button"
               size="sm"
               onClick={handleSubmit(handleFormSubmit, onInvalid)}
-              disabled={isLoading}
+              disabled={isLoading || !!exactMatch}
             >
               <Save className="h-4 w-4 mr-1" />
               {isLoading ? "Đang lưu..." : mode === "create" ? "Tạo bệnh nhân" : "Lưu thay đổi"}
@@ -305,13 +382,18 @@ export function PatientEditorLayout({
 
               {/* Tab content */}
               {activeTab === "general" && (
-                <PatientGeneralTab
-                  register={register}
-                  errors={errors}
-                  watch={watch}
-                  setValue={setValue}
-                  autoFocus
-                />
+                <div className="space-y-6">
+                  {mode === "create" && (
+                    <CccdQrScanner onScanned={handleCccdScanned} className="max-w-2xl" />
+                  )}
+                  <PatientGeneralTab
+                    register={register}
+                    errors={errors}
+                    watch={watch}
+                    setValue={setValue}
+                    autoFocus
+                  />
+                </div>
               )}
               {activeTab === "bhyt" && (
                 <PatientBhytTab
@@ -359,13 +441,67 @@ export function PatientEditorLayout({
             type="button"
             size="sm"
             onClick={handleSubmit(handleFormSubmit, onInvalid)}
-            disabled={isLoading}
+            disabled={isLoading || !!exactMatch}
           >
             <Save className="h-4 w-4 mr-1" />
             {isLoading ? "Đang lưu..." : mode === "create" ? "Tạo bệnh nhân" : "Lưu thay đổi"}
           </Button>
         </div>
       </footer>
+
+      {/* US-QR-004 (Case 2 — BR-DUP-003): CCCD đã tồn tại, khớp hoàn toàn */}
+      <Dialog open={!!exactMatch} onOpenChange={(o) => !o && setExactMatch(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              Bệnh nhân đã có hồ sơ
+            </DialogTitle>
+            <DialogDescription>
+              Số CCCD này đã được đăng ký trong hệ thống. Vui lòng mở hồ sơ cũ thay vì tạo mới.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1 text-sm">
+            <p>
+              <span className="text-muted-foreground">Bệnh nhân: </span>
+              <span className="font-medium">{exactMatch?.patient_full_name}</span>
+            </p>
+            <p>
+              <span className="text-muted-foreground">Mã hồ sơ: </span>
+              <span className="font-medium">{exactMatch?.patient_code}</span>
+            </p>
+            {exactMatch?.patient_date_of_birth && (
+              <p>
+                <span className="text-muted-foreground">Ngày sinh: </span>
+                <span className="font-medium">{exactMatch.patient_date_of_birth}</span>
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setExactMatch(null)}>
+              Thoát
+            </Button>
+            <Button
+              type="button"
+              onClick={() => exactMatch?.patient_id && router.push(`/patients/${exactMatch.patient_id}`)}
+            >
+              Mở hồ sơ cũ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* US-QR-005 (Case 3 — BR-DUP-004/005): CCCD tồn tại, có trường lệch */}
+      {mismatch && (
+        <CccdMismatchDialog
+          open={!!mismatch}
+          onOpenChange={(o) => !o && setMismatch(null)}
+          idNumber={watch("id_number") ?? ""}
+          diffs={mismatch.field_diffs}
+          isSaving={applyCccdFields.isPending}
+          onSave={handleSaveMismatch}
+        />
+      )}
     </div>
   );
 }

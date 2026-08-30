@@ -4,6 +4,7 @@ import type {
   ApiMeta,
   PatientResponse,
   CreatePatientRequest,
+  CreatePatientResult,
   UpdatePatientRequest,
   EncounterSummary,
   AllergyResponse,
@@ -13,7 +14,11 @@ import type {
   EmergencyContactResponse,
   EmergencyContactRequest,
   ConsentResponse,
+  CccdDuplicateCheckResult,
+  CheckCccdDuplicateParams,
+  CccdFieldUpdateItem,
 } from "./types";
+import { isPossibleDuplicateResult } from "./types";
 
 // ─── Patients CRUD ────────────────────────────────────────────────────────────
 
@@ -51,10 +56,17 @@ export async function getPatient(id: string): Promise<PatientResponse> {
   return data.data;
 }
 
-export async function createPatient(body: CreatePatientRequest): Promise<PatientResponse> {
-  const { data } = await apiClient.post<ApiResponse<PatientResponse>>("/patients", body);
+/**
+ * Tạo bệnh nhân mới. Backend trả HTTP 200 (KHÔNG phải lỗi) kèm
+ * { possible_duplicate: true, duplicate_candidates: [...] } khi nghi trùng — chưa tạo hồ sơ,
+ * để lễ tân đối chiếu rồi gọi lại với confirm_create_despite_duplicate = true nếu muốn tạo mới.
+ */
+export async function createPatient(body: CreatePatientRequest): Promise<CreatePatientResult> {
+  const { data } = await apiClient.post<ApiResponse<CreatePatientResult>>("/patients", body);
   return data.data;
 }
+
+export { isPossibleDuplicateResult };
 
 export async function updatePatient(id: string, body: UpdatePatientRequest): Promise<PatientResponse> {
   const { data } = await apiClient.put<ApiResponse<PatientResponse>>(`/patients/${id}`, body);
@@ -197,6 +209,29 @@ export async function updateReceptionNote(patientId: string, reception_note: str
   const { data } = await apiClient.put<ApiResponse<PatientResponse>>(
     `/patients/${patientId}/reception-note`,
     { reception_note }
+  );
+  return data.data;
+}
+
+// ─── Quét QR CCCD (docs/prd/quet-qr-cccd-20260830.md) ──────────────────────────
+
+export async function checkCccdDuplicate(
+  params: CheckCccdDuplicateParams
+): Promise<CccdDuplicateCheckResult> {
+  const { data } = await apiClient.get<ApiResponse<CccdDuplicateCheckResult>>(
+    "/patients/check-cccd-duplicate",
+    { params }
+  );
+  return data.data;
+}
+
+export async function applyCccdFields(
+  patientId: string,
+  fields: CccdFieldUpdateItem[]
+): Promise<PatientResponse> {
+  const { data } = await apiClient.put<ApiResponse<PatientResponse>>(
+    `/patients/${patientId}/apply-cccd-fields`,
+    { fields }
   );
   return data.data;
 }

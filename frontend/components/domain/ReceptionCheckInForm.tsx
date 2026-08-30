@@ -17,13 +17,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCheckIn, useRooms } from "@/lib/hooks/use-reception";
-import { usePatient, usePatientSearch } from "@/lib/hooks/use-patients";
+import {
+  usePatient,
+  usePatientSearch,
+  useCheckCccdDuplicate,
+  useApplyCccdFields,
+} from "@/lib/hooks/use-patients";
+import { getPatient } from "@/lib/api/patients";
 import { usePatientPackageSummary } from "@/lib/hooks/use-packages";
-import type { PatientResponse, TicketPriority } from "@/lib/api/types";
+import type { PatientResponse, TicketPriority, CccdDuplicateCheckResult } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils/format";
 import { PackageCheck } from "lucide-react";
+import { CccdQrScanner } from "@/components/domain/CccdQrScanner";
+import { CccdMismatchDialog, type CccdFieldUpdateSelection } from "@/components/domain/CccdMismatchDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import type { CccdQrData } from "@/lib/utils/cccd-qr";
+
+/** sessionStorage key lưu dữ liệu đã quét CCCD để prefill /patients/new (dùng 1 lần). */
+const CCCD_PREFILL_KEY = "reception-cccd-prefill";
 
 const checkInSchema = z.object({
   patient_id: z.string().min(1, "Chọn bệnh nhân"),
@@ -59,6 +81,13 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
     selectedPatient?.id
   );
 
+  // ── Quét QR CCCD tại quầy tiếp đón (US-QR-001..005) ──
+  const [exactMatch, setExactMatch] = useState<CccdDuplicateCheckResult | null>(null);
+  const [mismatch, setMismatch] = useState<CccdDuplicateCheckResult | null>(null);
+  const [scannedIdNumber, setScannedIdNumber] = useState<string>("");
+  const checkCccdDuplicate = useCheckCccdDuplicate();
+  const applyCccdFields = useApplyCccdFields(mismatch?.patient_id ?? "");
+
   const { data: searchResults, isFetching: isSearching } = usePatientSearch(
     { q: debouncedQ, page_size: 8 },
     debouncedQ.length >= 2
@@ -93,6 +122,64 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
     },
     [setValue]
   );
+
+  // US-QR-001: quét CCCD tại quầy tiếp đón trước khi điều hướng sang /patients/new (GA-004:
+  // form này chỉ có ô tìm bệnh nhân, không có field họ tên/ngày sinh riêng để tự điền trực tiếp).
+  const handleCccdScanned = useCallback(
+    async (data: CccdQrData) => {
+      if (data.has_encoding_warning) {
+        toast.warning("Có thể có lỗi encoding — vui lòng kiểm tra lại họ tên / địa chỉ");
+      }
+      if (!data.id_number) return;
+      setScannedIdNumber(data.id_number);
+
+      try {
+        const result = await checkCccdDuplicate.mutateAsync({
+          id_number: data.id_number,
+          full_name: data.full_name ?? undefined,
+          date_of_birth: data.date_of_birth ?? undefined,
+          gender: data.gender ?? undefined,
+          address: data.address ?? undefined,
+        });
+
+        if (result.case === "NONE") {
+          // BR-DUP-002: chưa tồn tại -> lưu draft prefill rồi sang /patients/new tạo mới
+          sessionStorage.setItem(CCCD_PREFILL_KEY, JSON.stringify(data));
+          saveDraftAndCreatePatient();
+        } else if (result.case === "EXACT_MATCH") {
+          setExactMatch(result);
+        } else if (result.case === "FIELD_MISMATCH") {
+          setMismatch(result);
+        }
+      } catch {
+        // Loi check trung khong nen chan luong — le tan van co the tao thu cong (da toast trong hook)
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [checkCccdDuplicate]
+  );
+
+  const openExactMatchPatient = async () => {
+    if (!exactMatch?.patient_id) return;
+    const patient = await getPatient(exactMatch.patient_id);
+    selectPatient(patient);
+    setExactMatch(null);
+  };
+
+  const handleSaveMismatch = (fields: CccdFieldUpdateSelection[]) => {
+    if (!mismatch?.patient_id) return;
+    if (fields.length === 0) {
+      setMismatch(null);
+      return;
+    }
+    applyCccdFields.mutate(fields, {
+      onSuccess: async () => {
+        const patient = await getPatient(mismatch.patient_id!);
+        selectPatient(patient);
+        setMismatch(null);
+      },
+    });
+  };
 
   // Quay về từ /patients/new với bệnh nhân vừa tạo → tự chọn (parity với Dialog cũ)
   useEffect(() => {
@@ -132,10 +219,14 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <h3 className="font-semibold mb-3">Tiếp đón bệnh nhân</h3>
       </div>
+
+      {/* Quét CCCD để tự động tìm/tạo bệnh nhân (US-QR-001) */}
+      <CccdQrScanner onScanned={handleCccdScanned} />
 
       {/* Patient search */}
       <div className="space-y-1">
@@ -351,5 +442,51 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
         )}
       </Button>
     </form>
+
+    {/* US-QR-004 (Case 2 — BR-DUP-003): CCCD đã tồn tại, khớp hoàn toàn */}
+    <Dialog open={!!exactMatch} onOpenChange={(o) => !o && setExactMatch(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            Bệnh nhân đã có hồ sơ
+          </DialogTitle>
+          <DialogDescription>
+            Số CCCD này đã được đăng ký trong hệ thống. Vui lòng dùng hồ sơ cũ thay vì tạo mới.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1 text-sm">
+          <p>
+            <span className="text-muted-foreground">Bệnh nhân: </span>
+            <span className="font-medium">{exactMatch?.patient_full_name}</span>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Mã hồ sơ: </span>
+            <span className="font-medium">{exactMatch?.patient_code}</span>
+          </p>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setExactMatch(null)}>
+            Thoát
+          </Button>
+          <Button type="button" onClick={openExactMatchPatient}>
+            Dùng hồ sơ này
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* US-QR-005 (Case 3 — BR-DUP-004/005): CCCD tồn tại, có trường lệch */}
+    {mismatch && (
+      <CccdMismatchDialog
+        open={!!mismatch}
+        onOpenChange={(o) => !o && setMismatch(null)}
+        idNumber={scannedIdNumber}
+        diffs={mismatch.field_diffs}
+        isSaving={applyCccdFields.isPending}
+        onSave={handleSaveMismatch}
+      />
+    )}
+    </>
   );
 }

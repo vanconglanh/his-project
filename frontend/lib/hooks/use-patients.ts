@@ -25,6 +25,8 @@ import {
   listConsents,
   addConsent,
   updateReceptionNote,
+  checkCccdDuplicate,
+  applyCccdFields,
 } from "@/lib/api/patients";
 import type {
   PatientListParams,
@@ -36,7 +38,10 @@ import type {
   AllergyRequest,
   InsuranceRequest,
   EmergencyContactRequest,
+  CheckCccdDuplicateParams,
+  CccdFieldUpdateItem,
 } from "@/lib/api/types";
+import { isPossibleDuplicateResult } from "@/lib/api/types";
 import { getErrorMessage } from "@/lib/utils/errors";
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -125,9 +130,32 @@ export function useCreatePatient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreatePatientRequest) => createPatient(body),
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: patientKeys.all });
-      toast.success("Tạo bệnh nhân thành công");
+      // Khong toast khi backend chi tra ve nghi trung (chua thuc su tao ho so)
+      if (!isPossibleDuplicateResult(result)) {
+        toast.success("Tạo bệnh nhân thành công");
+      }
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useCheckCccdDuplicate() {
+  return useMutation({
+    mutationFn: (params: CheckCccdDuplicateParams) => checkCccdDuplicate(params),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useApplyCccdFields(patientId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (fields: CccdFieldUpdateItem[]) => applyCccdFields(patientId, fields),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: patientKeys.detail(patientId) });
+      qc.invalidateQueries({ queryKey: patientKeys.all });
+      toast.success("Đã cập nhật thông tin thành công");
     },
     onError: (e) => toast.error(getErrorMessage(e)),
   });
