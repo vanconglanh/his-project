@@ -579,6 +579,10 @@ public static class DependencyInjection
         services.AddSingleton<ILabResultFlagCalculator, LabResultFlagCalculator>();
         services.AddScoped<ILabResultPdfExporter, LabResultQuestPdfExporter>();
 
+        // Lab result OCR — doc file KQ xet nghiem (PDF/anh) -> parse theo XN dang cho.
+        // Tai dung IPdfTextExtractor + IOcrTextProvider (dang ky o tren), chi them provider dieu phoi.
+        services.AddScoped<Application.LabResults.Ocr.ILabOcrTextProvider, Lab.LabOcrTextProvider>();
+
         return services;
     }
 

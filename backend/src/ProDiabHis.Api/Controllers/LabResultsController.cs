@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProDiabHis.Api.Filters;
 using ProDiabHis.Application.LabResults;
+using ProDiabHis.Application.LabResults.Ocr;
 
 namespace ProDiabHis.Api.Controllers;
 
@@ -113,6 +114,56 @@ public class LabResultsController : ControllerBase
         return Ok();
     }
 
+    // POST /api/v1/lab-results/ocr-extract
+    // Upload file KQ xet nghiem (PDF/anh) cho 1 luot kham -> OCR doc + do khop cac XN dang cho ket qua.
+    // KHONG luu — chi tra ve gia tri doc duoc de nguoi dung xac nhan/sua truoc khi luu (buoc ocr-confirm).
+    [HttpPost("api/v1/lab-results/ocr-extract")]
+    [RequirePermission("lab_result.write")]
+    public async Task<IActionResult> OcrExtract(
+        IFormFile file,
+        [FromForm] Guid encounter_id,
+        CancellationToken ct = default)
+    {
+        if (file is null || file.Length == 0)
+            return UnprocessableEntity(Error("LAB_OCR_UPLOAD_FAILED", "Tải tệp thất bại, vui lòng thử lại"));
+        if (encounter_id == Guid.Empty)
+            return BadRequest(Error("LAB_OCR_ENCOUNTER_REQUIRED", "Thiếu mã lượt khám"));
+
+        using var stream = file.OpenReadStream();
+        var result = await _mediator.Send(
+            new ExtractLabResultOcrCommand(encounter_id, stream, file.FileName, file.ContentType), ct);
+
+        if (!result.IsSuccess)
+        {
+            var code = result.ErrorCode switch
+            {
+                "LAB_OCR_TOO_LARGE" => 413,
+                "LAB_OCR_NO_PENDING" => 404,
+                _ => 422
+            };
+            return StatusCode(code, Error(result.ErrorCode!, result.ErrorMessage!));
+        }
+
+        return Ok(new { data = result.Value });
+    }
+
+    // POST /api/v1/lab-results/ocr-confirm
+    // Xac nhan (da sua tay neu can) cac gia tri OCR -> tao LabResult qua luong nhap KQ san co.
+    [HttpPost("api/v1/lab-results/ocr-confirm")]
+    [RequirePermission("lab_result.write")]
+    public async Task<IActionResult> OcrConfirm([FromBody] LabOcrConfirmBody body, CancellationToken ct)
+    {
+        var result = await _mediator.Send(
+            new ConfirmLabResultOcrCommand(
+                body.performed_at ?? DateTime.UtcNow,
+                body.items ?? new List<LabOcrConfirmItem>()), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(Error(result.ErrorCode!, result.ErrorMessage!));
+
+        return Ok(new { data = result.Value });
+    }
+
     // POST /api/v1/lab-results/import
     [HttpPost("api/v1/lab-results/import")]
     [RequirePermission("lab_result.import")]
@@ -189,3 +240,5 @@ public class LabResultsController : ControllerBase
 }
 
 public record BatchVerifyBody(IReadOnlyList<Guid> ResultIds);
+
+public record LabOcrConfirmBody(DateTime? performed_at, List<LabOcrConfirmItem>? items);
