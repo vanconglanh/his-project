@@ -20,6 +20,7 @@ import { BhytExportForm } from "@/components/domain/bhyt/BhytExportForm";
 import { BhytReconcileUploader } from "@/components/domain/bhyt/BhytReconcileUploader";
 import { BhytReconcileTable } from "@/components/domain/bhyt/BhytReconcileTable";
 import { BhytReconcileSummaryCard } from "@/components/domain/bhyt/BhytReconcileSummaryCard";
+import { BhytBranchComplianceTable } from "@/components/domain/bhyt/BhytBranchComplianceTable";
 import { useBhytExports, useDeleteBhytExport } from "@/lib/hooks/use-bhyt-export";
 import { useReconcileSummary } from "@/lib/hooks/use-bhyt-reconcile";
 import type { BhytExportResponse } from "@/lib/api/bhyt-export";
@@ -243,6 +244,20 @@ function TabDoiSoat() {
   );
 }
 
+// ─── Tab: Tuân thủ theo chi nhánh ───────────────────────────────────────────────
+
+function TabTuanThu() {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Tình trạng tuân thủ BHYT / ĐTQG theo từng chi nhánh (BR-107). Dòng có dấu chấm than là
+        chi nhánh cần bổ sung cấu hình.
+      </p>
+      <BhytBranchComplianceTable />
+    </div>
+  );
+}
+
 // ─── Tab: Cấu hình ────────────────────────────────────────────────────────────
 
 function TabCauHinh() {
@@ -275,6 +290,7 @@ export default function BhytPage() {
         <TabsList>
           <TabsTrigger value="ky-xuat">Kỳ xuất</TabsTrigger>
           <TabsTrigger value="doi-soat">Đối soát giám định</TabsTrigger>
+          <TabsTrigger value="tuan-thu">Tuân thủ theo chi nhánh</TabsTrigger>
           <TabsTrigger value="cau-hinh">Cấu hình</TabsTrigger>
         </TabsList>
 
@@ -284,6 +300,10 @@ export default function BhytPage() {
 
         <TabsContent value="doi-soat" className="mt-4">
           <TabDoiSoat />
+        </TabsContent>
+
+        <TabsContent value="tuan-thu" className="mt-4">
+          <TabTuanThu />
         </TabsContent>
 
         <TabsContent value="cau-hinh" className="mt-4">

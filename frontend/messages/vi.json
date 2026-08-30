@@ -120,7 +120,8 @@
     "riskList": "Danh sách nguy cơ ĐTĐ",
     "recall": "Nhắc tái khám",
     "chainDashboard": "Dashboard chuỗi",
-    "interBranchDebts": "Công nợ nội bộ"
+    "interBranchDebts": "Công nợ nội bộ",
+    "internalReferrals": "Chuyển cơ sở nội bộ"
   },
   "ApiPartner": {
     "title": "API Partners",

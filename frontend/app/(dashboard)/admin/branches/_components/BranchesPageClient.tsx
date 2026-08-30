@@ -13,14 +13,46 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
+import { BranchCloneDialog } from "@/components/domain/BranchCloneDialog";
+import { BranchReadinessDialog } from "@/components/domain/BranchReadinessDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Plus, Pencil, Trash2, Star, Power } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Star, Power, Copy, ListChecks } from "lucide-react";
 import type { BranchResponse } from "@/lib/api/branches";
+
+const BRANCH_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  DRAFT: { label: "Nháp", className: "bg-gray-100 text-gray-700 border-gray-300" },
+  CONFIGURING: {
+    label: "Đang cấu hình",
+    className: "bg-blue-100 text-blue-800 border-blue-300",
+  },
+  READY_CHECK: {
+    label: "Chờ kiểm tra",
+    className: "bg-amber-100 text-amber-800 border-amber-300",
+  },
+  ACTIVE: { label: "Hoạt động", className: "bg-green-100 text-green-800 border-green-300" },
+  SUSPENDED: { label: "Tạm ngừng", className: "bg-amber-100 text-amber-800 border-amber-300" },
+  CLOSED: { label: "Đã đóng", className: "bg-red-100 text-red-800 border-red-300" },
+};
+
+function BranchStatusBadge({ status }: { status: string }) {
+  const cfg = BRANCH_STATUS_CONFIG[status] ?? {
+    label: status,
+    className: "bg-gray-100 text-gray-700 border-gray-300",
+  };
+  return (
+    <Badge variant="outline" className={cfg.className}>
+      {cfg.label}
+    </Badge>
+  );
+}
 
 export function BranchesPageClient() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [deleteBranch, setDeleteBranch] = useState<BranchResponse | null>(null);
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [cloneSourceId, setCloneSourceId] = useState<number | undefined>(undefined);
+  const [readinessBranch, setReadinessBranch] = useState<BranchResponse | null>(null);
 
   const { data, isLoading } = useBranches();
   const deleteMutation = useDeleteBranch();
@@ -63,25 +95,39 @@ export function BranchesPageClient() {
     },
     {
       key: "status",
-      header: "TT",
-      cell: (row: BranchResponse) => (
-        <Badge
-          className={
-            row.is_active
-              ? "bg-green-100 text-green-800 border-green-300"
-              : "bg-gray-100 text-gray-700 border-gray-300"
-          }
-          variant="outline"
-        >
-          {row.is_active ? "Hoạt động" : "Ngừng"}
-        </Badge>
-      ),
+      header: "Trạng thái",
+      cell: (row: BranchResponse) => <BranchStatusBadge status={row.status} />,
     },
     {
       key: "actions",
       header: "",
       cell: (row: BranchResponse) => (
         <div className="flex gap-1" onDoubleClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title="Nhân bản chi nhánh"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCloneSourceId(row.id);
+              setCloneOpen(true);
+            }}
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title="Checklist go-live"
+            onClick={(e) => {
+              e.stopPropagation();
+              setReadinessBranch(row);
+            }}
+          >
+            <ListChecks className="h-4 w-4" />
+          </Button>
           {!row.is_default && (
             <Button
               variant="ghost"
@@ -149,6 +195,17 @@ export function BranchesPageClient() {
             className="pl-9"
           />
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setCloneSourceId(undefined);
+            setCloneOpen(true);
+          }}
+        >
+          <Copy className="h-4 w-4 mr-2" />
+          Nhân bản
+        </Button>
         <Button size="sm" onClick={() => router.push("/admin/branches/new")}>
           <Plus className="h-4 w-4 mr-2" />
           Tạo chi nhánh
@@ -187,6 +244,19 @@ export function BranchesPageClient() {
           await deleteMutation.mutateAsync(deleteBranch.id);
           setDeleteBranch(null);
         }}
+      />
+
+      <BranchCloneDialog
+        open={cloneOpen}
+        onOpenChange={setCloneOpen}
+        branches={branches}
+        defaultSourceId={cloneSourceId}
+      />
+
+      <BranchReadinessDialog
+        open={!!readinessBranch}
+        onOpenChange={(o) => !o && setReadinessBranch(null)}
+        branch={readinessBranch}
       />
     </div>
   );

@@ -109,6 +109,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         icon: BellRing,
         permissions: ["recall.read"],
       },
+      {
+        href: "/encounters/referrals",
+        labelKey: "internalReferrals",
+        icon: ArrowLeftRight,
+        permissions: ["internal_referral.read"],
+      },
     ],
   },
   {

@@ -120,7 +120,8 @@
     "riskList": "Diabetes Risk List",
     "recall": "Follow-up Recall",
     "chainDashboard": "Chain Dashboard",
-    "interBranchDebts": "Inter-branch Debts"
+    "interBranchDebts": "Inter-branch Debts",
+    "internalReferrals": "Internal Referrals"
   },
   "ApiPartner": {
     "title": "API Partners",

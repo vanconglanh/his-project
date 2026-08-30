@@ -10,8 +10,13 @@ import {
   setBranchStatus,
   getBranchUsers,
   addBranchUsers,
+  getBranchBhytCompliance,
+  cloneBranch,
+  getBranchReadiness,
+  activateBranch,
   type BranchRequest,
   type ListBranchesParams,
+  type CloneBranchRequest,
 } from "../api/branches";
 
 export const branchKeys = {
@@ -19,6 +24,8 @@ export const branchKeys = {
   list: (params?: ListBranchesParams) => [...branchKeys.all, "list", params] as const,
   detail: (id: number | string) => [...branchKeys.all, "detail", id] as const,
   users: (id: number | string) => [...branchKeys.all, "users", id] as const,
+  compliance: () => [...branchKeys.all, "bhyt-compliance"] as const,
+  readiness: (id: number | string) => [...branchKeys.all, "readiness", id] as const,
 };
 
 export function useBranches(params?: ListBranchesParams) {
@@ -103,6 +110,62 @@ export function useSetBranchStatus() {
       toast.success(variables.is_active ? "Đã bật chi nhánh" : "Đã tắt chi nhánh");
     },
     onError: () => toast.error("Cập nhật trạng thái thất bại"),
+  });
+}
+
+export function useBranchBhytCompliance() {
+  return useQuery({
+    queryKey: branchKeys.compliance(),
+    queryFn: () => getBranchBhytCompliance(),
+  });
+}
+
+export function useCloneBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      sourceBranchId,
+      body,
+    }: {
+      sourceBranchId: number | string;
+      body: CloneBranchRequest;
+    }) => cloneBranch(sourceBranchId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: branchKeys.all });
+      toast.success("Đã nhân bản chi nhánh");
+    },
+    onError: () => toast.error("Nhân bản chi nhánh thất bại"),
+  });
+}
+
+export function useBranchReadiness(id: number | string | undefined) {
+  return useQuery({
+    queryKey: branchKeys.readiness(id ?? ""),
+    queryFn: () => getBranchReadiness(id as number | string),
+    enabled: !!id,
+  });
+}
+
+export function useActivateBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => activateBranch(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: branchKeys.all });
+      toast.success("Đã kích hoạt chi nhánh");
+    },
+    onError: (err: unknown) => {
+      const e = err as {
+        response?: { data?: { error?: { code?: string; message?: string } } };
+      };
+      if (e.response?.data?.error?.code === "BRANCH_NOT_READY") {
+        toast.error("Chi nhánh chưa đạt checklist go-live", {
+          description: e.response.data.error.message,
+        });
+      } else {
+        toast.error("Kích hoạt chi nhánh thất bại");
+      }
+    },
   });
 }
 
