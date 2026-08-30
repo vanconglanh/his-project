@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle, Activity } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Activity, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import { ConsentList } from "@/components/domain/ConsentList";
 import { ClsUploadList } from "@/components/domain/ClsUploadList";
 import { InBodyHistoryList } from "@/components/domain/InBodyHistoryList";
 import { LegacyDocsList } from "@/components/domain/LegacyDocsList";
+import { SmartUploadDialog } from "@/components/domain/SmartUploadDialog";
 import { formatDate, formatDateTime } from "@/lib/utils/format";
 import type { Gender } from "@/lib/api/types";
 
@@ -51,10 +52,21 @@ export default function PatientDetailPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [noteValue, setNoteValue] = useState<string | null>(null);
   const [noteSaving, setNoteSaving] = useState(false);
+  const [smartUploadOpen, setSmartUploadOpen] = useState(false);
 
   const { data: patient, isLoading, error } = usePatient(id);
   const updateNoteMutation = useUpdateReceptionNote(id);
   const { data: packageSummary } = usePatientPackageSummary(id);
+  const { data: encountersData } = usePatientEncounters(id);
+
+  // [Lối tắt phụ] Danh sách lượt khám cho dialog "Tải tài liệu lên (tự nhận diện)"
+  const encounterOptions = (encountersData?.data ?? []).map(
+    (enc: { id: string; encounter_no?: string; encounter_date: string }) => ({
+      id: enc.id,
+      label: `${enc.encounter_no || `#${enc.id.slice(0, 8)}`} — ${formatDateTime(enc.encounter_date)}`,
+    })
+  );
+  const latestEncounterId = encounterOptions[0]?.id;
 
   // [FR-1206] Cảnh báo gói dịch vụ: sắp hết hạn / định mức sắp hết / công nợ tồn đọng
   const hasExpiringSoon = packageSummary?.has_expiring_soon ?? false;
@@ -132,13 +144,33 @@ export default function PatientDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Danh sách bệnh nhân
         </Button>
-        <Link href={`/patients/${id}/diabetes`}>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <Activity className="h-4 w-4" />
-            Xu hướng ĐTĐ
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setSmartUploadOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Tải tài liệu lên (tự nhận diện)
           </Button>
-        </Link>
+          <Link href={`/patients/${id}/diabetes`}>
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Activity className="h-4 w-4" />
+              Xu hướng ĐTĐ
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      <SmartUploadDialog
+        open={smartUploadOpen}
+        onOpenChange={setSmartUploadOpen}
+        patientId={id}
+        encounterOptions={encounterOptions}
+        defaultEncounterId={latestEncounterId}
+        onNavigateTab={(tabId) => setActiveTab(tabId)}
+      />
 
       {/* Reception note alert */}
       {patient.reception_note && (
