@@ -26,20 +26,20 @@ Nguồn tổng hợp: `docs/qc/go-live-readiness-20260830.md` (audit 30/08/2026)
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| R-10 | CI pipeline chạy `dotnet test`/`tsc` tự động trên mỗi PR trước khi merge vào `develop` | Hiện đang build/test thủ công trước khi push — dễ sót nếu quên chạy |
-| R-11 | Xác nhận rate limit (100 req/phút/user, 1000/phút/tenant theo CLAUDE.md) đã enforce thật ở backend, không chỉ là con số trong tài liệu | |
-| R-12 | Load test cơ bản — mô phỏng nhiều chi nhánh thao tác đồng thời giờ cao điểm | Chưa có số liệu về giới hạn chịu tải thực tế |
-| R-13 | Viết runbook sự cố ngắn (DB đầy disk, lỗi 5xx tăng đột biến, container crash-loop) — ai làm gì khi Alertmanager báo | Có Grafana/Alertmanager rồi, cần người biết phản ứng |
-| R-14 | Kênh hỗ trợ khách hàng khi phòng khám gặp lỗi | Chưa định nghĩa |
+| R-19 | CI pipeline chạy `dotnet test`/`tsc` tự động trên mỗi PR trước khi merge vào `develop` | Hiện đang build/test thủ công trước khi push — dễ sót nếu quên chạy |
+| R-20 | Xác nhận rate limit (100 req/phút/user, 1000/phút/tenant theo CLAUDE.md) đã enforce thật ở backend, không chỉ là con số trong tài liệu | |
+| R-21 | Load test cơ bản — mô phỏng nhiều chi nhánh thao tác đồng thời giờ cao điểm | Chưa có số liệu về giới hạn chịu tải thực tế |
+| R-22 | Viết runbook sự cố ngắn (DB đầy disk, lỗi 5xx tăng đột biến, container crash-loop) — ai làm gì khi Alertmanager báo | Có Grafana/Alertmanager rồi, cần người biết phản ứng |
+| R-23 | Kênh hỗ trợ khách hàng khi phòng khám gặp lỗi | Chưa định nghĩa |
 
 ## 🟢 Vận hành dài hạn, không gấp
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| R-15 | Chiến lược archive dữ liệu cũ (không xoá, nhưng chuyển sang lưu trữ lạnh để DB không phình vô hạn) — luật yêu cầu giữ 10-20 năm, không bắt buộc giữ trong DB hoạt động | |
-| R-16 | Điều khoản dịch vụ + luồng consent dữ liệu cá nhân theo Luật BVDLCN 2025 | Đã có mã hoá kỹ thuật, còn thiếu quy trình pháp lý/UI đồng ý |
-| R-17 | Cấu hình email nhắc lịch hẹn thật (eSMS/Zalo ZNS credential) qua `/admin/notification-channels` | Cơ chế đã có sẵn, chỉ cần nhập key thật khi có |
-| R-18 | Xác nhận endpoint diaB có sẵn để cắm `IExternalPathwayProvider` thật | Phụ thuộc bên ngoài, cần làm việc với team diaB |
+| R-24 | Chiến lược archive dữ liệu cũ (không xoá, nhưng chuyển sang lưu trữ lạnh để DB không phình vô hạn) — luật yêu cầu giữ 10-20 năm, không bắt buộc giữ trong DB hoạt động | |
+| R-25 | Điều khoản dịch vụ + luồng consent dữ liệu cá nhân theo Luật BVDLCN 2025 | Đã có mã hoá kỹ thuật, còn thiếu quy trình pháp lý/UI đồng ý |
+| R-26 | Cấu hình email nhắc lịch hẹn thật (eSMS/Zalo ZNS credential) qua `/admin/notification-channels` | Cơ chế đã có sẵn, chỉ cần nhập key thật khi có |
+| R-27 | Xác nhận endpoint diaB có sẵn để cắm `IExternalPathwayProvider` thật | Phụ thuộc bên ngoài, cần làm việc với team diaB |
 
 ---
 
