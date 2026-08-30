@@ -1,0 +1,6 @@
+Ket qua LabResultOcrParser tren PDF that:
+GLU      Glucose                      extracted=True  value=7.2 unit=-
+HBA1C    HbA1c                        extracted=True  value=8.10 unit=-
+CHOL     Cholesterol toàn phần        extracted=True  value=6.1 unit=mmol/l
+TG       Triglyceride                 extracted=True  value=2.30 unit=mmol/l
+TSH      TSH                          extracted=False value=(trong) unit=-
