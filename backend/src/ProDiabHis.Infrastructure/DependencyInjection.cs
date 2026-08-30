@@ -382,6 +382,8 @@ public static class DependencyInjection
         services.AddScoped<IBhytCoPayCalculator, BhytCoPayCalculatorImpl>();
         services.AddScoped<ICashierShiftService, CashierShiftServiceImpl>();
         // E/Dot3 - gia override 3 tang (BR-70..BR-76)
+        // Tang resolve DUNG CHUNG cho dich vu + thuoc (gia + an/hien theo chi nhanh)
+        services.AddScoped<Application.Billing.IBranchPriceResolver, Billing.BranchPriceResolverImpl>();
         services.AddScoped<Application.Billing.IServicePriceResolver, Billing.ServicePriceResolverImpl>();
         // Payment gateways (IEnumerable<IPaymentGateway> injected)
         services.AddScoped<IPaymentGateway, CashGateway>();

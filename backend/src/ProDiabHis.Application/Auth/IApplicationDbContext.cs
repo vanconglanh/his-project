@@ -70,6 +70,7 @@ public interface IApplicationDbContext
     DbSet<EInvoice> EInvoices { get; }
     DbSet<CashierShift> CashierShifts { get; }
     DbSet<ServiceBranchPrice> ServiceBranchPrices { get; }
+    DbSet<Domain.Entities.Pharmacy.DrugBranchPrice> DrugBranchPrices { get; }
 
     // Notifications
     DbSet<Notification> Notifications { get; }

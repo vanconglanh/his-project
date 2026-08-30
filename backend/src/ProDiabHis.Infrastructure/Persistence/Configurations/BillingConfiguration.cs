@@ -149,6 +149,7 @@ public class ServiceBranchPriceConfiguration : IEntityTypeConfiguration<ServiceB
         builder.Property(x => x.BranchId).HasColumnName("branch_id");
         builder.Property(x => x.GroupId).HasColumnName("group_id");
         builder.Property(x => x.Price).HasColumnName("price").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.IsActive).HasColumnName("is_active"); // migration 9185
         builder.Property(x => x.EffectiveFrom).HasColumnName("effective_from");
         builder.Property(x => x.EffectiveTo).HasColumnName("effective_to");
         builder.Property(x => x.Note).HasColumnName("note").HasMaxLength(300);
@@ -159,6 +160,33 @@ public class ServiceBranchPriceConfiguration : IEntityTypeConfiguration<ServiceB
         builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");
         builder.Ignore(x => x.DeletedBy); // bang khong co cot deleted_by
         builder.HasIndex(x => new { x.TenantId, x.ServiceId, x.Scope, x.BranchId, x.GroupId, x.EffectiveFrom });
+    }
+}
+
+public class DrugBranchPriceConfiguration : IEntityTypeConfiguration<ProDiabHis.Domain.Entities.Pharmacy.DrugBranchPrice>
+{
+    public void Configure(EntityTypeBuilder<ProDiabHis.Domain.Entities.Pharmacy.DrugBranchPrice> builder)
+    {
+        builder.ToTable("diab_his_pha_drug_branch_prices");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).HasColumnName("id").HasMaxLength(36);
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id");
+        builder.Property(x => x.DrugId).HasColumnName("drug_id").HasMaxLength(36);
+        builder.Property(x => x.Scope).HasColumnName("scope").HasMaxLength(10);
+        builder.Property(x => x.BranchId).HasColumnName("branch_id");
+        builder.Property(x => x.GroupId).HasColumnName("group_id");
+        builder.Property(x => x.Price).HasColumnName("price").HasColumnType("DECIMAL(15,2)");
+        builder.Property(x => x.IsActive).HasColumnName("is_active");
+        builder.Property(x => x.EffectiveFrom).HasColumnName("effective_from");
+        builder.Property(x => x.EffectiveTo).HasColumnName("effective_to");
+        builder.Property(x => x.Note).HasColumnName("note").HasMaxLength(300);
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at");
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
+        builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(36);
+        builder.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+        builder.Ignore(x => x.DeletedBy); // bang khong co cot deleted_by
+        builder.HasIndex(x => new { x.TenantId, x.DrugId, x.Scope, x.BranchId, x.GroupId, x.EffectiveFrom });
     }
 }
 

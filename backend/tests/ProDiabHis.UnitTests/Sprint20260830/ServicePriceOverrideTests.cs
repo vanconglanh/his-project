@@ -41,7 +41,7 @@ public class ServicePriceOverrideTests
 
     private static CreateServicePriceOverrideRequest Req(Guid serviceId, DateOnly from, DateOnly? to,
         decimal price = 250_000m, int branchId = 1)
-        => new(serviceId, PriceOverrideScope.Branch, branchId, null, price, from, to, "Giá áp dụng chi nhánh 1");
+        => new(serviceId, PriceOverrideScope.Branch, branchId, null, price, true, from, to, "Giá áp dụng chi nhánh 1");
 
     private static DateOnly D(int y, int m, int d) => new(y, m, d);
 
@@ -184,7 +184,7 @@ public class ServicePriceOverrideTests
         var svcId = SeedService(db);
 
         var r = await Handler(db).Handle(new CreateServicePriceOverrideCommand(
-                new CreateServicePriceOverrideRequest(svcId, PriceOverrideScope.Group, 1, 5, 270_000m,
+                new CreateServicePriceOverrideRequest(svcId, PriceOverrideScope.Group, 1, 5, 270_000m, true,
                     D(2026, 9, 1), null, "Giá theo cụm chi nhánh")),
             CancellationToken.None);
 

@@ -20,6 +20,10 @@ public class ServiceBranchPrice : IAuditTimestamps
     public int? BranchId { get; set; }
     public int? GroupId { get; set; }
     public decimal Price { get; set; }
+
+    /// <summary>1=hien, 0=an dich vu khoi chi nhanh/nhom nay (du dich vu van ton tai o tenant). Migration 9185.</summary>
+    public bool IsActive { get; set; } = true;
+
     public DateOnly EffectiveFrom { get; set; }
     public DateOnly? EffectiveTo { get; set; }
     public string? Note { get; set; }

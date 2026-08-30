@@ -233,16 +233,36 @@ public class SearchDrugsHandler : IRequestHandler<SearchDrugsQuery, Result<IRead
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IBranchProvider _branch;
 
-    public SearchDrugsHandler(IDapperConnectionFactory db, ICurrentUser currentUser) { _db = db; _currentUser = currentUser; }
+    public SearchDrugsHandler(IDapperConnectionFactory db, ICurrentUser currentUser, IBranchProvider branch)
+    {
+        _db = db; _currentUser = currentUser; _branch = branch;
+    }
 
     public async Task<Result<IReadOnlyList<DrugMasterResponse>>> Handle(SearchDrugsQuery q, CancellationToken ct)
     {
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
+        var prm = new DynamicParameters();
+        prm.Add("tenantId", tenantId);
+        prm.Add("q", $"%{q.Q}%");
+        prm.Add("limit", Math.Min(q.Limit, 50));
+
+        // An/hien thuoc theo chi nhanh (migration 9185): loc bo thuoc bi tat o chi nhanh hien tai.
+        // Chi ap dung khi co branch context cu the va khong bo qua filter (admin cross-view thay tat ca).
+        var visibilityFilter = "";
+        if (!_branch.IgnoreBranchFilter && _branch.BranchId > 0)
+        {
+            visibilityFilter = " AND " + BranchItemVisibilitySql.VisibleCondition(
+                "diab_his_pha_drug_branch_prices", "drug_id", "d.ID");
+            prm.Add("vTenantId", tenantId);
+            prm.Add("vBranchId", _branch.BranchId);
+            prm.Add("vAsOf", DateTime.Today.ToString("yyyy-MM-dd"));
+        }
 
         var rows = await conn.QueryAsync<DrugRow>(
-            @"SELECT d.ID as Id, d.tenant_id as TenantId, d.code as Code,
+            $@"SELECT d.ID as Id, d.tenant_id as TenantId, d.code as Code,
                      d.name_vi as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
                      d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                      d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
@@ -254,8 +274,9 @@ public class SearchDrugsHandler : IRequestHandler<SearchDrugsQuery, Result<IRead
               FROM diab_his_pha_drugs d
               WHERE d.tenant_id = @tenantId AND d.deleted_at IS NULL AND d.status = 'ACTIVE'
                 AND (d.name_vi LIKE @q OR d.code LIKE @q OR d.generic_name LIKE @q)
+                {visibilityFilter}
               ORDER BY d.name_vi LIMIT @limit",
-            new { tenantId, q = $"%{q.Q}%", limit = Math.Min(q.Limit, 50) });
+            prm);
 
         var items = rows.Select(r => new DrugMasterResponse(r.Id?.ToString() ?? "", r.TenantId, r.Code ?? "", r.NameVi ?? "", r.NameEn, r.GenericName,
             r.AtcCode, r.Strength, r.Unit ?? "", r.Form, r.Manufacturer, r.Country, r.Price, r.CategoryId,

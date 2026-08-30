@@ -85,6 +85,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<EInvoice> EInvoices => Set<EInvoice>();
     public DbSet<CashierShift> CashierShifts => Set<CashierShift>();
     public DbSet<ServiceBranchPrice> ServiceBranchPrices => Set<ServiceBranchPrice>();
+    public DbSet<Domain.Entities.Pharmacy.DrugBranchPrice> DrugBranchPrices => Set<Domain.Entities.Pharmacy.DrugBranchPrice>();
 
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();

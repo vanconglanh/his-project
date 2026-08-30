@@ -181,23 +181,40 @@ public class SearchServicesHandler : IRequestHandler<SearchServicesQuery, Result
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IBranchProvider _branch;
 
-    public SearchServicesHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    public SearchServicesHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _tenant = tenant; _branch = branch;
     }
 
     public async Task<Result<List<ServiceResponse>>> Handle(SearchServicesQuery query, CancellationToken ct)
     {
         using var conn = _db.CreateConnection();
+        var prm = new DynamicParameters();
+        prm.Add("tenantId", _tenant.TenantId);
+        prm.Add("q", $"%{query.Q}%");
+
+        // An/hien dich vu theo chi nhanh (migration 9185): loc bo dich vu bi tat o chi nhanh hien tai.
+        var visibilityFilter = "";
+        if (!_branch.IgnoreBranchFilter && _branch.BranchId > 0)
+        {
+            visibilityFilter = " AND " + BranchItemVisibilitySql.VisibleCondition(
+                "diab_his_bil_service_branch_prices", "service_id", "diab_his_bil_services.id");
+            prm.Add("vTenantId", _tenant.TenantId);
+            prm.Add("vBranchId", _branch.BranchId);
+            prm.Add("vAsOf", DateTime.Today.ToString("yyyy-MM-dd"));
+        }
+
         var rows = await conn.QueryAsync<dynamic>(
-            @"SELECT id, tenant_id, code, name, category, price, vat_rate, bhyt_code,
+            $@"SELECT id, tenant_id, code, name, category, price, vat_rate, bhyt_code,
               bhyt_max_amount, is_active, created_at, updated_at
               FROM diab_his_bil_services
               WHERE tenant_id = @tenantId AND deleted_at IS NULL AND is_active = 1
                 AND (code LIKE @q OR name LIKE @q)
+                {visibilityFilter}
               ORDER BY name ASC LIMIT 20",
-            new { tenantId = _tenant.TenantId, q = $"%{query.Q}%" });
+            prm);
 
         return Result<List<ServiceResponse>>.Success(rows.Select(ListServicesHandler.MapService).ToList());
     }

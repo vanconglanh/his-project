@@ -19,6 +19,7 @@ public record ServicePriceOverrideResponse(
     int? BranchId,
     int? GroupId,
     decimal Price,
+    bool IsActive,
     DateOnly EffectiveFrom,
     DateOnly? EffectiveTo,
     string? Note,
@@ -31,12 +32,14 @@ public record CreateServicePriceOverrideRequest(
     int? BranchId,
     int? GroupId,
     decimal Price,
+    bool IsActive,
     DateOnly EffectiveFrom,
     DateOnly? EffectiveTo,
     string? Note);
 
 public record UpdateServicePriceOverrideRequest(
     decimal Price,
+    bool IsActive,
     DateOnly EffectiveFrom,
     DateOnly? EffectiveTo,
     string? Note);
@@ -89,7 +92,7 @@ internal static class ServicePriceOverrideMapper
 {
     public static ServicePriceOverrideResponse ToDto(ServiceBranchPrice p, string? serviceName = null) => new(
         p.Id, p.TenantId, p.ServiceId, serviceName, p.Scope, p.BranchId, p.GroupId,
-        p.Price, p.EffectiveFrom, p.EffectiveTo, p.Note, p.CreatedAt, p.CreatedBy);
+        p.Price, p.IsActive, p.EffectiveFrom, p.EffectiveTo, p.Note, p.CreatedAt, p.CreatedBy);
 }
 
 // ---- Handlers ----
@@ -138,6 +141,7 @@ public class CreateServicePriceOverrideHandler
             BranchId = req.Scope == PriceOverrideScope.Branch ? req.BranchId : null,
             GroupId = req.Scope == PriceOverrideScope.Group ? req.GroupId : null,
             Price = req.Price,
+            IsActive = req.IsActive,
             EffectiveFrom = req.EffectiveFrom,
             EffectiveTo = req.EffectiveTo,
             Note = req.Note,
@@ -199,6 +203,7 @@ public class UpdateServicePriceOverrideHandler
                 $"Da co gia override khac cho dich vu nay trong khoang thoi gian giao nhau (ma ban ghi xung dot: {conflict.Id})");
 
         entity.Price = req.Price;
+        entity.IsActive = req.IsActive;
         entity.EffectiveFrom = req.EffectiveFrom;
         entity.EffectiveTo = req.EffectiveTo;
         entity.Note = req.Note;
@@ -303,11 +308,12 @@ public class ListServicePriceOverridesHandler
             r.branch_id == null ? null : (int?)r.branch_id,
             r.group_id == null ? null : (int?)r.group_id,
             (decimal)r.price,
+            Convert.ToBoolean(r.is_active),
             DateOnly.FromDateTime((DateTime)r.effective_from),
             r.effective_to == null ? null : (DateOnly?)DateOnly.FromDateTime((DateTime)r.effective_to),
             (string?)r.note,
             (DateTime)r.created_at,
-            r.created_by == null ? null : Guid.Parse((string)r.created_by.ToString())
+            r.created_by == null ? (Guid?)null : Guid.Parse((string)r.created_by.ToString())
         )).ToList();
 
         return Result<PagedResult<ServicePriceOverrideResponse>>.Success(
