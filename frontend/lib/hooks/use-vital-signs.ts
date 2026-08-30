@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as vitalApi from "@/lib/api/vital-signs";
 import type { VitalSignsRequest } from "@/lib/api/types";
+import { encounterKeys } from "@/lib/hooks/use-encounters";
 
 export const vitalKeys = {
   list: (encounterId: string) => ["vital-signs", "list", encounterId] as const,
@@ -47,6 +48,9 @@ export function useCreateVitalSigns(encounterId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: vitalKeys.list(encounterId) });
       qc.invalidateQueries({ queryKey: vitalKeys.latest(encounterId) });
+      // Card "Sinh hieu" o sidebar kham benh doc tu encounter.vital_signs_latest -> phai invalidate
+      // ca query chi tiet encounter thi moi tu refresh, khong can F5 (xem BUG-03 QC 2026-08-30).
+      qc.invalidateQueries({ queryKey: encounterKeys.detail(encounterId) });
       toast.success("Đã lưu sinh hiệu");
     },
     onError: () => toast.error("Lưu sinh hiệu thất bại"),
@@ -61,6 +65,7 @@ export function useUpdateVitalSign(encounterId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: vitalKeys.list(encounterId) });
       qc.invalidateQueries({ queryKey: vitalKeys.latest(encounterId) });
+      qc.invalidateQueries({ queryKey: encounterKeys.detail(encounterId) });
       toast.success("Cập nhật sinh hiệu thành công");
     },
     onError: (err: unknown) => {

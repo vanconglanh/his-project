@@ -130,6 +130,65 @@ khong crash, chon lai file khac duoc. File sai dinh dang (`.txt`) -> 422 `INBODY
 - He qua: nguoi dung tuong BMI duoc luu vao ho so trong khi thuc te bi bo qua im lang.
 - De xuat owner: **frontend** — disable checkbox BMI + ghi chu "BMI tinh lai tu can nang/chieu cao".
 
+## Cap nhat fix — 2026-08-30 (Thao, backend)
+
+Ca 4 bug da duoc fix va verify lai. Chi tiet tung bug:
+
+### BUG-02 — DA FIX
+- Them client MinIO rieng (`AddKeyedSingleton<IMinioClient>("public", ...)`) trong
+  `backend/src/ProDiabHis.Infrastructure/DependencyInjection.cs`, dung config moi `Minio:PublicEndpoint`
+  (+ `Minio:PublicUseSsl`) — fallback ve `Minio:Endpoint` neu khong set.
+- `backend/src/ProDiabHis.Infrastructure/Storage/MinioFileStorage.cs`: `GetSignedUrlAsync` dung
+  `_publicClient` (endpoint public) de sinh presigned URL tra ve FE; cac thao tac server-to-server
+  (Upload/Download/Delete/EnsureBucket) van dung `_client` voi `Minio:Endpoint` noi bo — KHONG doi.
+- Cau hinh: `ops/docker-compose.local-app.yml` set `Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}`
+  (MinIO da publish port 9000 ra host o local dev); `ops/docker-compose.deploy.yml` va
+  `ops/docker-compose.prod.yml` doc tu `${MINIO_PUBLIC_ENDPOINT}` (BAT BUOC set trong `.env` khi deploy,
+  KHONG co gia tri mac dinh — xem ghi chu trong `ops/.env.example`); `appsettings.json` them default
+  `localhost:9000` cho local (khong container).
+- Verify that (khong dung mock): dang nhap qua API that (`bacsi.test@prodiab.test`), goi
+  `GET /api/v1/patients/{id}/inbody-reports`, xac nhan `file_url` tra ve co host `localhost:9000`
+  (KHONG con `minio:9000`), sau do `curl` truc tiep URL nay tu ben ngoai docker network ->
+  **HTTP 200, Content-Type: application/pdf**, tai duoc file PDF that (chung minh chu ky presigned URL
+  van hop le voi host moi). Evidence: `docs/qc/evidence-inbody-ocr-20260830/bug02-fix-verify-20260830.txt`,
+  `bug02-inbody-pdf-downloaded.pdf`.
+- Ghi chu: cong cu cua Thao (backend agent) khong co Playwright/browser pane truc tiep nhu QC — da verify
+  bang HTTP request that (khong mock) thay vi click UI; ket qua tuong duong ve mat ky thuat (URL truy cap
+  duoc tu ngoai docker network, dung URL scheme browser se dung khi click "Xem file goc"). De nghi QC verify
+  lai buoc click UI that ("Xem file goc" mo tab moi hien PDF) trong lan retest ke tiep.
+- Anh huong dien rong da ra soat: moi noi dung `IFileStorage.GetSignedUrlAsync` (InBody, CLS, don thuoc PDF,
+  Patients, Files) deu di qua ham nay -> fix 1 lan la du, khong can sua rieng tung module.
+
+### BUG-01 — DA FIX
+- `frontend/components/domain/InBodyImportPanel.tsx`: boc `try { await ...mutateAsync(...) } catch {}`
+  quanh ca `uploadMutation.mutateAsync` (dong ~83-91) va `confirmMutation.mutateAsync` (dong ~109-122).
+  Toast loi van hien dung qua `onError` cua hook, chi khac la khong con unhandled rejection len console/Sentry.
+- Verify: `npx tsc --noEmit` sach; da rebuild + redeploy container frontend.
+
+### BUG-03 — DA FIX
+- Them invalidate `encounterKeys.detail(encounterId)` (tu `frontend/lib/hooks/use-encounters.ts`) vao
+  `onSuccess` cua CA 3 noi: `useCreateVitalSigns`, `useUpdateVitalSign`
+  (`frontend/lib/hooks/use-vital-signs.ts`) va `useConfirmInBodyReport`
+  (`frontend/lib/hooks/use-inbody-reports.ts`) — ca luong nhap tay lan InBody deu refresh dung card sidebar
+  ma khong can F5.
+- Verify: `npx tsc --noEmit` sach; logic invalidate them, khong doi hanh vi cache khac.
+
+### BUG-04 — DA FIX
+- Xac nhan trong `backend/src/ProDiabHis.Application/InBody/InBodyHandlers.cs` (dong ~224,
+  `InBodyIndicatorTypes.IndicatorTableTypes`) — BMI thuc su KHONG nam trong danh sach duoc persist vao
+  `diab_his_cli_indicator_reading` (chi tinh lai tu can nang + chieu cao o noi khac theo PRD).
+- `frontend/components/domain/InBodyImportPanel.tsx`: checkbox "Dung" cua BMI mac dinh KHONG tich
+  (`toEditable`), disable hoan toan + boc `Tooltip` giai thich "BMI duoc tinh tu dong tu can nang va
+  chieu cao, khong can xac nhan rieng" (dung `TooltipProvider` da co san o `app/layout.tsx`).
+- Verify: `npx tsc --noEmit` sach.
+
+### Kiem tra chung sau fix
+- `dotnet build` (Infrastructure + Api): 0 error, cac warning con lai la pre-existing (khong lien quan fix).
+- `dotnet test tests/ProDiabHis.UnitTests`: **858/858 PASS**.
+- `npx tsc --noEmit` (frontend): sach, 0 loi.
+- Da rebuild + `docker compose up -d --build backend frontend` tren stack local
+  (`ops/docker-compose.yml` + `ops/docker-compose.local-app.yml`) de chay dung code moi truoc khi verify.
+
 ## Ghi chu moi truong
 
 Lan chay dau tien tab "Lich su InBody" **khong hien thi** — nguyen nhan la image

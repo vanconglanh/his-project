@@ -9,6 +9,7 @@ import {
   type ConfirmInBodyFieldItem,
 } from "@/lib/api/inbody-reports";
 import { vitalKeys } from "@/lib/hooks/use-vital-signs";
+import { encounterKeys } from "@/lib/hooks/use-encounters";
 import { getErrorMessage } from "@/lib/utils/errors";
 
 export const inbodyKeys = {
@@ -54,6 +55,9 @@ export function useConfirmInBodyReport(patientId: string, encounterId?: string) 
       if (encounterId) {
         qc.invalidateQueries({ queryKey: vitalKeys.list(encounterId) });
         qc.invalidateQueries({ queryKey: vitalKeys.latest(encounterId) });
+        // Card "Sinh hieu" o sidebar kham benh doc tu encounter.vital_signs_latest — phai invalidate
+        // ca query chi tiet encounter thi moi tu refresh (xem BUG-03 QC 2026-08-30).
+        qc.invalidateQueries({ queryKey: encounterKeys.detail(encounterId) });
       }
       qc.invalidateQueries({ queryKey: vitalKeys.history(patientId) });
       toast.success("Đã lưu kết quả InBody vào hồ sơ");
