@@ -1,0 +1,137 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.3.0" },
+    { "type": "datasource", "id": "loki", "name": "Loki", "version": "1.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "table", "name": "Table", "version": "" },
+    { "type": "panel", "id": "barchart", "name": "Bar chart", "version": "" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Pro-Diab HIS — Hoat dong nguoi dung & san pham. Muc dich CHINH la phan tich san pham/UX (chuc nang nao dung nhieu/it, nguoi dung nao gap kho khan o dau), khong chi de debug ky thuat. Nguon du lieu: Properties.UserId/UserEmail/RoleCodes/RequestPath/StatusCode duoc EnrichDiagnosticContext gan vao moi dong log qua UseSerilogRequestLogging (xem backend/src/ProDiabHis.Api/Program.cs). CHI co du lieu cho request cua user DA DANG NHAP (request anonymous nhu /healthz, /api/v1/auth/login truoc khi co token se khong co UserId).",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Hoat dong theo user (so request / gio)",
+      "description": "Xu huong su dung theo tung nguoi dung (UserEmail) theo thoi gian — phat hien tai khoan hoat dong bat thuong (spike dot bien) hoac nguoi dung it hoat dong (co the can ho tro/dao tao them).",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (Properties_UserEmail) (count_over_time({container=~\"prodiab.*backend\"} |= \"UserEmail\" | json [1h]))",
+          "legendFormat": "{{Properties_UserEmail}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 5 } }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Top chuc nang duoc dung nhieu nhat (7 ngay)",
+      "description": "Xep hang TOAN BO endpoint theo tan suat goi trong 7 ngay gan nhat — nhin duoc buc tranh toan dien chuc nang nao dung nhieu (uu tien toi uu hieu nang/trai nghiem) va chuc nang nao it dung (co the do kho dung, UX chua tot, hoac khong can thiet — can xem xet cai thien hoac loai bo).",
+      "type": "barchart",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 9 },
+      "targets": [
+        {
+          "expr": "topk(20, sum by (Properties_RequestPath) (count_over_time({container=~\"prodiab.*backend\"} |= \"RequestPath\" | json [7d])))",
+          "legendFormat": "{{Properties_RequestPath}}",
+          "refId": "A"
+        }
+      ],
+      "options": { "orientation": "horizontal", "legend": { "showLegend": false } },
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Xu huong su dung theo function (theo tuan)",
+      "description": "So sanh xu huong tang/giam luot goi cua tung endpoint theo thoi gian (khoang rong 30 ngay, buoc 1 ngay) — dung de phat hien chuc nang dang tang truong (uu tien dau tu) hay dang giam dan (tim hieu ly do: doi UX, loi, hay nguoi dung chuyen sang cach khac).",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 19 },
+      "targets": [
+        {
+          "expr": "sum by (Properties_RequestPath) (count_over_time({container=~\"prodiab.*backend\"} |= \"RequestPath\" | json [1d]))",
+          "legendFormat": "{{Properties_RequestPath}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 5 } }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Loi 4xx/5xx theo user + function",
+      "description": "Log stream chi tiet request LOI (>=400) — moi dong da co san Properties.UserEmail/UserId/RequestPath/StatusCode (xem trong noi dung JSON). Tra cuu nhanh khi user bao loi ('toi bi loi luc kham benh nhan X'): dung o tim kiem cua panel de loc theo email, xem ngay ho gap loi o chuc nang nao, may lan, gan nhat luc nao. Bao gom CA 400 (validation that bai — thuong la dau hieu form/UX kho dien dung, khong chi la bug backend). Loki logs panel khong ho tro toan hang truc tiep tu JSON — neu can bang tong hop dang cot rieng (User | Endpoint | So loi), dung Grafana Explore + \"Transform > Extract fields\" tren cung query nay, huong dan trong docs/ops/log-monitoring-loki-grafana.md.",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "expr": "{container=~\"prodiab.*backend\"} |= \"RequestPath\" | json | Properties_StatusCode >= 400",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 5,
+      "title": "Ty le loi theo function (4xx + 5xx, 24h)",
+      "description": "Ty le loi tren tong so request cua tung endpoint — tin hieu chat luong/UX: function nao ty le loi cao co the dang gay kho chiu cho nguoi dung (form kho dien dung -> nhieu 400, chuc nang khong on dinh -> nhieu 500), can uu tien xem xet cai thien truoc, khong chi vá bug.",
+      "type": "table",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 38 },
+      "targets": [
+        {
+          "expr": "sum by (Properties_RequestPath) (count_over_time({container=~\"prodiab.*backend\"} |= \"RequestPath\" | json | Properties_StatusCode >= 400 [24h]))",
+          "legendFormat": "{{Properties_RequestPath}} — so loi 24h",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 6,
+      "title": "Hoat dong theo role (24h)",
+      "description": "Breakdown so request theo VAI TRO (RoleCodes) thay vi tung ca nhan — huu ich hon cho quyet dinh cai thien san pham: vai tro nao dang su dung he thong nhieu nhat/gap kho khan nhieu nhat (vd le_tan goi API nhieu gap doi bac_si -> uu tien toi uu UX man hinh tiep don).",
+      "type": "barchart",
+      "datasource": { "type": "loki", "uid": "loki_prodiab" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 38 },
+      "targets": [
+        {
+          "expr": "sum by (Properties_RoleCodes) (count_over_time({container=~\"prodiab.*backend\"} |= \"RoleCodes\" | json [24h]))",
+          "legendFormat": "{{Properties_RoleCodes}}",
+          "refId": "A"
+        }
+      ],
+      "options": { "orientation": "horizontal", "legend": { "showLegend": false } },
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["prodiab", "user-activity", "product-analytics"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "timezone": "Asia/Ho_Chi_Minh",
+  "title": "Pro-Diab User Activity & Product Analytics",
+  "uid": "prodiab-user-activity",
+  "version": 1
+}

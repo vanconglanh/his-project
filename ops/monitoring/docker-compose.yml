@@ -7,8 +7,15 @@ version: "3.9"
 networks:
   monitoring:
     driver: bridge
-  # Kết nối vào network của app chính để scrape metrics
-  prodiab_default:
+  # Ket noi vao network cua app chinh de scrape container logs.
+  # LUU Y: ten network THAT SU la "prodiab-net" (dat trong ops/docker-compose.yml,
+  # dev) chu KHONG PHAI "prodiab_default" (ten mac dinh Compose tu sinh khi khong co
+  # "name:") — tung bi sai truoc do khien Promtail khong join duoc network app.
+  # Voi stack prod (ops/docker-compose.prod.yml) network la "prodiab-prod-net",
+  # voi stack deploy (ops/docker-compose.deploy.yml) la "prodiab-his-net" —
+  # doi ten bien PRODIAB_NETWORK tuong ung khi chay monitoring cho stack do.
+  prodiab-net:
+    name: ${PRODIAB_NETWORK:-prodiab-net}
     external: true
 
 volumes:
@@ -62,7 +69,7 @@ services:
         condition: service_healthy
     networks:
       - monitoring
-      - prodiab_default
+      - prodiab-net
     logging:
       driver: json-file
       options:
@@ -82,7 +89,10 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: "${GF_ADMIN_PASSWORD:-Grafana@ProDiab2026!}"
       GF_SERVER_ROOT_URL: "${GF_ROOT_URL:-http://localhost:3100}"
-      GF_ALERTING_ENABLED: "true"
+      # CHI bat 1 trong 2: Grafana 10.x dung Unified Alerting, bat CA HAI (legacy + unified)
+      # lam Grafana crash-loop ngay khi start ("legacy and unified alerting cannot both be
+      # enabled"). Phat hien khi kiem thu thuc te — GF_ALERTING_ENABLED (legacy) phai TAT.
+      GF_ALERTING_ENABLED: "false"
       GF_UNIFIED_ALERTING_ENABLED: "true"
       GF_SMTP_ENABLED: "${GF_SMTP_ENABLED:-false}"
       GF_SMTP_HOST: "${GF_SMTP_HOST:-smtp.gmail.com:587}"

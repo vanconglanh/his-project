@@ -29,6 +29,13 @@ scrape_configs:
           - name: status
             values: [running]
     relabel_configs:
+      # BAT BUOC co it nhat 1 label tinh (static) cho MOI stream — thieu buoc nay,
+      # container nao khong co label com.docker.compose.* (vd container chay tay,
+      # khong qua "docker compose up") se tao stream 0 label -> Loki tra ve HTTP 400
+      # "at least one label pair is required per stream" va lam HONG CA BATCH (bao gom
+      # ca log cua container khac dang gui chung batch). Da xay ra khi kiem thu thuc te.
+      - target_label: job
+        replacement: docker
       # Dùng tên container làm label
       - source_labels: [__meta_docker_container_name]
         regex: "/(.*)"
@@ -47,26 +54,34 @@ scrape_configs:
         regex: "prodiab_loki|prodiab_promtail"
         action: drop
     pipeline_stages:
-      # Parse JSON log nếu có
+      # Backend .NET (ProDiabHis.Api) ghi Console sink dang JSON (Serilog.Formatting.Json.JsonFormatter,
+      # renderMessage=true) — xem backend/src/ProDiabHis.Api/appsettings.json.
+      # Schema thuc te: {"Timestamp":"...","Level":"Information","MessageTemplate":"...",
+      # "RenderedMessage":"...","Properties":{"StatusCode":200,"Elapsed":12.3,"TenantId":1,...}}
+      # Container KHAC (frontend, mysql, redis...) log dang text — stage json se khong parse duoc,
+      # Promtail se bo qua loi parse va giu nguyen dong log goc (khong crash).
       - json:
           expressions:
-            level: level
-            msg: message
-            ts: timestamp
-            req_id: requestId
-            tenant: tenantId
-            duration_ms: durationMs
-            status: statusCode
-      # Đặt level label từ JSON
+            level: Level
+            rendered_message: RenderedMessage
+            timestamp: Timestamp
+            status_code: Properties.StatusCode
+            elapsed_ms: Properties.Elapsed
+            tenant_id: Properties.TenantId
+            request_path: Properties.RequestPath
+            audit_user_id: Properties.UserId
+      # Dat level/status/tenant lam label de query nhanh trong Grafana (chi ap dung
+      # cho dong parse JSON thanh cong — dong text thuong khong co cac label nay)
       - labels:
           level:
-          tenant:
-      # Drop debug logs trong production
+          status_code:
+          tenant_id:
+      # Drop debug logs trong production (giu nguyen trong dev vi MinimumLevel=Debug)
       - match:
           selector: '{service=~"prodiab_backend|prodiab_frontend"}'
           stages:
             - drop:
-                expression: '"level":"debug"'
+                expression: '"Level":"Debug"'
 
   # --------------------------------------------------------------------------
   # Backend .NET API — Serilog JSON logs từ file (nếu mount volume)

@@ -97,6 +97,29 @@ DB tồn tại song song `diab_his_cli_emr_content` **và** `diab_his_cli_emr_co
 | 3 | Guard fail-fast khi `Minio:PublicEndpoint` rỗng; điền mẫu `.env.example` | P1 | devops | 1 giờ |
 | 4 | Checklist deploy: sinh MỚI `JWT_SECRET`, 2 khoá mã hoá, mật khẩu MySQL/MinIO — tuyệt đối không dùng lại giá trị dev | P0 vận hành | devops | 30 phút |
 
+## 5.1 Bổ sung sau audit (2026-08-30, không phải P0 gốc) — Log tập trung Loki/Grafana
+
+Mục "Monitor: Sentry + Serilog → Loki/Grafana" trong `CLAUDE.md` trước đây CHƯA triển khai (chỉ có
+Sentry + Serilog console/file cục bộ, không tập trung). Đã bổ sung trong phiên làm việc này:
+- Backend: Console sink Serilog đổi sang JSON (`Serilog.Formatting.Json.JsonFormatter`), enrich thêm
+  `UserId/TenantId/UserEmail/RoleCodes` vào mọi dòng request log qua `EnrichDiagnosticContext`.
+- Stack `ops/monitoring/` (Loki + Promtail + Grafana, đã có sẵn từ trước nhưng CHƯA BAO GIỜ chạy thử —
+  phát hiện và sửa 2 lỗi chặn hoạt động hoàn toàn: Promtail tạo stream 0-label làm Loki từ chối cả
+  batch; Grafana crash-loop do bật đồng thời legacy + unified alerting) — đã verify end-to-end bằng
+  request thật (login → gọi API → xác nhận log tới Loki → query đúng qua Grafana).
+- 3 dashboard: Backend Overview (đã sửa label sai + latency query sai), MySQL Health (kế thừa, chưa
+  verify vì không có tình huống lỗi MySQL để test), **User Activity & Product Analytics (mới)** —
+  hoạt động theo user/role, top chức năng dùng nhiều nhất, xu hướng theo thời gian, lỗi 4xx/5xx theo
+  user+function.
+- Còn thiếu trước khi bật trên server production: reverse proxy + auth cho Grafana (hiện publish
+  thẳng port `3100` ra host, an toàn cho dev nhưng KHÔNG được mở vậy trên server thật).
+- Chi tiết đầy đủ (kiến trúc, cách verify, LogQL mẫu, cách thêm dashboard): xem
+  `docs/ops/log-monitoring-loki-grafana.md`.
+
+Đây KHÔNG phải P0 chặn go-live (hệ thống vẫn chạy được không cần Loki/Grafana), nhưng ảnh hưởng trực
+tiếp khả năng vận hành/hỗ trợ sau go-live (điều tra sự cố, đối chiếu audit, phân tích UX) nên ghi nhận
+ở đây để BO/DevOps biết và lên kế hoạch bật trên server thật kèm phần bảo mật còn thiếu.
+
 ## 6. Chấp nhận được sau go-live
 
 M-5 snapshot giá thuốc (P2, dịch vụ đã có snapshot); dọn bảng EMR trùng (P2); D-3 refactor 77 file token màu (P2); P2-08 ScopeMode (P2, branch filter đã đủ an toàn); K-4 tour trang còn lại (P2); tách audit cross-branch attempt (P2); xoá `user.read` sau khi FE chuyển `doctors/lookup` (P2); 13 warning build (P3).

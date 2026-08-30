@@ -258,9 +258,26 @@ try
         });
     }
 
+    // Ghi chu: middleware nay duoc dang ky TRUOC UseAuthentication trong pipeline, nhung
+    // callback EnrichDiagnosticContext chi thuc thi SAU KHI toan bo pipeline phia sau (bao gom
+    // Auth/TenantScope) da chay xong (middleware bao ngoai _next), nen HttpContext.User da co
+    // claim khi enrich — an toan de doc ICurrentUser tai day.
+    // Muc dich: moi dong log request deu gan san UserId/TenantId/Email/Role -> Loki/Grafana loc
+    // duoc theo tung nguoi dung + tung endpoint (dashboard "User Activity").
     app.UseSerilogRequestLogging(opts =>
     {
         opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000}ms";
+        opts.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            var currentUser = httpContext.RequestServices.GetService<ProDiabHis.Application.Common.ICurrentUser>();
+            if (currentUser is { IsAuthenticated: true })
+            {
+                diagnosticContext.Set("UserId", currentUser.UserId);
+                diagnosticContext.Set("TenantId", currentUser.TenantId);
+                diagnosticContext.Set("UserEmail", currentUser.Email);
+                diagnosticContext.Set("RoleCodes", string.Join(",", currentUser.RoleCodes));
+            }
+        };
     });
 
     app.UseCors("DevPolicy");
