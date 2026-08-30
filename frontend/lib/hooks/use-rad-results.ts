@@ -8,9 +8,12 @@ import {
   updateRadResult,
   verifyRadResult,
   uploadDicomFiles,
+  ocrExtractRadResult,
+  ocrConfirmRadResult,
   type RadResultListParams,
   type RadResultCreateRequest,
   type RadResultUpdateRequest,
+  type RadOcrConfirmRequest,
 } from "@/lib/api/rad-results";
 import { getErrorMessage } from "@/lib/utils/errors";
 
@@ -60,6 +63,25 @@ export function useVerifyRadResult() {
       toast.success("Đã ký phát hành kết quả CĐHA");
     },
     onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useOcrExtractRadResult() {
+  return useMutation({
+    mutationFn: (file: File) => ocrExtractRadResult(file),
+    onError: (e) => toast.error(getErrorMessage(e, "Đọc file kết quả CĐHA thất bại")),
+  });
+}
+
+export function useOcrConfirmRadResult() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: RadOcrConfirmRequest) => ocrConfirmRadResult(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: radResultKeys.all });
+      toast.success("Đã lưu kết quả CĐHA từ file");
+    },
+    onError: (e) => toast.error(getErrorMessage(e, "Lưu kết quả CĐHA từ file thất bại")),
   });
 }
 

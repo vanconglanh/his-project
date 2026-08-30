@@ -56,6 +56,32 @@ export interface DicomUploadResult {
   total_size_bytes: number;
 }
 
+// ─── OCR đọc phiếu kết quả CĐHA (X-quang/Siêu âm/CT) ─────────────────────────────
+// Trích 2 đoạn văn bản chính (Mô tả / Kết luận) từ file PDF/ảnh, cho sửa tay rồi lưu.
+// LƯU Ý: response backend dùng snake_case (đã verify E2E) — KHÔNG dùng camelCase.
+export interface RadOcrExtractResult {
+  findings: string | null;
+  impression: string | null;
+  conclusion: string | null;
+  recommendations: string | null;
+  has_any_extracted: boolean;
+  raw_text: string;
+}
+
+export interface RadOcrConfirmRequest {
+  rad_order_id: string;
+  findings: string;
+  impression?: string | null;
+  conclusion: string;
+  recommendations?: string | null;
+  performed_at?: string;
+}
+
+export interface RadOcrConfirmResult {
+  id: string;
+  status: RadResultStatus;
+}
+
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export async function listRadResults(params?: RadResultListParams): Promise<RadResultResponse[]> {
@@ -90,4 +116,18 @@ export async function uploadDicomFiles(id: string, files: File[]): Promise<Dicom
 
 export function getRadResultPdfUrl(id: string): string {
   return `${apiClient.defaults.baseURL}/rad-results/${id}/pdf`;
+}
+
+export async function ocrExtractRadResult(file: File): Promise<RadOcrExtractResult> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await apiClient.post<ApiResponse<RadOcrExtractResult>>("/rad-results/ocr-extract", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.data;
+}
+
+export async function ocrConfirmRadResult(body: RadOcrConfirmRequest): Promise<RadOcrConfirmResult> {
+  const res = await apiClient.post<ApiResponse<RadOcrConfirmResult>>("/rad-results/ocr-confirm", body);
+  return res.data.data;
 }

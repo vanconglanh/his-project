@@ -15,7 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadResultForm } from "@/components/domain/RadResultForm";
+import { RadResultOcrPanel } from "@/components/domain/RadResultOcrPanel";
 import { DicomUploadZone } from "@/components/domain/DicomUploadZone";
 import {
   useRadResults,
@@ -149,14 +151,25 @@ export function RadResultsTab() {
                 <SheetTitle>Nhập kết quả CĐHA</SheetTitle>
               </SheetHeader>
               <div className="mt-6">
-                <RadResultForm
-                  onSubmit={async (data) => {
-                    await createMutation.mutateAsync(data as Parameters<typeof createMutation.mutateAsync>[0]);
-                    setDrawerMode(null);
-                  }}
-                  onCancel={() => setDrawerMode(null)}
-                  isSubmitting={createMutation.isPending}
-                />
+                <Tabs defaultValue="manual">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="manual">Nhập tay</TabsTrigger>
+                    <TabsTrigger value="ocr">Đọc từ file</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="manual" className="mt-4">
+                    <RadResultForm
+                      onSubmit={async (data) => {
+                        await createMutation.mutateAsync(data as Parameters<typeof createMutation.mutateAsync>[0]);
+                        setDrawerMode(null);
+                      }}
+                      onCancel={() => setDrawerMode(null)}
+                      isSubmitting={createMutation.isPending}
+                    />
+                  </TabsContent>
+                  <TabsContent value="ocr" className="mt-4">
+                    <RadResultOcrPanel onSaved={() => setDrawerMode(null)} />
+                  </TabsContent>
+                </Tabs>
               </div>
             </>
           )}
