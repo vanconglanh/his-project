@@ -1,0 +1,8 @@
+*************************** 1. row ***************************
+          id: fc4084dc-af99-49da-935c-fa17775de9e3
+    order_id: 2f0cf8c2-726c-4f1b-8d19-000f38c4d5b7
+       mo_ta: Hai phế trường sáng, không thấy đám mờ bất thường (đã sửa tay: bổ sung theo dõi)
+    ket_luan: Hình ảnh X-quang ngực trong giới hạn bình thường - ĐÃ SỬA TAY.
+     de_nghi: Tái khám khi có triệu chứng ho kéo dài.
+      status: DRAFT
+performed_by: 60e291e1-6ee3-4388-aa71-bbfa3a0ed49b
