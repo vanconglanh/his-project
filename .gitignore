@@ -74,3 +74,4 @@ build/
 .claude/local/
 .claude/cache/
 .local-storage/
+.qc-tmp/
