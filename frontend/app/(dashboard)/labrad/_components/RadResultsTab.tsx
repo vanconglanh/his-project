@@ -133,6 +133,15 @@ export function RadResultsTab() {
                           In PDF
                         </Button>
                       )}
+                      {row.source_file_url && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(row.source_file_url!, "_blank")}
+                        >
+                          Xem file gốc
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

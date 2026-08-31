@@ -33,6 +33,8 @@ export interface LabResultResponse {
   updated_at: string;
   patient_name: string | null;
   patient_code: string | null;
+  /** URL ky (signed) toi file nguon da dung de doc OCR ra ket qua nay — null neu nhap tay. */
+  source_file_url?: string | null;
 }
 
 export interface LabResultCreateRequest {
@@ -121,6 +123,9 @@ export interface LabOcrExtractedField {
   value_numeric: number | null;
   unit: string | null;
   extracted: boolean;
+  /** GAP-3: gia tri OCR nam ngoai khoang hop ly (vd PBF 80%) — can canh bao do truoc khi luu. */
+  out_of_plausible_range?: boolean;
+  plausible_range_note?: string | null;
 }
 
 export interface LabOcrExtractResult {
@@ -128,6 +133,8 @@ export interface LabOcrExtractResult {
   pending_count: number;
   extracted_count: number;
   fields: LabOcrExtractedField[];
+  /** GAP-8: dinh danh file nguon da upload de OCR — thread lai khi confirm de backend luu source_file_id. */
+  source_file_id?: string | null;
 }
 
 export interface LabOcrConfirmItem {
@@ -137,10 +144,14 @@ export interface LabOcrConfirmItem {
   unit?: string | null;
   method?: string | null;
   include: boolean;
+  /** GAP-2: gia tri OCR GOC (truoc khi nguoi dung sua) — backend luu de doi chieu/diff. */
+  ocr_raw_value?: string | null;
 }
 
 export interface LabOcrConfirmRequest {
   performed_at?: string;
+  /** GAP-8: thread lai source_file_id tu buoc extract. */
+  source_file_id?: string | null;
   items: LabOcrConfirmItem[];
 }
 

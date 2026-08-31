@@ -134,6 +134,16 @@ export function ClsResultTabPanel({ encounterId }: Props) {
                     <p>{r.recommendations}</p>
                   </div>
                 )}
+                {r.source_file_url && (
+                  <a
+                    href={r.source_file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary flex items-center gap-1 hover:underline w-fit"
+                  >
+                    Xem file gốc
+                  </a>
+                )}
               </CardContent>
             </Card>
           ))}

@@ -23,6 +23,8 @@ export interface RadResultResponse {
   dicom_count: number;
   signed_pdf_url: string | null;
   created_at: string;
+  /** URL ky (signed) toi file nguon da dung de doc OCR ra ket qua nay — null neu nhap tay. */
+  source_file_url?: string | null;
 }
 
 export interface RadResultCreateRequest {
@@ -66,6 +68,8 @@ export interface RadOcrExtractResult {
   recommendations: string | null;
   has_any_extracted: boolean;
   raw_text: string;
+  /** GAP-8: dinh danh file nguon da upload de OCR — thread lai khi confirm de backend luu source_file_id. */
+  source_file_id?: string | null;
 }
 
 export interface RadOcrConfirmRequest {
@@ -75,6 +79,10 @@ export interface RadOcrConfirmRequest {
   conclusion: string;
   recommendations?: string | null;
   performed_at?: string;
+  /** GAP-8: thread lai source_file_id tu buoc extract. */
+  source_file_id?: string | null;
+  /** GAP-2: text OCR GOC (truoc khi sua tay) — backend luu de doi chieu/diff. */
+  ocr_raw_text?: string | null;
 }
 
 export interface RadOcrConfirmResult {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { AlertTriangle, FileUp, Upload, X } from "lucide-react";
+import { AlertTriangle, FileUp, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +68,13 @@ export function RadResultOcrPanel({ radOrderId: fixedRadOrderId, onSaved }: RadR
           conclusion: conclusion.trim(),
           recommendations: recommendations.trim() || null,
           performed_at: new Date(performedAt).toISOString(),
+          // GAP-8: thread lai source_file_id tu buoc extract.
+          source_file_id: result?.source_file_id ?? null,
+          // GAP-2: gui kem noi dung OCR goc (chua sua) — uu tien raw_text, fallback ghep findings+conclusion goc.
+          ocr_raw_text:
+            result?.raw_text ??
+            [result?.findings ?? "", result?.conclusion ?? ""].filter(Boolean).join("\n") ??
+            null,
         },
         {
           onSuccess: () => {
@@ -138,12 +145,28 @@ export function RadResultOcrPanel({ radOrderId: fixedRadOrderId, onSaved }: RadR
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <Button size="sm" onClick={handleUpload} disabled={extractMutation.isPending}>
+                {extractMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
+                )}
                 {extractMutation.isPending ? "Đang đọc..." : "Tải lên & đọc"}
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPendingFile(null)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPendingFile(null)}
+                disabled={extractMutation.isPending}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
+          </div>
+        )}
+
+        {extractMutation.isPending && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            Đang đọc nội dung tài liệu, vui lòng đợi...
           </div>
         )}
       </div>
@@ -233,6 +256,7 @@ export function RadResultOcrPanel({ radOrderId: fixedRadOrderId, onSaved }: RadR
 
       <div className="flex gap-2">
         <Button onClick={handleConfirm} disabled={confirmMutation.isPending || !canSave} className="min-h-[44px]">
+          {confirmMutation.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />}
           {confirmMutation.isPending ? "Đang lưu..." : "Lưu kết quả"}
         </Button>
         <Button

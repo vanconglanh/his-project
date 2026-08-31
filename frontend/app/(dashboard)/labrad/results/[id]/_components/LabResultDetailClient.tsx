@@ -4,6 +4,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -165,6 +166,21 @@ export function LabResultDetailClient({ id }: Props) {
               <div className="col-span-2 sm:col-span-3">
                 <dt className="text-xs text-muted-foreground">Ghi chú</dt>
                 <dd>{result.note}</dd>
+              </div>
+            )}
+            {result.source_file_url && (
+              <div className="col-span-2 sm:col-span-3">
+                <dt className="text-xs text-muted-foreground">Tài liệu nguồn</dt>
+                <dd>
+                  <a
+                    href={result.source_file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary flex items-center gap-1 hover:underline w-fit"
+                  >
+                    Xem file gốc <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </dd>
               </div>
             )}
           </dl>
