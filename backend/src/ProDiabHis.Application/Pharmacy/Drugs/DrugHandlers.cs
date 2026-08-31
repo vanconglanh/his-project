@@ -40,7 +40,7 @@ public class ListDrugsHandler : IRequestHandler<ListDrugsQuery, Result<PagedResu
 
         if (!string.IsNullOrWhiteSpace(q.Q))
         {
-            where.Add("(d.name_vi LIKE @q OR d.code LIKE @q OR d.generic_name LIKE @q)");
+            where.Add("(d.name LIKE @q OR d.code LIKE @q OR d.generic_name LIKE @q)");
             prm.Add("q", $"%{q.Q}%");
         }
         if (!string.IsNullOrWhiteSpace(q.Status)) { where.Add("d.status = @status"); prm.Add("status", q.Status); }
@@ -52,7 +52,7 @@ public class ListDrugsHandler : IRequestHandler<ListDrugsQuery, Result<PagedResu
 
         var rows = await conn.QueryAsync<DrugRow>(
             $@"SELECT d.ID as Id, d.tenant_id as TenantId, d.code as Code,
-                      d.name_vi as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
+                      d.name as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
                       d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                       d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
                       d.price as Price, d.category_id as CategoryId,
@@ -63,7 +63,7 @@ public class ListDrugsHandler : IRequestHandler<ListDrugsQuery, Result<PagedResu
                       d.created_at as CreatedAt, d.updated_at as UpdatedAt,
                       (SELECT COUNT(*) FROM diab_his_pha_ddi_rules r WHERE (r.drug1_id = d.ID OR r.drug2_id = d.ID) AND r.deleted_at IS NULL) as InteractionsCount
                FROM diab_his_pha_drugs d WHERE {wc}
-               ORDER BY d.name_vi ASC LIMIT @limit OFFSET @offset", prm);
+               ORDER BY d.name ASC LIMIT @limit OFFSET @offset", prm);
 
         var items = rows.Select(MapDrug).ToList();
         return Result<PagedResult<DrugMasterResponse>>.Success(new PagedResult<DrugMasterResponse>(items, q.Page, q.PageSize, total));
@@ -91,7 +91,7 @@ public class GetDrugHandler : IRequestHandler<GetDrugQuery, Result<DrugMasterRes
 
         var row = await conn.QueryFirstOrDefaultAsync<DrugRow>(
             @"SELECT d.ID as Id, d.tenant_id as TenantId, d.code as Code,
-                     d.name_vi as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
+                     d.name as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
                      d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                      d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
                      d.price as Price, d.category_id as CategoryId,
@@ -139,9 +139,11 @@ public class CreateDrugHandler : IRequestHandler<CreateDrugCommand, Result<DrugM
 
         var newId = Guid.NewGuid().ToString();
         await conn.ExecuteAsync(
-            @"INSERT INTO diab_his_pha_drugs (id, tenant_id, code, name_vi, name_en, generic_name, atc_code, strength, unit, form,
+            // BUG-03: ghi ca `name` (cot chuan 9005, nguon that de doc/tim kiem) LAN `name_vi`
+            // (giu dong bo, tranh lech pha 2 cot trung nghia nhu loi cu).
+            @"INSERT INTO diab_his_pha_drugs (id, tenant_id, code, name, name_vi, name_en, generic_name, atc_code, strength, unit, form,
               manufacturer, country, price, category_id, requires_prescription, is_psychotropic, is_narcotic, dtqg_drug_code, status, created_at, updated_at)
-              VALUES (@newId, @tenantId, @code, @nameVi, @nameEn, @genericName, @atcCode, @strength, @unit, @form,
+              VALUES (@newId, @tenantId, @code, @nameVi, @nameVi, @nameEn, @genericName, @atcCode, @strength, @unit, @form,
               @manufacturer, @country, @price, @categoryId, @rx, @psycho, @narcotic, @dtqgCode, @status, NOW(), NOW())",
             new { newId, tenantId, code = r.Code, nameVi = r.NameVi, nameEn = r.NameEn, genericName = r.GenericName,
                   atcCode = r.AtcCode, strength = r.Strength, unit = r.Unit, form = r.Form,
@@ -173,7 +175,7 @@ public class UpdateDrugHandler : IRequestHandler<UpdateDrugCommand, Result<DrugM
             return Result<DrugMasterResponse>.Failure("DRUG_NOT_FOUND", "Khong tim thay thuoc.");
 
         await conn.ExecuteAsync(
-            @"UPDATE diab_his_pha_drugs SET name_vi=@nameVi, name_en=@nameEn, generic_name=@genericName,
+            @"UPDATE diab_his_pha_drugs SET name=@nameVi, name_vi=@nameVi, name_en=@nameEn, generic_name=@genericName,
               atc_code=@atcCode, strength=@strength, unit=@unit, form=@form, manufacturer=@manufacturer,
               country=@country, price=@price, category_id=@categoryId, requires_prescription=@rx,
               is_psychotropic=@psycho, is_narcotic=@narcotic, dtqg_drug_code=@dtqgCode, status=@status, updated_at=NOW()
@@ -263,7 +265,7 @@ public class SearchDrugsHandler : IRequestHandler<SearchDrugsQuery, Result<IRead
 
         var rows = await conn.QueryAsync<DrugRow>(
             $@"SELECT d.ID as Id, d.tenant_id as TenantId, d.code as Code,
-                     d.name_vi as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
+                     d.name as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
                      d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                      d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
                      d.price as Price, d.category_id as CategoryId,
@@ -273,9 +275,9 @@ public class SearchDrugsHandler : IRequestHandler<SearchDrugsQuery, Result<IRead
                      d.created_at as CreatedAt, d.updated_at as UpdatedAt, 0 as InteractionsCount
               FROM diab_his_pha_drugs d
               WHERE d.tenant_id = @tenantId AND d.deleted_at IS NULL AND d.status = 'ACTIVE'
-                AND (d.name_vi LIKE @q OR d.code LIKE @q OR d.generic_name LIKE @q)
+                AND (d.name LIKE @q OR d.code LIKE @q OR d.generic_name LIKE @q)
                 {visibilityFilter}
-              ORDER BY d.name_vi LIMIT @limit",
+              ORDER BY d.name LIMIT @limit",
             prm);
 
         var items = rows.Select(r => new DrugMasterResponse(r.Id?.ToString() ?? "", r.TenantId, r.Code ?? "", r.NameVi ?? "", r.NameEn, r.GenericName,
@@ -308,7 +310,7 @@ public class GetEquivalentDrugsHandler : IRequestHandler<GetEquivalentDrugsQuery
 
         var rows = await conn.QueryAsync<DrugRow>(
             @"SELECT d.ID as Id, d.tenant_id as TenantId, d.code as Code,
-                     d.name_vi as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
+                     d.name as NameVi, d.name_en as NameEn, d.generic_name as GenericName,
                      d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                      d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
                      d.price as Price, d.category_id as CategoryId,
@@ -342,7 +344,7 @@ public class GetDrugInteractionsHandler : IRequestHandler<GetDrugInteractionsQue
         using var conn = ((IDbConnection)_db.CreateConnection());
 
         var rows = await conn.QueryAsync<dynamic>(
-            @"SELECT r.id, r.drug1_id, d1.name_vi as drug1_name, r.drug2_id, d2.name_vi as drug2_name,
+            @"SELECT r.id, r.drug1_id, d1.name as drug1_name, r.drug2_id, d2.name as drug2_name,
                      r.severity, r.description, r.evidence_level
               FROM diab_his_pha_ddi_rules r
               JOIN diab_his_pha_drugs d1 ON d1.id = r.drug1_id

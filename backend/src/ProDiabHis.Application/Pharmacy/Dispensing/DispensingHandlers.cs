@@ -416,7 +416,7 @@ public class GetDispenseReceiptPdfHandler : IRequestHandler<GetDispenseReceiptPd
 
         var itemRows = await conn.QueryAsync<dynamic>(
             @"SELECT di.batch_no, di.expiry_date, di.quantity,
-                     COALESCE(d.name_vi, d.name) AS drug_name, d.unit AS unit
+                     COALESCE(d.name, d.name_vi) AS drug_name, d.unit AS unit
               FROM diab_his_pha_dispense_items di
               LEFT JOIN diab_his_pha_drugs d ON d.id = di.drug_id AND d.tenant_id = di.tenant_id
               WHERE di.dispense_record_id = @id AND di.tenant_id = @tenantId

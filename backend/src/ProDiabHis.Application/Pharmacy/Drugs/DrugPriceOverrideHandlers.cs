@@ -322,7 +322,7 @@ public class ListDrugPriceOverridesHandler
         pr.Add("limit", query.PageSize); pr.Add("offset", offset);
 
         var rows = await conn.QueryAsync<dynamic>(
-            $@"SELECT p.*, d.name_vi AS drug_name FROM diab_his_pha_drug_branch_prices p
+            $@"SELECT p.*, d.name AS drug_name FROM diab_his_pha_drug_branch_prices p
                LEFT JOIN diab_his_pha_drugs d ON d.ID = p.drug_id
                {where} ORDER BY p.created_at DESC LIMIT @limit OFFSET @offset", pr);
 
