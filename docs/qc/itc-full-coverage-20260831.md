@@ -177,9 +177,18 @@ encounter → order → result → billing…) và cần schema đầy đủ —
 | `[RequirePermission]` | ~512 | ✅ phủ | ✅ phủ phần lớn | Trọng tâm của đợt này |
 | `[Authorize]` trơn | 14 | ✅ phủ | ➖ không áp dụng | Không có permission để thiếu |
 | `RequireSuperAdmin` | 10 | ✅ phủ | ➖ mã lỗi khác | Cần case riêng ở đợt sau |
-| `AllowAnonymous` | 17 | ➖ không áp dụng | ➖ | 1 bug phát hiện: xem BUG-001 |
-| `PortalBearer` | 29 | ⚠️ **CHƯA phủ** | ⚠️ **CHƯA phủ** | Cần token aud=`patient-portal` — đợt sau |
-| `ApiKey` (B2B/webhook) | 10 | ⚠️ phủ 1 phần | ⚠️ | Cần seed API key thật — đợt sau |
+| `AllowAnonymous` | 17 | ➖ không áp dụng | ➖ | **BUG-001 ĐÃ FIX (2026-08-31):** RequirePermissionAttribute nay ton trong `[AllowAnonymous]`. GET `/api/fhir/r4/metadata` tra 200 khong can token. Co regression test. |
+| `PortalBearer` | 29 | ✅ **ĐÃ phủ (Viec 4)** | ✅ **ĐÃ phủ** | `Portal/` — token benh nhan A khong lo du lieu B, tu choi token noi bo/het han sai audience |
+| `ApiKey` (B2B/webhook) | 10 | ✅ **ĐÃ phủ (Viec 4)** | ✅ | `B2B/` — thieu/sai X-Api-Key -> 401, sai scope -> 403 |
+
+### 4.1 Cross-tenant isolation (Viec 1 — bo sung 2026-08-31)
+Bo test moi `CrossTenant/` chung minh tenant A KHONG doc duoc du lieu tenant B: seed 2 tenant rieng,
+GET list khong lan du lieu tenant khac, GET `/{id}` record tenant B tra **404** (khong lo record ton tai).
+**PHAT HIEN + SUA 4 lo hong bao mat that** (Dapper raw query thieu `WHERE tenant_id`):
+`BillingHandlers` (3 cho: GetPatientIdFromEncounter, GetPatientSummary, ListBillings batch-load ten BN)
+va `PrescriptionHandlers` (1 cho: ListPrescriptions batch-load ten BN). Cac cho nay co the lo PHI
+cross-tenant khi billing/prescription tham chieu `patient_id` ngoai tenant -> nay rang buoc `tenant_id`
+tu `ITenantProvider`/`CurrentUser`. Da co test chung minh da bit.
 
 ---
 
@@ -221,10 +230,20 @@ Danh sách 18 case: `CoQuyen_LayDanhSachThuoc`, `CoQuyen_TimKiemThuoc`, `CoQuyen
 **Không case nào bị bỏ qua âm thầm.** Case duy nhất ở trạng thái SKIP là BUG-001, và Skip đó
 mang theo lý do đầy đủ hiện ngay trên báo cáo test.
 
-### Kết quả chạy thật (2026-08-31)
+### Kết quả chạy thật (2026-08-31 — sau khi bổ sung Việc 1/2/4)
 ```
-Passed!  - Failed: 0, Passed: 1151, Skipped: 1, Total: 1152   (~4 phút)
+Integration:  Passed! - Failed: 0, Passed: 1193, Skipped: 0, Total: 1193  (~2 phút)
+Unit:         Passed! - Failed: 0, Passed:  965, Skipped: 0, Total:  965
+Architecture: Passed! - Failed: 0, Passed:    7, Skipped: 0, Total:    7
+=> Tong: 2165 pass, 0 fail, 0 skip.
 ```
+> +42 test moi so voi 1151: +25 CrossTenant (Viec 1) + 17 Portal/B2B (Viec 4) + 1 FHIR metadata 200 (BUG-001),
+> va BO Skip cua case BUG-001 cu (nay la regression guard xanh). Skipped ve **0**.
+
+> **CAP NHAT MUC 5 (2026-08-31):** chuoi migration nay DA dung duoc DB sach tu so 0
+> (Viec 3: 211/211 file, 0 loi, verify tren MySQL 8.0.36 fresh volume — xem `db/migrations/APPLY_ORDER.md`).
+> Cac han che schema test o duoi la boi canh vong truoc; huong di dut diem la dung schema bang chinh
+> chuoi migration thay cho `EnsureCreated()` + `TestSchemaSupplement` — se lam o dot ke tiep.
 
 ### Phát hiện phụ về schema drift (cần dev xác nhận — chưa kết luận là bug)
 | # | Hiện tượng | Bằng chứng | Rủi ro |
@@ -237,14 +256,15 @@ Passed!  - Failed: 0, Passed: 1151, Skipped: 1, Total: 1152   (~4 phút)
 
 ## 6. Đợt sau — phần CHƯA làm (ghi rõ để PO quyết)
 
-| Ưu tiên | Hạng mục | Vì sao chưa làm |
+| Ưu tiên | Hạng mục | Trạng thái |
 |---|---|---|
-| 1 | **Case nghiệp vụ ghi dữ liệu** (tạo BN → khám → chỉ định → KQ → kê đơn → thu tiền) | Cần seed phụ thuộc + schema đầy đủ; bị chặn bởi vấn đề migration |
-| 2 | **Sửa chuỗi migration dựng được DB sạch từ 0** | Nợ kỹ thuật có sẵn (30/150 file lỗi). Sửa xong thì mục 5 biến mất và ITC khuôn C phủ thật 100% |
-| 3 | **Cổng bệnh nhân (29 endpoint PortalBearer)** | Cần token `aud=patient-portal` + kích hoạt tài khoản BN |
-| 4 | **API công khai B2B (10 endpoint ApiKey)** | Cần seed đối tác + API key hợp lệ, test scope |
-| 5 | **Validation biên (BVA)** cho từng field | Khối lượng rất lớn; nên làm ở tầng Unit test validator |
-| 6 | **Đa tenant (cross-tenant isolation)** | Case quan trọng về bảo mật: tenant A không được đọc dữ liệu tenant B |
-| 7 | **RequireSuperAdmin — case 403 cho user thường** | Mã lỗi khác `PERMISSION_DENIED`, cần đọc lại `RequireSuperAdmin` |
+| 1 | **Case nghiệp vụ ghi dữ liệu** (tạo BN → khám → chỉ định → KQ → kê đơn → thu tiền) | ⏳ CHƯA — nay đã hết bị chặn (migration dựng sạch được), làm ở đợt kế |
+| 2 | **Sửa chuỗi migration dựng được DB sạch từ 0** | ✅ **XONG (Việc 3, 2026-08-31)** — 211/211 file, 0 lỗi, verify fresh volume |
+| 3 | **Cổng bệnh nhân (29 endpoint PortalBearer)** | ✅ **XONG (Việc 4)** — `Portal/`, phủ endpoint trọng yếu + isolation |
+| 4 | **API công khai B2B (10 endpoint ApiKey)** | ✅ **XONG (Việc 4)** — `B2B/`, phủ auth/scope endpoint nguy cơ cao |
+| 5 | **Validation biên (BVA)** cho từng field | ⏳ CHƯA — nên làm ở tầng Unit test validator |
+| 6 | **Đa tenant (cross-tenant isolation)** | ✅ **XONG (Việc 1)** — `CrossTenant/`, và ĐÃ SỬA 4 lỗ hổng thiếu tenant filter |
+| 7 | **RequireSuperAdmin — case 403 cho user thường** | ⏳ CHƯA — mã lỗi khác `PERMISSION_DENIED` |
 
-> Mục 6.6 (cross-tenant) và 6.2 (migration) là 2 hạng mục **rủi ro cao nhất** còn bỏ ngỏ.
+> Hai hạng mục rủi ro cao nhất (6.6 cross-tenant, 6.2 migration) đã ĐÓNG.
+> Việc 1 phát hiện lỗ hổng bảo mật thật (thiếu tenant filter) — đã sửa product code + có test guard.

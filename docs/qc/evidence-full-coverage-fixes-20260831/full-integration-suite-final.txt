@@ -1,0 +1,4 @@
+Test run for D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\backend\tests\ProDiabHis.IntegrationTests\bin\Debug\net8.0\ProDiabHis.IntegrationTests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:  1193, Skipped:     0, Total:  1193, Duration: 2 m 2 s - ProDiabHis.IntegrationTests.dll (net8.0)
