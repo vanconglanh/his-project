@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -19,6 +20,16 @@ public class RequirePermissionAttribute : Attribute, IAuthorizationFilter
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
+        // Ton trong [AllowAnonymous] chuan cua ASP.NET Core: neu action hoac controller
+        // co IAllowAnonymous trong endpoint metadata thi bo qua kiem tra permission.
+        // Day la cach chuan cho custom IAuthorizationFilter (BUG-001: FHIR metadata
+        // co [AllowAnonymous] nhung filter tu viet truoc day khong ton trong -> tra 403/401 sai).
+        var endpointMetadata = context.ActionDescriptor.EndpointMetadata;
+        if (endpointMetadata.OfType<IAllowAnonymous>().Any())
+        {
+            return;
+        }
+
         var user = context.HttpContext.User;
         if (!user.Identity?.IsAuthenticated ?? true)
         {
