@@ -124,7 +124,7 @@ public class LegacyImportsController : ControllerBase
     public async Task<IActionResult> Confirm(Guid itemId, [FromBody] ConfirmLegacyImportItemBody? body, CancellationToken ct = default)
     {
         var result = await _mediator.Send(
-            new ConfirmLegacyImportItemCommand(itemId, body?.ocr_text, body?.patient_id), ct);
+            new ConfirmLegacyImportItemCommand(itemId, body?.ocr_text, body?.patient_id, body?.doc_type), ct);
 
         if (!result.IsSuccess)
         {
@@ -152,4 +152,4 @@ public class LegacyImportsController : ControllerBase
 }
 
 public record MatchLegacyImportItemBody(Guid patient_id);
-public record ConfirmLegacyImportItemBody(string? ocr_text, Guid? patient_id);
+public record ConfirmLegacyImportItemBody(string? ocr_text, Guid? patient_id, string? doc_type);

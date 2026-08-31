@@ -343,18 +343,23 @@ public class ConfirmLegacyImportItemCommandHandler : IRequestHandler<ConfirmLega
                 Now = now
             });
 
+        // GAP-9: cho phep phan loai tai lieu (don thuoc ngoai / giay chuyen vien / ho so cu),
+        // whitelist + mac dinh HO_SO_CU_SCAN. KHONG tu tao don thuoc chinh thuc — chi luu dinh kem.
+        var docType = LegacyImportDocTypes.Normalize(cmd.DocType);
+
         var clsUploadId = Guid.NewGuid();
         var ocrTextToSave = cmd.OcrText ?? (string?)item.ocr_text;
         await conn.ExecuteAsync(@"
             INSERT INTO diab_his_fil_cls_uploads
                 (id, tenant_id, patient_id, encounter_id, doc_type, file_id, file_path, file_name, mime_type, file_size_bytes, note, uploaded_by, uploaded_at, created_at, created_by, updated_at)
             VALUES
-                (@Id, @TenantId, @PatId, NULL, 'HO_SO_CU_SCAN', @FileId, @FilePath, @FileName, @Mime, NULL, @Note, @UploadedBy, @Now, @Now, @UploadedBy, @Now)",
+                (@Id, @TenantId, @PatId, NULL, @DocType, @FileId, @FilePath, @FileName, @Mime, NULL, @Note, @UploadedBy, @Now, @Now, @UploadedBy, @Now)",
             new
             {
                 Id = clsUploadId.ToString(),
                 TenantId = _tenant.TenantId,
                 PatId = patientIdStr,
+                DocType = docType,
                 FileId = fileId.ToString(),
                 FilePath = imageObjectKey,
                 FileName = fileName,
@@ -381,7 +386,7 @@ public class ConfirmLegacyImportItemCommandHandler : IRequestHandler<ConfirmLega
             });
 
         await _audit.LogAsync("CONFIRM", "LegacyImportItem", cmd.ItemId.ToString(),
-            new { patientId = patientIdStr, clsUploadId }, ct);
+            new { patientId = patientIdStr, clsUploadId, docType }, ct);
 
         var row = await conn.QueryFirstOrDefaultAsync(@"
             SELECT i.*, p.full_name AS patient_full_name, p.code AS patient_code
@@ -394,8 +399,8 @@ public class ConfirmLegacyImportItemCommandHandler : IRequestHandler<ConfirmLega
         try { imageUrl = await _storage.GetSignedUrlAsync(FileBuckets.LegacyScans, imageObjectKey, 900, ct); }
         catch { }
 
-        return Result<LegacyImportItemResponse>.Success(
-            LegacyImportMapper.MapItem(row, imageUrl, (string?)row!.patient_full_name, (string?)row.patient_code));
+        LegacyImportItemResponse mapped = LegacyImportMapper.MapItem(row, imageUrl, (string?)row!.patient_full_name, (string?)row.patient_code);
+        return Result<LegacyImportItemResponse>.Success(mapped with { DocType = docType });
     }
 }
 
