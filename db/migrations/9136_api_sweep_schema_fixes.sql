@@ -13,6 +13,7 @@
 SET NAMES utf8mb4;
 
 DROP PROCEDURE IF EXISTS _9136_add_col;
+DELIMITER $$
 CREATE PROCEDURE _9136_add_col(
     IN tbl VARCHAR(64),
     IN col VARCHAR(64),
@@ -28,7 +29,8 @@ BEGIN
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
     END IF;
-END;
+END$$
+DELIMITER ;
 
 -- 1. diab_his_pha_prescription_print_history: them printer_name
 CALL _9136_add_col('diab_his_pha_prescription_print_history', 'printer_name',

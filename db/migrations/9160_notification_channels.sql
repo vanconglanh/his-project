@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS `diab_his_int_notification_channels` (
 
 -- Neu bang da ton tai tu lan chay truoc nhung thieu cot (idempotent an toan) -> bo sung
 DROP PROCEDURE IF EXISTS _notif_add_col;
+DELIMITER $$
 CREATE PROCEDURE _notif_add_col(tbl VARCHAR(200), col VARCHAR(100), def TEXT)
 BEGIN
   IF NOT EXISTS (
@@ -55,7 +56,8 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
   END IF;
-END;
+END$$
+DELIMITER ;
 
 CALL _notif_add_col('diab_his_int_notification_channels', 'last_tested_at', 'DATETIME NULL');
 CALL _notif_add_col('diab_his_int_notification_channels', 'last_test_ok',   'TINYINT(1) NOT NULL DEFAULT 0');

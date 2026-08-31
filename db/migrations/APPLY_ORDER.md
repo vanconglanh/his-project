@@ -4,12 +4,24 @@
 
 ## TRẠNG THÁI CHAIN (cập nhật 2026-08-31)
 
-> **DỰNG DB SẠCH TỪ SỐ 0: THÀNH CÔNG — 141/141 migration, 0 lỗi.**
+> **DỰNG DB SẠCH TỪ SỐ 0: THÀNH CÔNG — 211/211 migration, 0 lỗi.**
 > Verify thật bằng container MySQL 8.0.36 mới hoàn toàn (fresh volume): nạp 64 file base dump
-> (đã xử lý bẫy `GTID_PURGED`) + apply toàn bộ 141 file `migrations/*.sql` theo thứ tự tên.
-> Bằng chứng: `docs/qc/evidence-full-coverage-fixes-20260831/viec3-migration/`
-> (`before/summary.log` = 30 FAIL, `after/` và `final-fresh-volume/summary.log` = **OK=141 FAIL=0**).
+> (đã xử lý bẫy `GTID_PURGED`) + apply toàn bộ **211** file `migrations/*.sql` theo thứ tự tên
+> → 0 lỗi, 183 bảng. Bằng chứng: `docs/qc/evidence-full-coverage-fixes-20260831/viec3-migration/`
+> (`before/summary.log` = 30 FAIL; `leader-independent-verify.log` = **FAIL=0 / 211 file / 183 bảng**).
 > => App KHÔNG cần EF `EnsureCreated()` nữa; chain tự dựng đủ schema.
+>
+> **Ghi chú re-verify độc lập của leader (2026-08-31):** vòng sửa đầu (nhóm a/b bên dưới) chạy
+> trên scope **141** file. Khi leader chạy lại verify trên toàn bộ **211** file thật của `develop`
+> phát hiện thêm **5 file lỗi** thuộc lớp 91xx (mới, ngoài scope 141) và ĐÃ SỬA:
+>
+> | File | Lỗi gốc | Cách sửa |
+> |---|---|---|
+> | `9135_add_diabetes_template_cols` | `CREATE PROCEDURE ... BEGIN...END;` thiếu `DELIMITER` → 1064 | Bọc `DELIMITER $$ ... END$$ DELIMITER ;` |
+> | `9136_api_sweep_schema_fixes` | thiếu `DELIMITER` cho inline proc | Bọc `DELIMITER` |
+> | `9138_cli_lab_orders_add_deleted_by` | 2 inline proc thiếu `DELIMITER` | Bọc `DELIMITER` cả 2 proc |
+> | `9160_notification_channels` | inline proc `_notif_add_col` thiếu `DELIMITER` | Bọc `DELIMITER` |
+> | `9171_drop_legacy_lab_rad_orders` | 3730: quên drop `fk_lab_results_order` (chỉ xử lý phía rad) → `DROP TABLE diab_his_lab_orders` bị FK chặn | Thêm block drop + re-point FK phía `diab_his_lab_results` sang `cli_lab_orders`, mirror pattern rad |
 
 ### Bối cảnh nợ kỹ thuật (4 nhóm nguyên nhân gốc)
 Chain có 2 thế hệ: **lớp 00xx** (pre-Clean-Slate, thao tác trên bảng short-name của base dump)

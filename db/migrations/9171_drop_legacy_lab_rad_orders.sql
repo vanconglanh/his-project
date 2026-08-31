@@ -58,6 +58,40 @@ SET @sql := IF(@cli_exists > 0 AND @fk_new_exists = 0,
   'SELECT "bo qua re-point FK (cli chua co hoac FK da ton tai)"');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- --- 2b) Bỏ FK cũ phía lab_results trỏ tới bảng chết lab_orders (nếu còn) ------
+-- BUG: truoc day chi xu ly phia rad_results, quen fk_lab_results_order tren
+-- diab_his_lab_results -> DROP TABLE diab_his_lab_orders bi FK chan (loi 3730).
+SET @fk_lab_exists := (
+  SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = @db
+    AND TABLE_NAME = 'diab_his_lab_results'
+    AND CONSTRAINT_NAME = 'fk_lab_results_order'
+    AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+SET @sql := IF(@fk_lab_exists > 0,
+  'ALTER TABLE diab_his_lab_results DROP FOREIGN KEY fk_lab_results_order',
+  'SELECT "fk_lab_results_order khong ton tai, bo qua"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Re-point FK sang cli_lab_orders (nếu bảng live tồn tại và chưa có FK mới) -----
+SET @cli_lab_exists := (
+  SELECT COUNT(*) FROM information_schema.TABLES
+  WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'diab_his_cli_lab_orders'
+);
+SET @fk_lab_new_exists := (
+  SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = @db
+    AND TABLE_NAME = 'diab_his_lab_results'
+    AND CONSTRAINT_NAME = 'fk_lab_results_order_cli'
+    AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+SET @sql := IF(@cli_lab_exists > 0 AND @fk_lab_new_exists = 0,
+  'ALTER TABLE diab_his_lab_results
+     ADD CONSTRAINT fk_lab_results_order_cli
+     FOREIGN KEY (order_id) REFERENCES diab_his_cli_lab_orders(id)',
+  'SELECT "bo qua re-point FK lab (cli chua co hoac FK da ton tai)"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- --- 3) DROP 2 bảng chết ------------------------------------------------------
 DROP TABLE IF EXISTS diab_his_lab_orders;
 DROP TABLE IF EXISTS diab_his_rad_orders;

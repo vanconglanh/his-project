@@ -9,6 +9,7 @@
 SET NAMES utf8mb4;
 
 DROP PROCEDURE IF EXISTS _9135_add_col;
+DELIMITER $$
 CREATE PROCEDURE _9135_add_col(
     IN tbl VARCHAR(64),
     IN col VARCHAR(64),
@@ -24,7 +25,8 @@ BEGIN
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
     END IF;
-END;
+END$$
+DELIMITER ;
 
 -- is_system: phân biệt template hệ thống (mặc định) vs template của tenant
 CALL _9135_add_col('diab_his_cli_diabetes_templates', 'is_system',

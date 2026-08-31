@@ -13,6 +13,7 @@
 SET NAMES utf8mb4;
 
 DROP PROCEDURE IF EXISTS _9138_add_col;
+DELIMITER $$
 CREATE PROCEDURE _9138_add_col(
     IN tbl VARCHAR(64),
     IN col VARCHAR(64),
@@ -28,7 +29,8 @@ BEGIN
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
     END IF;
-END;
+END$$
+DELIMITER ;
 
 CALL _9138_add_col('diab_his_cli_lab_orders', 'deleted_by', 'CHAR(36) NULL AFTER deleted_at');
 
@@ -43,6 +45,7 @@ DROP PROCEDURE IF EXISTS _9138_add_col;
 -- (CreateLabResultCommandHandler kiem tra chi dinh ton tai truoc khi tao ket qua).
 -- ------------------------------------------------------------
 DROP PROCEDURE IF EXISTS _9138_drop_fk;
+DELIMITER $$
 CREATE PROCEDURE _9138_drop_fk()
 BEGIN
     IF EXISTS (
@@ -54,7 +57,8 @@ BEGIN
     ) THEN
         ALTER TABLE diab_his_lab_results DROP FOREIGN KEY fk_lab_results_order;
     END IF;
-END;
+END$$
+DELIMITER ;
 
 CALL _9138_drop_fk();
 
