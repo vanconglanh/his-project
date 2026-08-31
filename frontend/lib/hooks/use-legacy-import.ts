@@ -12,6 +12,7 @@ import {
   rejectLegacyImportItem,
   type LegacyImportItemListParams,
   type LegacyImportBatchStatus,
+  type LegacyImportDocType,
 } from "@/lib/api/legacy-import";
 import { getErrorMessage } from "@/lib/utils/errors";
 
@@ -93,11 +94,13 @@ export function useConfirmLegacyImportItem(batchId: string) {
       itemId,
       ocr_text,
       patient_id,
+      doc_type,
     }: {
       itemId: string;
       ocr_text?: string;
       patient_id?: string;
-    }) => confirmLegacyImportItem(itemId, { ocr_text, patient_id }),
+      doc_type?: LegacyImportDocType;
+    }) => confirmLegacyImportItem(itemId, { ocr_text, patient_id, doc_type }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: legacyImportKeys.items(batchId) });
       qc.invalidateQueries({ queryKey: legacyImportKeys.detail(batchId) });

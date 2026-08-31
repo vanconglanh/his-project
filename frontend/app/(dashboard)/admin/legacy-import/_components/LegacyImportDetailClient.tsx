@@ -8,6 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { usePermissions } from "@/lib/hooks/use-permissions";
 import { usePatientSearch } from "@/lib/hooks/use-patients";
 import {
@@ -17,7 +24,8 @@ import {
   useConfirmLegacyImportItem,
   useRejectLegacyImportItem,
 } from "@/lib/hooks/use-legacy-import";
-import type { LegacyImportItem, LegacyImportItemStatus } from "@/lib/api/legacy-import";
+import type { LegacyImportItem, LegacyImportItemStatus, LegacyImportDocType } from "@/lib/api/legacy-import";
+import { LEGACY_IMPORT_DOC_TYPE_LABEL } from "@/lib/api/legacy-import";
 import { formatDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 
@@ -195,6 +203,7 @@ function LegacyImportItemCard({
   const [ocrText, setOcrText] = useState(item.ocr_text ?? "");
   const [search, setSearch] = useState("");
   const [showList, setShowList] = useState(false);
+  const [docType, setDocType] = useState<LegacyImportDocType>(item.doc_type ?? "HO_SO_CU_SCAN");
 
   const { data: searchData } = usePatientSearch({ q: search, page_size: 8 }, search.length >= 2);
   const candidates = searchData?.data ?? [];
@@ -214,7 +223,12 @@ function LegacyImportItemCard({
 
   function handleConfirm() {
     if (!item.matched_patient_id) return;
-    confirmMutation.mutate({ itemId: item.id, ocr_text: ocrText, patient_id: item.matched_patient_id });
+    confirmMutation.mutate({
+      itemId: item.id,
+      ocr_text: ocrText,
+      patient_id: item.matched_patient_id,
+      doc_type: docType,
+    });
   }
 
   function handleReject() {
@@ -227,9 +241,16 @@ function LegacyImportItemCard({
         <span className="text-sm font-medium truncate" title={item.original_filename}>
           {item.original_filename}
         </span>
-        <Badge className={ITEM_STATUS_CLASS[item.status]} variant="outline">
-          {ITEM_STATUS_LABEL[item.status]}
-        </Badge>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {item.doc_type && (
+            <Badge variant="outline" className="text-[10px]">
+              {LEGACY_IMPORT_DOC_TYPE_LABEL[item.doc_type]}
+            </Badge>
+          )}
+          <Badge className={ITEM_STATUS_CLASS[item.status]} variant="outline">
+            {ITEM_STATUS_LABEL[item.status]}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
@@ -327,6 +348,31 @@ function LegacyImportItemCard({
           </div>
         )}
       </div>
+
+      {/* Loại tài liệu */}
+      {!isFinal && (
+        <div className="px-4 pb-3 space-y-1">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={`doc-type-${item.id}`}>
+            Loại tài liệu
+          </label>
+          <Select
+            items={LEGACY_IMPORT_DOC_TYPE_LABEL}
+            value={docType}
+            onValueChange={(v) => setDocType(v as LegacyImportDocType)}
+          >
+            <SelectTrigger id={`doc-type-${item.id}`} className="h-9" aria-label="Loại tài liệu">
+              <SelectValue placeholder="Loại tài liệu" />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(LEGACY_IMPORT_DOC_TYPE_LABEL) as LegacyImportDocType[]).map((dt) => (
+                <SelectItem key={dt} value={dt}>
+                  {LEGACY_IMPORT_DOC_TYPE_LABEL[dt]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Hành động */}
       {!isFinal && (

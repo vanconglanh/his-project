@@ -17,6 +17,15 @@ export type LegacyImportItemStatus =
 
 export type LegacyImportMatchMethod = "filename_auto" | "manual" | null;
 
+// GAP-9: loai tai lieu khi xac nhan luu item legacy-import.
+export type LegacyImportDocType = "HO_SO_CU_SCAN" | "DON_THUOC_NGOAI" | "GIAY_CHUYEN_VIEN";
+
+export const LEGACY_IMPORT_DOC_TYPE_LABEL: Record<LegacyImportDocType, string> = {
+  HO_SO_CU_SCAN: "Hồ sơ cũ (scan)",
+  DON_THUOC_NGOAI: "Đơn thuốc ngoài",
+  GIAY_CHUYEN_VIEN: "Giấy chuyển viện",
+};
+
 export interface LegacyImportBatch {
   id: string;
   zip_file_name: string;
@@ -39,6 +48,8 @@ export interface LegacyImportItem {
   status: LegacyImportItemStatus;
   item_error: string | null;
   confirmed_at: string | null;
+  /** GAP-9: loai tai lieu duoc chon khi xac nhan (mac dinh HO_SO_CU_SCAN). */
+  doc_type?: LegacyImportDocType | null;
 }
 
 export interface LegacyImportBatchListResponse {
@@ -112,7 +123,7 @@ export async function matchLegacyImportItem(
 
 export async function confirmLegacyImportItem(
   itemId: string,
-  body: { ocr_text?: string; patient_id?: string }
+  body: { ocr_text?: string; patient_id?: string; doc_type?: LegacyImportDocType }
 ): Promise<LegacyImportItem> {
   const { data } = await apiClient.post<ApiResponse<LegacyImportItem>>(
     `/legacy-imports/items/${itemId}/confirm`,
