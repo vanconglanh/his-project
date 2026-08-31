@@ -100,7 +100,7 @@ public class CreateBillingHandler : IRequestHandler<CreateBillingCommand, Result
         {
             TenantId = tenantId,
             EncounterId = req.EncounterId,
-            PatientId = await GetPatientIdFromEncounterAsync(req.EncounterId),
+            PatientId = await GetPatientIdFromEncounterAsync(req.EncounterId, tenantId),
             BillNo = billNo,
             Payer = req.Payer,
             Note = req.Note,
@@ -116,11 +116,13 @@ public class CreateBillingHandler : IRequestHandler<CreateBillingCommand, Result
         return Result<BillingResponse>.Success(BillingMapper.ToDto(billing));
     }
 
-    private async Task<Guid> GetPatientIdFromEncounterAsync(Guid encounterId)
+    private async Task<Guid> GetPatientIdFromEncounterAsync(Guid encounterId, int tenantId)
     {
         using var conn = _dapper.CreateConnection();
+        // BAO MAT (cross-tenant): rang buoc tenant_id de khong lay luot kham cua tenant khac.
         var pid = await conn.ExecuteScalarAsync<string?>(
-            "SELECT patient_id FROM diab_his_enc_encounters WHERE id = @id AND deleted_at IS NULL", new { id = encounterId.ToString() });
+            "SELECT patient_id FROM diab_his_enc_encounters WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+            new { id = encounterId.ToString(), tenantId });
         return pid != null ? Guid.Parse(pid) : Guid.Empty;
     }
 }
@@ -150,9 +152,11 @@ public class GetBillingHandler : IRequestHandler<GetBillingQuery, Result<Billing
     internal async Task<PatientSummaryDto?> GetPatientSummaryAsync(Guid patientId)
     {
         using var conn = _dapper.CreateConnection();
+        // BAO MAT (cross-tenant): loc them tenant_id de khong lo ho so benh nhan tenant khac
+        // ngay ca khi hoa don tham chieu patient_id ngoai tenant (defense-in-depth).
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT full_name, date_of_birth AS dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND deleted_at IS NULL",
-            new { id = patientId.ToString() });
+            "SELECT full_name, date_of_birth AS dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+            new { id = patientId.ToString(), tenantId = _tenant.TenantId });
         if (row == null) return null;
         return new PatientSummaryDto(
             (string)row.full_name,
@@ -213,9 +217,11 @@ public class ListBillingsHandler : IRequestHandler<ListBillingsQuery, Result<Pag
         var patientMap = new Dictionary<string, PatientSummaryDto>();
         if (patientIds.Count > 0)
         {
+            // BAO MAT (cross-tenant): rang buoc tenant_id de batch load ten benh nhan khong
+            // vo tinh lay ho so tenant khac neu co patient_id la (defense-in-depth).
             var patientRows = await conn.QueryAsync<dynamic>(
-                "SELECT id, full_name, date_of_birth AS dob, gender, phone_enc FROM diab_his_pat_patients WHERE id IN @ids AND deleted_at IS NULL",
-                new { ids = patientIds });
+                "SELECT id, full_name, date_of_birth AS dob, gender, phone_enc FROM diab_his_pat_patients WHERE id IN @ids AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { ids = patientIds, tenantId = _tenant.TenantId });
             foreach (var pr in patientRows)
             {
                 patientMap[(string)pr.id] = new PatientSummaryDto(

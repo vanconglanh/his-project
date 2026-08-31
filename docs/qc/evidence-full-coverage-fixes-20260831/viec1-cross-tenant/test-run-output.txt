@@ -1,0 +1,12 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  ProDiabHis.Contracts -> D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\backend\src\ProDiabHis.Contracts\bin\Debug\net8.0\ProDiabHis.Contracts.dll
+  ProDiabHis.Domain -> D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\backend\src\ProDiabHis.Domain\bin\Debug\net8.0\ProDiabHis.Domain.dll
+  ProDiabHis.Application -> D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\backend\src\ProDiabHis.Application\bin\Debug\net8.0\ProDiabHis.Application.dll
+  ProDiabHis.Infrastructure -> D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\backend\src\ProDiabHis.Infrastructure\bin\Debug\net8.0\ProDiabHis.Infrastructure.dll
+  ProDiabHis.Api -> D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\backend\src\ProDiabHis.Api\bin\Debug\net8.0\ProDiabHis.Api.dll
+  ProDiabHis.IntegrationTests -> D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\backend\tests\ProDiabHis.IntegrationTests\bin\Debug\net8.0\ProDiabHis.IntegrationTests.dll
+Test run for D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\backend\tests\ProDiabHis.IntegrationTests\bin\Debug\net8.0\ProDiabHis.IntegrationTests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    24, Skipped:     0, Total:    24, Duration: 5 s - ProDiabHis.IntegrationTests.dll (net8.0)

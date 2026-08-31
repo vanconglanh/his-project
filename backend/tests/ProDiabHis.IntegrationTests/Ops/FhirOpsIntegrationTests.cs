@@ -68,9 +68,9 @@ public class FhirOpsIntegrationTests
     // trong RequirePermissionAttribute.OnAuthorization, thoat som neu endpoint co AllowAnonymous:
     //   if (context.ActionDescriptor.EndpointMetadata.Any(m => m is IAllowAnonymous)) return;
     //
-    // Giu Skip co ly do de suite xanh nhung bug KHONG bi che giau. Bo Skip sau khi dev fix.
-    [ApiFact(Skip = "BUG-001: [AllowAnonymous] khong vo hieu hoa duoc [RequirePermission] cap class " +
-                    "-> /api/fhir/r4/metadata tra 401. Cho dev fix RequirePermissionAttribute.")]
+    // 2026-08-31: BUG-001 DA FIX (RequirePermissionAttribute nay ton trong IAllowAnonymous)
+    // -> bo Skip, case tro thanh regression guard: metadata khong duoc tra 401.
+    [ApiFact]
     public async Task ChuaDangNhap_Metadata_KhongTra401()
     {
         var res = await _fx.AnonymousClient().GetAsync("/api/fhir/r4/metadata");
@@ -141,5 +141,16 @@ public class FhirOpsIntegrationTests
         ((int)res.StatusCode).Should().BeLessThan(500);
         res.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
         res.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+    }
+
+    // ITC-FHIR-BUG001: xac nhan BUG-001 DA FIX.
+    // RequirePermissionAttribute nay da ton trong [AllowAnonymous] (kiem tra
+    // IAllowAnonymous trong EndpointMetadata) nen GET /api/fhir/r4/metadata KHONG kem token
+    // phai truy cap cong khai duoc -> tra 200 (CapabilityStatement chuan FHIR R4).
+    [ApiFact]
+    public async Task ChuaDangNhap_Metadata_Tra200()
+    {
+        var res = await _fx.AnonymousClient().GetAsync("/api/fhir/r4/metadata");
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

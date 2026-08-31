@@ -149,8 +149,8 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
                           ORDER BY i.valid_to DESC
                           LIMIT 1) AS bhyt_card_no_masked
                   FROM diab_his_pat_patients p
-                  WHERE p.id IN @ids AND p.deleted_at IS NULL",
-                new { ids = patientIds });
+                  WHERE p.id IN @ids AND p.tenant_id = @tenantId AND p.deleted_at IS NULL",
+                new { ids = patientIds, tenantId = _currentUser.TenantId!.Value });
             foreach (var pr in patientRows)
             {
                 patientMap[(string)pr.id] = new PatientSummary(
