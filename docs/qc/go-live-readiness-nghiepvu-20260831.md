@@ -41,16 +41,16 @@ chặn vận hành thì nay đã chạy đúng và **đã kiểm cả chiều ng
 
 ### Điều kiện kèm theo khi bàn giao (không chặn go-live)
 
-Còn **6 lỗi High/Med** chưa xử lý (đều đã biết từ vòng 1, **không** nằm trong phạm vi giao sửa):
+**CẬP NHẬT 2026-08-31 (vòng dọn High/Med):** cả **6 lỗi High/Med đã được FIX** — xem chi tiết & cách verify ở `docs/qc/evidence-high-medium-fix-20260831/`.
 
-| # | Case | Mức | Ảnh hưởng thực tế & cách làm việc thay thế |
-|---|---|---|---|
-| 1 | `UTC-ENC-02` | High | Lượt khám gán `doctor_id` = người tiếp đón → **báo cáo KPI bác sĩ sai**. Bệnh án vẫn ký đúng người ký. Tạm thời không dùng báo cáo theo bác sĩ. |
-| 2 | `UTC-RX-05` | High | `dtqg/status` trả 500 → **không xem được trạng thái liên thông ĐTQG**. Liên thông thật vẫn chưa bật (chưa có credential) nên chưa ảnh hưởng vận hành. |
-| 3 | `UTC-CLS-15` | High | OCR bỏ sót XN khi dòng có chú thích tiếng Việt trong ngoặc → **KTV phải nhập tay chỉ số bị sót**. Có kiểm đối chiếu bằng mắt nên không sai số liệu. |
-| 4 | `UTC-EMR-08` | Med | Mẫu bệnh án hệ thống thiếu `structured_json` → form động rỗng; bác sĩ vẫn nhập bệnh án tự do bình thường. |
-| 5 | `UTC-DOC-04` | Med | Tải phiếu KQ XN qua "tự nhận diện" ra `Unknown` → phải chọn loại tài liệu thủ công. |
-| 6 | `UTC-RX-07` | Med | `total_amount` đơn thuốc = 0 (hiển thị), **không** ảnh hưởng số tiền trên hoá đơn thu ngân (đã kiểm: hoá đơn tính đúng). |
+| # | Case | Mức | Trạng thái | Nội dung fix |
+|---|---|---|---|---|
+| 1 | `UTC-ENC-02` | High | ✅ ĐÃ FIX | Admit ticket không còn fallback `doctor_id` về người tiếp đón (lễ tân); để null, bác sĩ thật được gán khi "Bắt đầu khám". `EncounterHandlers.cs` |
+| 2 | `UTC-RX-05` | High | ✅ ĐÃ FIX | `dtqg/status` đọc cột `ID` (GUID CHAR(36)) bằng `ExecuteScalarAsync<string?>` thay vì `<int?>` → hết `FormatException`/500. `DtqgHandlers.cs:141` |
+| 3 | `UTC-CLS-15` | High | ✅ ĐÃ FIX | Parser OCR tách tiền tố mã XN có hậu tố (`GLU_F`→`GLU`) để lấy alias → đọc được "Glucose (đường huyết) 7.2". `LabResultOcrParser.cs` + unit test |
+| 4 | `UTC-EMR-08` | Med | ✅ ĐÃ FIX | Seed `structured_json` (mảng field) cho 2 mẫu bệnh án hệ thống → form động có nội dung. `db/migrations/9190_*.sql` |
+| 5 | `UTC-DOC-04` | Med | ✅ ĐÃ FIX | Classifier dùng marker cấu trúc phiếu XN để nâng phiếu KQ XN thật (chỉ 1 XN khớp) lên `LabResult`, không phụ thuộc trùng khớp ngẫu nhiên. `DocumentClassifierService.cs` + unit test |
+| 6 | `UTC-RX-07` | Med | ✅ ĐÃ FIX | `total_amount` tính bằng `SUM(line_total)` của item thay vì hardcode 0. `PrescriptionHandlers.cs` |
 
 **Lưu ý vận hành bắt buộc đưa vào tài liệu bàn giao:**
 

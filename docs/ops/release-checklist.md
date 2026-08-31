@@ -31,6 +31,7 @@ Nguồn tổng hợp: `docs/qc/go-live-readiness-20260830.md` (audit 30/08/2026)
 | R-21 | Load test cơ bản — mô phỏng nhiều chi nhánh thao tác đồng thời giờ cao điểm | Chưa có số liệu về giới hạn chịu tải thực tế |
 | R-22 | Viết runbook sự cố ngắn (DB đầy disk, lỗi 5xx tăng đột biến, container crash-loop) — ai làm gì khi Alertmanager báo | Có Grafana/Alertmanager rồi, cần người biết phản ứng |
 | R-23 | Kênh hỗ trợ khách hàng khi phòng khám gặp lỗi | Chưa định nghĩa |
+| R-28 | **Dọn vé khám treo cuối ngày** — theo logic sức chứa phòng mới (BUG-02 đã fix), chỉ vé `CALLED`/`IN_PROGRESS` mới tính vào sức chứa; vé `WAITING` thì không. **Hệ quả:** một vé bị bỏ quên ở `IN_PROGRESS` (bác sĩ mở khám rồi không "kết thúc khám") sẽ **chiếm chỗ phòng vĩnh viễn**, dần dần làm phòng báo đầy dù không còn ai. **Khuyến nghị vận hành:** cuối mỗi ngày lễ tân/quản lý rà soát và đóng ("kết thúc khám") các vé còn treo ở `CALLED`/`IN_PROGRESS`. Có thể cân nhắc thêm job tự động nhắc nhở/đóng vé treo sau này (chưa bắt buộc lần này). Nguồn: QC vòng 2 — `docs/qc/ute-full-flow-20260831.md` §7.7.4. |
 
 ## 🟢 Vận hành dài hạn, không gấp
 

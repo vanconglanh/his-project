@@ -1,0 +1,9 @@
+## RX-07 total_amount (DB):
+id	total_amount	n_items
+894e7473-8d96-4d92-a075-819e3bb6ba87	5000.00	1
+16eb877b-752a-47dc-a69d-e064395c3cbb	66000.00	2
+db4fcf96-b3cf-4d4e-b260-25ce4ddef7dc	66000.00	2
+## EMR-08 structured_json (DB):
+id	name	n_fields	first_label
+aaaaaaaa-0001-0000-0000-000000000001	Mẫu bệnh án tổng quát	6	"Lý do khám"
+aaaaaaaa-0002-0000-0000-000000000002	Mẫu bệnh án đái tháo đường	9	"Lý do khám"
