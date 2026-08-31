@@ -209,7 +209,10 @@ public class AdmitTicketToEncounterCommandHandler
             TenantId = tenantId,
             PatientId = patientId,
             RoomId = roomId,
-            DoctorId = doctorId ?? _user.UserId?.ToString(),
+            // FIX BUG-05/UTC-ENC-02: KHONG fallback ve _user (nguoi tiep don thuong la LE TAN) khi ve chua gan bac si.
+            // De null -> bac si thuc su se duoc gan khi ho "Bat dau kham" (StartEncounterCommandHandler, dong ~275).
+            // Truoc day fallback nay khien luot kham hien "Bac si: LT. Test Demo" (le tan lam bac si phu trach).
+            DoctorId = doctorId,
             EncounterType = EncounterTypes.FirstVisit,
             Status = EncounterStatus.Waiting,
             ReasonForVisit = reason,
