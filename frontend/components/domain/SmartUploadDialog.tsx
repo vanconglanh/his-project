@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, FileUp, Upload, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  FileUp,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -28,7 +36,11 @@ import { useConfirmInBodyReport } from "@/lib/hooks/use-inbody-reports";
 import { useOcrConfirmLabResult } from "@/lib/hooks/use-lab-results";
 import { getErrorMessage } from "@/lib/utils/errors";
 import { cn } from "@/lib/utils";
-import type { SmartDocumentType, SmartUploadResponse } from "@/lib/api/documents";
+import type {
+  SmartDocumentType,
+  SmartUploadItemResult,
+  SmartUploadResponse,
+} from "@/lib/api/documents";
 import type { InBodyFieldDto, InBodyIndicatorType } from "@/lib/api/inbody-reports";
 import type { LabOcrExtractedField } from "@/lib/api/lab-results";
 
@@ -81,29 +93,19 @@ export function SmartUploadDialog({
   defaultEncounterId,
   onNavigateTab,
 }: SmartUploadDialogProps) {
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [encounterId, setEncounterId] = useState<string>("");
-  const [result, setResult] = useState<SmartUploadResponse | null>(null);
-  const [manualType, setManualType] = useState<SmartDocumentType | null>(null);
+  const [batch, setBatch] = useState<SmartUploadItemResult[] | null>(null);
+  const [savedIdx, setSavedIdx] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const smartUploadMutation = useSmartUploadDocument();
 
-  const isAmbiguous =
-    !!result &&
-    !result.in_body &&
-    !result.lab_result &&
-    !result.rad_result &&
-    !result.requires_encounter &&
-    (result.classification.type === "Legacy" ||
-      result.classification.type === "Unknown" ||
-      result.classification.confidence < CONFIDENCE_THRESHOLD);
-
   function resetAll() {
-    setPendingFile(null);
+    setPendingFiles([]);
     setEncounterId("");
-    setResult(null);
-    setManualType(null);
+    setBatch(null);
+    setSavedIdx(new Set());
   }
 
   function handleClose(nextOpen: boolean) {
@@ -112,51 +114,76 @@ export function SmartUploadDialog({
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setPendingFile(file);
+    const picked = Array.from(e.target.files ?? []);
+    if (picked.length === 0) return;
+    // Cộng dồn file mới, khử trùng theo (tên + kích thước) để không thêm nhầm 2 lần.
+    setPendingFiles((prev) => {
+      const seen = new Set(prev.map((f) => `${f.name}:${f.size}`));
+      const next = [...prev];
+      for (const f of picked) {
+        const key = `${f.name}:${f.size}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          next.push(f);
+        }
+      }
+      return next;
+    });
+    // Cho phép chọn lại cùng file sau khi đã xoá.
+    e.target.value = "";
   };
 
+  function removePendingFile(index: number) {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleAnalyze() {
-    if (!pendingFile) return;
+    if (pendingFiles.length === 0) return;
     try {
       const res = await smartUploadMutation.mutateAsync({
-        file: pendingFile,
+        files: pendingFiles,
         patientId,
         encounterId: encounterId || undefined,
       });
-      setResult(res);
-      setManualType(null);
+      setBatch(res.items);
+      setSavedIdx(new Set());
     } catch {
       // Loi da duoc xu ly qua onError cua smartUploadMutation (hien toast).
     }
   }
 
-  function handleSaved() {
+  function markSaved(index: number) {
     toast.success("Đã lưu tài liệu vào hồ sơ bệnh nhân");
-    handleClose(false);
+    setSavedIdx((prev) => {
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
   }
 
-  const confidencePercent = result ? Math.round(result.classification.confidence * 100) : 0;
+  const hasZip = pendingFiles.some((f) => f.name.toLowerCase().endsWith(".zip"));
+  const totalKb = pendingFiles.reduce((s, f) => s + f.size, 0) / 1024;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
             Tải tài liệu lên — tự nhận diện loại
           </DialogTitle>
           <DialogDescription>
-            Hệ thống sẽ đọc file (OCR) và tự phân loại: InBody / Kết quả xét nghiệm / Kết quả CĐHA / Hồ sơ cũ.
+            Chọn <strong>nhiều tệp cùng lúc</strong> hoặc <strong>1 tệp ZIP</strong>. Mỗi tệp được đọc (OCR) và
+            tự phân loại độc lập: InBody / Kết quả xét nghiệm / Kết quả CĐHA / Hồ sơ cũ.
           </DialogDescription>
         </DialogHeader>
 
-        {!result && (
+        {!batch && (
           <div className="space-y-4">
             {encounterOptions.length > 0 && (
               <div className="space-y-1.5">
                 <label className="text-sm font-medium" htmlFor="smart-upload-encounter">
-                  Lượt khám liên quan (tuỳ chọn)
+                  Lượt khám liên quan (tuỳ chọn — áp dụng cho tất cả tệp)
                 </label>
                 <Select value={encounterId || undefined} onValueChange={(v) => setEncounterId(v ?? "")}>
                   <SelectTrigger id="smart-upload-encounter">
@@ -183,133 +210,289 @@ export function SmartUploadDialog({
               onClick={() => fileInputRef.current?.click()}
               role="button"
               tabIndex={0}
-              aria-label="Chọn file PDF hoặc ảnh tài liệu"
+              aria-label="Chọn nhiều tệp PDF/ảnh hoặc 1 tệp ZIP"
               onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
             >
               <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Kéo thả hoặc <span className="text-primary font-medium">chọn file PDF/ảnh</span> để hệ thống tự nhận diện
+                Kéo thả hoặc{" "}
+                <span className="text-primary font-medium">chọn nhiều tệp PDF/ảnh, hoặc 1 tệp ZIP</span> để hệ
+                thống tự nhận diện từng tệp
               </p>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,image/*"
+                accept=".pdf,image/*,.zip,application/zip"
+                multiple
                 className="hidden"
                 onChange={handleFileInput}
               />
             </div>
 
-            {pendingFile && (
-              <div className="border rounded-lg p-3 flex items-center justify-between gap-2 bg-muted/20">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileUp className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm truncate">{pendingFile.name}</span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    ({(pendingFile.size / 1024).toFixed(0)} KB)
-                  </span>
+            {hasZip && pendingFiles.length > 1 && (
+              <Alert className="border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-xs">
+                  Tệp ZIP chỉ được tự giải nén khi tải <strong>riêng một mình</strong>. Nếu chọn kèm tệp khác,
+                  ZIP sẽ không được đọc — vui lòng bỏ bớt để chỉ còn tệp ZIP, hoặc bỏ tệp ZIP ra.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {pendingFiles.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {pendingFiles.length} tệp — tổng {totalKb.toFixed(0)} KB
+                  </p>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPendingFiles([])}>
+                    Xoá tất cả
+                  </Button>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPendingFile(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
+                  {pendingFiles.map((f, i) => (
+                    <div key={`${f.name}:${f.size}:${i}`} className="p-2.5 flex items-center justify-between gap-2 bg-muted/10">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="text-sm truncate">{f.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          ({(f.size / 1024).toFixed(0)} KB)
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        aria-label={`Bỏ tệp ${f.name}`}
+                        onClick={() => removePendingFile(i)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {result && (
-          <div className="space-y-4">
-            <ClassificationSummary result={result} confidencePercent={confidencePercent} />
-
-            {result.in_body && (
-              <>
-                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                  Đã nhận diện: Kết quả InBody — xác nhận chỉ số bên dưới trước khi lưu.
-                </p>
-                <InBodySmartConfirm
-                  patientId={patientId}
-                  encounterId={encounterId || undefined}
-                  report={result.in_body}
-                  onSaved={handleSaved}
-                />
-              </>
-            )}
-
-            {!result.in_body && result.lab_result && (
-              <>
-                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                  Đã nhận diện: Kết quả xét nghiệm — xác nhận giá trị đọc được bên dưới trước khi lưu.
-                </p>
-                <LabResultSmartConfirm result={result.lab_result} onSaved={handleSaved} />
-              </>
-            )}
-
-            {!result.in_body && !result.lab_result && result.rad_result && (
-              <>
-                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                  Đã nhận diện: Kết quả CĐHA — vui lòng chuyển sang tab &quot;Kết quả CLS&quot; để chọn chỉ định CĐHA tương ứng và xác nhận.
-                </p>
-                <RadResultSmartConfirm
-                  result={result.rad_result}
-                  onNavigateTab={onNavigateTab}
-                  onClose={() => handleClose(false)}
-                />
-              </>
-            )}
-
-            {!result.in_body && !result.lab_result && !result.rad_result && result.requires_encounter && (
-              <RequiresEncounterPanel
-                encounterOptions={encounterOptions}
+        {batch && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Đã xử lý <strong>{batch.length}</strong> tệp — nhấn từng dòng để xem chi tiết và xác nhận riêng.
+            </p>
+            {batch.map((item, i) => (
+              <FileResultCard
+                key={`${item.file_name}:${i}`}
+                item={item}
+                patientId={patientId}
                 encounterId={encounterId}
-                onEncounterChange={setEncounterId}
-                onRetry={handleAnalyze}
-                isPending={smartUploadMutation.isPending}
-              />
-            )}
-
-            {isAmbiguous && (
-              <AmbiguousTypePanel
-                result={result}
-                manualType={manualType}
-                onManualTypeChange={setManualType}
+                encounterOptions={encounterOptions}
                 onNavigateTab={onNavigateTab}
-                onClose={() => handleClose(false)}
+                onCloseDialog={() => handleClose(false)}
+                onReanalyze={handleAnalyze}
+                isReanalyzing={smartUploadMutation.isPending}
+                onEncounterChange={setEncounterId}
+                saved={savedIdx.has(i)}
+                onSaved={() => markSaved(i)}
               />
-            )}
+            ))}
           </div>
         )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)}>
-            {result ? "Đóng" : "Huỷ"}
+            {batch ? "Đóng" : "Huỷ"}
           </Button>
-          {!result && (
+          {!batch && (
             <Button
               onClick={handleAnalyze}
-              disabled={!pendingFile || smartUploadMutation.isPending}
+              disabled={pendingFiles.length === 0 || smartUploadMutation.isPending}
               className="min-h-[44px]"
             >
-              {smartUploadMutation.isPending ? "Đang phân tích..." : "Phân tích"}
+              {smartUploadMutation.isPending
+                ? "Đang phân tích..."
+                : pendingFiles.length > 1
+                  ? `Phân tích ${pendingFiles.length} tệp`
+                  : "Phân tích"}
             </Button>
           )}
-          {result &&
-            !result.in_body &&
-            !result.lab_result &&
-            !result.rad_result &&
-            !result.requires_encounter &&
-            !isAmbiguous && (
+          {batch && (
             <Button
               variant="outline"
               onClick={() => {
-                setResult(null);
-                setPendingFile(null);
+                setBatch(null);
+                setPendingFiles([]);
+                setSavedIdx(new Set());
               }}
             >
-              Thử file khác
+              Tải tệp khác
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Thẻ kết quả theo TỪNG tệp (mở rộng xem chi tiết + xác nhận riêng) ──────────
+
+function FileResultCard({
+  item,
+  patientId,
+  encounterId,
+  encounterOptions,
+  onNavigateTab,
+  onCloseDialog,
+  onReanalyze,
+  isReanalyzing,
+  onEncounterChange,
+  saved,
+  onSaved,
+}: {
+  item: SmartUploadItemResult;
+  patientId: string;
+  encounterId: string;
+  encounterOptions: EncounterOption[];
+  onNavigateTab?: (tabId: "inbody" | "cls" | "legacy-docs") => void;
+  onCloseDialog: () => void;
+  onReanalyze: () => void;
+  isReanalyzing: boolean;
+  onEncounterChange: (id: string) => void;
+  saved: boolean;
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const result = item.result;
+
+  const typeLabel =
+    item.success && result ? TYPE_LABELS[result.classification.type] : "Lỗi xử lý";
+  const confidencePercent = result ? Math.round(result.classification.confidence * 100) : 0;
+
+  const isAmbiguous =
+    !!result &&
+    !result.in_body &&
+    !result.lab_result &&
+    !result.rad_result &&
+    !result.requires_encounter &&
+    (result.classification.type === "Legacy" ||
+      result.classification.type === "Unknown" ||
+      result.classification.confidence < CONFIDENCE_THRESHOLD);
+
+  const [manualType, setManualType] = useState<SmartDocumentType | null>(null);
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        {open ? (
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="text-sm font-medium truncate min-w-0 flex-1">{item.file_name}</span>
+        {saved && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-label="Đã lưu" />}
+        <Badge
+          variant={
+            !item.success
+              ? "destructive"
+              : result && result.classification.type === "Unknown"
+                ? "secondary"
+                : "default"
+          }
+          className="shrink-0"
+        >
+          {typeLabel}
+        </Badge>
+        {item.success && result && (
+          <span className="text-xs text-muted-foreground shrink-0">{confidencePercent}%</span>
+        )}
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 space-y-3 border-t pt-3">
+          {!item.success || !result ? (
+            <Alert className="border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Không xử lý được tệp này</AlertTitle>
+              <AlertDescription className="text-xs">
+                {item.error_message ?? "Đã xảy ra lỗi khi đọc tệp."}
+              </AlertDescription>
+            </Alert>
+          ) : saved ? (
+            <Alert className="border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <AlertTitle>Đã lưu vào hồ sơ bệnh nhân</AlertTitle>
+            </Alert>
+          ) : (
+            <>
+              <ClassificationSummary result={result} confidencePercent={confidencePercent} />
+
+              {result.in_body && (
+                <>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                    Đã nhận diện: Kết quả InBody — xác nhận chỉ số bên dưới trước khi lưu.
+                  </p>
+                  <InBodySmartConfirm
+                    patientId={patientId}
+                    encounterId={encounterId || undefined}
+                    report={result.in_body}
+                    onSaved={onSaved}
+                  />
+                </>
+              )}
+
+              {!result.in_body && result.lab_result && (
+                <>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                    Đã nhận diện: Kết quả xét nghiệm — xác nhận giá trị đọc được bên dưới trước khi lưu.
+                  </p>
+                  <LabResultSmartConfirm result={result.lab_result} onSaved={onSaved} />
+                </>
+              )}
+
+              {!result.in_body && !result.lab_result && result.rad_result && (
+                <>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                    Đã nhận diện: Kết quả CĐHA — vui lòng chuyển sang tab &quot;Kết quả CLS&quot; để chọn chỉ định
+                    CĐHA tương ứng và xác nhận.
+                  </p>
+                  <RadResultSmartConfirm
+                    result={result.rad_result}
+                    onNavigateTab={onNavigateTab}
+                    onClose={onCloseDialog}
+                  />
+                </>
+              )}
+
+              {!result.in_body && !result.lab_result && !result.rad_result && result.requires_encounter && (
+                <RequiresEncounterPanel
+                  encounterOptions={encounterOptions}
+                  encounterId={encounterId}
+                  onEncounterChange={onEncounterChange}
+                  onRetry={onReanalyze}
+                  isPending={isReanalyzing}
+                />
+              )}
+
+              {isAmbiguous && (
+                <AmbiguousTypePanel
+                  result={result}
+                  manualType={manualType}
+                  onManualTypeChange={setManualType}
+                  onNavigateTab={onNavigateTab}
+                  onClose={onCloseDialog}
+                />
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

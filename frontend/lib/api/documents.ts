@@ -40,8 +40,23 @@ export interface SmartUploadResponse {
   rad_result: RadOcrExtractResponse | null;
 }
 
+// ─── Batch: nhiều file cùng lúc HOẶC 1 file ZIP ─────────────────────────────────
+// Mỗi file được OCR + phân loại ĐỘC LẬP, kết quả trả theo từng file (không gộp chung).
+
+export interface SmartUploadItemResult {
+  file_name: string;
+  success: boolean;
+  error_code: string | null;
+  error_message: string | null;
+  result: SmartUploadResponse | null;
+}
+
+export interface SmartUploadBatchResponse {
+  items: SmartUploadItemResult[];
+}
+
 export interface SmartUploadParams {
-  file: File;
+  files: File[];
   patientId: string;
   encounterId?: string;
 }
@@ -49,16 +64,17 @@ export interface SmartUploadParams {
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export async function smartUploadDocument({
-  file,
+  files,
   patientId,
   encounterId,
-}: SmartUploadParams): Promise<SmartUploadResponse> {
+}: SmartUploadParams): Promise<SmartUploadBatchResponse> {
   const fd = new FormData();
-  fd.append("file", file);
+  // Nhiều file cùng field "files" (hoặc 1 file .zip) — backend tự giải nén nếu là ZIP.
+  files.forEach((f) => fd.append("files", f));
   fd.append("patient_id", patientId);
   if (encounterId) fd.append("encounter_id", encounterId);
 
-  const res = await apiClient.post<ApiResponse<SmartUploadResponse>>(
+  const res = await apiClient.post<ApiResponse<SmartUploadBatchResponse>>(
     "/documents/smart-upload",
     fd,
     { headers: { "Content-Type": "multipart/form-data" } }
