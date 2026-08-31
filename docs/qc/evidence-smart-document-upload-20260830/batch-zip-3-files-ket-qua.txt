@@ -1,0 +1,17 @@
+=== VERIFY BATCH: 1 ZIP -> giai nen -> phan loai TUNG file DOC LAP ===
+So file hop le giai nen duoc: 3
+
+File           : 01-inbody.pdf
+  Loai nhan dien : InBody
+  Do tin cay     : 0.90
+  Bang chung     : inbody score, percent body fat, pbf, skeletal muscle mass, smm, visceral fat
+
+File           : 02-xetnghiem.pdf
+  Loai nhan dien : LabResult
+  Do tin cay     : 0.90
+  Bang chung     : Glucose, HbA1c, Cholesterol toàn phần
+
+File           : 03-hosocu.pdf
+  Loai nhan dien : Legacy
+  Do tin cay     : 0.50
+  Bang chung     : (khong)
