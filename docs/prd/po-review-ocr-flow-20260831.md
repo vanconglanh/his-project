@@ -186,18 +186,22 @@
 
 ## Tóm tắt Gap theo mức độ ưu tiên
 
-| ID | Gap | Mức | Hành động đề xuất |
-|---|---|---|---|
-| GAP-8 | Lab/Rad OCR không lưu file gốc → không đối chiếu được về sau | **P0** | Sửa trước go-live: upload file vào storage tại bước extract, lưu `source_file_id` vào LabResult/RadResult khi confirm |
-| GAP-1 | InBody không có endpoint soft-delete (hủy bản ghi nhập nhầm) | **P1** | Thêm `DELETE /inbody-reports/{id}` với soft-delete + audit log + lý do hủy |
-| GAP-3 | InBody không validate range y khoa trước khi confirm | **P1** | Thêm soft-range check tại `ConfirmInBodyReportCommand` + cảnh báo FE |
-| GAP-6 | InBody confirm dùng quyền rộng `patient.clinical.write`, chưa phân biệt vai trò được confirm | **P1** | Xem xét tách permission hoặc xác nhận BO chấp nhận quyền hiện tại |
-| GAP-7 | InBody/Lab/Rad OCR synchronous không có timeout rõ ràng → UX treo với file lớn | **P1** | Thêm loading state FE + timeout `CancellationToken` có nghĩa ở backend |
-| GAP-9 | Đơn thuốc ngoài và giấy chuyển viện chưa có OCR | **P1** | Đưa vào backlog sprint tiếp theo |
-| GAP-2 | Lab/Rad OCR không lưu diff "OCR gốc vs xác nhận" | **P1** | Lưu `ocr_raw_value` cạnh `value` đã confirm; nếu lưu file gốc (GAP-8) thì một phần đã giải quyết |
-| GAP-4 | Flag CRITICAL/HH không hiện tại bước xác nhận OCR Lab | **P2** | Tính preview flag trong `LabOcrExtractResponse` |
-| GAP-5 | Không detect file upload trùng | **P2** | Lưu SHA-256, cảnh báo trùng |
-| GAP-10 | Thẻ BHYT giấy chưa có OCR | **P2** | Backlog dài hạn |
+> **Cập nhật 2026-08-31 (đợt sửa gap OCR):** Đã fix GAP-8 (P0) + toàn bộ 6 gap P1 (GAP-1, 2, 3, 6, 7, 9) + 2 bug hệ thống phát hiện thêm khi sửa (Bug A: FlagCalculator luôn nhận null range → flag XN luôn NORMAL; Bug B: BMI đọc được nhưng bị rơi mất khi confirm InBody). GAP-4/5/10 (P2) để lại sprint sau theo quyết định BO.
+
+| ID | Gap | Mức | Trạng thái | Hành động đã làm |
+|---|---|---|---|---|
+| GAP-8 | Lab/Rad OCR không lưu file gốc → không đối chiếu được về sau | **P0** | ✅ ĐÃ FIX | Upload file gốc lên MinIO (bucket `lab-ocr-sources`/`rad-ocr-sources`) + `fil_files` tại extract, lưu `source_file_id` vào `diab_his_lab_results`/`diab_his_rad_results` khi confirm; trả `source_file_url` (signed) ở màn chi tiết + link "Xem file gốc" trên FE. Migration 9188. |
+| GAP-1 | InBody không có endpoint soft-delete (hủy bản ghi nhập nhầm) | **P1** | ✅ ĐÃ FIX | `DELETE /api/v1/inbody-reports/{id}` soft-delete (`deleted_at`/`deleted_by`/`delete_reason`) + audit `DELETE` + nút "Huỷ" trên FE. Migration 9189. |
+| GAP-3 | Không validate range y khoa trước khi confirm (InBody + Lab) | **P1** | ✅ ĐÃ FIX | Bảng ngưỡng vật lý khả dĩ (`InBodyPlausibleRanges`/`LabPlausibleRanges`), trả `out_of_plausible_range`/`plausible_range_note`; FE tô đỏ + checkbox bắt buộc "đã kiểm tra" trước khi cho bấm xác nhận (không chặn cứng BE). |
+| GAP-6 | InBody confirm dùng quyền rộng `patient.clinical.write` | **P1** | ✅ ĐÃ FIX (giữ nguyên, có căn cứ) | Kiểm tra thực tế: `le_tan` KHÔNG được cấp `patient.clinical.write` → mục tiêu bảo mật đã đạt, không tách permission thừa. Xem mục 4 để rõ căn cứ. |
+| GAP-7 | OCR synchronous không có timeout rõ ràng → UX treo file lớn | **P1** | ✅ ĐÃ FIX | Timeout 90s (`CancellationTokenSource.CancelAfter`) → `*_OCR_TIMEOUT` message tiếng Việt; FE loading state rõ + disable double-submit. |
+| GAP-9 | Đơn thuốc ngoài và giấy chuyển viện chưa có OCR | **P1** | ✅ ĐÃ FIX | Mở rộng luồng legacy-import: `doc_type` whitelist (`HO_SO_CU_SCAN`/`DON_THUOC_NGOAI`/`GIAY_CHUYEN_VIEN`), dropdown FE; không tự tạo đơn thuốc chính thức. |
+| GAP-2 | Lab/Rad OCR không lưu diff "OCR gốc vs xác nhận" | **P1** | ✅ ĐÃ FIX | Cột `ocr_raw_value` (Lab) / `ocr_raw_text` (Rad); FE gửi lại giá trị OCR gốc song song giá trị đã sửa. Migration 9188. |
+| Bug A | FlagCalculator luôn nhận `null,null` → flag XN luôn NORMAL (cả nhập tay) | **Nghiêm trọng** | ✅ ĐÃ FIX | Join `diab_his_dict_lab_tests` theo `code` lấy `reference_range_low/high`, tính flag đúng + lưu range vào entity (Create + Import). |
+| Bug B | BMI đọc được từ OCR nhưng bị rơi mất khi confirm InBody | **Trung bình** | ✅ ĐÃ FIX | Thêm `Bmi` vào `IndicatorTableTypes` → ghi vào `diab_his_cli_indicator_reading`. |
+| GAP-4 | Flag CRITICAL/HH không hiện tại bước xác nhận OCR Lab | **P2** | ⏳ Để sau | Tính preview flag trong `LabOcrExtractResponse` |
+| GAP-5 | Không detect file upload trùng | **P2** | ⏳ Để sau | Lưu SHA-256, cảnh báo trùng |
+| GAP-10 | Thẻ BHYT giấy chưa có OCR | **P2** | ⏳ Để sau | Backlog dài hạn |
 
 ---
 
