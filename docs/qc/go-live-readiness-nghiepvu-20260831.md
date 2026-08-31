@@ -7,9 +7,27 @@
 
 ---
 
+## 0. CẬP NHẬT 2026-08-31 (chiều) — ĐÃ FIX 4 BLOCKER
+
+> **Dev đã sửa xong cả 4 Blocker (BUG-01→04) và verify LIVE trên stack rebuild + DB thật.**
+> Commit riêng từng bug trên `develop`. Evidence: [`evidence-blocker-fix-20260831/`](evidence-blocker-fix-20260831/).
+> `dotnet build` sạch · `dotnet test` **987 PASS / 0 FAIL** (+9 test mới) · `npx tsc --noEmit` sạch.
+
+| Bug | Trạng thái | Cách verify (đã chạy thật) |
+|---|---|---|
+| **BUG-01** Phát thuốc lỗi vẫn trừ kho | ✅ **Đã fix** | Phát đơn có Gliclazide hết tồn → **422** `PHARMACY_STOCK_INSUFFICIENT` thông báo rõ ("Không đủ tồn kho để phát Gliclazide 80mg: còn thiếu 30"), tồn Metformin **giữ nguyên** (486/500/800/800), **0** EXPORT/phiếu phát phát sinh. Phát đơn đủ tồn → 201, trừ đúng, commit OK. Bọc `IDbTransaction` + pre-check toàn bộ trước khi ghi. |
+| **BUG-02** Phòng chỉ nhận 1 BN/ngày | ✅ **Đã fix** | Với `capacity=1`: tiếp đón BN A → 201, BN B (khác người, cùng phòng, cùng ngày) → **201**. Đếm sức chứa theo BN **đang ở trong phòng** (CALLED+IN_PROGRESS), không luỹ kế cả ngày. |
+| **BUG-03** Ô chọn thuốc sai/rỗng tên | ✅ **Đã fix** | `GET /drugs/search?q=Metformin` → **"Metformin 500mg"** (không còn "Paracetamol"); **0** thuốc tên rỗng. Thống nhất đọc/ghi cột `name`; migration `9191` đồng bộ dữ liệu. |
+| **BUG-04** Thu tiền âm/0/vượt | ✅ **Đã fix** | `POST /payments` amount 0 & -50000 → **400** VALIDATION_ERROR; 999999999 → **400** EXCEEDS_BALANCE; override giá DV -999999 → **400**. Thêm validator cấp Command cho 5 chỗ + test kiến trúc chặn tái phát (xác nhận 5 chỗ là đầy đủ). |
+
+---
+
 ## 1. KẾT LUẬN
 
 # ⛔ CHƯA ĐỦ ĐIỀU KIỆN GO-LIVE
+
+> **Lưu ý:** kết luận dưới đây là bản gốc lúc audit sáng 2026-08-31. Sau khi 4 Blocker đã được fix (mục 0),
+> điều kiện chặn go-live về nghiệp vụ đã được gỡ — cần QC chạy lại đủ bộ 93 case + `dotnet test` để chốt PASS chính thức.
 
 **Lý do 1 câu:** Ba khâu **bắt buộc dùng hàng ngày** đang hỏng ở mức chặn vận hành —
 **tiếp đón không nhận được bệnh nhân thứ 2 trong ngày**, **cấp phát thuốc làm thất thoát tồn kho thật khi lỗi**,
