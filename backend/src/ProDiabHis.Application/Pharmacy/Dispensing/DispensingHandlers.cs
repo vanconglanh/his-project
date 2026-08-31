@@ -82,107 +82,176 @@ public class DispenseHandler : IRequestHandler<DispenseCommand, Result<DispenseR
         _cucQld = cucQld;
     }
 
+    // Ban ke hoach cap phat mot dong lo — tinh truoc TOAN BO khi chua ghi gi vao DB.
+    private sealed record DispensePlanLine(
+        string PrescriptionItemId, string DrugId, string DrugName, string StockId,
+        string BatchNo, DateTime Expiry, decimal Quantity, decimal UnitCost);
+
     public async Task<Result<DispenseRecordResponse>> Handle(DispenseCommand cmd, CancellationToken ct)
     {
-        using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
 
-        var pres = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, status, tenant_id FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { id = cmd.PrescriptionId, tenantId });
-
-        if (pres == null)
-            return Result<DispenseRecordResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
-
-        string presStatus = pres.status;
-        if (presStatus != "SIGNED" && presStatus != "SUBMITTED_DTQG")
-            return Result<DispenseRecordResponse>.Failure("PRESCRIPTION_INVALID_STATE", "Don thuoc chua duoc ky so.");
-
-        // Check duplicate
-        var dupCheck = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM diab_his_pha_dispense_records WHERE prescription_id = @presId AND tenant_id = @tenantId AND status = 'DISPENSED'",
-            new { presId = cmd.PrescriptionId, tenantId });
-        if (dupCheck > 0)
-            return Result<DispenseRecordResponse>.Failure("PHARMACY_DISPENSE_DUPLICATE", "Don nay da duoc phat thuoc.");
-
-        var dispenseId = Guid.NewGuid().ToString();
-        var dispenseItems = new List<DispenseItemResponse>();
+        // ── GIAI DOAN 1: LEN KE HOACH (chi doc, KHONG ghi) ─────────────────────
+        // Tinh truoc tat ca cac dong lo can tru + kiem du ton cho MOI dong. Neu bat ky
+        // dong nao khong du ton / thieu lo -> tra loi ro rang NGAY, chua dong vao kho.
+        // (BUG-01: truoc day tru kho ngay trong vong lap, dong sau loi thi dong truoc da mat.)
+        var plan = new List<DispensePlanLine>();
         decimal totalAmount = 0;
+        var plannedDeductByStock = new Dictionary<string, decimal>();
 
-        foreach (var reqItem in cmd.Request.Items)
+        using (var readConn = (IDbConnection)_db.CreateConnection())
         {
-            var presItem = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT id, drug_id, quantity FROM diab_his_pha_prescription_items WHERE id = @id AND tenant_id = @tenantId",
-                new { id = reqItem.PrescriptionItemId, tenantId });
+            var pres = await readConn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT id, status, tenant_id FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { id = cmd.PrescriptionId, tenantId });
 
-            if (presItem == null) continue;
+            if (pres == null)
+                return Result<DispenseRecordResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Không tìm thấy đơn thuốc.");
 
-            string drugId = (string)presItem.drug_id;
-            decimal neededQty = (decimal)presItem.quantity;
+            string presStatus = pres.status;
+            if (presStatus != "SIGNED" && presStatus != "SUBMITTED_DTQG")
+                return Result<DispenseRecordResponse>.Failure("PRESCRIPTION_INVALID_STATE", "Đơn thuốc chưa được ký số.");
 
-            // Use provided batch_picks or auto FEFO
-            IReadOnlyList<BatchPick> picks;
-            if (reqItem.BatchPicks?.Count > 0)
+            var dupCheck = await readConn.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM diab_his_pha_dispense_records WHERE prescription_id = @presId AND tenant_id = @tenantId AND status = 'DISPENSED'",
+                new { presId = cmd.PrescriptionId, tenantId });
+            if (dupCheck > 0)
+                return Result<DispenseRecordResponse>.Failure("PHARMACY_DISPENSE_DUPLICATE", "Đơn này đã được phát thuốc.");
+
+            foreach (var reqItem in cmd.Request.Items)
             {
-                picks = reqItem.BatchPicks.Select(bp => new BatchPick(bp.BatchNo, DateOnly.MinValue, bp.Quantity, 0)).ToList();
-            }
-            else
-            {
-                picks = await _fefo.PickAsync(cmd.Request.WarehouseId, tenantId, drugId, neededQty, ct);
-            }
+                var presItem = await readConn.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT id, drug_id, quantity FROM diab_his_pha_prescription_items WHERE id = @id AND tenant_id = @tenantId",
+                    new { id = reqItem.PrescriptionItemId, tenantId });
 
-            foreach (var pick in picks)
-            {
-                // Get actual stock for this batch
-                var stock = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                    "SELECT id, exp_date AS expiry_date, quantity AS quantity_available, import_price AS unit_cost FROM diab_his_pha_stock WHERE tenant_id = @tenantId AND drug_id = @drug AND lot_number = @batch",
-                    new { tenantId, drug = drugId, batch = pick.BatchNo });
+                if (presItem == null) continue;
 
-                if (stock == null)
-                    return Result<DispenseRecordResponse>.Failure("PHARMACY_BATCH_NOT_FOUND", $"Khong tim thay lo {pick.BatchNo}.");
+                string drugId = (string)presItem.drug_id;
+                decimal neededQty = (decimal)presItem.quantity;
 
-                if ((decimal)stock.quantity_available < pick.Quantity)
-                    return Result<DispenseRecordResponse>.Failure("PHARMACY_STOCK_INSUFFICIENT", "Ton kho khong du phat thuoc.");
+                var drugName = await readConn.ExecuteScalarAsync<string>(
+                    "SELECT name FROM diab_his_pha_drugs WHERE id = @id", new { id = drugId }) ?? "";
 
-                decimal unitCost = (decimal)stock.unit_cost;
-                decimal lineAmount = pick.Quantity * unitCost;
+                // Chon lo: theo batch_picks nguoi dung chi dinh, hoac tu dong FEFO.
+                IReadOnlyList<BatchPick> picks;
+                if (reqItem.BatchPicks?.Count > 0)
+                {
+                    picks = reqItem.BatchPicks.Select(bp => new BatchPick(bp.BatchNo, DateOnly.MinValue, bp.Quantity, 0)).ToList();
+                }
+                else
+                {
+                    try
+                    {
+                        picks = await _fefo.PickAsync(cmd.Request.WarehouseId, tenantId, drugId, neededQty, ct);
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.StartsWith("PHARMACY_STOCK_INSUFFICIENT"))
+                    {
+                        // BUG-07/BUG-01: bien loi nghiep vu "het ton" thanh thong bao ro rang (422),
+                        // KHONG de exception noi ra middleware -> tranh 500 "vui long thu lai sau"
+                        // (khien duoc si bam lai nhieu lan -> BUG-01 tru kho lap lai).
+                        var detail = ex.Message.Contains(':') ? ex.Message.Split(':', 2)[1] : "Tồn kho không đủ để phát thuốc.";
+                        return Result<DispenseRecordResponse>.Failure("PHARMACY_STOCK_INSUFFICIENT",
+                            $"Không đủ tồn kho để phát \"{drugName}\": {detail}");
+                    }
+                }
 
-                // Deduct stock
-                await conn.ExecuteAsync(
-                    "UPDATE diab_his_pha_stock SET quantity = quantity - @qty, updated_at = NOW() WHERE id = @id",
-                    new { qty = pick.Quantity, id = (string)stock.id });
+                foreach (var pick in picks)
+                {
+                    var stock = await readConn.QueryFirstOrDefaultAsync<dynamic>(
+                        "SELECT id, exp_date AS expiry_date, quantity AS quantity_available, import_price AS unit_cost FROM diab_his_pha_stock WHERE tenant_id = @tenantId AND drug_id = @drug AND lot_number = @batch",
+                        new { tenantId, drug = drugId, batch = pick.BatchNo });
 
-                // Movement
-                await conn.ExecuteAsync(
-                    @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, unit_price, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
-                      VALUES (@tenantId, @stockId, @wh, 'EXPORT', @qty, @cost, 'PRESCRIPTION', @presId, NOW(), @userId, NOW(), NOW())",
-                    new { tenantId, stockId = (string)stock.id, wh = cmd.Request.WarehouseId, qty = pick.Quantity, cost = unitCost, presId = cmd.PrescriptionId, userId = 0 });
+                    if (stock == null)
+                        return Result<DispenseRecordResponse>.Failure("PHARMACY_BATCH_NOT_FOUND",
+                            $"Không tìm thấy lô {pick.BatchNo} của thuốc \"{drugName}\".");
 
-                // Dispense item
-                var dispItemId = Guid.NewGuid().ToString();
-                await conn.ExecuteAsync(
-                    @"INSERT INTO diab_his_pha_dispense_items (id, tenant_id, dispense_record_id, prescription_item_id, drug_id, batch_no, expiry_date, quantity, unit_cost, created_at, updated_at)
-                      VALUES (@id, @tenantId, @dispenseId, @presItemId, @drugId, @batchNo, @expiry, @qty, @cost, NOW(), NOW())",
-                    new { id = dispItemId, tenantId, dispenseId, presItemId = reqItem.PrescriptionItemId, drugId, batchNo = pick.BatchNo, expiry = (DateTime)stock.expiry_date, qty = pick.Quantity, cost = unitCost });
+                    string stockId = (string)stock.id;
+                    decimal available = (decimal)stock.quantity_available;
+                    // Tru di phan da du kien lay o cac dong truoc cua CHINH lo nay (tranh dem trung).
+                    decimal alreadyPlanned = plannedDeductByStock.GetValueOrDefault(stockId, 0m);
+                    if (available - alreadyPlanned < pick.Quantity)
+                        return Result<DispenseRecordResponse>.Failure("PHARMACY_STOCK_INSUFFICIENT",
+                            $"Không đủ tồn kho để phát \"{drugName}\" (lô {pick.BatchNo}): còn {available - alreadyPlanned}, cần {pick.Quantity}.");
 
-                var drugName = await conn.ExecuteScalarAsync<string>("SELECT name FROM diab_his_pha_drugs WHERE id = @id", new { id = drugId });
-                dispenseItems.Add(new DispenseItemResponse(dispItemId, reqItem.PrescriptionItemId, drugId, drugName,
-                    pick.BatchNo, DateOnly.FromDateTime((DateTime)stock.expiry_date), pick.Quantity, unitCost, lineAmount));
-                totalAmount += lineAmount;
+                    decimal unitCost = (decimal)stock.unit_cost;
+                    plannedDeductByStock[stockId] = alreadyPlanned + pick.Quantity;
+                    plan.Add(new DispensePlanLine(
+                        reqItem.PrescriptionItemId, drugId, drugName, stockId,
+                        pick.BatchNo, (DateTime)stock.expiry_date, pick.Quantity, unitCost));
+                    totalAmount += pick.Quantity * unitCost;
+                }
             }
         }
 
-        // Insert dispense record
-        await conn.ExecuteAsync(
-            @"INSERT INTO diab_his_pha_dispense_records (id, tenant_id, prescription_id, warehouse_id, dispensed_at, dispensed_by, status, note, total_amount, created_at, updated_at)
-              VALUES (@id, @tenantId, @presId, @wh, NOW(), @dispensedBy, 'DISPENSED', @note, @totalAmount, NOW(), NOW())",
-            new { id = dispenseId, tenantId, presId = cmd.PrescriptionId, wh = cmd.Request.WarehouseId, dispensedBy = 0, note = cmd.Request.Note, totalAmount });
+        if (plan.Count == 0)
+            return Result<DispenseRecordResponse>.Failure("PHARMACY_NOTHING_TO_DISPENSE",
+                "Không có dòng thuốc hợp lệ để phát.");
 
-        // Update prescription status
-        await conn.ExecuteAsync(
-            "UPDATE diab_his_pha_prescriptions SET status = 'DISPENSED', updated_at = NOW() WHERE id = @id AND tenant_id = @tenantId",
-            new { id = cmd.PrescriptionId, tenantId });
+        var dispenseId = Guid.NewGuid().ToString();
+        var dispenseItems = new List<DispenseItemResponse>();
 
+        // ── GIAI DOAN 2: GHI (trong 1 TRANSACTION duy nhat) ────────────────────
+        // Toan bo tru kho + tao phieu phat + phieu xuat + cap nhat trang thai don nam
+        // trong CUNG 1 transaction: bat ky loi nao -> rollback SACH, khong that thoat ton kho.
+        using (var conn = (IDbConnection)_db.CreateConnection())
+        {
+            conn.Open();
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                foreach (var line in plan)
+                {
+                    // Khoa dong ton kho + tai kiem tra trong transaction (chong race dong thoi).
+                    var current = await conn.ExecuteScalarAsync<decimal?>(
+                        "SELECT quantity FROM diab_his_pha_stock WHERE id = @id FOR UPDATE",
+                        new { id = line.StockId }, tx);
+                    if (current == null || current.Value < line.Quantity)
+                    {
+                        tx.Rollback();
+                        return Result<DispenseRecordResponse>.Failure("PHARMACY_STOCK_INSUFFICIENT",
+                            $"Không đủ tồn kho để phát \"{line.DrugName}\" (lô {line.BatchNo}).");
+                    }
+
+                    await conn.ExecuteAsync(
+                        "UPDATE diab_his_pha_stock SET quantity = quantity - @qty, updated_at = NOW() WHERE id = @id",
+                        new { qty = line.Quantity, id = line.StockId }, tx);
+
+                    await conn.ExecuteAsync(
+                        @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, unit_price, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
+                          VALUES (@tenantId, @stockId, @wh, 'EXPORT', @qty, @cost, 'PRESCRIPTION', @presId, NOW(), @userId, NOW(), NOW())",
+                        new { tenantId, stockId = line.StockId, wh = cmd.Request.WarehouseId, qty = line.Quantity, cost = line.UnitCost, presId = cmd.PrescriptionId, userId = 0 }, tx);
+
+                    var dispItemId = Guid.NewGuid().ToString();
+                    await conn.ExecuteAsync(
+                        @"INSERT INTO diab_his_pha_dispense_items (id, tenant_id, dispense_record_id, prescription_item_id, drug_id, batch_no, expiry_date, quantity, unit_cost, created_at, updated_at)
+                          VALUES (@id, @tenantId, @dispenseId, @presItemId, @drugId, @batchNo, @expiry, @qty, @cost, NOW(), NOW())",
+                        new { id = dispItemId, tenantId, dispenseId, presItemId = line.PrescriptionItemId, drugId = line.DrugId, batchNo = line.BatchNo, expiry = line.Expiry, qty = line.Quantity, cost = line.UnitCost }, tx);
+
+                    dispenseItems.Add(new DispenseItemResponse(dispItemId, line.PrescriptionItemId, line.DrugId, line.DrugName,
+                        line.BatchNo, DateOnly.FromDateTime(line.Expiry), line.Quantity, line.UnitCost, line.Quantity * line.UnitCost));
+                }
+
+                await conn.ExecuteAsync(
+                    @"INSERT INTO diab_his_pha_dispense_records (id, tenant_id, prescription_id, warehouse_id, dispensed_at, dispensed_by, status, note, total_amount, created_at, updated_at)
+                      VALUES (@id, @tenantId, @presId, @wh, NOW(), @dispensedBy, 'DISPENSED', @note, @totalAmount, NOW(), NOW())",
+                    new { id = dispenseId, tenantId, presId = cmd.PrescriptionId, wh = cmd.Request.WarehouseId, dispensedBy = 0, note = cmd.Request.Note, totalAmount }, tx);
+
+                await conn.ExecuteAsync(
+                    "UPDATE diab_his_pha_prescriptions SET status = 'DISPENSED', updated_at = NOW() WHERE id = @id AND tenant_id = @tenantId",
+                    new { id = cmd.PrescriptionId, tenantId }, tx);
+
+                tx.Commit();
+            }
+            catch (Exception)
+            {
+                try { tx.Rollback(); } catch { /* connection da hong — khong con gi de rollback */ }
+                // Khong that thoat ton kho vi tat ca nam trong transaction da rollback.
+                return Result<DispenseRecordResponse>.Failure("PHARMACY_DISPENSE_FAILED",
+                    "Không thể tạo phiếu phát thuốc do lỗi hệ thống. Tồn kho được giữ nguyên, vui lòng thử lại.");
+            }
+        }
+
+        // ── Sau khi commit: cac tac dong phu (audit, lien thong Cuc QLD) ───────
         await _audit.LogAsync("DISPENSE", "pha_prescriptions", cmd.PrescriptionId.ToString(), new { dispenseId, status = "DISPENSED" }, ct);
         await _cucQld.ReportExportAsync(Guid.Parse(dispenseId), ct);
 
