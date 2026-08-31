@@ -79,6 +79,27 @@ public class DocumentClassifierServiceTests
     }
 
     [Fact]
+    public async Task ClassifyAsync_RealLabForm_SinglePendingMatch_ClassifiedAsLabResult()
+    {
+        // FIX UTC-DOC-04/BUG-09: phieu KQ XN THAT nhung chi 1 XN dang cho khop -> truoc day score 0.55
+        // (< nguong 0.6) -> ra Unknown. Sau fix: tai lieu co >=2 marker phieu XN ("xet nghiem" + "ket qua"
+        // + "don vi") -> nang len 0.8 -> ket luan dung LabResult.
+        var encounterId = Guid.NewGuid();
+        var pending = new List<(Guid, string, string)>
+        {
+            (Guid.NewGuid(), "GLU", "Glucose"),
+            (Guid.NewGuid(), "HBA1C", "HbA1c"),   // XN nay KHONG co tren phieu -> chi 1 khop
+        };
+        var sut = CreateSut(lab: new FakePendingLabTestsProvider(pending));
+        var text = "PHIEU KET QUA XET NGHIEM\nTen xet nghiem   Ket qua   Don vi\nGlucose   5.6   mmol/L\n";
+
+        var result = await sut.ClassifyAsync(new DocumentClassifyInput(text, encounterId), default);
+
+        Assert.Equal(DocumentType.LabResult, result.Type);
+        Assert.True(result.Confidence >= 0.6, $"confidence={result.Confidence}");
+    }
+
+    [Fact]
     public async Task ClassifyAsync_SingleInBodyLabelNoPending_ReturnsLowConfidenceWithCandidates()
     {
         var sut = CreateSut();

@@ -30,6 +30,24 @@ public class DocumentClassifierService : IDocumentClassifier
 {
     private const double ConfidenceThreshold = 0.6;
 
+    // FIX BUG-09/UTC-DOC-04: nhan cau truc DAC THU cua phieu ket qua xet nghiem (da chuan hoa khong dau,
+    // lowercase). Dung lam TIN HIEU NOI TAI de:
+    //  - Nang phieu XN that (chi khop 1 XN dang cho) tu 0.55 -> LabResult chac chan (fix FAIL: truoc ra Unknown).
+    //  - Giam FALSE POSITIVE: neu tai lieu khop nhieu XN dang cho chi do trung ngau nhien nhung KHONG co
+    //    marker phieu XN -> gioi han diem 0.55, khong ket luan nham LabResult (case "PASS gia" khi batch nhieu XN cho).
+    private static readonly string[] LabFormMarkers =
+    {
+        "xet nghiem",
+        "ket qua",
+        "don vi",
+        "khoang tham chieu",
+        "tri so binh thuong",
+        "gia tri tham chieu",
+        "chi so binh thuong",
+        "sinh hoa mau",
+        "huyet hoc"
+    };
+
     private static readonly string[] InBodyLabels =
     {
         "inbody score",
@@ -131,6 +149,16 @@ public class DocumentClassifierService : IDocumentClassifier
             1 => 0.55,
             _ => 0.0
         };
+
+        // Tin hieu noi tai: dem marker cau truc phieu XN trong text. Chi NANG diem (monotonic, khong bao gio
+        // ha diem dang co) de tranh pha vo cac case dang phan loai dung. Phieu XN that thuong co it nhat 2
+        // marker ("xet nghiem" + "ket qua"/"don vi"...) -> du de ket luan LabResult ngay ca khi chi 1 XN khop
+        // (fix UTC-DOC-04: truoc day 1 khop = 0.55 < nguong -> ra Unknown). Marker chi kich hoat boost khi
+        // ban than tai lieu la phieu XN, nen KHONG lam tang false positive tu cac khop XN trung ngau nhien.
+        var markerCount = LabFormMarkers.Count(m => normalizedText.Contains(m));
+        if (score > 0 && markerCount >= 2)
+            score = Math.Max(score, 0.8);
+
         return new DocumentTypeCandidate(DocumentType.LabResult, score, evidence);
     }
 
