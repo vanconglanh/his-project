@@ -58,13 +58,19 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
         if (dupCount > 0)
             return Result<ReceptionTicketResponse>.Failure("RECEPTION_DUPLICATE_CHECKIN", "Bệnh nhân đã được tiếp đón hôm nay tại phòng này");
 
-        // Check room capacity (theo chi nhanh)
-        // G01/G02: ve dang WAITING_CLS da NHA PHONG -> khong tinh vao suc chua phong
-        var todayCount = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND branch_id=@BranchId AND room_id=@RoomId AND ticket_date=@Date AND status NOT IN ('CANCELLED', 'WAITING_CLS') AND deleted_at IS NULL",
+        // Check room capacity — SUC CHUA DONG THOI (so benh nhan DANG O TRONG phong tai thoi diem nay),
+        // KHONG phai gioi han so luot/ngay.
+        // BUG-02: truoc day dem LUY KE ca ngay (moi trang thai tru CANCELLED/WAITING_CLS) roi so voi
+        //   capacity=1 -> phong chi nhan dung 1 benh nhan/ngay. capacity la "so nguoi trong phong
+        //   cung luc", nen chi dem ve DANG CHIEM phong: CALLED (da goi vao) + IN_PROGRESS (dang kham).
+        //   Ve WAITING dang xep hang (chua vao phong), DONE/SKIPPED da roi phong, WAITING_CLS da nha
+        //   phong (G01/G02), CANCELLED da huy -> deu KHONG tinh. Nho vay capacity=1 van hop ly cho
+        //   phong kham nho (1 benh nhan kham 1 luc) ma van tiep don duoc nhieu benh nhan trong ngay.
+        var currentInRoom = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM diab_his_rcp_queue_tickets WHERE tenant_id=@TenantId AND branch_id=@BranchId AND room_id=@RoomId AND ticket_date=@Date AND status IN ('CALLED','IN_PROGRESS') AND deleted_at IS NULL",
             new { TenantId = _tenant.TenantId, BranchId = branchId, RoomId = req.RoomId.ToString(), Date = today });
-        if (todayCount >= (int)room.max_per_day)
-            return Result<ReceptionTicketResponse>.Failure("RECEPTION_ROOM_FULL", "Phòng khám đã đạt giới hạn lượt khám tối đa");
+        if (currentInRoom >= (int)room.max_per_day)
+            return Result<ReceptionTicketResponse>.Failure("RECEPTION_ROOM_FULL", "Phòng khám đang kín chỗ (đã đủ số bệnh nhân tối đa trong phòng), vui lòng chờ hoặc chọn phòng khác");
 
         // Generate ticket_no (so thu tu trong ngay, theo phong + chi nhanh): bang thuc te dung ticket_no/ticket_date,
         // khong co cot queue_number (xem 0022_create_reception_queue.sql)
