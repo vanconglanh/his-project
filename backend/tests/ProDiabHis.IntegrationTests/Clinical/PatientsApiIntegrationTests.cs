@@ -101,7 +101,7 @@ public class PatientsApiIntegrationTests
     [ApiFact]
     public async Task UploadAnhDaiDien_ChuaDangNhap_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync($"/api/v1/patients/{Pid}/avatar", new { });
+        var res = await _fx.AnonymousClient().PostAsync($"/api/v1/patients/{Pid}/avatar", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 

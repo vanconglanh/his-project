@@ -19,7 +19,7 @@ public class LegacyImportsOpsIntegrationTests
     [ApiFact]
     public async Task ChuaDangNhap_TaoPhienNhap_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync("/api/v1/legacy-imports", new { });
+        var res = await _fx.AnonymousClient().PostAsync("/api/v1/legacy-imports", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -59,7 +59,7 @@ public class LegacyImportsOpsIntegrationTests
     [ApiFact]
     public async Task ChuaDangNhap_XacNhanDongDuLieu_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync($"/api/v1/legacy-imports/items/{Rid}/confirm", new { });
+        var res = await _fx.AnonymousClient().PostAsync($"/api/v1/legacy-imports/items/{Rid}/confirm", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -67,7 +67,7 @@ public class LegacyImportsOpsIntegrationTests
     [ApiFact]
     public async Task ChuaDangNhap_TuChoiDongDuLieu_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync($"/api/v1/legacy-imports/items/{Rid}/reject", new { });
+        var res = await _fx.AnonymousClient().PostAsync($"/api/v1/legacy-imports/items/{Rid}/reject", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -84,7 +84,7 @@ public class LegacyImportsOpsIntegrationTests
     [ApiFact]
     public async Task ThieuQuyen_TaoPhienNhap_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync("/api/v1/legacy-imports", new { });
+        var res = await _fx.ClientNoPermission().PostAsync("/api/v1/legacy-imports", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }
@@ -120,7 +120,7 @@ public class LegacyImportsOpsIntegrationTests
     [ApiFact]
     public async Task ThieuQuyen_XacNhanDongDuLieu_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync($"/api/v1/legacy-imports/items/{Rid}/confirm", new { });
+        var res = await _fx.ClientNoPermission().PostAsync($"/api/v1/legacy-imports/items/{Rid}/confirm", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }
@@ -129,7 +129,7 @@ public class LegacyImportsOpsIntegrationTests
     [ApiFact]
     public async Task ThieuQuyen_TuChoiDongDuLieu_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync($"/api/v1/legacy-imports/items/{Rid}/reject", new { });
+        var res = await _fx.ClientNoPermission().PostAsync($"/api/v1/legacy-imports/items/{Rid}/reject", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }

@@ -238,7 +238,7 @@ public class BhytOpsIntegrationTests
     [ApiFact]
     public async Task ChuaDangNhap_NhapKetQuaGiamDinh_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync("/api/v1/bhyt/reconcile/import", new { });
+        var res = await _fx.AnonymousClient().PostAsync("/api/v1/bhyt/reconcile/import", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -278,7 +278,7 @@ public class BhytOpsIntegrationTests
     [ApiFact]
     public async Task ThieuQuyen_NhapKetQuaGiamDinh_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync("/api/v1/bhyt/reconcile/import", new { });
+        var res = await _fx.ClientNoPermission().PostAsync("/api/v1/bhyt/reconcile/import", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }

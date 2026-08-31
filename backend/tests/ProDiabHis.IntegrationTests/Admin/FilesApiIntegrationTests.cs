@@ -21,7 +21,7 @@ public class FilesApiIntegrationTests
     [ApiFact]
     public async Task AnDanh_TaiTepLen_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync("/api/v1/files/upload", new { });
+        var res = await _fx.AnonymousClient().PostAsync("/api/v1/files/upload", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -77,7 +77,7 @@ public class FilesApiIntegrationTests
     [ApiFact]
     public async Task ThieuQuyen_TaiTepLen_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync("/api/v1/files/upload", new { });
+        var res = await _fx.ClientNoPermission().PostAsync("/api/v1/files/upload", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }

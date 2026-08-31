@@ -33,7 +33,7 @@ public class ClsUploadsApiIntegrationTests
     public async Task TaiLenFileCls_ChuaDangNhap_Tra401()
     {
         var res = await _fx.AnonymousClient()
-            .PostAsJsonAsync($"/api/v1/patients/{Pat}/cls-uploads", new { });
+            .PostAsync($"/api/v1/patients/{Pat}/cls-uploads", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -86,7 +86,7 @@ public class ClsUploadsApiIntegrationTests
     public async Task TaiLenFileCls_ThieuQuyen_Tra403()
     {
         var res = await _fx.ClientNoPermission()
-            .PostAsJsonAsync($"/api/v1/patients/{Pat}/cls-uploads", new { });
+            .PostAsync($"/api/v1/patients/{Pat}/cls-uploads", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }

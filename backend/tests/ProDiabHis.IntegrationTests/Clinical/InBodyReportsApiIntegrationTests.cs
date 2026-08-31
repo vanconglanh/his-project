@@ -21,7 +21,7 @@ public class InBodyReportsApiIntegrationTests
     [ApiFact]
     public async Task TaiLenKetQuaInBody_ChuaDangNhap_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync($"/api/v1/patients/{Pid}/inbody-reports", new { });
+        var res = await _fx.AnonymousClient().PostAsync($"/api/v1/patients/{Pid}/inbody-reports", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -37,7 +37,7 @@ public class InBodyReportsApiIntegrationTests
     [ApiFact]
     public async Task XacNhanKetQuaInBody_ChuaDangNhap_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync($"/api/v1/inbody-reports/{Rid}/confirm", new { });
+        var res = await _fx.AnonymousClient().PostAsync($"/api/v1/inbody-reports/{Rid}/confirm", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -53,7 +53,7 @@ public class InBodyReportsApiIntegrationTests
     [ApiFact]
     public async Task TaiLenKetQuaInBody_ThieuQuyen_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync($"/api/v1/patients/{Pid}/inbody-reports", new { });
+        var res = await _fx.ClientNoPermission().PostAsync($"/api/v1/patients/{Pid}/inbody-reports", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }
@@ -71,7 +71,7 @@ public class InBodyReportsApiIntegrationTests
     [ApiFact]
     public async Task XacNhanKetQuaInBody_ThieuQuyen_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync($"/api/v1/inbody-reports/{Rid}/confirm", new { });
+        var res = await _fx.ClientNoPermission().PostAsync($"/api/v1/inbody-reports/{Rid}/confirm", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }
@@ -89,7 +89,7 @@ public class InBodyReportsApiIntegrationTests
     [ApiFact]
     public async Task XacNhanKetQuaInBody_ChiCoQuyenDoc_Tra403()
     {
-        var res = await _fx.ClientWith("patient.read").PostAsJsonAsync($"/api/v1/inbody-reports/{Rid}/confirm", new { });
+        var res = await _fx.ClientWith("patient.read").PostAsync($"/api/v1/inbody-reports/{Rid}/confirm", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }

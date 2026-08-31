@@ -70,7 +70,7 @@ public class LabResultsApiIntegrationTests
     [ApiFact]
     public async Task OcrDocKetQuaXetNghiem_ChuaDangNhap_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync("/api/v1/lab-results/ocr-extract", new { });
+        var res = await _fx.AnonymousClient().PostAsync("/api/v1/lab-results/ocr-extract", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -86,7 +86,7 @@ public class LabResultsApiIntegrationTests
     [ApiFact]
     public async Task NhapKhauKetQuaXetNghiem_ChuaDangNhap_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync("/api/v1/lab-results/import", new { });
+        var res = await _fx.AnonymousClient().PostAsync("/api/v1/lab-results/import", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -190,7 +190,7 @@ public class LabResultsApiIntegrationTests
     [ApiFact]
     public async Task OcrDocKetQuaXetNghiem_ThieuQuyen_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync("/api/v1/lab-results/ocr-extract", new { });
+        var res = await _fx.ClientNoPermission().PostAsync("/api/v1/lab-results/ocr-extract", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }
@@ -208,7 +208,7 @@ public class LabResultsApiIntegrationTests
     [ApiFact]
     public async Task NhapKhauKetQuaXetNghiem_ThieuQuyen_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync("/api/v1/lab-results/import", new { });
+        var res = await _fx.ClientNoPermission().PostAsync("/api/v1/lab-results/import", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }

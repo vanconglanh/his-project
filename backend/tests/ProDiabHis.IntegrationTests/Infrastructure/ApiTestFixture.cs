@@ -91,6 +91,25 @@ public class ApiTestFixture : IAsyncLifetime
         await using (var db = NewDbContext())
         {
             await db.Database.EnsureCreatedAsync();
+
+            // EnsureCreated chi tao bang co entity EF. Nhieu bang CO THAT trong he thong lai
+            // chi duoc tao boi db/migrations/*.sql (dict, reception queue, package, view legacy...)
+            // va read-side Dapper doc thang vao do -> thieu se 500 "Table doesn't exist".
+            // Ghi chu: KHONG the chay thang db/migrations vi APPLY_ORDER.md ghi nhan chuoi
+            // migration hien CHUA dung duoc DB sach tu so 0 (30/150 file loi SQL that).
+            // Vi vay nap DDL bo sung trich nguyen van tu migrations (xem TestSchemaSupplement).
+            foreach (var stmt in TestSchemaSupplement.Statements)
+            {
+                try
+                {
+                    await db.Database.ExecuteSqlRawAsync(stmt);
+                }
+                catch (Exception ex)
+                {
+                    // Khong lam hong ca test run vi 1 cau DDL — in ra de con truy vet duoc.
+                    Console.WriteLine($"[TestSchemaSupplement] BO QUA cau DDL loi: {ex.Message}");
+                }
+            }
         }
 
         // QUAN TRONG: Program.cs dung minimal hosting (WebApplication.CreateBuilder) va goi

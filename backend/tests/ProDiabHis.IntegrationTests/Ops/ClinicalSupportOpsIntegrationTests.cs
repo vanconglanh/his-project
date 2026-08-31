@@ -147,7 +147,7 @@ public class ClinicalSupportOpsIntegrationTests
     [ApiFact]
     public async Task ChuaDangNhap_TaiTaiLieuThongMinh_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync("/api/v1/documents/smart-upload", new { });
+        var res = await _fx.AnonymousClient().PostAsync("/api/v1/documents/smart-upload", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -155,7 +155,7 @@ public class ClinicalSupportOpsIntegrationTests
     [ApiFact]
     public async Task ThieuQuyen_TaiTaiLieuThongMinh_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync("/api/v1/documents/smart-upload", new { });
+        var res = await _fx.ClientNoPermission().PostAsync("/api/v1/documents/smart-upload", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }

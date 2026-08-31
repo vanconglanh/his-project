@@ -55,7 +55,7 @@ public class RadResultsApiIntegrationTests
     public async Task TaiLenAnhDicom_ChuaDangNhap_Tra401()
     {
         var res = await _fx.AnonymousClient()
-            .PostAsJsonAsync($"/api/v1/rad-results/{Id}/dicom-upload", new { });
+            .PostAsync($"/api/v1/rad-results/{Id}/dicom-upload", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -71,7 +71,7 @@ public class RadResultsApiIntegrationTests
     [ApiFact]
     public async Task OcrDocPhieuKetQuaCdha_ChuaDangNhap_Tra401()
     {
-        var res = await _fx.AnonymousClient().PostAsJsonAsync("/api/v1/rad-results/ocr-extract", new { });
+        var res = await _fx.AnonymousClient().PostAsync("/api/v1/rad-results/ocr-extract", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -134,7 +134,7 @@ public class RadResultsApiIntegrationTests
     public async Task TaiLenAnhDicom_ThieuQuyen_Tra403()
     {
         var res = await _fx.ClientNoPermission()
-            .PostAsJsonAsync($"/api/v1/rad-results/{Id}/dicom-upload", new { });
+            .PostAsync($"/api/v1/rad-results/{Id}/dicom-upload", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }
@@ -152,7 +152,7 @@ public class RadResultsApiIntegrationTests
     [ApiFact]
     public async Task OcrDocPhieuKetQuaCdha_ThieuQuyen_Tra403()
     {
-        var res = await _fx.ClientNoPermission().PostAsJsonAsync("/api/v1/rad-results/ocr-extract", new { });
+        var res = await _fx.ClientNoPermission().PostAsync("/api/v1/rad-results/ocr-extract", TestContent.File());
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }
