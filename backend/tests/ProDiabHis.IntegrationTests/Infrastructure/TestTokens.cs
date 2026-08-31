@@ -26,7 +26,7 @@ public static class TestTokens
     /// </summary>
     public static string ForPermissions(
         int tenantId,
-        int userId,
+        Guid userId,
         IEnumerable<string> permissions,
         int branchId = 1,
         IEnumerable<int>? branchIds = null,
@@ -34,21 +34,21 @@ public static class TestTokens
         => Build(tenantId, userId, permissions, isSuperAdmin: false, branchId, branchIds, crossView);
 
     /// <summary>Token super admin: bypass moi permission check (claim is_super_admin=true).</summary>
-    public static string ForSuperAdmin(int tenantId = 1, int userId = 1, int branchId = 1)
+    public static string ForSuperAdmin(int tenantId = 1, Guid? userId = null, int branchId = 1)
         => Build(tenantId, userId, Array.Empty<string>(), isSuperAdmin: true, branchId, null, crossView: true);
 
     /// <summary>Token hop le ve chu ky nhung KHONG co permission nao — dung test 403.</summary>
-    public static string WithNoPermission(int tenantId = 1, int userId = 999)
+    public static string WithNoPermission(int tenantId = 1, Guid? userId = null)
         => Build(tenantId, userId, Array.Empty<string>(), isSuperAdmin: false, 1, null, false);
 
     /// <summary>Token da het han — dung test 401.</summary>
-    public static string Expired(int tenantId = 1, int userId = 1)
+    public static string Expired(int tenantId = 1, Guid? userId = null)
         => Build(tenantId, userId, new[] { "patient.read" }, false, 1, null, false,
             expires: DateTime.UtcNow.AddMinutes(-5));
 
     private static string Build(
         int tenantId,
-        int userId,
+        Guid? userIdOrNull,
         IEnumerable<string> permissions,
         bool isSuperAdmin,
         int branchId,
@@ -56,6 +56,11 @@ public static class TestTokens
         bool crossView,
         DateTime? expires = null)
     {
+        // QUAN TRONG: User.Id trong Domain la Guid (BaseEntity.Id) nen JwtService that phat
+        // claim sub/user_id dang GUID. Test phai phat dung dinh dang do, neu khong cac controller
+        // co Guid.Parse(User.FindFirst("user_id")) se nem exception -> 500 gia.
+        var userId = userIdOrNull ?? Guid.NewGuid();
+
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),

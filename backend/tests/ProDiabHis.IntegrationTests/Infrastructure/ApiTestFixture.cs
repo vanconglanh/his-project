@@ -54,7 +54,7 @@ public class ApiTestFixture : IAsyncLifetime
 
     /// <summary>Client chi co dung cac permission chi dinh — dung test phan quyen.</summary>
     public HttpClient ClientWith(params string[] permissions)
-        => ClientWithToken(TestTokens.ForPermissions(1, Random.Shared.Next(1000, 900000), permissions));
+        => ClientWithToken(TestTokens.ForPermissions(1, Guid.NewGuid(), permissions));
 
     /// <summary>Client da dang nhap nhung KHONG co quyen nao — ky vong 403.</summary>
     public HttpClient ClientNoPermission()
