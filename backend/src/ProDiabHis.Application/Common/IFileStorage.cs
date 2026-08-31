@@ -45,4 +45,6 @@ public static class FileBuckets
     public const string BhytExports = "bhyt-exports";
     public const string InBodyReports = "inbody-reports";
     public const string LegacyScans = "legacy-scans";
+    public const string LabOcrSources = "lab-ocr-sources";
+    public const string RadOcrSources = "rad-ocr-sources";
 }

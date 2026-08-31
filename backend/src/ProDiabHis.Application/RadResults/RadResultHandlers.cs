@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using MediatR;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Domain.Entities;
@@ -84,12 +84,16 @@ file static class Mapper
         rr.verified_by    AS verified_by,
         rr.dicom_count    AS dicom_count,
         rr.result_pdf_path AS signed_pdf_path,
-        rr.created_at     AS created_at";
+        rr.created_at     AS created_at,
+        rr.source_file_id AS source_file_id,
+        ff.bucket         AS source_bucket,
+        ff.object_key     AS source_object_key";
 
     public const string FromJoin = @"
         FROM diab_his_rad_results rr
         JOIN diab_his_cli_rad_orders ro ON ro.id = rr.order_id
-        LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id";
+        LEFT JOIN diab_his_enc_encounters enc ON enc.id = ro.encounter_id
+        LEFT JOIN fil_files ff ON ff.id = rr.source_file_id";
 }
 
 // ═══════════════════════════════════════════════
@@ -100,9 +104,10 @@ public class ListRadResultsQueryHandler
 {
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
+    private readonly IFileStorage _storage;
 
-    public ListRadResultsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
-    { _db = db; _tenant = tenant; }
+    public ListRadResultsQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IFileStorage storage)
+    { _db = db; _tenant = tenant; _storage = storage; }
 
     public async Task<Result<(IReadOnlyList<RadResultResponse>, int)>> Handle(
         ListRadResultsQuery q, CancellationToken ct)
@@ -126,7 +131,20 @@ public class ListRadResultsQueryHandler
         var rows = await conn.QueryAsync<dynamic>(
             $"SELECT {Mapper.SelectCols} {Mapper.FromJoin} {where} ORDER BY rr.performed_at DESC LIMIT @Limit OFFSET @Offset", p);
 
-        List<RadResultResponse> items = rows.Select(r => (RadResultResponse)Mapper.Map(r)).ToList();
+        // GAP-8: populate signed URL file goc (OCR) tu fil_files bucket+object_key.
+        var items = new List<RadResultResponse>();
+        foreach (var r in rows)
+        {
+            RadResultResponse resp = Mapper.Map(r);
+            string? bucket = (string?)r.source_bucket;
+            string? key    = (string?)r.source_object_key;
+            if (!string.IsNullOrEmpty(bucket) && !string.IsNullOrEmpty(key))
+            {
+                try { resp = resp with { SourceFileUrl = await _storage.GetSignedUrlAsync(bucket, key, 900, ct) }; }
+                catch { }
+            }
+            items.Add(resp);
+        }
         return Result<(IReadOnlyList<RadResultResponse>, int)>.Success((items, total));
     }
 }
@@ -175,11 +193,11 @@ public class CreateRadResultCommandHandler
         await conn.ExecuteAsync(@"
             INSERT INTO diab_his_rad_results
                 (id, tenant_id, order_id, description, impression, conclusion, recommendation,
-                 performed_at, performed_by, status, dicom_count,
+                 performed_at, performed_by, status, dicom_count, source_file_id, ocr_raw_text,
                  created_at, created_by, updated_at)
             VALUES
                 (@Id, @TId, @OId, @Findings, @Impression, @Conclusion, @Recs,
-                 @PerAt, @UserId, 'DRAFT', 0,
+                 @PerAt, @UserId, 'DRAFT', 0, @SourceFileId, @OcrRawText,
                  @Now, @UserId, @Now)",
             new
             {
@@ -187,6 +205,7 @@ public class CreateRadResultCommandHandler
                 OId = req.RadOrderId.ToString(),
                 Findings = req.Findings, Impression = req.Impression,
                 Conclusion = req.Conclusion, Recs = req.Recommendations,
+                SourceFileId = req.SourceFileId?.ToString(), OcrRawText = req.OcrRawText,
                 PerAt = req.PerformedAt, UserId = userId, Now = now
             });
 

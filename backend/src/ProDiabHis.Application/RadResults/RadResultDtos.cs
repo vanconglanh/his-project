@@ -24,7 +24,9 @@ public record RadResultResponse(
     Guid?    VerifiedBy,
     int      DicomCount,
     string?  SignedPdfUrl,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    // GAP-8: signed URL file goc phieu KQ CDHA (OCR). Null neu khong co file.
+    string?  SourceFileUrl = null);
 
 public record RadResultCreateRequest(
     Guid     RadOrderId,
@@ -32,7 +34,10 @@ public record RadResultCreateRequest(
     string?  Impression,
     string   Conclusion,
     string?  Recommendations,
-    DateTime PerformedAt);
+    DateTime PerformedAt,
+    // GAP-8/GAP-2 (OCR): append cuoi de khong pha vo constructor positional cu.
+    Guid?    SourceFileId = null,
+    string?  OcrRawText   = null);
 
 public record RadResultUpdateRequest(
     string?  Findings,

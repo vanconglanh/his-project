@@ -30,6 +30,10 @@ public class LabResult : BaseEntity, ITenantScoped, IBranchScoped
     public string? VerifiedBy { get; set; }
     public string? Note { get; set; }
     public string Source { get; set; } = "MANUAL";
+    /// <summary>GAP-8: id dong fil_files chua file goc phieu KQ XN (OCR). Null neu nhap tay.</summary>
+    public string? SourceFileId { get; set; }
+    /// <summary>GAP-2: gia tri OCR doc duoc goc, luu de doi chieu khi nguoi dung sua tay. Null neu nhap tay.</summary>
+    public string? OcrRawValue { get; set; }
 }
 
 /// <summary>Don vi xet nghiem doi tac. Maps diab_his_int_lab_partners</summary>

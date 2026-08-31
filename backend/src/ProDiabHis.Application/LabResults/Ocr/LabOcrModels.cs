@@ -45,13 +45,18 @@ public record LabOcrExtractFieldDto(
     string?  Value,
     decimal? ValueNumeric,
     string?  Unit,
-    bool     Extracted);
+    bool     Extracted,
+    // GAP-3: co canh bao gia tri ngoai khoang VAT LY KHA DI (chan OCR doc nham dau thap phan).
+    bool     OutOfPlausibleRange = false,
+    string?  PlausibleRangeNote  = null);
 
 public record LabOcrExtractResponse(
     Guid                              EncounterId,
     int                               PendingCount,
     int                               ExtractedCount,
-    IReadOnlyList<LabOcrExtractFieldDto> Fields);
+    IReadOnlyList<LabOcrExtractFieldDto> Fields,
+    // GAP-8: id file goc da luu tren MinIO (fil_files.id). FE giu tam va gui lai o buoc confirm.
+    Guid?    SourceFileId = null);
 
 public record LabOcrConfirmItem(
     Guid     LabOrderItemId,
@@ -59,7 +64,9 @@ public record LabOcrConfirmItem(
     decimal? ValueNumeric,
     string?  Unit,
     string?  Method,
-    bool     Include);
+    bool     Include,
+    // GAP-2: gia tri OCR goc FE gui lai (de luu neu nguoi dung sua khac). Null = nhap tay.
+    string?  OcrRawValue = null);
 
 public record LabOcrConfirmResponse(
     int                       CreatedCount,
@@ -72,5 +79,5 @@ public record ExtractLabResultOcrCommand(Guid EncounterId, Stream FileStream, st
     : IRequest<Result<LabOcrExtractResponse>>;
 
 /// <summary>Xac nhan cac gia tri (da sua tay neu can) -> tao LabResult qua luong CreateLabResult san co.</summary>
-public record ConfirmLabResultOcrCommand(DateTime PerformedAt, IReadOnlyList<LabOcrConfirmItem> Items)
+public record ConfirmLabResultOcrCommand(DateTime PerformedAt, IReadOnlyList<LabOcrConfirmItem> Items, Guid? SourceFileId = null)
     : IRequest<Result<LabOcrConfirmResponse>>;

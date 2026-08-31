@@ -149,7 +149,9 @@ public class RadResultsController : ControllerBase
             body.impression,
             body.conclusion ?? string.Empty,
             body.recommendations,
-            body.performed_at ?? DateTime.UtcNow), ct);
+            body.performed_at ?? DateTime.UtcNow,
+            body.source_file_id,
+            body.ocr_raw_text), ct);
 
         if (!result.IsSuccess)
         {
@@ -170,4 +172,6 @@ public record RadOcrConfirmBody(
     string?   impression,
     string?   conclusion,
     string?   recommendations,
-    DateTime? performed_at);
+    DateTime? performed_at,
+    Guid?     source_file_id = null,
+    string?   ocr_raw_text = null);

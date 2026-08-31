@@ -39,7 +39,9 @@ public record RadOcrExtractResponse(
     string? Conclusion,
     string? Recommendations,
     bool    HasAnyExtracted,
-    string  RawText);
+    string  RawText,
+    // GAP-8: id file goc da luu (fil_files.id). FE giu tam gui lai o confirm.
+    Guid?   SourceFileId = null);
 
 public record RadOcrConfirmResponse(Guid Id, string Status);
 
@@ -55,5 +57,8 @@ public record ConfirmRadResultOcrCommand(
     string?  Impression,
     string   Conclusion,
     string?  Recommendations,
-    DateTime PerformedAt)
+    DateTime PerformedAt,
+    // GAP-8: file goc; GAP-2: text OCR goc (doi chieu voi noi dung confirm).
+    Guid?    SourceFileId = null,
+    string?  OcrRawText   = null)
     : IRequest<Result<RadOcrConfirmResponse>>;

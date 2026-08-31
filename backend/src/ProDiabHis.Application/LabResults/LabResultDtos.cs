@@ -55,7 +55,8 @@ public record LabResultResponse(
     // Them 2 field cuoi (append, khong chen giua) de khong pha vo cac noi goi constructor
     // positional cu.
     string?  PatientName = null,
-    string?  PatientCode = null);
+    string?  PatientCode = null,
+    string?  SourceFileUrl = null);
 
 // ─────────── Request DTOs ───────────
 public record LabResultCreateRequest(
@@ -65,7 +66,9 @@ public record LabResultCreateRequest(
     string?  Unit,
     string?  Method,
     DateTime PerformedAt,
-    string?  Note);
+    string?  Note,
+    Guid?    SourceFileId = null,
+    string?  OcrRawValue  = null);
 
 public record LabResultUpdateRequest(
     string?  Value,

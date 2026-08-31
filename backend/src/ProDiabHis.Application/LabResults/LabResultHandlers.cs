@@ -1,3 +1,4 @@
+using Dapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -6,6 +7,29 @@ using ProDiabHis.Application.Common;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.LabResults;
+
+// Bug A: helper dung chung cho Create + Import -- lay khoang tham chieu (reference_range_low/high)
+// tu danh muc XN diab_his_dict_lab_tests theo test_code (bang global keyed by code).
+file static class LabRefRangeLookup
+{
+    public static async Task<(decimal? Low, decimal? High)> LoadAsync(
+        IDapperConnectionFactory dapper, string? testCode, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(testCode)) return (null, null);
+        try
+        {
+            using var conn = dapper.CreateConnection();
+            var row = await conn.QueryFirstOrDefaultAsync<dynamic>(new CommandDefinition(
+                "SELECT reference_range_low AS Low, reference_range_high AS High FROM diab_his_dict_lab_tests WHERE code=@Code",
+                new { Code = testCode }, cancellationToken: ct));
+            if (row is null) return (null, null);
+            var low  = row.Low  is null ? (decimal?)null : Convert.ToDecimal(row.Low);
+            var high = row.High is null ? (decimal?)null : Convert.ToDecimal(row.High);
+            return (low, high);
+        }
+        catch { return (null, null); }
+    }
+}
 
 // ═══════════════════════════════════════════════
 // COMMANDS / QUERIES
@@ -90,8 +114,13 @@ public class ListLabResultsQueryHandler
     : IRequestHandler<ListLabResultsQuery, Result<(IReadOnlyList<LabResultResponse>, int)>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly IDapperConnectionFactory _dapper;
+    private readonly ITenantProvider _tenant;
+    private readonly IFileStorage _storage;
 
-    public ListLabResultsQueryHandler(IApplicationDbContext db) => _db = db;
+    public ListLabResultsQueryHandler(IApplicationDbContext db, IDapperConnectionFactory dapper,
+        ITenantProvider tenant, IFileStorage storage)
+    { _db = db; _dapper = dapper; _tenant = tenant; _storage = storage; }
 
     public async Task<Result<(IReadOnlyList<LabResultResponse>, int)>> Handle(
         ListLabResultsQuery q, CancellationToken ct)
@@ -125,15 +154,45 @@ public class ListLabResultsQueryHandler
             .Select(p => new { p.Id, p.FullName, p.Code })
             .ToDictionaryAsync(p => p.Id, ct);
 
+        // GAP-8: nap signed URL file goc phieu KQ (OCR) qua fil_files roi tao signed URL cho FE.
+        var fileUrlMap = await BuildSourceFileUrlMapAsync(entities, ct);
+
         var items = entities.Select(e =>
         {
             var resp = Mapper.Map(e);
-            return Guid.TryParse(e.PatientId, out var pg) && patientMap.TryGetValue(pg, out var p)
-                ? resp with { PatientName = p.FullName, PatientCode = p.Code }
-                : resp;
+            if (Guid.TryParse(e.PatientId, out var pg) && patientMap.TryGetValue(pg, out var p))
+                resp = resp with { PatientName = p.FullName, PatientCode = p.Code };
+            if (!string.IsNullOrEmpty(e.SourceFileId) && fileUrlMap.TryGetValue(e.SourceFileId, out var url))
+                resp = resp with { SourceFileUrl = url };
+            return resp;
         }).ToList();
 
         return Result<(IReadOnlyList<LabResultResponse>, int)>.Success((items, total));
+    }
+
+    /// <summary>GAP-8: map source_file_id -> signed URL, join fil_files lay bucket+object_key.</summary>
+    private async Task<Dictionary<string, string>> BuildSourceFileUrlMapAsync(
+        IReadOnlyList<LabResult> entities, CancellationToken ct)
+    {
+        var map = new Dictionary<string, string>();
+        var fileIds = entities.Where(e => !string.IsNullOrEmpty(e.SourceFileId))
+            .Select(e => e.SourceFileId!).Distinct().ToList();
+        if (fileIds.Count == 0) return map;
+        try
+        {
+            using var conn = _dapper.CreateConnection();
+            var rows = await conn.QueryAsync<dynamic>(new CommandDefinition(
+                "SELECT id, bucket, object_key FROM fil_files WHERE tenant_id=@TenantId AND id IN @Ids AND deleted_at IS NULL",
+                new { TenantId = _tenant.TenantId, Ids = fileIds }, cancellationToken: ct));
+            foreach (var r in rows)
+            {
+                var id = (string?)r.id; var bucket = (string?)r.bucket; var key = (string?)r.object_key;
+                if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(bucket) || string.IsNullOrEmpty(key)) continue;
+                try { map[id] = await _storage.GetSignedUrlAsync(bucket, key, 900, ct); } catch { }
+            }
+        }
+        catch { }
+        return map;
     }
 }
 
@@ -149,11 +208,12 @@ public class CreateLabResultCommandHandler
     private readonly IAuditService _audit;
     private readonly ILabResultFlagCalculator _flagCalc;
     private readonly ProDiabHis.Application.CLS.IClsPaymentGate _gate;
+    private readonly IDapperConnectionFactory _dapper;
 
     public CreateLabResultCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
         ICurrentUser user, IAuditService audit, ILabResultFlagCalculator flagCalc,
-        ProDiabHis.Application.CLS.IClsPaymentGate gate)
-    { _db = db; _tenant = tenant; _user = user; _audit = audit; _flagCalc = flagCalc; _gate = gate; }
+        ProDiabHis.Application.CLS.IClsPaymentGate gate, IDapperConnectionFactory dapper)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; _flagCalc = flagCalc; _gate = gate; _dapper = dapper; }
 
     public async Task<Result<LabResultResponse>> Handle(CreateLabResultCommand cmd, CancellationToken ct)
     {
@@ -178,8 +238,10 @@ public class CreateLabResultCommandHandler
         var patientId   = encounter?.PatientId ?? string.Empty;
         var encounterId = labOrder.EncounterId;
 
-        // Basic flag calculation (no dict lookup for simplicity)
-        var flag = _flagCalc.Calculate(req.ValueNumeric, null, null);
+        // Bug A fix: truoc day luon (null,null) -> flag LUON NORMAL. Lay khoang tham chieu tu
+        // danh muc XN theo test_code roi tinh flag dung + luu vao entity.
+        var (refLow, refHigh) = await LabRefRangeLookup.LoadAsync(_dapper, labOrder.TestCode, ct);
+        var flag = _flagCalc.Calculate(req.ValueNumeric, refLow, refHigh);
 
         var entity = new LabResult
         {
@@ -194,6 +256,8 @@ public class CreateLabResultCommandHandler
             Value         = req.Value,
             ValueNumeric  = req.ValueNumeric,
             Unit          = req.Unit,
+            ReferenceRangeLow  = refLow,
+            ReferenceRangeHigh = refHigh,
             Flag          = flag,
             Method        = req.Method,
             PerformedAt   = req.PerformedAt,
@@ -201,6 +265,8 @@ public class CreateLabResultCommandHandler
             Status        = LabResultStatus.Draft,
             Source        = LabResultSource.Manual,
             Note          = req.Note,
+            SourceFileId  = req.SourceFileId?.ToString(),
+            OcrRawValue   = req.OcrRawValue,
             CreatedBy     = _user.UserId,
         };
 
@@ -355,11 +421,12 @@ public class ImportLabResultsCommandHandler
     private readonly IHl7v25Parser _hl7Parser;
     private readonly ILabResultFlagCalculator _flagCalc;
     private readonly ILogger<ImportLabResultsCommandHandler> _logger;
+    private readonly IDapperConnectionFactory _dapper;
 
     public ImportLabResultsCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
         ICurrentUser user, IHl7v25Parser hl7Parser, ILabResultFlagCalculator flagCalc,
-        ILogger<ImportLabResultsCommandHandler> logger)
-    { _db = db; _tenant = tenant; _user = user; _hl7Parser = hl7Parser; _flagCalc = flagCalc; _logger = logger; }
+        ILogger<ImportLabResultsCommandHandler> logger, IDapperConnectionFactory dapper)
+    { _db = db; _tenant = tenant; _user = user; _hl7Parser = hl7Parser; _flagCalc = flagCalc; _logger = logger; _dapper = dapper; }
 
     public async Task<Result<ImportLabResultsResponse>> Handle(ImportLabResultsCommand cmd, CancellationToken ct)
     {
@@ -384,6 +451,8 @@ public class ImportLabResultsCommandHandler
 
         var errors  = new List<ImportErrorItem>();
         var success = 0;
+        // Bug A: cache khoang tham chieu theo test_code (truoc day null,null -> flag LUON NORMAL).
+        var refRangeCache = new Dictionary<string, (decimal? Low, decimal? High)>(StringComparer.OrdinalIgnoreCase);
 
         for (int i = 0; i < rows.Count; i++)
         {
@@ -408,7 +477,13 @@ public class ImportLabResultsCommandHandler
                 var encounter = await _db.Encounters
                     .FirstOrDefaultAsync(e => e.Id.ToString() == order.EncounterId, ct);
 
-                var flag   = _flagCalc.Calculate(valNum, null, null);
+                // Bug A: join danh muc XN lay khoang tham chieu theo testCode roi tinh flag dung.
+                if (!refRangeCache.TryGetValue(testCode, out var range))
+                {
+                    range = await LabRefRangeLookup.LoadAsync(_dapper, testCode, ct);
+                    refRangeCache[testCode] = range;
+                }
+                var flag = _flagCalc.Calculate(valNum, range.Low, range.High);
 
                 // P1-03: import file thu cong (khong phai ket noi may XN da ky) -> PerformedBy
                 // luon la nguoi import (_user.UserId). Neu cho phep AutoVerify o day thi
@@ -430,6 +505,8 @@ public class ImportLabResultsCommandHandler
                     Value        = value,
                     ValueNumeric = valNum,
                     Unit         = unit,
+                    ReferenceRangeLow  = range.Low,
+                    ReferenceRangeHigh = range.High,
                     Flag         = flag,
                     PerformedAt  = performedAt,
                     PerformedBy  = _user.UserId?.ToString(),

@@ -34,6 +34,8 @@ public class LabResultConfiguration : IEntityTypeConfiguration<LabResult>
         builder.Property(e => e.VerifiedBy).HasColumnName("verified_by").HasMaxLength(36);
         builder.Property(e => e.Note).HasColumnName("note").HasColumnType("TEXT");
         builder.Property(e => e.Source).HasColumnName("source").HasMaxLength(20).HasDefaultValue("MANUAL");
+        builder.Property(e => e.SourceFileId).HasColumnName("source_file_id").HasMaxLength(36);
+        builder.Property(e => e.OcrRawValue).HasColumnName("ocr_raw_value").HasMaxLength(255);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");

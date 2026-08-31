@@ -156,7 +156,8 @@ public class LabResultsController : ControllerBase
         var result = await _mediator.Send(
             new ConfirmLabResultOcrCommand(
                 body.performed_at ?? DateTime.UtcNow,
-                body.items ?? new List<LabOcrConfirmItem>()), ct);
+                body.items ?? new List<LabOcrConfirmItem>(),
+                body.source_file_id), ct);
 
         if (!result.IsSuccess)
             return BadRequest(Error(result.ErrorCode!, result.ErrorMessage!));
@@ -241,4 +242,4 @@ public class LabResultsController : ControllerBase
 
 public record BatchVerifyBody(IReadOnlyList<Guid> ResultIds);
 
-public record LabOcrConfirmBody(DateTime? performed_at, List<LabOcrConfirmItem>? items);
+public record LabOcrConfirmBody(DateTime? performed_at, List<LabOcrConfirmItem>? items, Guid? source_file_id = null);
