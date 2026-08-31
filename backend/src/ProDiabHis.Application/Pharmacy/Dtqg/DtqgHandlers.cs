@@ -138,11 +138,14 @@ public class GetDtqgStatusHandler : IRequestHandler<GetDtqgStatusQuery, Result<D
         var tenantId = _currentUser.TenantId!.Value;
         var (branchId, ignoreBranch) = BranchSql.Params(_branch);
 
-        var presId = await conn.ExecuteScalarAsync<int?>(
+        // FIX BUG-06/UTC-RX-05: cot ID cua pha_prescriptions luu GUID dang CHAR(36) (MySqlConnector GuidFormat=None -> tra ve string),
+        // dung ExecuteScalarAsync<int?> khien Dapper Convert.ToInt32 chuoi GUID -> FormatException -> HTTP 500.
+        // Doc dung kieu string? theo tien le da dung o cac handler khac (vd dong 385, DispensingHandlers:277).
+        var presId = await conn.ExecuteScalarAsync<string?>(
             $"SELECT ID FROM pha_prescriptions WHERE ID = @id AND tenant_id = @tenantId AND deleted_at IS NULL AND {BranchSql.Condition("")}",
             new { id = q.PrescriptionId.ToString(), tenantId, branchId, ignoreBranch });
 
-        if (!presId.HasValue)
+        if (string.IsNullOrEmpty(presId))
             return Result<DtqgSubmissionResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
 
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
