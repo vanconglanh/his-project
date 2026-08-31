@@ -9,7 +9,9 @@
 SET NAMES utf8mb4;
 
 -- Đổi patient_id từ INT sang CHAR(36) để khớp pat_patients.id UUID
+-- FIX: proc chua co DELIMITER -> dau ; trong BEGIN...END lam vo cau lenh (loi 1064).
 DROP PROCEDURE IF EXISTS fix_patient_id_type;
+DELIMITER $$
 CREATE PROCEDURE fix_patient_id_type()
 BEGIN
     DECLARE col_type VARCHAR(100);
@@ -22,9 +24,10 @@ BEGIN
     IF col_type = 'int' THEN
         ALTER TABLE `diab_his_rcp_queue_tickets`
             MODIFY COLUMN `patient_id` CHAR(36) NOT NULL
-            COMMENT 'FK → pat_patients.id (UUID CHAR(36))';
+            COMMENT 'FK -> pat_patients.id (UUID CHAR(36))';
     END IF;
-END;
+END$$
+DELIMITER ;
 CALL fix_patient_id_type();
 DROP PROCEDURE IF EXISTS fix_patient_id_type;
 
@@ -37,6 +40,19 @@ ALTER TABLE `diab_his_rcp_queue_tickets`
     CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 -- Cập nhật index sau khi đổi type (idempotent)
-ALTER TABLE `diab_his_rcp_queue_tickets`
-    DROP INDEX IF EXISTS `idx_rcp_ticket_patient`,
-    ADD INDEX `idx_rcp_ticket_patient` (`tenant_id`, `patient_id`);
+-- FIX: MySQL 8 khong ho tro DROP INDEX IF EXISTS trong ALTER TABLE.
+--   Dung proc drop-neu-ton-tai roi add_index_if_missing.
+DROP PROCEDURE IF EXISTS drop_idx_if_exists;
+DELIMITER $$
+CREATE PROCEDURE drop_idx_if_exists(IN p_tbl VARCHAR(64), IN p_idx VARCHAR(64))
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.STATISTICS
+               WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_tbl AND INDEX_NAME = p_idx) THEN
+        SET @__ddl = CONCAT('ALTER TABLE `', p_tbl, '` DROP INDEX `', p_idx, '`');
+        PREPARE __s FROM @__ddl; EXECUTE __s; DEALLOCATE PREPARE __s;
+    END IF;
+END$$
+DELIMITER ;
+CALL drop_idx_if_exists('diab_his_rcp_queue_tickets', 'idx_rcp_ticket_patient');
+DROP PROCEDURE IF EXISTS drop_idx_if_exists;
+CALL add_index_if_missing('diab_his_rcp_queue_tickets', 'idx_rcp_ticket_patient', '(`tenant_id`, `patient_id`)');

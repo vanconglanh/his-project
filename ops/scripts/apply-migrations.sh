@@ -13,18 +13,6 @@ DB_NAME=${DB_NAME:-prodiab_his}
 DUMP_DIR="/db"
 MIGRATION_DIR="/db/migrations"
 
-# --- Danh sach migration bo qua (local test only) ---
-# Cach dung: SKIP_MIGRATIONS="0021_seed_permissions.sql,9022_fix_legacy_perm_views.sql" (phan cach dau phay)
-# Chi dung cho moi truong test local, KHONG dung cho staging/prod.
-IFS=',' read -ra SKIP_LIST <<< "${SKIP_MIGRATIONS:-}"
-should_skip() {
-    local base="$1"
-    for s in "${SKIP_LIST[@]}"; do
-        [ -n "$s" ] && [ "$s" = "$base" ] && return 0
-    done
-    return 1
-}
-
 # --- Ham kiem tra MySQL san sang ---
 wait_mysql() {
     echo "[migrator] Doi MySQL san sang tai $DB_HOST..."
@@ -56,9 +44,10 @@ if [ "$TABLE_COUNT" -eq 0 ]; then
     if [ -e "${DUMP_FILES[0]}" ]; then
         for f in "${DUMP_FILES[@]}"; do
             echo "[migrator]   Applying dump: $(basename "$f")"
-            # Bo dong SET @@GLOBAL.GTID_PURGED - moi file dump goc chua dong nay,
-            # ap nhieu file lien tiep se bi loi 3546 (GTID_PURGED khong duoc overlap GTID_EXECUTED)
-            grep -v '^SET @@GLOBAL.GTID_PURGED' "$f" | mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" \
+            # Loc bo dong SET @@GLOBAL.GTID_PURGED: server co gtid_mode=OFF se loi khi gap dong nay.
+            # KHONG sua file dump goc (read-only) — chi loc luc nap.
+            grep -v 'SET @@GLOBAL.GTID_PURGED' "$f" | \
+            mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" \
                 --default-character-set=utf8mb4 \
                 "$DB_NAME"
         done
@@ -75,31 +64,12 @@ if [ -d "$MIGRATION_DIR" ]; then
     MIGRATION_FILES=("$MIGRATION_DIR"/*.sql)
     if [ -e "${MIGRATION_FILES[0]}" ]; then
         echo "[migrator] Bat dau apply migrations..."
-        FAILED_MIGRATIONS=()
         for f in $(ls "$MIGRATION_DIR"/*.sql | sort); do
-            base="$(basename "$f")"
-            if should_skip "$base"; then
-                echo "[migrator]   SKIP (SKIP_MIGRATIONS): $base"
-                continue
-            fi
-            echo "[migrator]   Applying migration: $base"
-            set +e
+            echo "[migrator]   Applying migration: $(basename "$f")"
             mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" \
                 --default-character-set=utf8mb4 \
                 "$DB_NAME" < "$f"
-            rc=$?
-            set -e
-            if [ $rc -ne 0 ]; then
-                echo "[migrator]   *** LOI (khong chan): $base (exit $rc) ***"
-                FAILED_MIGRATIONS+=("$base")
-            fi
         done
-        if [ ${#FAILED_MIGRATIONS[@]} -gt 0 ]; then
-            echo "[migrator] ============================================"
-            echo "[migrator] CAC MIGRATION LOI (da bo qua, KHONG chan tien trinh):"
-            for m in "${FAILED_MIGRATIONS[@]}"; do echo "[migrator]   - $m"; done
-            echo "[migrator] ============================================"
-        fi
         echo "[migrator] Tat ca migrations da duoc apply."
     else
         echo "[migrator] Khong co file migration nao trong $MIGRATION_DIR"

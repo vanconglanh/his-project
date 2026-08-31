@@ -4,37 +4,22 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ─── 1. diab_his_int_dtqg_submissions: them cac cot thieu ─────────────────────
-DROP PROCEDURE IF EXISTS _add_col;
-CREATE PROCEDURE _add_col(tbl VARCHAR(200), col VARCHAR(100), def TEXT)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = tbl AND COLUMN_NAME = col
-  ) THEN
-    SET @sql = CONCAT('ALTER TABLE `', tbl, '` ADD COLUMN `', col, '` ', def);
-    PREPARE stmt FROM @sql;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-  END IF;
-END;
-
-CALL _add_col('diab_his_int_dtqg_submissions', 'ma_don_thuoc',   'VARCHAR(50) NULL');
-CALL _add_col('diab_his_int_dtqg_submissions', 'qr_payload',     'TEXT NULL');
-CALL _add_col('diab_his_int_dtqg_submissions', 'error_code',     'VARCHAR(50) NULL');
-CALL _add_col('diab_his_int_dtqg_submissions', 'error_message',  'TEXT NULL');
-CALL _add_col('diab_his_int_dtqg_submissions', 'accepted_at',    'DATETIME NULL');
-CALL _add_col('diab_his_int_dtqg_submissions', 'submitted_at',   'DATETIME NULL');
-CALL _add_col('diab_his_int_dtqg_submissions', 'retry_count',    'INT NOT NULL DEFAULT 0');
-CALL _add_col('diab_his_int_dtqg_submissions', 'last_retry_at',  'DATETIME NULL');
-CALL _add_col('diab_his_int_dtqg_submissions', 'deleted_at',     'DATETIME NULL');
+-- FIX: proc inline cu thieu DELIMITER -> loi cu phap. Dung helper add_col_if_missing (0000_helpers.sql).
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'ma_don_thuoc',   'VARCHAR(50) NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'qr_payload',     'TEXT NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'error_code',     'VARCHAR(50) NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'error_message',  'TEXT NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'accepted_at',    'DATETIME NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'submitted_at',   'DATETIME NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'retry_count',    'INT NOT NULL DEFAULT 0');
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'last_retry_at',  'DATETIME NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_submissions', 'deleted_at',     'DATETIME NULL');
 
 -- ─── 2. diab_his_int_dtqg_credentials: them cac cot thieu ────────────────────
-CALL _add_col('diab_his_int_dtqg_credentials', 'partner_code',   'VARCHAR(50) NULL');
-CALL _add_col('diab_his_int_dtqg_credentials', 'last_tested_at', 'DATETIME NULL');
-CALL _add_col('diab_his_int_dtqg_credentials', 'last_test_ok',   'TINYINT(1) NOT NULL DEFAULT 0');
-CALL _add_col('diab_his_int_dtqg_credentials', 'deleted_at',     'DATETIME NULL');
-
-DROP PROCEDURE IF EXISTS _add_col;
+CALL add_col_if_missing('diab_his_int_dtqg_credentials', 'partner_code',   'VARCHAR(50) NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_credentials', 'last_tested_at', 'DATETIME NULL');
+CALL add_col_if_missing('diab_his_int_dtqg_credentials', 'last_test_ok',   'TINYINT(1) NOT NULL DEFAULT 0');
+CALL add_col_if_missing('diab_his_int_dtqg_credentials', 'deleted_at',     'DATETIME NULL');
 
 -- ─── 3. Tao bang diab_his_api_partners neu chua co ───────────────────────────
 CREATE TABLE IF NOT EXISTS diab_his_api_partners (

@@ -1,54 +1,68 @@
 ﻿# Apply Order — DB Migrations Pro-Diab HIS
 
-## ⚠️ TRẠNG THÁI THẬT (kiểm chứng 2026-08-20 trên MySQL 8.0 sạch, Docker)
+---
 
-**Dựng DB mới từ số 0 HIỆN CHƯA chạy sạch được.** Đã build MySQL 8 tạm (Docker), nạp 64 file
-`db/diab_his_*.sql` (base dump, 0 lỗi, 64 bảng), rồi apply tuần tự 150 file `db/migrations/*.sql`
-theo thứ tự tên file — kết quả: **30/150 file lỗi SQL thật** (không phải suy đoán, đã chạy thật
-và log lại nguyên văn lỗi). Danh sách 30 file kèm nguyên nhân: xem `README.md` mục "Trạng thái
-migration chain".
+## TRẠNG THÁI CHAIN (cập nhật 2026-08-31)
 
-Nguyên nhân gốc chính (đã xác nhận bằng cách so cột/bảng thật trong MySQL, không đoán):
+> **DỰNG DB SẠCH TỪ SỐ 0: THÀNH CÔNG — 141/141 migration, 0 lỗi.**
+> Verify thật bằng container MySQL 8.0.36 mới hoàn toàn (fresh volume): nạp 64 file base dump
+> (đã xử lý bẫy `GTID_PURGED`) + apply toàn bộ 141 file `migrations/*.sql` theo thứ tự tên.
+> Bằng chứng: `docs/qc/evidence-full-coverage-fixes-20260831/viec3-migration/`
+> (`before/summary.log` = 30 FAIL, `after/` và `final-fresh-volume/summary.log` = **OK=141 FAIL=0**).
+> => App KHÔNG cần EF `EnsureCreated()` nữa; chain tự dựng đủ schema.
 
-1. **Bảng base dump dùng cột UPPERCASE kiểu cũ** (`ID`, `PATIENT_ID`, `PRESCRIBING_PROVIDER_ID`,
-   `PRESCRIPTION_DATE`, `PRESCRIPTION_STATUS`...) nhưng nhiều migration dải 0018-0067 lại
-   `ALTER`/`INSERT`/`INDEX` vào cột **lowercase kiểu mới** (`doctor_id`, `prescribed_at`,
-   `status`, `resource`, `module`, `is_active`...) chưa từng tồn tại trên bảng base dump thật.
-   Ví dụ xác nhận: `pha_prescriptions` base dump KHÔNG có cột `doctor_id`/`prescribed_at`
-   (0035, 0058 lỗi vì lý do này).
-2. **`9000_drop_legacy.sql` DROP toàn bộ bảng legacy không-prefix** (bao gồm cả những bảng mà
-   migration 0018-0066 seed permission còn tham chiếu tới bảng MỚI `diab_his_sec_*` — bảng này
-   chỉ được `CREATE` ở `9001_create_sec_all.sql`, tức là SAU 0018-0066 theo thứ tự tên file).
-   Vì `add_col_if_missing`/`INSERT` không kiểm tra bảng có tồn tại trước khi ALTER/INSERT, các
-   migration 0018/0021/0024/0030/0034/0039/0044/0047/0052/0054/0057/0060/0066 lỗi
-   `Table 'diab_his_sec_permissions' doesn't exist` / cột không tồn tại vì chạy TRƯỚC khi bảng
-   đích được tạo ở dải 9001+.
-3. `9011_create_missing_tables.sql` tạo `VIEW diab_his_int_bhyt_exports` nhưng bảng cùng tên đã
-   tồn tại (không phải VIEW) → lỗi 1347 "is not VIEW".
-4. Một số file dùng cú pháp MySQL không hợp lệ: `CREATE INDEX IF NOT EXISTS` /
-   `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` (MySQL 8.0 không hỗ trợ) — đã sửa cú pháp ở
-   `0058_perf_indexes.sql` sang stored procedure `add_index_if_missing`, nhưng file vẫn lỗi vì
-   lý do (1) ở trên (cột đích không tồn tại) — cần backend/architect xác nhận tên cột đúng
-   trước khi sửa tiếp, KHÔNG tự đoán thêm cột mới vào bảng production.
+### Bối cảnh nợ kỹ thuật (4 nhóm nguyên nhân gốc)
+Chain có 2 thế hệ: **lớp 00xx** (pre-Clean-Slate, thao tác trên bảng short-name của base dump)
+và **lớp 90xx** (canonical). `9000_drop_legacy` XÓA mọi bảng không có prefix `diab_his_`
+(trừ `hangfire_*`), rồi `9001-9006` tái tạo schema canonical. Vì vậy phần lớn thao tác 00xx
+trên bảng short-name bị hủy ở 9000 — chỉ cần KHÔNG lỗi. 30 file lỗi thuộc 4 nhóm:
+1. Cột UPPERCASE base dump vs lowercase migration (vd `RESOURCE_TYPE`/`VISIT_ID` vs `resource`/`encounter_id`).
+2. `9000_drop_legacy` xóa bảng còn được lớp 00xx tham chiếu; seed 00xx chạy trước khi bảng canonical tồn tại.
+3. VIEW trùng tên BASE TABLE (`CREATE OR REPLACE VIEW` trên tên đã là bảng thật → lỗi 1347).
+4. Cú pháp `ADD COLUMN/INDEX IF NOT EXISTS`, `CREATE [UNIQUE] INDEX IF NOT EXISTS`,
+   `DROP INDEX IF EXISTS` trong ALTER, và stored proc thiếu `DELIMITER` — không hợp lệ trên MySQL 8.
 
-**Các file 0035, 0036, 0045, 0056, 0059 cũng dùng cú pháp `ADD COLUMN/INDEX IF NOT EXISTS`
-không hợp lệ VÀ tham chiếu cột chưa rõ nguồn gốc — CHƯA sửa vì rủi ro đoán sai tên cột trên
-bảng production đang có dữ liệu thật. Cần agent backend/architect xác nhận trước.**
+### Nhóm (a) — đã SỬA (an toàn, ít rủi ro)
+**Helper mới trong `0000_helpers.sql`:** `add_unique_index_if_missing`, `create_alias_view_if_no_table`.
 
-### ⚠️ Bẫy khi nạp base schema — GTID_PURGED
+| File | Lỗi gốc | Cách sửa |
+|---|---|---|
+| `0005_vital_signs_multi_record` | index `encounter_id` không tồn tại (base dùng `VISIT_ID`) | Đổi index sang `VISIT_ID` |
+| `0018_seed_master_data` | 1136 column-count (hàng DIEUDUONG thiếu 1 giá trị) | Bổ sung `CAN_IMPERSONATE=0`. **Cascade:** tạo được `dict_drug_units`/`dict_icd10` → sửa luôn 9065/9067 |
+| `0028_seed_icd10` | (regression sau khi sửa 0018) thiếu cột `is_billable` | `add_col_if_missing(is_billable)` trước INSERT |
+| `0029_create_diabetes_history` | cột `default_values` không tồn tại (bảng tạo bởi 0015 khác schema) | `add_col_if_missing` cho default_values/checklist/is_system |
+| `0032_lab_rad_results` | TEXT không được default literal | `DEFAULT ('')` (biểu thức) |
+| `0035_create_prescription_extensions` | `CREATE INDEX IF NOT EXISTS` | `add_index_if_missing`; thêm `note` (khớp schema 9005) |
+| `0036_drug_master_extensions` | `CREATE UNIQUE INDEX IF NOT EXISTS` | `add_unique_index_if_missing` + `add_index_if_missing` |
+| `0045_bhyt_export_extensions` | `ADD COLUMN IF NOT EXISTS` | `add_col_if_missing` + `add_index_if_missing` (bỏ AFTER) |
+| `0048_create_appointments_extensions` | 1060 duplicate `source_partner_id` | `add_col_if_missing` + `add_index_if_missing` |
+| `0056_audit_log_extensions` | `ADD COLUMN/INDEX IF NOT EXISTS` | helper |
+| `0059_fhir_extensions` | `ADD COLUMN/INDEX IF NOT EXISTS` gộp | tách thành helper calls |
+| `0062_fix_queue_tickets_patient_id_type` | proc thiếu `DELIMITER` + `DROP INDEX IF EXISTS` trong ALTER | thêm `DELIMITER`; proc drop-if-exists + `add_index_if_missing` |
+| `9011_create_missing_tables` | 1347 `CREATE OR REPLACE VIEW` trên tên đã là bảng | `create_alias_view_if_no_table` (guard) |
+| `9014_fix_dtqg_apipartners_schema` | inline proc thiếu `DELIMITER` | dùng `add_col_if_missing` |
+| `9020_seed_rich_demo` | `user_id` chưa có (thêm ở 9030); `appointment_date/time` không tồn tại | `add_col_if_missing(user_id)`; đổi sang `appointment_at` (gộp ngày+giờ) |
 
-File `db/diab_his_*.sql` (dump mysqldump gốc) có dòng:
-```sql
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '0cde9779-...';
-```
-Dòng này gây lỗi **1840 / 3546** khi nạp tuần tự nhiều file dump vào cùng 1 server MySQL 8
-(GTID_PURGED chỉ set được khi GTID set rỗng — lần nạp file thứ 2 trở đi sẽ lỗi). **Phải loại
-bỏ dòng này trước khi nạp**, ví dụ:
-```bash
-sed '/SET @@GLOBAL.GTID_PURGED/d' db/diab_his_xxx.sql > /tmp/f.sql
-mysql -u root -p diab_his < /tmp/f.sql
-```
-README trước đây không đề cập bẫy này — đã bổ sung.
+### Nhóm (a-superseded) — VÔ HIỆU HÓA có chủ đích (no-op, đã VERIFY thay thế đầy đủ)
+Các file seed thế hệ cũ, target sai bảng/cột và ĐÃ được lớp 90xx seed đầy đủ vào bảng canonical
+`diab_his_sec_permissions`. Verify trên DB sạch: **180 permissions + 296 role-permission mappings**,
+bao gồm mọi mã quyền các file này định seed (đã kiểm `billing.print`, `cashier.print_receipt`,
+`dtqg.submit`, `patient.read`, `prescription.create`, ...). Nội dung cũ được thay bằng `SELECT 'no-op'`.
+
+- Permission seeds: `0021`, `0024`, `0030`, `0034`, `0039`, `0044`, `0047`, `0052`, `0054`, `0057`, `0060`, `0066`
+  (nguồn thay thế: `9066_seed_all_gated_permissions`, `9054/9063/9064_seed_*_permissions`).
+- `0058_perf_indexes`: index trên bảng short-name legacy (cột không tồn tại) → thay bởi `9016`/`9021` trên bảng canonical.
+- `0063_seed_pharmacy_stock`: demo tồn kho vào bảng short-name (bị 9000 xóa) → demo đã seed canonical ở `9020_seed_rich_demo`.
+
+### Nhóm (b) — CÒN LẠI, KHÔNG sửa liều (không phải lỗi chain; là khoảng trống chức năng)
+Chain chạy 0 lỗi. Không còn file nào lỗi. Duy nhất 1 điểm cần lưu ý về CHỨC NĂNG (không gây lỗi apply):
+
+- **`fhir_id` trên bảng canonical:** `0059_fhir_extensions` chỉ thêm `fhir_id` cho các bảng short-name
+  (`pat_patients`, `cli_visits`, `cli_lab_results`, `pha_prescriptions`) — vốn bị `9000_drop_legacy` xóa,
+  nên các bảng canonical `diab_his_*` tương ứng KHÔNG có `fhir_id`. Migration vẫn hợp lệ (0 lỗi).
+  **Chưa sửa vì:** cần xác định chắc bảng/khóa canonical cho từng resource FHIR và có thể cần thêm cột
+  vào bảng production — thuộc phạm vi thiết kế FHIR mapper, rủi ro nếu đoán. Đề xuất: tạo file `90xx_fhir_ids`
+  chạy SAU `9002/9003/9004/9005` để thêm `fhir_id` vào bảng canonical khi triển khai FHIR R4.
 
 ---
 

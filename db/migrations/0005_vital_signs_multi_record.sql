@@ -21,6 +21,9 @@ CALL add_col_if_missing('cli_vital_signs', 'recorded_by',
 CALL add_col_if_missing('cli_vital_signs', 'record_sequence',
     'INT NOT NULL DEFAULT 1 COMMENT \'Thứ tự ghi nhận trong cùng 1 encounter (1=lần đầu)\'');
 
--- Index hỗ trợ truy vấn lịch sử DHST theo encounter, mới nhất trước
-CALL add_index_if_missing('cli_vital_signs', 'idx_vs_encounter_recorded',
-    '(encounter_id, recorded_at DESC)');
+-- Index hỗ trợ truy vấn lịch sử DHST theo lượt khám, mới nhất trước
+-- Ghi chú: schema base dùng cột VISIT_ID (không có encounter_id) làm FK -> cli_visits.
+--   Bảng short-name cli_vital_signs sẽ bị 9000_drop_legacy xóa và tái tạo ở lớp 90xx;
+--   index này chỉ có ý nghĩa với schema legacy, dùng đúng tên cột VISIT_ID để hợp lệ.
+CALL add_index_if_missing('cli_vital_signs', 'idx_vs_visit_recorded',
+    '(VISIT_ID, recorded_at DESC)');

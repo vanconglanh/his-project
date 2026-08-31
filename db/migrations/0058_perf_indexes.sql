@@ -1,19 +1,18 @@
--- Migration 0058: Performance Indexes
+-- Migration 0058: Performance Indexes (LEGACY — VÔ HIỆU HÓA)
 -- Sprint 12 EPIC 10 Hardening
--- MySQL 8 — missing composite indexes for hot query paths
--- FIX (2026-08-20, devops): MySQL 8.0 KHONG ho tro CREATE INDEX IF NOT EXISTS
---   (bao gio cung throw ERROR 1064 - loi cu phap). Chuyen sang stored procedure
---   add_index_if_missing() dinh nghia trong 0000_helpers.sql de idempotent an toan.
---   Khong doi ten/cot index, khong DROP gi ca -> an toan voi DB da co du lieu.
-
-CALL add_index_if_missing('cli_visits', 'idx_cli_visits_tenant_status_time',
-    '(`tenant_id`, `status`, `started_at` DESC)');
-
-CALL add_index_if_missing('bil_billing', 'idx_bil_billing_tenant_status_time',
-    '(`tenant_id`, `status`, `created_at` DESC)');
-
-CALL add_index_if_missing('pha_prescriptions', 'idx_pha_presc_tenant_doctor_time',
-    '(`tenant_id`, `doctor_id`, `prescribed_at` DESC)');
-
-CALL add_index_if_missing('sec_audit_logs', 'idx_audit_tenant_time',
-    '(`tenant_id`, `created_at` DESC)');
+-- ============================================================
+-- FIX (2026-08-31): File gốc tạo index trên các bảng short-name legacy
+--   (cli_visits, bil_billing, pha_prescriptions, sec_audit_logs) và tham chiếu
+--   các cột KHÔNG tồn tại trong schema base (started_at, doctor_id, prescribed_at)
+--   -> lỗi 1064/1072. Ngoài ra các bảng này bị 9000_drop_legacy XÓA và tái tạo ở
+--   lớp 90xx dưới tên diab_his_*, nên mọi index tạo ở đây đều bị hủy theo.
+--
+--   Các perf index tương đương đã được tạo trên bảng CANONICAL diab_his_* bởi:
+--     - 9016_perf_indexes.sql  (diab_his_lab_results, sys_tenants, sec_audit_logs)
+--     - 9021_perf_indexes_v2.sql (diab_his_bil_billing, services, cashier_shifts...)
+--     - 9058_perf_indexes (nếu có)
+--
+--   => File này được để trống có chủ đích (no-op) để giữ nguyên thứ tự apply,
+--      tránh lỗi và tránh trùng lặp. KHÔNG khôi phục nội dung cũ.
+-- ============================================================
+SELECT 'Migration 0058 la no-op: perf index da chuyen sang 9016/9021 tren bang canonical' AS note;

@@ -1,31 +1,5 @@
--- Sprint 10 / EPIC 8: Permissions seed
--- MySQL 8
-
-INSERT IGNORE INTO sec_permissions (code, description) VALUES
-    ('api_partner.read',      'Xem danh sách và thống kê đối tác API'),
-    ('api_partner.write',     'Tạo / cập nhật / xóa đối tác API'),
-    ('api_partner.admin',     'Tạo lại API key, test call đối tác'),
-    ('notification.read',     'Xem hộp thư thông báo, đăng ký web push'),
-    ('notification.admin',    'Quản trị thông báo toàn tenant'),
-    ('vapid.admin',           'Quản lý VAPID key của tenant');
-
--- ADMIN role: api_partner.* + notification.* + vapid.admin
-INSERT IGNORE INTO sec_role_permissions (role_code, permission_code)
-SELECT r.code, p.code
-FROM sec_roles r
-CROSS JOIN sec_permissions p
-WHERE r.code = 'ADMIN'
-  AND p.code IN ('api_partner.read','api_partner.write','api_partner.admin',
-                 'notification.read','notification.admin','vapid.admin');
-
--- KeToan role: api_partner.read only
-INSERT IGNORE INTO sec_role_permissions (role_code, permission_code)
-SELECT r.code, 'api_partner.read'
-FROM sec_roles r
-WHERE r.code = 'KeToan';
-
--- All internal roles: notification.read
-INSERT IGNORE INTO sec_role_permissions (role_code, permission_code)
-SELECT r.code, 'notification.read'
-FROM sec_roles r
-WHERE r.code IN ('BacSi','LeTan','DuocSi','KeToan','KyThuatVien');
+-- Migration: 0052_seed_permissions_sprint10 (LEGACY — VÔ HIỆU HÓA)
+-- FIX (2026-08-31): Seed permission thế hệ cũ dùng cột `role_code` không tồn tại -> lỗi 1054.
+--   Đã superseded bởi lớp 90xx seed vào bảng canonical diab_his_sec_permissions.
+--   Verify: 180 permissions + 296 mappings. Để no-op. Xem APPLY_ORDER.md.
+SELECT '0052_seed_permissions_sprint10: no-op (superseded by 90xx)' AS note;

@@ -84,6 +84,13 @@ CREATE TABLE IF NOT EXISTS diab_his_cli_diabetes_templates (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Diabetes assessment form templates';
 
+-- FIX: bang diab_his_cli_diabetes_templates co the da duoc tao truoc do (0015) voi bo cot khac
+--   (template_json/is_default) -> INSERT dung default_values/checklist/is_system se loi 1054.
+--   Bo sung cac cot con thieu (idempotent) truoc khi seed.
+CALL add_col_if_missing('diab_his_cli_diabetes_templates', 'default_values', 'JSON NULL COMMENT \'Gia tri mac dinh cua mau danh gia\'');
+CALL add_col_if_missing('diab_his_cli_diabetes_templates', 'checklist',      'JSON NULL COMMENT \'Danh sach hang muc can danh gia\'');
+CALL add_col_if_missing('diab_his_cli_diabetes_templates', 'is_system',      'TINYINT(1) NOT NULL DEFAULT 0 COMMENT \'La mau he thong\'');
+
 -- Seed 1 system template
 INSERT IGNORE INTO diab_his_cli_diabetes_templates
     (id, tenant_id, name, default_values, checklist, is_system, created_at, updated_at)

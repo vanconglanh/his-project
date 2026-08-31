@@ -1,15 +1,6 @@
--- Migration 0054: Seed permissions for Sprint 11 Reports/Dashboard
--- MySQL 8 compatible
-
-INSERT IGNORE INTO sec_permissions (id, code, description, created_at, updated_at)
-VALUES
-    (UUID(), 'report.read',    'Xem báo cáo thống kê', NOW(), NOW()),
-    (UUID(), 'report.export',  'Xuất báo cáo (Excel/PDF)', NOW(), NOW()),
-    (UUID(), 'dashboard.read', 'Xem dashboard tổng quan', NOW(), NOW());
-
--- Role mapping: KETOAN, ADMIN, BACSI
-INSERT IGNORE INTO sec_role_permissions (id, role_id, permission_id, created_at)
-SELECT UUID(), r.id, p.id, NOW()
-FROM sec_roles r
-JOIN sec_permissions p ON p.code IN ('report.read', 'report.export', 'dashboard.read')
-WHERE r.code IN ('KETOAN', 'ADMIN', 'BACSI');
+-- Migration: 0054_seed_permissions_sprint11 (LEGACY — VÔ HIỆU HÓA)
+-- FIX (2026-08-31): Seed permission thế hệ cũ dùng cột `updated_at` không tồn tại trên bảng
+--   permission (diab_his_sec_permissions chỉ có created_at) -> lỗi 1054.
+--   Đã superseded bởi lớp 90xx seed vào bảng canonical. Verify: 180 permissions + 296 mappings.
+--   Để no-op. Xem APPLY_ORDER.md.
+SELECT '0054_seed_permissions_sprint11: no-op (superseded by 90xx)' AS note;

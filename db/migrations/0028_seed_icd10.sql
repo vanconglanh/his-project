@@ -39,6 +39,10 @@ DELIMITER ;
 CALL _add_ft_icd10();
 DROP PROCEDURE IF EXISTS _add_ft_icd10;
 
+-- FIX (2026-08-31): dam bao cot is_billable ton tai (bang co the da duoc tao boi 0018
+--   voi bo cot khac) truoc khi INSERT -> tranh loi 1054.
+CALL add_col_if_missing('diab_his_dict_icd10', 'is_billable', 'TINYINT(1) NOT NULL DEFAULT 1 COMMENT \'Ma co the dung de thanh toan BHYT\'');
+
 -- Seed E10-E14 + 50 ma pho bien VN
 INSERT IGNORE INTO diab_his_dict_icd10 (code, name_vi, name_en, category, parent_code, is_billable) VALUES
 -- Đái tháo đường

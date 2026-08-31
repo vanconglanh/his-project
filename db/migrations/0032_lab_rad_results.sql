@@ -98,9 +98,10 @@ CREATE TABLE IF NOT EXISTS `cli_rad_results` (
   COMMENT='Ket qua chan doan hinh anh (CDHA)';
 
 -- ADD cols neu bang cu da ton tai
-CALL add_col_if_missing('cli_rad_results', 'findings',          'TEXT NOT NULL DEFAULT \'\'');
+-- MySQL 8: cột TEXT không được dùng default literal, phải dùng default biểu thức DEFAULT ('')
+CALL add_col_if_missing('cli_rad_results', 'findings',          'TEXT NOT NULL DEFAULT (\'\')');
 CALL add_col_if_missing('cli_rad_results', 'impression',        'TEXT NULL');
-CALL add_col_if_missing('cli_rad_results', 'conclusion',        'TEXT NOT NULL DEFAULT \'\'');
+CALL add_col_if_missing('cli_rad_results', 'conclusion',        'TEXT NOT NULL DEFAULT (\'\')');
 CALL add_col_if_missing('cli_rad_results', 'recommendations',   'TEXT NULL');
 CALL add_col_if_missing('cli_rad_results', 'dicom_count',       'INT NOT NULL DEFAULT 0');
 CALL add_col_if_missing('cli_rad_results', 'signed_pdf_path',   'VARCHAR(512) NULL');

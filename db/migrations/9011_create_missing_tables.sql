@@ -170,12 +170,15 @@ CREATE TABLE IF NOT EXISTS `diab_his_sys_feature_flags` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- BHYT int alias views
-CREATE OR REPLACE VIEW diab_his_int_bhyt_exports           AS SELECT * FROM diab_his_bhyt_exports;
-CREATE OR REPLACE VIEW diab_his_int_bhyt_export_items      AS SELECT * FROM diab_his_bhyt_export_items;
-CREATE OR REPLACE VIEW diab_his_int_bhyt_reconcile_items   AS SELECT * FROM diab_his_bhyt_reconcile_items;
-CREATE OR REPLACE VIEW diab_his_int_bhyt_reconcile_uploads AS SELECT * FROM diab_his_bhyt_reconcile_uploads;
+-- FIX: cac ten diab_his_int_bhyt_* / diab_his_fil_cls_uploads da ton tai duoi dang
+--   BASE TABLE that (tao boi 0012/0006...), nen CREATE OR REPLACE VIEW se loi 1347
+--   "is not VIEW". Chi tao alias view khi dich CHUA phai bang thuc -> dung helper guard.
+CALL create_alias_view_if_no_table('diab_his_int_bhyt_exports',           'diab_his_bhyt_exports');
+CALL create_alias_view_if_no_table('diab_his_int_bhyt_export_items',      'diab_his_bhyt_export_items');
+CALL create_alias_view_if_no_table('diab_his_int_bhyt_reconcile_items',   'diab_his_bhyt_reconcile_items');
+CALL create_alias_view_if_no_table('diab_his_int_bhyt_reconcile_uploads', 'diab_his_bhyt_reconcile_uploads');
 
 -- CLS uploads alias
-CREATE OR REPLACE VIEW diab_his_fil_cls_uploads AS SELECT * FROM diab_his_cls_uploads;
+CALL create_alias_view_if_no_table('diab_his_fil_cls_uploads', 'diab_his_cls_uploads');
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -28,8 +28,12 @@ VALUES
      'HOSPITAL', 1, 0, 30,  'NONE',    0, 0, 0, 0, 0, 2, 480, 'STANDARD', 1),
     ('KYTHUATVIEN',  'Kỹ thuật viên',     'Thực hiện xét nghiệm, CĐHA',
      'HOSPITAL', 1, 0, 25,  'PARTIAL', 0, 0, 0, 0, 1, 2, 480, 'STANDARD', 1),
+    -- FIX: hang nay truoc day thieu 1 gia tri (16/17 cot) -> loi 1136. Bo sung CAN_IMPERSONATE=0.
+    -- Thu tu cot: ROLE_TYPE, IS_SYSTEM_ROLE, IS_DEFAULT_ROLE, PRIORITY_LEVEL, PHI_ACCESS_LEVEL,
+    --   REQUIRES_MFA, APPROVAL_REQUIRED, CAN_DELEGATE, CAN_IMPERSONATE, AUDIT_ALL_ACTIONS,
+    --   SESSION_CONCURRENT_LIMIT, MAX_SESSION_TIME, PASSWORD_POLICY, STATUS
     ('DIEUDUONG',    'Điều dưỡng',        'Đo DHST, hỗ trợ bác sĩ, quản lý hồ sơ điều dưỡng',
-     'HOSPITAL', 1, 0, 30,  'PARTIAL', 0, 0, 0, 1, 2, 480, 'STANDARD', 1)
+     'HOSPITAL', 1, 0, 30,  'PARTIAL', 0, 0, 0, 0, 1, 2, 480, 'STANDARD', 1)
 ON DUPLICATE KEY UPDATE
     `NAME`        = VALUES(`NAME`),
     `DESCRIPTION` = VALUES(`DESCRIPTION`),

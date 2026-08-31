@@ -32,9 +32,9 @@ CALL add_col_if_missing('pha_prescriptions', 'total_amount',
 CALL add_col_if_missing('pha_prescriptions', 'note',
     "TEXT NULL COMMENT 'Ghi chu don thuoc'");
 
--- Index for status queries
-CREATE INDEX IF NOT EXISTS `idx_pha_pres_tenant_status` ON `pha_prescriptions` (`tenant_id`, `status`);
-CREATE INDEX IF NOT EXISTS `idx_pha_pres_dtqg_code` ON `pha_prescriptions` (`dtqg_code`);
+-- Index for status queries (MySQL 8 không hỗ trợ CREATE INDEX IF NOT EXISTS -> dùng helper)
+CALL add_index_if_missing('pha_prescriptions', 'idx_pha_pres_tenant_status', '(`tenant_id`, `status`)');
+CALL add_index_if_missing('pha_prescriptions', 'idx_pha_pres_dtqg_code', '(`dtqg_code`)');
 
 -- ============================================================
 -- Prescription items (thuoc trong don)
@@ -66,6 +66,10 @@ CREATE TABLE IF NOT EXISTS `diab_his_pha_prescription_items` (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci
   COMMENT='Chi tiet thuoc trong don ke don';
+
+-- FIX (2026-08-31): schema chinh thuc (9005_create_pharmacy.sql) dung cot `note` cho ghi chu
+--   dung thuoc (khong phai `instructions`). Bo sung `note` de tuong thich voi seed 9008/app.
+CALL add_col_if_missing('diab_his_pha_prescription_items', 'note', "TEXT NULL COMMENT 'Ghi chu / huong dan dung thuoc'");
 
 -- ============================================================
 -- Drug-Drug Interaction rules

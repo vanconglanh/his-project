@@ -59,9 +59,9 @@ CREATE TABLE IF NOT EXISTS `diab_his_pha_drug_categories` (
   COLLATE=utf8mb4_0900_ai_ci
   COMMENT='Nhom thuoc (ATC / custom)';
 
--- Unique index on (tenant_id, code) for drug_master
-CREATE UNIQUE INDEX IF NOT EXISTS `uk_drug_master_tenant_code` ON `pha_drug_master` (`tenant_id`, `CODE`);
+-- Unique index on (tenant_id, code) for drug_master (MySQL 8 -> dùng helper)
+CALL add_unique_index_if_missing('pha_drug_master', 'uk_drug_master_tenant_code', '(`tenant_id`, `CODE`)');
 
 -- Index for ATC code lookups (equivalents)
-CREATE INDEX IF NOT EXISTS `idx_drug_master_atc` ON `pha_drug_master` (`atc_code`);
-CREATE INDEX IF NOT EXISTS `idx_drug_master_status` ON `pha_drug_master` (`tenant_id`, `status`);
+CALL add_index_if_missing('pha_drug_master', 'idx_drug_master_atc', '(`atc_code`)');
+CALL add_index_if_missing('pha_drug_master', 'idx_drug_master_status', '(`tenant_id`, `status`)');
