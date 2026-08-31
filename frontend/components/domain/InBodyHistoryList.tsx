@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, ExternalLink, FileText } from "lucide-react";
+import { Activity, ExternalLink, FileText, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useInBodyReports } from "@/lib/hooks/use-inbody-reports";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useInBodyReports, useCancelInBodyReport } from "@/lib/hooks/use-inbody-reports";
 import { formatDateTime } from "@/lib/utils/format";
 import { InBodyImportPanel } from "@/components/domain/InBodyImportPanel";
 import {
@@ -15,7 +17,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { InBodyExtractionStatus, InBodyIndicatorType } from "@/lib/api/inbody-reports";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogFooter,
+} from "@/components/ui/alert-dialog";
+import type { InBodyExtractionStatus, InBodyIndicatorType, InBodyReportResponse } from "@/lib/api/inbody-reports";
 
 const STATUS_LABEL: Record<InBodyExtractionStatus, string> = {
   pending: "Chờ xác nhận",
@@ -50,7 +61,23 @@ interface InBodyHistoryListProps {
 export function InBodyHistoryList({ patientId }: InBodyHistoryListProps) {
   const { data, isLoading } = useInBodyReports(patientId);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<InBodyReportResponse | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const cancelMutation = useCancelInBodyReport(patientId);
   const reports = data?.data ?? [];
+
+  const handleCancelConfirm = () => {
+    if (!cancelTarget) return;
+    cancelMutation.mutate(
+      { id: cancelTarget.id, reason: cancelReason.trim() || undefined },
+      {
+        onSuccess: () => {
+          setCancelTarget(null);
+          setCancelReason("");
+        },
+      }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -99,16 +126,27 @@ export function InBodyHistoryList({ patientId }: InBodyHistoryListProps) {
                     {STATUS_LABEL[r.extraction_status]}
                   </Badge>
                 </div>
-                {r.file_url && (
-                  <a
-                    href={r.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary flex items-center gap-1 hover:underline"
+                <div className="flex items-center gap-3">
+                  {r.file_url && (
+                    <a
+                      href={r.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary flex items-center gap-1 hover:underline"
+                    >
+                      Xem file gốc <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                    onClick={() => setCancelTarget(r)}
                   >
-                    Xem file gốc <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
+                    <Ban className="h-3.5 w-3.5 mr-1" />
+                    Huỷ
+                  </Button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {r.fields
@@ -123,6 +161,34 @@ export function InBodyHistoryList({ patientId }: InBodyHistoryListProps) {
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={(open) => !open && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Huỷ báo cáo InBody nhập nhầm?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <Label htmlFor="inbody-cancel-reason">Lý do huỷ (không bắt buộc)</Label>
+            <Textarea
+              id="inbody-cancel-reason"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Vd: nhập nhầm bệnh nhân, đo lại..."
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelReason("")}>Đóng</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelConfirm}
+              disabled={cancelMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelMutation.isPending ? "Đang huỷ..." : "Huỷ báo cáo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

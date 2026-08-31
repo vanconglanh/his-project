@@ -6,6 +6,7 @@ import {
   uploadInBodyReport,
   listInBodyReports,
   confirmInBodyReport,
+  cancelInBodyReport,
   type ConfirmInBodyFieldItem,
 } from "@/lib/api/inbody-reports";
 import { vitalKeys } from "@/lib/hooks/use-vital-signs";
@@ -63,5 +64,18 @@ export function useConfirmInBodyReport(patientId: string, encounterId?: string) 
       toast.success("Đã lưu kết quả InBody vào hồ sơ");
     },
     onError: (e) => toast.error(getErrorMessage(e, "Lưu kết quả InBody thất bại")),
+  });
+}
+
+// GAP-1: huy bao cao InBody nhap nham.
+export function useCancelInBodyReport(patientId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => cancelInBodyReport(id, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inbodyKeys.list(patientId) });
+      toast.success("Đã huỷ báo cáo InBody");
+    },
+    onError: (e) => toast.error(getErrorMessage(e, "Huỷ báo cáo InBody thất bại")),
   });
 }

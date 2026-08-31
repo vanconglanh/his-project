@@ -23,6 +23,9 @@ export interface InBodyFieldDto {
   value: number | null;
   unit: string | null;
   extracted: boolean;
+  /** GAP-3: gia tri OCR nam ngoai khoang hop ly (vd PBF 80%) — can canh bao do truoc khi luu. */
+  out_of_plausible_range?: boolean;
+  plausible_range_note?: string | null;
 }
 
 export interface InBodyReportResponse {
@@ -88,4 +91,9 @@ export async function confirmInBodyReport(
     body
   );
   return data.data;
+}
+
+// GAP-1: huy bao cao InBody nhap nham (soft delete) — ly do khong bat buoc.
+export async function cancelInBodyReport(id: string, reason?: string): Promise<void> {
+  await apiClient.delete(`/inbody-reports/${id}`, { data: { reason: reason || null } });
 }

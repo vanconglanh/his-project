@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { AlertTriangle, FileUp, Upload, X } from "lucide-react";
+import { AlertTriangle, FileUp, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,7 +42,13 @@ interface EditableField {
   unit: string;
   extracted: boolean;
   include: boolean;
+  // GAP-3: canh bao gia tri bat thuong ngoai khoang hop ly (vd PBF 80%).
+  out_of_plausible_range: boolean;
+  plausible_range_note: string | null;
 }
+
+const DEFAULT_RANGE_WARNING_NOTE =
+  "Giá trị nằm ngoài khoảng thông thường, vui lòng kiểm tra lại";
 
 function toEditable(fields: InBodyFieldDto[]): EditableField[] {
   const byType = new Map(fields.map((f) => [f.indicator_type, f]));
@@ -57,6 +63,8 @@ function toEditable(fields: InBodyFieldDto[]): EditableField[] {
       // BMI: backend co tinh KHONG luu rieng (tinh lai tu can nang + chieu cao) -> khong tich mac dinh,
       // checkbox se bi disable ben duoi de tranh gay hieu nham cho dieu duong.
       include: type === "BMI" ? false : f?.extracted ?? false,
+      out_of_plausible_range: f?.out_of_plausible_range ?? false,
+      plausible_range_note: f?.plausible_range_note ?? null,
     };
   });
 }
@@ -71,6 +79,8 @@ export function InBodyImportPanel({ patientId, encounterId, onSaved }: InBodyImp
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [report, setReport] = useState<InBodyReportResponse | null>(null);
   const [fields, setFields] = useState<EditableField[]>([]);
+  // GAP-3: nguoi dung phai tich xac nhan da kiem tra cac gia tri bi canh bao do truoc khi duoc luu.
+  const [abnormalAck, setAbnormalAck] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadMutation = useUploadInBodyReport(patientId);
@@ -88,6 +98,7 @@ export function InBodyImportPanel({ patientId, encounterId, onSaved }: InBodyImp
       setReport(result);
       setFields(toEditable(result.fields));
       setPendingFile(null);
+      setAbnormalAck(false);
     } catch {
       // Loi da duoc xu ly qua onError cua uploadMutation (hien toast) — chan unhandled rejection.
     }
@@ -101,6 +112,9 @@ export function InBodyImportPanel({ patientId, encounterId, onSaved }: InBodyImp
 
   const weightField = fields.find((f) => f.indicator_type === "WEIGHT_KG");
   const weightMissingEncounter = !encounterId && !!weightField?.include && weightField.value !== "";
+
+  // GAP-3: chi chan nut khi field canh bao do DANG duoc chon de luu (include).
+  const hasPendingAbnormal = fields.some((f) => f.include && f.out_of_plausible_range);
 
   const handleConfirm = async () => {
     if (!report) return;
@@ -173,12 +187,28 @@ export function InBodyImportPanel({ patientId, encounterId, onSaved }: InBodyImp
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <Button size="sm" onClick={handleUpload} disabled={uploadMutation.isPending}>
+                {uploadMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
+                )}
                 {uploadMutation.isPending ? "Đang đọc..." : "Tải lên & đọc"}
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPendingFile(null)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPendingFile(null)}
+                disabled={uploadMutation.isPending}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
+          </div>
+        )}
+
+        {uploadMutation.isPending && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            Đang đọc nội dung tài liệu, vui lòng đợi...
           </div>
         )}
       </div>
@@ -215,59 +245,93 @@ export function InBodyImportPanel({ patientId, encounterId, onSaved }: InBodyImp
         </div>
         {fields.map((f) => {
           const meta = INDICATOR_LABELS[f.indicator_type];
+          const showWarning = f.out_of_plausible_range;
           return (
-            <div key={f.indicator_type} className="grid grid-cols-[1fr_120px_90px_70px] gap-2 px-3 py-2 items-center">
-              <div className="text-sm">
-                {meta.label}
-                {meta.unit && <span className="text-xs text-muted-foreground"> ({meta.unit})</span>}
-              </div>
-              <Input
-                type="number"
-                step="0.1"
-                className="h-8"
-                value={f.value}
-                aria-label={`Giá trị ${meta.label}`}
-                onChange={(e) => updateField(f.indicator_type, { value: e.target.value })}
-              />
-              {f.extracted ? (
-                <span className="text-xs text-emerald-600 font-medium">Đọc được</span>
-              ) : (
-                <span className="text-xs text-amber-600 font-medium">Chưa đọc được</span>
-              )}
-              <div className="flex justify-center">
-                {f.indicator_type === "BMI" ? (
-                  <Tooltip>
-                    <TooltipTrigger className="cursor-not-allowed">
-                      <Checkbox
-                        checked={false}
-                        aria-label={`Lưu chỉ số ${meta.label}`}
-                        disabled
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      BMI được tính tự động từ cân nặng và chiều cao, không cần xác nhận riêng
-                    </TooltipContent>
-                  </Tooltip>
+            <div
+              key={f.indicator_type}
+              className={
+                showWarning
+                  ? "px-3 py-2 space-y-1.5 bg-destructive/10"
+                  : "px-3 py-2 space-y-1.5"
+              }
+            >
+              <div className="grid grid-cols-[1fr_120px_90px_70px] gap-2 items-center">
+                <div className="text-sm flex items-center gap-1.5">
+                  {showWarning && (
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" aria-hidden="true" />
+                  )}
+                  {meta.label}
+                  {meta.unit && <span className="text-xs text-muted-foreground"> ({meta.unit})</span>}
+                </div>
+                <Input
+                  type="number"
+                  step="0.1"
+                  className={showWarning ? "h-8 border-destructive focus-visible:ring-destructive" : "h-8"}
+                  value={f.value}
+                  aria-label={`Giá trị ${meta.label}`}
+                  aria-invalid={showWarning}
+                  onChange={(e) => updateField(f.indicator_type, { value: e.target.value })}
+                />
+                {f.extracted ? (
+                  <span className="text-xs text-emerald-600 font-medium">Đọc được</span>
                 ) : (
-                  <Checkbox
-                    checked={f.include}
-                    aria-label={`Lưu chỉ số ${meta.label}`}
-                    onCheckedChange={(v) => updateField(f.indicator_type, { include: !!v })}
-                    disabled={f.value === ""}
-                  />
+                  <span className="text-xs text-amber-600 font-medium">Chưa đọc được</span>
                 )}
+                <div className="flex justify-center">
+                  {f.indicator_type === "BMI" ? (
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-not-allowed">
+                        <Checkbox
+                          checked={false}
+                          aria-label={`Lưu chỉ số ${meta.label}`}
+                          disabled
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        BMI được tính tự động từ cân nặng và chiều cao, không cần xác nhận riêng
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Checkbox
+                      checked={f.include}
+                      aria-label={`Lưu chỉ số ${meta.label}`}
+                      onCheckedChange={(v) => updateField(f.indicator_type, { include: !!v })}
+                      disabled={f.value === ""}
+                    />
+                  )}
+                </div>
               </div>
+              {showWarning && (
+                <p className="text-xs text-destructive pl-5">
+                  {f.plausible_range_note || DEFAULT_RANGE_WARNING_NOTE}
+                </p>
+              )}
             </div>
           );
         })}
       </div>
 
+      {hasPendingAbnormal && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3">
+          <Checkbox
+            id="inbody-abnormal-ack"
+            checked={abnormalAck}
+            onCheckedChange={(v) => setAbnormalAck(!!v)}
+            aria-label="Tôi đã kiểm tra và xác nhận các giá trị được cảnh báo là đúng"
+          />
+          <label htmlFor="inbody-abnormal-ack" className="text-sm text-destructive leading-snug cursor-pointer">
+            Tôi đã kiểm tra và xác nhận các giá trị được cảnh báo là đúng
+          </label>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Button
           onClick={handleConfirm}
-          disabled={confirmMutation.isPending}
+          disabled={confirmMutation.isPending || (hasPendingAbnormal && !abnormalAck)}
           className="min-h-[44px]"
         >
+          {confirmMutation.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />}
           {confirmMutation.isPending ? "Đang lưu..." : "Xác nhận & Lưu"}
         </Button>
         <Button
