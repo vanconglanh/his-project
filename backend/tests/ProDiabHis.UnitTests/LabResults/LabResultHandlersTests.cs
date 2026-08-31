@@ -49,7 +49,8 @@ public class LabResultHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new ListLabResultsQueryHandler(db);
+        var handler = new ListLabResultsQueryHandler(db,
+            Substitute.For<IDapperConnectionFactory>(), _tenant, Substitute.For<IFileStorage>());
         var result = await handler.Handle(
             new ListLabResultsQuery(null, null, null, null, null, null, null, 1, 20),
             CancellationToken.None);
