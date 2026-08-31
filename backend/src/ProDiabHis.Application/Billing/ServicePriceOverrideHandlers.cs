@@ -86,6 +86,26 @@ public class UpdateServicePriceOverrideValidator : AbstractValidator<UpdateServi
     }
 }
 
+// BUG-04: lop boc cap Command — thieu 2 lop nay thi 2 validator tren KHONG BAO GIO chay
+// (da chung minh: tao duoc override gia -999.999d, 201). Chan gia <= 0 lot qua.
+public class CreateServicePriceOverrideCommandValidator : AbstractValidator<CreateServicePriceOverrideCommand>
+{
+    public CreateServicePriceOverrideCommandValidator()
+    {
+        RuleFor(x => x.Request).NotNull().WithMessage("Thiếu dữ liệu giá override")
+            .SetValidator(new CreateServicePriceOverrideValidator());
+    }
+}
+
+public class UpdateServicePriceOverrideCommandValidator : AbstractValidator<UpdateServicePriceOverrideCommand>
+{
+    public UpdateServicePriceOverrideCommandValidator()
+    {
+        RuleFor(x => x.Request).NotNull().WithMessage("Thiếu dữ liệu giá override")
+            .SetValidator(new UpdateServicePriceOverrideValidator());
+    }
+}
+
 // ---- Mapper ----
 
 internal static class ServicePriceOverrideMapper

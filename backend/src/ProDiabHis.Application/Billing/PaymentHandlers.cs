@@ -34,9 +34,22 @@ public class CreatePaymentValidator : AbstractValidator<CreatePaymentRequest>
 {
     public CreatePaymentValidator()
     {
-        RuleFor(x => x.BillingId).NotEmpty();
-        RuleFor(x => x.Amount).GreaterThan(0);
-        RuleFor(x => x.Method).NotEmpty();
+        RuleFor(x => x.BillingId).NotEmpty().WithMessage("Thiếu mã hóa đơn");
+        RuleFor(x => x.Amount).GreaterThan(0).WithMessage("Số tiền thanh toán phải lớn hơn 0");
+        RuleFor(x => x.Method).NotEmpty().WithMessage("Thiếu phương thức thanh toán");
+    }
+}
+
+// BUG-04: validator tren khai bao cho CreatePaymentRequest, nhung MediatR pipeline resolve
+// IValidator<CreatePaymentCommand> -> KHONG khop -> validator KHONG BAO GIO chay (so tien 0/am/vuot
+// deu lot qua). Phai co lop bocap Command bang RuleFor(x => x.Request).SetValidator(...) nhu Patient/
+// Appointment. (Kiem tra chan lop loi nay bang ValidatorWrappingArchitectureTests.)
+public class CreatePaymentCommandValidator : AbstractValidator<CreatePaymentCommand>
+{
+    public CreatePaymentCommandValidator()
+    {
+        RuleFor(x => x.Request).NotNull().WithMessage("Thiếu dữ liệu thanh toán")
+            .SetValidator(new CreatePaymentValidator());
     }
 }
 
@@ -87,6 +100,14 @@ public class CreatePaymentHandler : IRequestHandler<CreatePaymentCommand, Result
             return Result<PaymentResponse>.Failure("BILLING_NOT_FOUND", "Khong tim thay hoa don");
         if (billing.Status == BillingStatus.Void)
             return Result<PaymentResponse>.Failure("PAYMENT_AMOUNT_INVALID", "Hoa don da huy");
+
+        // BUG-04: chan so tien VUOT so con phai thu (vd 999.999.999d) -> tranh hoa don PaidAmount
+        // vuot xa, balance am. Hoan tien di theo duong RefundPayment (co quyen payment.refund rieng),
+        // KHONG cho amount am/0 lot qua o day (validator cap Command da chan >0; day chan tran vuot).
+        var remainingDue = billing.PatientPayable - billing.PaidAmount;
+        if (req.Amount > remainingDue)
+            return Result<PaymentResponse>.Failure("PAYMENT_AMOUNT_EXCEEDS_BALANCE",
+                $"Số tiền thanh toán ({req.Amount:N0}đ) vượt quá số còn phải thu ({remainingDue:N0}đ)");
 
         // Auto-attach cashier shift
         Guid? shiftId = null;

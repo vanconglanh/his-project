@@ -89,6 +89,25 @@ public class UpdateDrugPriceOverrideValidator : AbstractValidator<UpdateDrugPric
     }
 }
 
+// BUG-04: lop boc cap Command — thieu 2 lop nay thi 2 validator tren KHONG BAO GIO chay.
+public class CreateDrugPriceOverrideCommandValidator : AbstractValidator<CreateDrugPriceOverrideCommand>
+{
+    public CreateDrugPriceOverrideCommandValidator()
+    {
+        RuleFor(x => x.Request).NotNull().WithMessage("Thiếu dữ liệu giá override")
+            .SetValidator(new CreateDrugPriceOverrideValidator());
+    }
+}
+
+public class UpdateDrugPriceOverrideCommandValidator : AbstractValidator<UpdateDrugPriceOverrideCommand>
+{
+    public UpdateDrugPriceOverrideCommandValidator()
+    {
+        RuleFor(x => x.Request).NotNull().WithMessage("Thiếu dữ liệu giá override")
+            .SetValidator(new UpdateDrugPriceOverrideValidator());
+    }
+}
+
 // ---- Mapper ----
 
 internal static class DrugPriceOverrideMapper
