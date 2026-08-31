@@ -135,6 +135,20 @@ LDL-C                     3.90         mmol/L      < 3.4
         Assert.Equal(7.2m, Val(result, "GLU"));
     }
 
+    [Fact]
+    public void Parse_SuffixedCode_GLU_F_FallsBackToBaseAlias()
+    {
+        // FIX UTC-CLS-15/BUG: ma XN "GLU_F" (glucose luc doi) khong co trong CodeAliases.
+        // Phieu ghi "Glucose (duong huyet) 7.2" -> truoc day khong doc duoc (extracted=false).
+        // Sau fix: tach tien to "GLU" -> lay alias "glucose"/"duong huyet" -> doc duoc.
+        const string text = "Ten xet nghiem     Ket qua\nGlucose (duong huyet)    7.2   mmol/L\n";
+        var result = LabResultOcrParser.Parse(text, new[] { Pending("GLU_F", "Glucose mau luc doi") });
+
+        var field = result.Fields.First(f => f.TestCode == "GLU_F");
+        Assert.True(field.Extracted);
+        Assert.Equal(7.2m, field.ValueNumeric);
+    }
+
     private static decimal? Val(LabOcrParseResult r, string code) =>
         r.Fields.First(f => f.TestCode == code).ValueNumeric;
 

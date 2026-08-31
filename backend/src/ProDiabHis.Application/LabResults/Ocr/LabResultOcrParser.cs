@@ -123,8 +123,24 @@ public static class LabResultOcrParser
     {
         var candidates = new List<string>();
 
-        if (!string.IsNullOrWhiteSpace(t.TestCode) && CodeAliases.TryGetValue(t.TestCode.Trim(), out var aliases))
-            candidates.AddRange(aliases);
+        if (!string.IsNullOrWhiteSpace(t.TestCode))
+        {
+            var code = t.TestCode.Trim();
+            if (CodeAliases.TryGetValue(code, out var aliases))
+                candidates.AddRange(aliases);
+
+            // FIX BUG CLS-15/UTC-CLS-15: nhieu ma XN co hau to phan biet thoi diem/mau
+            // (vd GLU_F = glucose luc doi, GLU_PP = sau an, CHOL_TP...). Ma goc "GLU_F" khong co trong
+            // CodeAliases nen truoc day khong lay duoc alias "glucose" -> phieu ghi "Glucose (duong huyet) 7.2"
+            // bi bo sot. Tach phan tien to truoc dau '_' / '-' de tra alias theo ma goc.
+            var sepIdx = code.IndexOfAny(new[] { '_', '-' });
+            if (sepIdx > 0)
+            {
+                var baseCode = code.Substring(0, sepIdx);
+                if (CodeAliases.TryGetValue(baseCode, out var baseAliases))
+                    candidates.AddRange(baseAliases);
+            }
+        }
 
         var normName = Normalize(t.TestName);
         if (normName.Length >= 2) candidates.Add(normName);
