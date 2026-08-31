@@ -1,0 +1,59 @@
+
+==============================================================================
+4.1 AUTH - Dang nhap & 2FA
+==============================================================================
+  [OK  ] UTC-AUTH-01: trang /login HTTP 200
+  [OK  ] UTC-AUTH-02: letan dang nhap OK, JWT 32 quyen
+  [OK  ] UTC-AUTH-03: admin chua co accessToken: requires2fa=True mfaSetupRequired=False
+  [OK  ] UTC-AUTH-04: 2FA da bat tu vong 1 (secret .qc-tmp/admin_totp.txt); khong bat lai de khong pha state
+  [OK  ] UTC-AUTH-05: dang nhap lai -> requires2fa=True, accessToken rong
+  [OK  ] UTC-AUTH-06: code sai -> HTTP 401 AUTH_MFA_INVALID_CODE
+  [OK  ] UTC-AUTH-07: TOTP dung -> lay duoc accessToken admin day du
+  [OK  ] UTC-AUTH-08: goi API khong token -> HTTP 401
+
+==============================================================================
+4.2 REC - Tiep don + quet QR CCCD
+==============================================================================
+  [OK  ] UTC-REC-01: man tiep don HTTP 200
+  [OK  ] UTC-REC-02: case=NONE field_diffs=[]
+  [OK  ] UTC-REC-03: HTTP 201, ma=BNT01000064, ten='Nguyễn Thị Bích Hạnh', id_number='07********50'
+  [OK  ] UTC-REC-04: case=EXACT_MATCH patient_code=BNT01000064
+  [OK  ] UTC-REC-05: case=FIELD_MISMATCH n_diff=2 fields=['address', 'full_name']
+  [OK  ] UTC-REC-06: moi truong lech deu co old_value/new_value de dung dialog so sanh 4 cot
+  [OK  ] UTC-REC-07: CCCD sai dinh dang -> HTTP 200, khong crash
+  [OK  ] UTC-REC-08: chuan hoa hoa/thuong + khoang trang -> case=EXACT_MATCH
+  [OK  ] UTC-REC-09: HTTP 201 ticket=006 status=WAITING
+  [OK  ] UTC-REC-10: hang doi 18 ticket, co ticket vua tao
+  [OK  ] UTC-REC-11: admit HTTP 200 encounter_id=ecb14e98-32e3-4837-a9f7-9a9452db9c8a created=True
+  [OK  ] UTC-REC-12: check-in trung -> HTTP 409 RECEPTION_DUPLICATE_CHECKIN
+  [OK  ] UTC-REC-13: [BUG-02] phong PK02 capacity=['1']: BN A -> 201 OK | BN B (khac nguoi, cung ngay) -> 201 OK
+
+==============================================================================
+4.3 ENC/EMR - Kham benh, benh an, ky so
+==============================================================================
+  [OK  ] UTC-ENC-01: HTTP 200 status=IN_PROGRESS
+  [FAIL] UTC-ENC-02: [High cu] doctor_id cua encounter = PAGER set to stdout
+  [OK  ] UTC-EMR-01: benh an ban dau: HTTP 200 data=None
+  [OK  ] UTC-EMR-02: HTTP 200 version=1 schema_snapshot_json=NULL
+  [OK  ] UTC-EMR-03: luu lan 2 -> version=2
+  [OK  ] UTC-EMR-04: lich su 2 ban ghi
+  [OK  ] UTC-EMR-05: ky so HTTP 200
+  [OK  ] UTC-EMR-06: ky lan 2 -> HTTP 400 EMR_ALREADY_SIGNED
+  [OK  ] UTC-EMR-07: sua sau khi ky -> HTTP 409 EMR_ALREADY_SIGNED
+  [FAIL] UTC-EMR-08: [High cu] mau he thong structured_json: ['Mẫu bệnh án tổng quát\tNULL', 'Mẫu bệnh án đái tháo đường\tNULL']
+
+==============================================================================
+4.4 VIT/INB - Sinh hieu + InBody
+==============================================================================
+  [OK  ] UTC-VIT-01: HTTP 201 BMI=25.0 seq=1
+  [OK  ] UTC-VIT-02: gia tri bat thuong co that -> HTTP 201 (cho ghi)
+  [OK  ] UTC-VIT-03: gia tri vo ly -> HTTP 422 VITAL_INVALID_RANGE | {"error": {"code": "VITAL_INVALID_RANGE", "message": "Nhiệt độ phải trong khoảng 30-45°C"}}
+  [OK  ] UTC-INB-01: HTTP 201 doc duoc 9/9 chi so, status=pending
+  [OK  ] UTC-INB-02: confirm HTTP 200 status=success
+  [OK  ] UTC-INB-03: indicator_reading 8 dong, co BMI=True: ['BMI', 'VISCERAL_FAT', 'BMR', 'INBODY_SCORE', 'PBF', 'BODY_FAT_MASS', 'SMM', 'TBW']
+  [OK  ] UTC-INB-04: vital_signs moi nhat: ['68.40\tNhập từ kết quả máy InBody (đã xác nhận)']
+  [SKIP] UTC-INB-05: chua dung duoc PDF InBody co chi so phi ly (co che tuong duong da verify o UTC-CLS-14)
+  [OK  ] UTC-INB-06: delete HTTP 200; DB con dong soft-delete: ['CO\tQC retest vong 2']
+  [OK  ] UTC-INB-07: upload PDF khong phai InBody -> HTTP 201, khong crash
+
+>>> phan 1 xong: 38 PASS / 2 FAIL / 1 SKIP

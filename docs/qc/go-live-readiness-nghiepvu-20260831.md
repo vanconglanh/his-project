@@ -1,13 +1,84 @@
 # Đánh giá sẵn sàng triển khai — GÓC NHÌN NGHIỆP VỤ
-**Pro-Diab HIS** · 2026-08-31 · nhánh `develop` (`6687dbf`) · QC
+**Pro-Diab HIS** · 2026-08-31 · nhánh `develop` (`b65d566`) · QC · **cập nhật vòng 2: 31/08/2026 chiều**
 
 > Khác với [`go-live-readiness-20260830.md`](go-live-readiness-20260830.md) (tập trung **bảo mật + hạ tầng**),
 > báo cáo này chỉ trả lời một câu hỏi: **phòng khám mở cửa ngày mai, dùng phần mềm này chạy được không?**
-> Căn cứ: chạy thật 93 case theo đúng hành trình 1 bệnh nhân (xem [UTE](ute-full-flow-20260831.md)).
+> Căn cứ: chạy thật toàn bộ bộ case theo đúng hành trình 1 bệnh nhân — **vòng 1** (93 case, sáng) và
+> **vòng 2 sau khi fix Blocker** (100 lượt kiểm, chiều) — xem [UTE](ute-full-flow-20260831.md).
 
 ---
 
-## 0. CẬP NHẬT 2026-08-31 (chiều) — ĐÃ FIX 4 BLOCKER
+## 0. CHỐT LẠI 2026-08-31 (VÒNG 2) — QC ĐÃ CHẠY LẠI TOÀN BỘ
+
+# ✅ ĐỦ ĐIỀU KIỆN GO-LIVE VỀ NGHIỆP VỤ
+
+> **QC đã chạy lại toàn bộ bộ case trên `develop` (`b65d566`) sau khi rebuild stack: 88 PASS / 6 FAIL / 6 SKIP
+> trên 100 lượt kiểm. Cả 4 Blocker được xác nhận fix bằng bằng chứng đo được ở 3 lớp (HTTP + JSON + dump DB).
+> KHÔNG có regression, KHÔNG có bug mới.**
+> Chi tiết: [UTE mục 7](ute-full-flow-20260831.md#7-retest-sau-fix-blocker-31082026--vòng-2) ·
+> Evidence: [`evidence-retest-vong2-20260831/`](evidence-retest-vong2-20260831/) ·
+> `dotnet test` **987 PASS / 0 FAIL**.
+
+**Lý do 1 câu:** Ba khâu bắt buộc dùng hàng ngày (tiếp đón · cấp phát thuốc · thu ngân) trước đây hỏng ở mức
+chặn vận hành thì nay đã chạy đúng và **đã kiểm cả chiều ngược lại** — giao dịch hợp lệ không bị chặn oan.
+
+| Bug | Case kiểm | Bằng chứng vòng 2 |
+|---|---|---|
+| **BUG-01** phát thuốc lỗi vẫn trừ kho | `UTC-DIS-02a` | Phát đơn thiếu tồn → **422**; tồn Metformin **2601→2601**, Gliclazide **60→60**, `stock_movements` **6→6**, phiếu phát **8→8** |
+| **BUG-02** phòng chỉ nhận 1 BN/ngày | `UTC-REC-13` | `PK02` `capacity=1`: BN A → **201**, BN B (khác người, cùng ngày) → **201** |
+| **BUG-03** ô chọn thuốc sai/rỗng tên | `UTC-RX-01` | `search?q=Metformin` → `["Metformin 500mg"]`; **0/30** thuốc tên rỗng |
+| **BUG-04** thu tiền 0/âm/vượt | `UTC-BIL-06/07/08` | 0 → **400**; −50.000 → **400**; 999.999.999 → **400**, `balance` giữ `155000.00` (không âm) |
+| *(kèm)* **BUG-07** lỗi hết tồn kho trả 500 | `UTC-DIS-03` | Nay **422** `PHARMACY_STOCK_INSUFFICIENT` với thông báo rõ ràng |
+
+**Kiểm regression (điểm QC lo nhất — fix quá tay):**
+
+| Rủi ro | Kết quả |
+|---|---|
+| Validator thu tiền mới chặn oan giao dịch hợp lệ | ✅ Thu một phần 62.000/155.000 → 201; thu nốt → `balance=0.00`, `status=PAID`; thu thêm khi đã PAID → 400, không âm |
+| Transaction cấp phát mới làm hỏng phát thuốc bình thường | ✅ Phát đơn đủ tồn → 201, tồn **2601→2591** (trừ đúng 10) |
+| Logic sức chứa mới làm hỏng tiếp đón bình thường | ✅ Check-in → hàng đợi → admit đều 200/201; check-in trùng vẫn **409** |
+| Pipeline validation MediatR dùng chung lan sang luồng khác | ✅ `VITAL_INVALID_RANGE`, "Kênh đặt lịch không hợp lệ", `CLS_ORDER_UNPAID` đều giữ nguyên; `dotnet test` 987/987 |
+
+### Điều kiện kèm theo khi bàn giao (không chặn go-live)
+
+Còn **6 lỗi High/Med** chưa xử lý (đều đã biết từ vòng 1, **không** nằm trong phạm vi giao sửa):
+
+| # | Case | Mức | Ảnh hưởng thực tế & cách làm việc thay thế |
+|---|---|---|---|
+| 1 | `UTC-ENC-02` | High | Lượt khám gán `doctor_id` = người tiếp đón → **báo cáo KPI bác sĩ sai**. Bệnh án vẫn ký đúng người ký. Tạm thời không dùng báo cáo theo bác sĩ. |
+| 2 | `UTC-RX-05` | High | `dtqg/status` trả 500 → **không xem được trạng thái liên thông ĐTQG**. Liên thông thật vẫn chưa bật (chưa có credential) nên chưa ảnh hưởng vận hành. |
+| 3 | `UTC-CLS-15` | High | OCR bỏ sót XN khi dòng có chú thích tiếng Việt trong ngoặc → **KTV phải nhập tay chỉ số bị sót**. Có kiểm đối chiếu bằng mắt nên không sai số liệu. |
+| 4 | `UTC-EMR-08` | Med | Mẫu bệnh án hệ thống thiếu `structured_json` → form động rỗng; bác sĩ vẫn nhập bệnh án tự do bình thường. |
+| 5 | `UTC-DOC-04` | Med | Tải phiếu KQ XN qua "tự nhận diện" ra `Unknown` → phải chọn loại tài liệu thủ công. |
+| 6 | `UTC-RX-07` | Med | `total_amount` đơn thuốc = 0 (hiển thị), **không** ảnh hưởng số tiền trên hoá đơn thu ngân (đã kiểm: hoá đơn tính đúng). |
+
+**Lưu ý vận hành bắt buộc đưa vào tài liệu bàn giao:**
+
+1. Tài khoản admin **bắt buộc bật 2FA** mới đăng nhập được; sai mã quá 5 lần/5 phút sẽ bị khoá tạm.
+2. Sức chứa phòng nay đếm theo **bệnh nhân đang ở trong phòng** (`CALLED`/`IN_PROGRESS`). Vé bị bỏ quên ở
+   `IN_PROGRESS` sẽ **chiếm phòng vĩnh viễn** → cuối ngày phải kết thúc/dọn vé treo.
+3. Chưa kiểm: XML 4210 BHYT, liên thông ĐTQG thật, hiệu năng/tải (xem mục 6 của UTC).
+
+> **Quyết định gate: PASS — đủ điều kiện go-live về nghiệp vụ.** 6 lỗi High/Med còn lại vào backlog
+> sprint kế tiếp; chỉ Blocker mới chặn go-live và hiện **không còn Blocker nào**.
+
+---
+
+<details>
+<summary><b>Lưu trữ — kết luận gốc buổi sáng 2026-08-31 (đã được thay thế bởi mục 0 ở trên)</b></summary>
+
+## 1. KẾT LUẬN (BẢN GỐC — ĐÃ HẾT HIỆU LỰC)
+
+# ⛔ CHƯA ĐỦ ĐIỀU KIỆN GO-LIVE
+
+**Lý do 1 câu:** Ba khâu **bắt buộc dùng hàng ngày** đang hỏng ở mức chặn vận hành —
+**tiếp đón không nhận được bệnh nhân thứ 2 trong ngày**, **cấp phát thuốc làm thất thoát tồn kho thật khi lỗi**,
+và **thu ngân nhận được số tiền âm**. Đây không phải lỗi ngoại lệ hiếm gặp, mà nằm ngay trên đường đi chính.
+
+**Điều kiện chuyển sang PASS:** sửa xong **4 Blocker** (BUG-01→04) + kiểm lại bằng đúng bộ case này.
+Ước lượng: **1–2 ngày công**, vì cả 4 đều đã xác định chính xác dòng code gây lỗi.
+
+### Lưu trữ — ghi nhận của DEV sau khi fix (trước khi QC verify độc lập)
 
 > **Dev đã sửa xong cả 4 Blocker (BUG-01→04) và verify LIVE trên stack rebuild + DB thật.**
 > Commit riêng từng bug trên `develop`. Evidence: [`evidence-blocker-fix-20260831/`](evidence-blocker-fix-20260831/).
@@ -22,36 +93,24 @@
 
 ---
 
-## 1. KẾT LUẬN
+</details>
 
-# ⛔ CHƯA ĐỦ ĐIỀU KIỆN GO-LIVE
-
-> **Lưu ý:** kết luận dưới đây là bản gốc lúc audit sáng 2026-08-31. Sau khi 4 Blocker đã được fix (mục 0),
-> điều kiện chặn go-live về nghiệp vụ đã được gỡ — cần QC chạy lại đủ bộ 93 case + `dotnet test` để chốt PASS chính thức.
-
-**Lý do 1 câu:** Ba khâu **bắt buộc dùng hàng ngày** đang hỏng ở mức chặn vận hành —
-**tiếp đón không nhận được bệnh nhân thứ 2 trong ngày**, **cấp phát thuốc làm thất thoát tồn kho thật khi lỗi**,
-và **thu ngân nhận được số tiền âm**. Đây không phải lỗi ngoại lệ hiếm gặp, mà nằm ngay trên đường đi chính.
-
-**Điều kiện chuyển sang PASS:** sửa xong **4 Blocker** (BUG-01→04) + kiểm lại bằng đúng bộ case này.
-Ước lượng: **1–2 ngày công**, vì cả 4 đều đã xác định chính xác dòng code gây lỗi.
-
-### Đánh giá theo khâu
+### Đánh giá theo khâu (đã cập nhật sau retest vòng 2)
 
 | Khâu trong hành trình | Trạng thái | Ghi chú |
 |---|---|---|
 | Đăng nhập / phân quyền / 2FA | 🟢 Dùng được | 8/8 case pass, RBAC + che PII + chống SQLi tốt |
 | Quét QR CCCD + chống trùng hồ sơ | 🟢 Dùng được | 3 case trùng đúng hoàn toàn — làm rất chắc |
-| **Tiếp đón (check-in)** | 🔴 **Chặn** | BUG-02: phòng chỉ nhận **1 BN/ngày** |
-| Khám bệnh + bệnh án + ký số | 🟡 Dùng được, có khuyết | Ký số/bất biến sau ký rất chắc; nhưng gán sai bác sĩ + mẫu rỗng |
+| **Tiếp đón (check-in)** | 🟢 **Dùng được** | BUG-02 **đã fix** — 13/13 case pass (`UTC-REC-13`: BN thứ 2 cùng phòng cùng ngày → 201) |
+| Khám bệnh + bệnh án + ký số | 🟡 Dùng được, có khuyết | Ký số/bất biến sau ký rất chắc; **vẫn còn** gán sai bác sĩ (BUG-05) + mẫu hệ thống rỗng `structured_json` (BUG-08) |
 | Sinh hiệu (tay + InBody) | 🟢 Dùng được | Chặn giá trị vô lý đúng; InBody đọc 9/9 chỉ số |
 | CLS — chỉ định + thu tiền + KQ | 🟢 Dùng được | Cổng thanh toán G02 chắc; **cờ cảnh báo XN đã đúng** |
-| CLS — OCR đọc phiếu | 🟡 Dùng được một phần | BUG-04: bỏ sót XN tuỳ bố cục phiếu |
-| **Kê đơn** | 🔴 **Chặn** | BUG-03: ô chọn thuốc **không có tên thuốc** |
-| **Thu ngân** | 🔴 **Chặn** | BUG-01(tiền): nhận số tiền 0 / âm / vượt |
-| **Cấp phát thuốc** | 🔴 **Chặn** | BUG-01: thất thoát tồn kho khi lỗi |
+| CLS — OCR đọc phiếu | 🟡 Dùng được một phần | **Vẫn còn** bỏ sót XN tuỳ bố cục phiếu (`UTC-CLS-15`) → KTV nhập tay chỉ số bị sót |
+| **Kê đơn** | 🟡 Dùng được, có khuyết | BUG-03 **đã fix** (tên thuốc hiện đúng). Còn: `dtqg/status` 500 (BUG-06), `total_amount` = 0 (BUG-10) |
+| **Thu ngân** | 🟢 **Dùng được** | BUG-04 **đã fix** — 0/âm/vượt đều 400; đã kiểm ngược: thu một phần + thu nốt vẫn chạy đúng, `balance` không âm |
+| **Cấp phát thuốc** | 🟢 **Dùng được** | BUG-01 **đã fix** — phát lỗi: tồn/movements/phiếu **không đổi**; phát hợp lệ trừ đúng số lượng; lỗi hết tồn nay báo 422 rõ ràng |
 | Tái khám | 🟢 Dùng được | — |
-| Đa chi nhánh | 🟢 Dùng được | Không rò rỉ dữ liệu chéo chi nhánh |
+| Đa chi nhánh | 🟢 Dùng được | Không rò rỉ chéo chi nhánh; **nay kiểm được thêm** `UTC-BRN-03`: user CN1 gọi `X-Branch-Id: 2` → 403 `BRANCH_ACCESS_DENIED` |
 
 ---
 

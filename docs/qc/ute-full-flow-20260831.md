@@ -252,3 +252,127 @@ ENC_ID=... PAT_ID=... BILL_ID=... RX_ID=... \
    Sau vòng test này admin **cần mã TOTP** để đăng nhập.
 4. 10 case SKIP đều ghi rõ lý do, **không có case nào bị bỏ im lặng**.
 5. Toàn bộ ảnh evidence chụp trên **stack đã rebuild**, không tái dùng ảnh của các vòng trước.
+
+---
+
+# 7. Retest sau fix Blocker (31/08/2026 — VÒNG 2)
+
+> **Người chạy:** QC · **Nhánh:** `develop` (`b65d566`) · **Kiểu chạy:** API + DB (HTTP → JSON → dump SQL)
+> **Evidence:** [`evidence-retest-vong2-20260831/`](evidence-retest-vong2-20260831/)
+> Chạy lại **toàn bộ** bộ case (không chỉ 4 Blocker), vì fix BUG-04 đụng vào pipeline validation
+> dùng chung của MediatR nên có thể lan sang luồng khác.
+
+## 7.1 Chuẩn bị môi trường
+
+| Việc | Kết quả |
+|---|---|
+| `git pull` | `Already up to date` — `b65d566` |
+| Rebuild backend + frontend | ✅ `up -d --build backend frontend` |
+| Xác nhận đang test đúng code đã fix | ✅ Backend **cache hit hoàn toàn** → digest giữ nguyên `2026-08-31T08:24:32Z` (UTC) = **15:24 giờ VN**. Mã nguồn backend không đổi kể từ lần build dev dùng để verify fix; commit 15:33–15:34 là commit của chính code đó. Frontend rebuild mới `08:41:36Z`. |
+| `dotnet test` | ✅ **987 PASS / 0 FAIL** (963 unit + 17 integration + 7 architecture) |
+| Sức chứa phòng | PK01/PK02 `capacity = 1` (đã trở lại giá trị gốc, **không** còn nâng lên 60 như vòng 1) — đúng điều kiện khắc nghiệt để kiểm BUG-02 |
+
+## 7.2 Tổng hợp vòng 2 — 100 lượt kiểm
+
+| Nhóm | Tổng | PASS | FAIL | SKIP | So với vòng 1 |
+|---|---:|---:|---:|---:|---|
+| AUTH | 8 | 8 | 0 | 0 | giữ nguyên |
+| REC | 13 | 13 | 0 | 0 | **+1 PASS** (REC-13 đã fix) |
+| ENC/EMR | 10 | 8 | 2 | 0 | giữ nguyên |
+| VIT/INB | 10 | 9 | 0 | 1 | giữ nguyên |
+| CLS | 17 | 16 | 1 | 0 | **+1 PASS** (CLS-04 xác nhận lại đúng) |
+| DOC | 7 | 4 | 1 | 2 | giữ nguyên |
+| RX | 7 | 5 | 2 | 0 | **+1 PASS** (RX-01 đã fix) |
+| BIL | 11 | 9 | 0 | 2 | **+3 PASS** (BIL-06/07/08 đã fix) |
+| DIS | 5 | 5 | 0 | 0 | **+3 PASS** (DIS-02/03 đã fix, DIS-04 chạy được) |
+| APM | 3 | 2 | 0 | 1 | giữ nguyên |
+| BRN | 3 | 3 | 0 | 0 | **+1 PASS** (BRN-03 nay kiểm được thật) |
+| SEC | 6 | 6 | 0 | 0 | giữ nguyên |
+| **TỔNG** | **100** | **88** | **6** | **6** | vòng 1: 70 PASS / 13 FAIL / 10 SKIP |
+
+> Vòng 1 gộp nhóm ra con số 93; đếm chi tiết theo ID là **98 case**, cộng 2 kiểm tra bổ sung QC tự thêm
+> (`UTC-BIL-08b`, `UTC-DIS-02a`) để khoá chặt BUG-01/BUG-04 → **100 lượt kiểm**.
+
+## 7.3 Bốn Blocker — kết quả retest
+
+| Case | Bug | Vòng 1 | Vòng 2 | Bằng chứng đo được |
+|---|---|---|---|---|
+| `UTC-DIS-02` + `UTC-DIS-02a` | **BUG-01** | ❌ FAIL | ✅ **PASS** | Phát đơn thiếu tồn → **422**; tồn Metformin **2601→2601**, Gliclazide **60→60**, `stock_movements` **6→6**, phiếu phát **8→8** (không phát sinh dòng nào). Phát đơn đủ tồn → **201**, tồn **2601→2591** (trừ đúng 10) |
+| `UTC-REC-13` | **BUG-02** | ❌ FAIL | ✅ **PASS** | Phòng `PK02` `capacity=1`: BN A → **201**, BN B (khác người, cùng phòng, cùng ngày) → **201** |
+| `UTC-RX-01` | **BUG-03** | ❌ FAIL | ✅ **PASS** | `GET /drugs/search?q=Metformin` → `["Metformin 500mg"]`; **0/30** thuốc tên rỗng |
+| `UTC-BIL-06/07/08` | **BUG-04** | ❌ FAIL ×3 | ✅ **PASS** ×3 | `amount=0` → **400** "Số tiền thanh toán phải lớn hơn 0"; `-50.000` → **400**; `999.999.999` → **400**, `balance` giữ `155000.00` (**không âm**) |
+
+Ngoài ra `UTC-DIS-03` (BUG-07 cũ — lỗi hết tồn kho trả 500) **cũng đã hết**: nay trả **422**
+`PHARMACY_STOCK_INSUFFICIENT` — *"Không đủ tồn kho để phát "Gliclazide 80mg": Ton kho khong du (con thieu 30)"*.
+
+## 7.4 Kiểm regression — trọng tâm vòng này
+
+| Rủi ro | Case | Kết quả |
+|---|---|---|
+| Validator thu tiền mới **chặn oan** giao dịch hợp lệ | `UTC-BIL-03` | ✅ Thu một phần 62.000/155.000 → **201**, còn `93000.00` |
+| " | `UTC-BIL-05` | ✅ Thu nốt 93.000 → **201**, `balance=0.00`, `status=PAID` |
+| " | `UTC-BIL-08b` *(mới)* | ✅ Thu thêm khi đã PAID → **400**, `balance` giữ `0.00` |
+| Transaction cấp phát mới làm hỏng phát thuốc bình thường | `UTC-DIS-02` | ✅ **201**, trừ đúng 10, phiếu phát 8→9, movements 6→7 |
+| Logic sức chứa mới làm hỏng tiếp đón bình thường | `UTC-REC-09/10/11/12` | ✅ 201 → hàng đợi → admit `created=true`; check-in trùng vẫn **409** `RECEPTION_DUPLICATE_CHECKIN` |
+| Pipeline validation MediatR dùng chung lan sang luồng khác | `UTC-VIT-03`, `UTC-APM-02`, toàn nhóm CLS | ✅ Vẫn đúng mã lỗi cũ (`VITAL_INVALID_RANGE`, "Kênh đặt lịch không hợp lệ", `CLS_ORDER_UNPAID`) |
+| Toàn bộ test tự động | `dotnet test` | ✅ **987 PASS / 0 FAIL** |
+
+**Kết luận regression: KHÔNG phát hiện regression nào. KHÔNG phát hiện bug MỚI.**
+
+## 7.5 Sáu FAIL còn lại — đều là lỗi cũ đã biết
+
+| Case | Mức | Trạng thái | Thực tế vòng 2 |
+|---|---|---|---|
+| `UTC-ENC-02` | High | ⚠️ vẫn còn (BUG-05) | `doctor_id` = `letan.test@prodiab.test` (LT. Test Demo) |
+| `UTC-RX-05` | High | ⚠️ vẫn còn (BUG-06) | `dtqg/status` → **500**. **QC đã tìm ra nguyên nhân gốc** — xem 7.6 |
+| `UTC-CLS-15` | High | ⚠️ vẫn còn | Dòng `Glucose (đường huyết) 7.2` → `GLU_F` `extracted=false`; chỉ đọc được `HBA1C` |
+| `UTC-EMR-08` | Med | ⚠️ vẫn còn (BUG-08) | 2 mẫu hệ thống `structured_json = NULL`; kéo theo `schema_snapshot_json` khi lưu bệnh án cũng `NULL` |
+| `UTC-DOC-04` | Med | ⚠️ vẫn còn (BUG-09) | Phiếu KQ XN → `Unknown` 0.55 (candidates LabResult 0.55 / Legacy 0.5) |
+| `UTC-RX-07` | Med | ⚠️ vẫn còn (BUG-10) | `total_amount` đơn thuốc = **0** dù có 2 thuốc |
+
+## 7.6 Nguyên nhân gốc BUG-06 — QC tìm được trong vòng này
+
+```
+System.FormatException: The input string 'c171cb1f-8905-4bf5-b673-ad3bd82cc689' was not in a correct format.
+   at System.String.System.IConvertible.ToInt32(IFormatProvider provider)
+   at Dapper.SqlMapper.ExecuteScalarImplAsync[T](...)
+   at ProDiabHis.Application.Pharmacy.Dtqg.GetDtqgStatusHandler.Handle(...)
+      in /src/src/ProDiabHis.Application/Pharmacy/Dtqg/DtqgHandlers.cs:line 141
+```
+
+`DtqgHandlers.cs:141` gọi `ExecuteScalarAsync<int>` trên truy vấn trả về **GUID** đơn thuốc →
+Dapper `Convert.ToInt32` chuỗi GUID → `FormatException` → 500.
+**QC không sửa code sản phẩm**, chỉ báo cáo kèm stack trace
+(`evidence-retest-vong2-20260831/log-bug06-dtqg-500-stacktrace.json`).
+
+## 7.7 Quan sát bổ sung (không phải bug)
+
+1. **`GET /lab-results/pending-items` không có tham số `encounter_id`** — endpoint chỉ nhận `q` + `limit`
+   (`LabResultsController.cs:47`), truyền `encounter_id` bị bỏ qua âm thầm. Đây là **danh sách công việc
+   toàn phòng xét nghiệm** cho KTV, **không phải rò rỉ dữ liệu**. Ghi nhận mức **Low/UX**.
+2. **Chống brute-force 2FA hoạt động thật** — sai quá 5 lần/5 phút → `AUTH_MFA_TOO_MANY_ATTEMPTS`.
+   QC bị khoá thật khi chạy lặp, phải xoá key Redis `rl:mfa-verify:*` mới chạy tiếp.
+3. **`UTC-BRN-03` nâng từ SKIP lên PASS** — user CN1 gọi `X-Branch-Id: 2` → **403** `BRANCH_ACCESS_DENIED`.
+4. **Ngữ nghĩa sức chứa mới:** vé `WAITING` không tính vào sức chứa, chỉ `CALLED`/`IN_PROGRESS` mới tính.
+   Đúng nghiệp vụ. **Hệ quả vận hành cần lưu ý:** vé bị bỏ quên ở `IN_PROGRESS` sẽ **chiếm phòng vĩnh viễn**
+   → cần thao tác "kết thúc khám" hoặc job dọn vé treo cuối ngày. (Đưa vào tài liệu bàn giao, không phải bug.)
+
+## 7.8 Ghi chú trung thực về điều kiện chạy vòng 2
+
+1. **Can thiệp dữ liệu test 2 lần, KHÔNG sửa code sản phẩm:**
+   - Đóng các vé kẹt `CALLED`/`IN_PROGRESS` ở PK01/PK02 (tồn từ vòng chạy trước) để phòng có chỗ trống.
+   - Xoá key Redis `rl:mfa-verify:*` sau khi chính QC làm khoá tài khoản admin bằng vòng lặp thử 2FA.
+2. **`UTC-DOC-04` từng cho PASS giả** — khi upload theo lô, bệnh nhân đó có rất nhiều XN chờ nên điểm
+   phân loại bị đẩy lên 0.75 → `LabResult`. Chạy lại **đúng tiền điều kiện** (bệnh nhân mới, chỉ 2 XN chờ)
+   → `Unknown` 0.55. **QC ghi FAIL**, không lấy kết quả thuận lợi.
+3. **6 case SKIP đều ghi rõ lý do**, không có case nào bị bỏ im lặng:
+   `UTC-INB-05`, `UTC-DOC-05`, `UTC-DOC-06`, `UTC-BIL-09`, `UTC-BIL-10`, `UTC-APM-03`.
+4. Không tái dùng log/ảnh của vòng trước — toàn bộ log sinh từ lần chạy hôm nay.
+
+## 7.9 Kết luận vòng 2
+
+> **Cả 4 Blocker (BUG-01→04) đã được xác nhận fix bằng bằng chứng đo được ở 3 lớp (HTTP + JSON + dump DB).
+> Không có regression, không có bug mới. Điều kiện chặn go-live về nghiệp vụ đã được gỡ.**
+>
+> Còn lại **6 lỗi High/Med** (`UTC-ENC-02`, `UTC-RX-05`, `UTC-CLS-15`, `UTC-EMR-08`, `UTC-DOC-04`, `UTC-RX-07`)
+> — **không chặn go-live** vì đều có cách làm việc thay thế bằng tay, nhưng phải vào backlog sprint kế tiếp.

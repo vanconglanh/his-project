@@ -1,0 +1,49 @@
+D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\.qc-tmp\retest2b.py:50: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+BN: 5d6f7a3b-94f1-49fc-be05-e6b1cd31ae1b | Encounter: c3dde2bf-e2b4-484c-87a9-883e524d319f
+
+==============================================================================
+4.5 CLS - Chi dinh + OCR ket qua
+==============================================================================
+  [OK  ] UTC-CLS-01: HTTP 201 status=OPEN payment=UNPAID tong=335000.0
+  [OK  ] UTC-CLS-02: HTTP 200 status=SUBMITTED
+  [OK  ] UTC-CLS-03: HTTP 200 source_file_id=CO HbA1c=8.1
+  [OK  ] UTC-CLS-04: [cong G02] chua thanh toan ma luu KQ -> HTTP 200, created_count=0, chan=True: {"created_count": 0, "failed_count": 1, "errors": [{"row": 1, "message": "CLS_ORDER_UNPAID: Đợt chỉ định chưa thanh toán"}]}
+  [OK  ] UTC-CLS-05: thu tien dot CLS -> HTTP 200, payment_status=['PAID']
+  [OK  ] UTC-CLS-06: HTTP 200 created_count=1
+  [OK  ] UTC-CLS-07: [Bug A] HbA1c: ['HBA1C', '8.1000', 'CRITICAL', '4.0000', '5.6000', 'CO', '8.1']
+  [OK  ] UTC-CLS-08: [GAP-8/GAP-2] source_file_id=CO ocr_raw_value=8.1
+  [OK  ] UTC-CLS-09: GLU_F 5.9 -> flag=H (HTTP 200)
+  [OK  ] UTC-CLS-10: GLU_F 5.0 -> flag=NORMAL (HTTP 200)
+  [OK  ] UTC-CLS-11: GLU_F 2.0 -> flag=CRITICAL (HTTP 200)
+  [OK  ] UTC-CLS-12: CBC (khong co khoang tham chieu) -> flag=NORMAL (HTTP 200)
+  [OK  ] UTC-CLS-13: ma XN khong ton tai -> HTTP 404, khong 500
+  [OK  ] UTC-CLS-14: [GAP-3] out_of_plausible_range=True note=Giá trị nằm ngoài khoảng thông thường, vui lòng kiểm tra lại (có thể do OCR đọc sai dấu thập phân)
+  [FAIL] UTC-CLS-15: [BUG-04 cu] phieu co dong 'Glucose (duong huyet)' -> doc duoc GLU_F: KHONG | cac ma doc duoc: ['GLU_F', 'HBA1C']
+  [OK  ] UTC-CLS-16: HTTP 200 findings=CO conclusion=CO giu_dau_TV=True
+  [OK  ] UTC-CLS-17: HTTP 201 status=DRAFT
+
+==============================================================================
+4.6 DOC - Smart-upload tu nhan dien
+==============================================================================
+  [OK  ] UTC-DOC-01: man ho so BN HTTP 200 (dialog smart-upload da verify vong 1)
+  [OK  ] UTC-DOC-02: HTTP 200 so ket qua rieng = 3
+  [OK  ] UTC-DOC-03: phan loai: {'sample-inbody-full.pdf': ('InBody', 0.9), 'phieu-ket-qua-cdha-test.pdf': ('RadResult', 0.9), 'phieu-ket-qua-xn-test.pdf': ('Unknown', 0.55)}
+  [FAIL] UTC-DOC-04: [High cu] phieu KQ XN -> ('Unknown', 0.55)
+  [SKIP] UTC-DOC-05: chua dung 21 tep (ngoai 80/20, da ghi nhan vong 1)
+  [SKIP] UTC-DOC-06: chua dung tep >20MB (ngoai 80/20, da ghi nhan vong 1)
+  [OK  ] UTC-DOC-07: ZIP -> HTTP 200, 3 tep
+
+==============================================================================
+4.7 RX - Ke don
+==============================================================================
+  [OK  ] UTC-RX-01: [BUG-03] tim 'Metformin' -> ['Metformin 500mg'] | tong 30 thuoc, ten RONG = 0
+  [OK  ] UTC-RX-02: HTTP 201 rx=db4fcf96-b3cf-4d4e-b260-25ce4ddef7dc so dong DB=['2']
+  [OK  ] UTC-RX-03: HTTP 200 {"data": {"prescription_id": "db4fcf96-b3cf-4d4e-b260-25ce4ddef7dc", "warnings": [], "has_contraindicated": false}}
+  [OK  ] UTC-RX-04: HTTP 200 status=SIGNED
+  [FAIL] UTC-RX-05: [High cu] HTTP 500 INTERNAL_ERROR {"error": {"code": "INTERNAL_ERROR", "message": "Lỗi hệ thống, vui lòng thử lại sau", "details": {}}}
+  [OK  ] UTC-RX-06: don khong ton tai -> HTTP 404 PRESCRIPTION_NOT_FOUND
+  [FAIL] UTC-RX-07: total_amount=0 (ky vong > 0)
+>>> da ghi 31 case vao D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\.qc-tmp\retest2-results.jsonl
+
+>>> phan 2a xong

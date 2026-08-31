@@ -1,0 +1,50 @@
+  bootstrap: BN=4cce14ad-1648-4778-8050-61d2f334ef27 encounter=238aa546-3141-4768-904d-3cb07e92a906 don=16eb877b-752a-47dc-a69d-e064395c3cbb
+
+==============================================================================
+4.8 BIL - Thu ngan (BUG-04: chan so tien 0 / am / vuot)
+==============================================================================
+  [OK  ] UTC-BIL-01: HTTP 201 so dong=2 ten BN tren hoa don=['Phạm Thị Thu Hà']
+  [OK  ] UTC-BIL-02: HTTP 200 phai thu=155000.0 balance=155000.0 status=FINALIZED
+  [OK  ] UTC-BIL-06: [BUG-04] amount=0 -> HTTP 400 VALIDATION_ERROR {"error": {"code": "VALIDATION_ERROR", "message": "Dữ liệu đầu vào không hợp lệ", "details": {"Request.Amount": ["Số tiền thanh toán phải lớn hơn 0"]}
+  [OK  ] UTC-BIL-07: [BUG-04] amount=-50.000 -> HTTP 400 VALIDATION_ERROR {"error": {"code": "VALIDATION_ERROR", "message": "Dữ liệu đầu vào không hợp lệ", "details": {"Request.Amount": ["Số tiền thanh toán phải lớn hơn 0"]}
+  [OK  ] UTC-BIL-08: [BUG-04] amount=999.999.999 -> HTTP 400 None; balance sau do=['155000.00'] (khong duoc am)
+  [OK  ] UTC-BIL-03: [REGRESSION] thu mot phan 62000/155000.0 -> HTTP 201, con lai=['93000.00'] (ky vong 93000.0)
+  [OK  ] UTC-BIL-04: HTTP 200 qr_payload dai 153 ky tu, so tien=93000.0
+  [OK  ] UTC-BIL-05: [REGRESSION] thu not 93000.0 -> HTTP 201, balance/status=['0.00\tPAID']
+  [OK  ] UTC-BIL-08b: [BUG-04 bo sung] thu them khi da PAID -> HTTP 400 None, balance=['0.00']
+  [SKIP] UTC-BIL-09: chua co goi dich vu trong du lieu test (giu SKIP nhu vong 1)
+  [SKIP] UTC-BIL-10: phu thuoc UTC-BIL-09
+
+==============================================================================
+4.9 DIS - Cap phat thuoc (BUG-01: khong duoc that thoat ton kho khi loi)
+==============================================================================
+  [OK  ] UTC-DIS-01: HTTP 200 hang cho 13 don; don cua BN test co trong hang cho=True ten BN=Phạm Thị Thu Hà
+  [OK  ] UTC-DIS-03: [BUG-07 cu] thieu ton kho -> HTTP 422 PHARMACY_STOCK_INSUFFICIENT: {"error": {"code": "PHARMACY_STOCK_INSUFFICIENT", "message": "Không đủ tồn kho để phát \"Gliclazide 80mg\": Ton kho khong du (con thieu 30)"}}
+  [OK  ] UTC-DIS-02a: [BUG-01] sau khi phat LOI: ton Metformin 2591->2591, Gliclazide 60->60, stock_movements 7->7, phieu phat 9->9 (ky vong: KHONG doi)
+  [OK  ] UTC-DIS-02: [REGRESSION] phat don du ton -> HTTP 201 ; ton Metformin 2591->2581 (tru 10, ky vong 10); phieu phat 9->10; movements 7->8 | {"data": {"id": "78ce4caa-e55c-44af-b29d-085c201afbc9", "tenant_id": 1, "prescription_id": "894e7473-8d96-4d92-a075-819e3bb6ba87", "warehouse_id": "1"
+  [OK  ] UTC-DIS-04: tu choi phat kem ly do -> HTTP 200 None {"data": {"id": "e440a644-7397-4dcc-9558-825d63cdb6ad", "tenant_id": 1, "prescription_id": "", "warehouse_id": "", "disp
+
+==============================================================================
+4.10 APM - Tai kham
+==============================================================================
+  [OK  ] UTC-APM-01: HTTP 201 status=PENDING ten=Phạm Thị Thu Hà sdt=0977161813
+  [OK  ] UTC-APM-02: source khong hop le -> HTTP 400 {"error": {"code": "VALIDATION_ERROR", "message": "Dữ liệu đầu vào không hợp lệ", "details": {"Request.Source": ["Kênh đặt lịch không hợp lệ"]}}}
+  [SKIP] UTC-APM-03: can chay job nhac lich theo lich - ngoai pham vi vong nay (giu SKIP nhu vong 1)
+
+==============================================================================
+4.11 BRN - Da chi nhanh
+==============================================================================
+  [OK  ] UTC-BRN-01: X-Branch-Id:1 -> doc luot kham HTTP 200, hang doi 17 ticket
+  [OK  ] UTC-BRN-02: X-Branch-Id:2 -> doc luot kham cua CN1 HTTP 403 BRANCH_ACCESS_DENIED, hang doi 0 ticket (ky vong: khong doc duoc, hang doi rong)
+  [OK  ] UTC-BRN-03: user thuoc CN1 truy cap du lieu CN2 -> HTTP 403 BRANCH_ACCESS_DENIED (ky vong 403)
+
+==============================================================================
+4.12 SEC - Bao mat & phan quyen
+==============================================================================
+  [OK  ] UTC-SEC-01: bac si tao BN -> HTTP 403 PERMISSION_DENIED
+  [OK  ] UTC-SEC-02: id_number tra ve = '07********99'
+  [OK  ] UTC-SEC-03: khong token -> HTTP 401
+  [OK  ] UTC-SEC-04: SQLi: ' OR 1=1--->HTTP 200/0 ban ghi | '; DROP TABLE pat_pati->HTTP 200/0 ban ghi | %' OR '1'='1->HTTP 200/0 ban ghi
+  [OK  ] UTC-SEC-05: luu nguyen van, React escape khi render: '<script>alert(1)</script>'
+  [OK  ] UTC-SEC-06: duoc si thu tien -> HTTP 403 PERMISSION_DENIED
+>>> da ghi 28 case vao D:\_Project\08.ATDS\02.Onetech\202501_CV10\_project\git\screen\_git\atds\his-project\.qc-tmp\retest2-results.jsonl

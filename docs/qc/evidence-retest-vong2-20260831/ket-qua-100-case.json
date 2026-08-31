@@ -1,0 +1,602 @@
+[
+ {
+  "id": "UTC-AUTH-01",
+  "status": "PASS",
+  "note": "trang /login HTTP 200",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-AUTH-02",
+  "status": "PASS",
+  "note": "letan dang nhap OK, JWT 32 quyen",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-AUTH-03",
+  "status": "PASS",
+  "note": "admin chua co accessToken: requires2fa=True mfaSetupRequired=False",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-AUTH-04",
+  "status": "PASS",
+  "note": "2FA da bat tu vong 1 (secret .qc-tmp/admin_totp.txt); khong bat lai de khong pha state",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-AUTH-05",
+  "status": "PASS",
+  "note": "dang nhap lai -> requires2fa=True, accessToken rong",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-AUTH-06",
+  "status": "PASS",
+  "note": "code sai -> HTTP 401 AUTH_MFA_INVALID_CODE",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-AUTH-07",
+  "status": "PASS",
+  "note": "TOTP dung -> lay duoc accessToken admin day du",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-AUTH-08",
+  "status": "PASS",
+  "note": "goi API khong token -> HTTP 401",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-01",
+  "status": "PASS",
+  "note": "man tiep don HTTP 200",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-02",
+  "status": "PASS",
+  "note": "case=NONE field_diffs=[]",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-03",
+  "status": "PASS",
+  "note": "HTTP 201, ma=BNT01000059, ten='Nguyễn Thị Bích Hạnh', id_number='07********21'",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-04",
+  "status": "PASS",
+  "note": "case=EXACT_MATCH patient_code=BNT01000059",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-05",
+  "status": "PASS",
+  "note": "case=FIELD_MISMATCH n_diff=2 fields=['address', 'full_name']",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-06",
+  "status": "PASS",
+  "note": "moi truong lech deu co old_value/new_value de dung dialog so sanh 4 cot",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-07",
+  "status": "PASS",
+  "note": "CCCD sai dinh dang -> HTTP 200, khong crash",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-08",
+  "status": "PASS",
+  "note": "chuan hoa hoa/thuong + khoang trang -> case=EXACT_MATCH",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-09",
+  "status": "PASS",
+  "note": "HTTP 201 ticket=005 status=WAITING",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-10",
+  "status": "PASS",
+  "note": "hang doi 14 ticket, co ticket vua tao",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-11",
+  "status": "PASS",
+  "note": "admit HTTP 200 encounter_id=c3dde2bf-e2b4-484c-87a9-883e524d319f created=True",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-12",
+  "status": "PASS",
+  "note": "check-in trung -> HTTP 409 RECEPTION_DUPLICATE_CHECKIN",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-REC-13",
+  "status": "PASS",
+  "note": "[BUG-02] phong PK02 capacity=['1']: BN A -> 201 OK | BN B (khac nguoi, cung ngay) -> 201 OK",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-ENC-01",
+  "status": "PASS",
+  "note": "HTTP 200 status=IN_PROGRESS",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-ENC-02",
+  "status": "FAIL",
+  "note": "[BUG-05 cu, High] doctor_id cua encounter = letan.test@prodiab.test (LT. Test Demo) - van la nguoi tiep don, khong phai bac si.",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-EMR-01",
+  "status": "PASS",
+  "note": "benh an ban dau: HTTP 200 data=None",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-EMR-02",
+  "status": "PASS",
+  "note": "HTTP 200 version=1 schema_snapshot_json=NULL",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-EMR-03",
+  "status": "PASS",
+  "note": "luu lan 2 -> version=2",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-EMR-04",
+  "status": "PASS",
+  "note": "lich su 2 ban ghi",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-EMR-05",
+  "status": "PASS",
+  "note": "ky so HTTP 200",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-EMR-06",
+  "status": "PASS",
+  "note": "ky lan 2 -> HTTP 400 EMR_ALREADY_SIGNED",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-EMR-07",
+  "status": "PASS",
+  "note": "sua sau khi ky -> HTTP 409 EMR_ALREADY_SIGNED",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-EMR-08",
+  "status": "FAIL",
+  "note": "[High cu] mau he thong structured_json: ['Mẫu bệnh án tổng quát\\tNULL', 'Mẫu bệnh án đái tháo đường\\tNULL']",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-VIT-01",
+  "status": "PASS",
+  "note": "HTTP 201 BMI=25.0 seq=1",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-VIT-02",
+  "status": "PASS",
+  "note": "gia tri bat thuong co that -> HTTP 201 (cho ghi)",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-VIT-03",
+  "status": "PASS",
+  "note": "gia tri vo ly -> HTTP 422 VITAL_INVALID_RANGE | {\"error\": {\"code\": \"VITAL_INVALID_RANGE\", \"message\": \"Nhiệt độ phải trong khoảng 30-45°C\"}}",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-INB-01",
+  "status": "PASS",
+  "note": "HTTP 201 doc duoc 9/9 chi so, status=pending",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-INB-02",
+  "status": "PASS",
+  "note": "confirm HTTP 200 status=success",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-INB-03",
+  "status": "PASS",
+  "note": "indicator_reading 8 dong, co BMI=True: ['VISCERAL_FAT', 'TBW', 'PBF', 'INBODY_SCORE', 'SMM', 'BMI', 'BODY_FAT_MASS', 'BMR']",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-INB-04",
+  "status": "PASS",
+  "note": "vital_signs moi nhat: ['68.40\\tNhập từ kết quả máy InBody (đã xác nhận)']",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-INB-05",
+  "status": "SKIP",
+  "note": "chua dung duoc PDF InBody co chi so phi ly (co che tuong duong da verify o UTC-CLS-14)",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-INB-06",
+  "status": "PASS",
+  "note": "delete HTTP 200; DB con dong soft-delete: ['CO\\tQC retest vong 2']",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-INB-07",
+  "status": "PASS",
+  "note": "upload PDF khong phai InBody -> HTTP 201, khong crash",
+  "part": "part1"
+ },
+ {
+  "id": "UTC-CLS-01",
+  "status": "PASS",
+  "note": "HTTP 201 status=OPEN payment=UNPAID tong=335000.0",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-02",
+  "status": "PASS",
+  "note": "HTTP 200 status=SUBMITTED",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-03",
+  "status": "PASS",
+  "note": "HTTP 200 source_file_id=CO HbA1c=8.1",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-04",
+  "status": "PASS",
+  "note": "[cong G02] chua thanh toan ma luu KQ -> HTTP 200, created_count=0, chan=True: {\"created_count\": 0, \"failed_count\": 1, \"errors\": [{\"row\": 1, \"message\": \"CLS_ORDER_UNPAID: Đợt chỉ định chưa thanh toán\"}]}",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-05",
+  "status": "PASS",
+  "note": "thu tien dot CLS -> HTTP 200, payment_status=['PAID']",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-06",
+  "status": "PASS",
+  "note": "HTTP 200 created_count=1",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-07",
+  "status": "PASS",
+  "note": "[Bug A] HbA1c: ['HBA1C', '8.1000', 'CRITICAL', '4.0000', '5.6000', 'CO', '8.1']",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-08",
+  "status": "PASS",
+  "note": "[GAP-8/GAP-2] source_file_id=CO ocr_raw_value=8.1",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-09",
+  "status": "PASS",
+  "note": "GLU_F 5.9 -> flag=H (HTTP 200)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-10",
+  "status": "PASS",
+  "note": "GLU_F 5.0 -> flag=NORMAL (HTTP 200)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-11",
+  "status": "PASS",
+  "note": "GLU_F 2.0 -> flag=CRITICAL (HTTP 200)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-12",
+  "status": "PASS",
+  "note": "CBC (khong co khoang tham chieu) -> flag=NORMAL (HTTP 200)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-13",
+  "status": "PASS",
+  "note": "ma XN khong ton tai -> HTTP 404, khong 500",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-14",
+  "status": "PASS",
+  "note": "[GAP-3] out_of_plausible_range=True note=Giá trị nằm ngoài khoảng thông thường, vui lòng kiểm tra lại (có thể do OCR đọc sai dấu thập phân)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-15",
+  "status": "FAIL",
+  "note": "[BUG-04 cu] phieu co dong 'Glucose (duong huyet)' -> doc duoc GLU_F: KHONG | cac ma doc duoc: ['GLU_F', 'HBA1C']",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-16",
+  "status": "PASS",
+  "note": "HTTP 200 findings=CO conclusion=CO giu_dau_TV=True",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-CLS-17",
+  "status": "PASS",
+  "note": "HTTP 201 status=DRAFT",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-DOC-01",
+  "status": "PASS",
+  "note": "man ho so BN HTTP 200 (dialog smart-upload da verify vong 1)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-DOC-02",
+  "status": "PASS",
+  "note": "HTTP 200 so ket qua rieng = 3",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-DOC-03",
+  "status": "PASS",
+  "note": "phan loai: {'sample-inbody-full.pdf': ('InBody', 0.9), 'phieu-ket-qua-cdha-test.pdf': ('RadResult', 0.9), 'phieu-ket-qua-xn-test.pdf': ('Unknown', 0.55)}",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-DOC-04",
+  "status": "FAIL",
+  "note": "[BUG-09 cu] chay lai o DUNG dieu kien tien de (BN moi, chi 2 XN dang cho): phieu KQ XN -> Unknown 0.55 (candidates LabResult 0.55 / Legacy 0.5). Lan chay trong lo 3 tep cho LabResult 0.75 vi BN do co rat nhieu XN dang cho lam tang diem - khong dung tien de.",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-DOC-05",
+  "status": "SKIP",
+  "note": "chua dung 21 tep (ngoai 80/20, da ghi nhan vong 1)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-DOC-06",
+  "status": "SKIP",
+  "note": "chua dung tep >20MB (ngoai 80/20, da ghi nhan vong 1)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-DOC-07",
+  "status": "PASS",
+  "note": "ZIP -> HTTP 200, 3 tep",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-RX-01",
+  "status": "PASS",
+  "note": "[BUG-03] tim 'Metformin' -> ['Metformin 500mg'] | tong 30 thuoc, ten RONG = 0",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-RX-02",
+  "status": "PASS",
+  "note": "HTTP 201 rx=db4fcf96-b3cf-4d4e-b260-25ce4ddef7dc so dong DB=['2']",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-RX-03",
+  "status": "PASS",
+  "note": "HTTP 200 {\"data\": {\"prescription_id\": \"db4fcf96-b3cf-4d4e-b260-25ce4ddef7dc\", \"warnings\": [], \"has_contraindicated\": false}}",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-RX-04",
+  "status": "PASS",
+  "note": "HTTP 200 status=SIGNED",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-RX-05",
+  "status": "FAIL",
+  "note": "[High cu] HTTP 500 INTERNAL_ERROR {\"error\": {\"code\": \"INTERNAL_ERROR\", \"message\": \"Lỗi hệ thống, vui lòng thử lại sau\", \"details\": {}}}",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-RX-06",
+  "status": "PASS",
+  "note": "don khong ton tai -> HTTP 404 PRESCRIPTION_NOT_FOUND",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-RX-07",
+  "status": "FAIL",
+  "note": "total_amount=0 (ky vong > 0)",
+  "part": "part2"
+ },
+ {
+  "id": "UTC-BIL-01",
+  "status": "PASS",
+  "note": "HTTP 201 so dong=2 ten BN tren hoa don=['Phạm Thị Thu Hà']",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-02",
+  "status": "PASS",
+  "note": "HTTP 200 phai thu=155000.0 balance=155000.0 status=FINALIZED",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-06",
+  "status": "PASS",
+  "note": "[BUG-04] amount=0 -> HTTP 400 VALIDATION_ERROR {\"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Dữ liệu đầu vào không hợp lệ\", \"details\": {\"Request.Amount\": [\"Số tiền thanh toán phải lớn hơn 0\"]}",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-07",
+  "status": "PASS",
+  "note": "[BUG-04] amount=-50.000 -> HTTP 400 VALIDATION_ERROR {\"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Dữ liệu đầu vào không hợp lệ\", \"details\": {\"Request.Amount\": [\"Số tiền thanh toán phải lớn hơn 0\"]}",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-08",
+  "status": "PASS",
+  "note": "[BUG-04] amount=999.999.999 -> HTTP 400 None; balance sau do=['155000.00'] (khong duoc am)",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-03",
+  "status": "PASS",
+  "note": "[REGRESSION] thu mot phan 62000/155000.0 -> HTTP 201, con lai=['93000.00'] (ky vong 93000.0)",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-04",
+  "status": "PASS",
+  "note": "HTTP 200 qr_payload dai 153 ky tu, so tien=93000.0",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-05",
+  "status": "PASS",
+  "note": "[REGRESSION] thu not 93000.0 -> HTTP 201, balance/status=['0.00\\tPAID']",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-08b",
+  "status": "PASS",
+  "note": "[BUG-04 bo sung] thu them khi da PAID -> HTTP 400 None, balance=['0.00']",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-09",
+  "status": "SKIP",
+  "note": "chua co goi dich vu trong du lieu test (giu SKIP nhu vong 1)",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BIL-10",
+  "status": "SKIP",
+  "note": "phu thuoc UTC-BIL-09",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-DIS-01",
+  "status": "PASS",
+  "note": "HTTP 200 hang cho 13 don; don cua BN test co trong hang cho=True ten BN=Phạm Thị Thu Hà",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-DIS-03",
+  "status": "PASS",
+  "note": "[BUG-07 cu] thieu ton kho -> HTTP 422 PHARMACY_STOCK_INSUFFICIENT: {\"error\": {\"code\": \"PHARMACY_STOCK_INSUFFICIENT\", \"message\": \"Không đủ tồn kho để phát \\\"Gliclazide 80mg\\\": Ton kho khong du (con thieu 30)\"}}",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-DIS-02a",
+  "status": "PASS",
+  "note": "[BUG-01] sau khi phat LOI: ton Metformin 2591->2591, Gliclazide 60->60, stock_movements 7->7, phieu phat 9->9 (ky vong: KHONG doi)",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-DIS-02",
+  "status": "PASS",
+  "note": "[REGRESSION] phat don du ton -> HTTP 201 ; ton Metformin 2591->2581 (tru 10, ky vong 10); phieu phat 9->10; movements 7->8 | {\"data\": {\"id\": \"78ce4caa-e55c-44af-b29d-085c201afbc9\", \"tenant_id\": 1, \"prescription_id\": \"894e7473-8d96-4d92-a075-819e3bb6ba87\", \"warehouse_id\": \"1\"",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-DIS-04",
+  "status": "PASS",
+  "note": "tu choi phat kem ly do -> HTTP 200 None {\"data\": {\"id\": \"e440a644-7397-4dcc-9558-825d63cdb6ad\", \"tenant_id\": 1, \"prescription_id\": \"\", \"warehouse_id\": \"\", \"disp",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-APM-01",
+  "status": "PASS",
+  "note": "HTTP 201 status=PENDING ten=Phạm Thị Thu Hà sdt=0977161813",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-APM-02",
+  "status": "PASS",
+  "note": "source khong hop le -> HTTP 400 {\"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Dữ liệu đầu vào không hợp lệ\", \"details\": {\"Request.Source\": [\"Kênh đặt lịch không hợp lệ\"]}}}",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-APM-03",
+  "status": "SKIP",
+  "note": "can chay job nhac lich theo lich - ngoai pham vi vong nay (giu SKIP nhu vong 1)",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BRN-01",
+  "status": "PASS",
+  "note": "X-Branch-Id:1 -> doc luot kham HTTP 200, hang doi 17 ticket",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BRN-02",
+  "status": "PASS",
+  "note": "X-Branch-Id:2 -> doc luot kham cua CN1 HTTP 403 BRANCH_ACCESS_DENIED, hang doi 0 ticket (ky vong: khong doc duoc, hang doi rong)",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-BRN-03",
+  "status": "PASS",
+  "note": "user thuoc CN1 truy cap du lieu CN2 -> HTTP 403 BRANCH_ACCESS_DENIED (ky vong 403)",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-SEC-01",
+  "status": "PASS",
+  "note": "bac si tao BN -> HTTP 403 PERMISSION_DENIED",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-SEC-02",
+  "status": "PASS",
+  "note": "id_number tra ve = '07********99'",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-SEC-03",
+  "status": "PASS",
+  "note": "khong token -> HTTP 401",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-SEC-04",
+  "status": "PASS",
+  "note": "SQLi: ' OR 1=1--->HTTP 200/0 ban ghi | '; DROP TABLE pat_pati->HTTP 200/0 ban ghi | %' OR '1'='1->HTTP 200/0 ban ghi",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-SEC-05",
+  "status": "PASS",
+  "note": "luu nguyen van, React escape khi render: '<script>alert(1)</script>'",
+  "part": "part3"
+ },
+ {
+  "id": "UTC-SEC-06",
+  "status": "PASS",
+  "note": "duoc si thu tien -> HTTP 403 PERMISSION_DENIED",
+  "part": "part3"
+ }
+]
