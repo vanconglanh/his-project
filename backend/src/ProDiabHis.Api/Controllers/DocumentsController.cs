@@ -25,10 +25,13 @@ public class DocumentsController : ControllerBase
     }
 
     // POST /api/v1/documents/smart-upload
+    // Nhan NHIEU file cung luc HOAC 1 file ZIP. IFormFileCollection gom moi file trong request (bat ky
+    // ten field nao — tuong thich nguoc ca client cu gui field "file" lan client moi gui "files"). Moi
+    // file duoc OCR + phan loai DOC LAP, tra ket qua theo tung file (khong gop chung).
     [HttpPost("api/v1/documents/smart-upload")]
     [RequirePermission("patient.clinical.write")]
     public async Task<IActionResult> SmartUpload(
-        IFormFile file,
+        IFormFileCollection files,
         [FromForm] Guid patient_id,
         [FromForm] Guid? encounter_id = null,
         CancellationToken ct = default)
@@ -36,28 +39,39 @@ public class DocumentsController : ControllerBase
         if (patient_id == Guid.Empty)
             return BadRequest(new { error = new { code = "DOC_PATIENT_REQUIRED", message = "Vui lòng chọn bệnh nhân" } });
 
-        if (file is null || file.Length == 0)
+        if (files is null || files.Count == 0)
             return UnprocessableEntity(new { error = new { code = "DOC_UPLOAD_FAILED", message = "Tải tệp thất bại, vui lòng thử lại" } });
 
-        if (file.Length > MaxBytes)
-            return StatusCode(413, new { error = new { code = "DOC_TOO_LARGE", message = "File vượt quá dung lượng tối đa 20MB" } });
-
-        byte[] fileBytes;
-        using (var buffer = new MemoryStream())
+        var inputs = new List<SmartUploadFileInput>(files.Count);
+        foreach (var file in files)
         {
-            await using var stream = file.OpenReadStream();
-            await stream.CopyToAsync(buffer, ct);
-            fileBytes = buffer.ToArray();
+            if (file.Length == 0) continue;
+
+            if (file.Length > MaxBytes)
+                return StatusCode(413, new { error = new { code = "DOC_TOO_LARGE", message = $"Tệp \"{file.FileName}\" vượt quá dung lượng tối đa 20MB" } });
+
+            byte[] fileBytes;
+            using (var buffer = new MemoryStream())
+            {
+                await using var stream = file.OpenReadStream();
+                await stream.CopyToAsync(buffer, ct);
+                fileBytes = buffer.ToArray();
+            }
+            inputs.Add(new SmartUploadFileInput(fileBytes, file.FileName, file.ContentType));
         }
 
+        if (inputs.Count == 0)
+            return UnprocessableEntity(new { error = new { code = "DOC_UPLOAD_FAILED", message = "Tải tệp thất bại, vui lòng thử lại" } });
+
         var result = await _mediator.Send(
-            new SmartUploadCommand(patient_id, encounter_id, fileBytes, file.FileName, file.ContentType), ct);
+            new SmartUploadBatchCommand(patient_id, encounter_id, inputs), ct);
 
         if (!result.IsSuccess)
         {
             var status = result.ErrorCode switch
             {
                 "PATIENT_NOT_FOUND" => 404,
+                "DOC_TOO_MANY_FILES" => 413,
                 _ => 422
             };
             return StatusCode(status, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });

@@ -1,5 +1,4 @@
 using System.Data;
-using System.IO.Compression;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Common;
@@ -58,25 +57,14 @@ public class LegacyOcrBatchJob
             await zipStream.CopyToAsync(zipMemory, ct);
             zipMemory.Position = 0;
 
-            using var archive = new ZipArchive(zipMemory, ZipArchiveMode.Read);
-
-            // Loc entry hop le: anh (jpg/png/tiff/bmp), pdf, hoac heic/heif (de bao loi ro rang -
-            // KHONG am tham bo qua), chan path traversal, gioi han so luong/kich thuoc (zip bomb)
-            var validEntries = new List<ZipArchiveEntry>();
-            long totalExtractedBytes = 0;
-            foreach (var entry in archive.Entries)
-            {
-                if (string.IsNullOrEmpty(entry.Name)) continue; // thu muc
-                if (entry.FullName.Contains("..") || Path.IsPathRooted(entry.FullName)) continue; // path traversal
-                var kind = LegacyImportFileClassifier.Classify(entry.Name);
-                if (kind == LegacyImportFileKind.Ignored) continue;
-                if (entry.Length <= 0 || entry.Length > MaxImageBytes) continue;
-
-                totalExtractedBytes += entry.Length;
-                if (totalExtractedBytes > MaxTotalExtractedBytes) break; // chan zip bomb
-                validEntries.Add(entry);
-                if (validEntries.Count >= MaxFilesPerZip) break;
-            }
+            // Giai nen an toan bang co che dung chung (SafeZipExtractor): chan path traversal, chan zip
+            // bomb (tong dung luong + so file + kich thuoc moi file). Giu ca heic/heif (Classify !=
+            // Ignored) de duoi tao item 'failed' bao loi ro rang - KHONG am tham bo qua.
+            var validEntries = await SafeZipExtractor.ExtractAsync(
+                zipMemory,
+                name => LegacyImportFileClassifier.Classify(name) != LegacyImportFileKind.Ignored,
+                new ZipExtractLimits(MaxFilesPerZip, MaxImageBytes, MaxTotalExtractedBytes),
+                ct);
 
             await conn.ExecuteAsync(
                 "UPDATE diab_his_leg_import_batch SET total_items=@Total, updated_at=NOW() WHERE id=@Id",
@@ -110,10 +98,8 @@ public class LegacyOcrBatchJob
                         continue;
                     }
 
-                    await using var entryStream = entry.Open();
-                    using var fileMemory = new MemoryStream();
-                    await entryStream.CopyToAsync(fileMemory, ct);
-                    var fileBytes = fileMemory.ToArray();
+                    var fileBytes = entry.Bytes;
+                    using var fileMemory = new MemoryStream(fileBytes);
 
                     var isPdf = kind == LegacyImportFileKind.Pdf;
                     var mime = isPdf ? "application/pdf" : ext switch
