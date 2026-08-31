@@ -118,7 +118,8 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
                    p.status as Status, p.created_at as PrescribedAt,
                    p.signed_at as SignedAt, NULL as SignedBy,
                    p.dtqg_code as DtqgCode, NULL as DtqgStatus,
-                   0 as TotalAmount, p.note as Note,
+                   (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
+                     WHERE i.prescription_id = p.id AND i.deleted_at IS NULL) as TotalAmount, p.note as Note,
                    p.created_at as CreatedAt, p.updated_at as UpdatedAt
             FROM diab_his_pha_prescriptions p
             WHERE {whereClause}
@@ -210,7 +211,8 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
                      p.status as Status, p.created_at as PrescribedAt,
                      p.signed_at as SignedAt, NULL as SignedBy,
                      p.dtqg_code as DtqgCode, NULL as DtqgStatus,
-                     0 as TotalAmount, p.note as Note,
+                     (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
+                     WHERE i.prescription_id = p.id AND i.deleted_at IS NULL) as TotalAmount, p.note as Note,
                      p.created_at as CreatedAt, p.updated_at as UpdatedAt
               FROM diab_his_pha_prescriptions p
               WHERE p.id = @id AND p.tenant_id = @tenantId AND p.deleted_at IS NULL",
@@ -403,7 +405,8 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
                      status as Status, created_at as PrescribedAt,
                      signed_at as SignedAt, NULL as SignedBy,
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
-                     0 as TotalAmount, note as Note,
+                     (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
+                       WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
                      created_at as CreatedAt, updated_at as UpdatedAt
               FROM diab_his_pha_prescriptions WHERE id = @presId AND tenant_id = @tenantId",
             new { presId, tenantId });
@@ -456,7 +459,8 @@ public class UpdatePrescriptionHandler : IRequestHandler<UpdatePrescriptionComma
                      status as Status, created_at as PrescribedAt,
                      signed_at as SignedAt, NULL as SignedBy,
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
-                     0 as TotalAmount, note as Note,
+                     (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
+                       WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
                      created_at as CreatedAt, updated_at as UpdatedAt
               FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId",
             new { id = cmd.Id.ToString(), tenantId });
@@ -631,7 +635,8 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
                      doctor_id as DoctorId, created_at as PrescribedAt,
                      signed_at as SignedAt, NULL as SignedBy,
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
-                     0 as TotalAmount, note as Note,
+                     (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
+                       WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
                      created_at as CreatedAt, updated_at as UpdatedAt
               FROM diab_his_pha_prescriptions
               WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
@@ -697,7 +702,8 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
                      status as Status, created_at as PrescribedAt,
                      signed_at as SignedAt, NULL as SignedBy,
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
-                     0 as TotalAmount, note as Note,
+                     (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
+                       WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
                      created_at as CreatedAt, updated_at as UpdatedAt
               FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId",
             new { id = pres.Id, tenantId });
@@ -738,7 +744,8 @@ public class CancelPrescriptionHandler : IRequestHandler<CancelPrescriptionComma
                      doctor_id as DoctorId, created_at as PrescribedAt,
                      signed_at as SignedAt, NULL as SignedBy,
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
-                     0 as TotalAmount, note as Note,
+                     (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
+                       WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
                      created_at as CreatedAt, updated_at as UpdatedAt
               FROM diab_his_pha_prescriptions
               WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
@@ -765,7 +772,8 @@ public class CancelPrescriptionHandler : IRequestHandler<CancelPrescriptionComma
                      status as Status, created_at as PrescribedAt,
                      signed_at as SignedAt, NULL as SignedBy,
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
-                     0 as TotalAmount, note as Note,
+                     (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
+                       WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
                      created_at as CreatedAt, updated_at as UpdatedAt
               FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId",
             new { id = pres.Id, tenantId });
