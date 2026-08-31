@@ -1,0 +1,25 @@
+{"file":"01-utc-auth-01.png","code":"UTC-AUTH-01","view":"Đăng nhập — panel chọn vai trò (dev)","expected":"Hiện 6 nút vai trò test"}
+{"file":"02-utc-auth-02.png","code":"UTC-AUTH-02","view":"Vào hệ thống với vai trò Lễ tân","expected":"Vào Dashboard, sidebar theo quyền lễ tân"}
+{"file":"03-utc-rec-01.png","code":"UTC-REC-01","view":"Màn Tiếp đón","expected":"Có ô quét CCCD, form tiếp đón, bảng hàng đợi"}
+{"file":"04-utc-rec-02.png","code":"UTC-REC-02","view":"Quét QR CCCD (mô phỏng máy quét)","expected":"Ô nhận đủ 7 trường phân tách bằng |"}
+{"file":"05-utc-rec-03.png","code":"UTC-REC-03","view":"Sau khi quét — hệ thống kiểm tra trùng CCCD","expected":"Điều hướng tạo mới HOẶC hiện dialog trùng"}
+{"file":"06-utc-pat-01.png","code":"UTC-PAT-01","view":"Danh sách bệnh nhân","expected":"Hiện danh sách + ô tìm kiếm"}
+{"file":"07-utc-pat-02.png","code":"UTC-PAT-02","view":"Tìm bệnh nhân theo họ tên có dấu","expected":"Lọc đúng bệnh nhân tiếng Việt có dấu"}
+{"file":"08-utc-pat-03.png","code":"UTC-PAT-03","view":"Chi tiết hồ sơ bệnh nhân","expected":"Có tab Lịch sử InBody + nút tải tài liệu tự nhận diện"}
+{"file":"09-utc-doc-01.png","code":"UTC-DOC-01","view":"Hộp thoại tải tài liệu tự nhận diện","expected":"Nhận nhiều tệp PDF/ảnh hoặc 1 tệp ZIP"}
+{"file":"10-utc-enc-01.png","code":"UTC-ENC-01","view":"Danh sách lượt khám (vai trò Bác sĩ)","expected":"Hiện lượt khám, có cột Chi nhánh"}
+{"file":"11-utc-lab-01.png","code":"UTC-LAB-01","view":"Màn Cận lâm sàng","expected":"2 tab Kết quả XN / Kết quả CĐHA"}
+{"file":"12-utc-lab-02.png","code":"UTC-LAB-02","view":"Nhập kết quả XN — 2 tab Nhập tay / Đọc từ file","expected":"Có tab OCR 'Đọc từ file'"}
+{"file":"13-utc-lab-03.png","code":"UTC-LAB-03","view":"Panel OCR đọc kết quả xét nghiệm","expected":"Có ô mã lượt khám + chọn file PDF/ảnh"}
+{"file":"14-utc-csh-01.png","code":"UTC-CSH-01","view":"Màn Thu ngân","expected":"Có ca làm việc, hoá đơn chờ thu, công nợ"}
+{"file":"15-utc-csh-02.png","code":"UTC-CSH-02","view":"Danh sách hoá đơn","expected":"Cột Bệnh nhân phải có tên (BUG-09 đã fix)"}
+{"file":"16-utc-csh-03.png","code":"UTC-CSH-03","view":"Chi tiết hoá đơn","expected":"Có Thu tiền + Thanh toán QR động"}
+{"file":"17-utc-dis-01.png","code":"UTC-DIS-01","view":"Màn Phát thuốc","expected":"Hàng chờ phát thuốc theo đơn đã ký"}
+{"file":"21-utc-emr-01.png","code":"UTC-EMR-01","view":"Tab Bệnh án — đã ký số","expected":"Bệnh án đã ký: nội dung KHÓA, không sửa được"}
+{"file":"22-utc-cls-01.png","code":"UTC-CLS-01","view":"Tab Cận lâm sàng — đợt chỉ định","expected":"Hiện đợt chỉ định + trạng thái thanh toán"}
+{"file":"23-utc-cls-02.png","code":"UTC-CLS-02","view":"Tab Kết quả CLS — cờ cảnh báo (Bug A)","expected":"HbA1c 8.1 phải có cờ CRITICAL, KHÔNG phải NORMAL"}
+{"file":"24-utc-rx-01.png","code":"UTC-RX-01","view":"Tab Đơn thuốc","expected":"Hiện 2 thuốc đã kê, trạng thái đã ký số"}
+{"file":"25-utc-apm-01.png","code":"UTC-APM-01","view":"Tab Tái khám","expected":"Đặt lịch tái khám + danh sách lịch hẹn"}
+{"file":"26-utc-inb-01.png","code":"UTC-INB-01","view":"Tab Lịch sử InBody","expected":"Danh sách lần đo; báo cáo đã huỷ (GAP-1) không còn hiển thị"}
+{"file":"27-utc-csh-01.png","code":"UTC-CSH-01","view":"Chi tiết hoá đơn","expected":"Có mục hoá đơn, tổng tiền, nút Thu tiền / QR"}
+{"file":"28-utc-csh-04.png","code":"UTC-CSH-04","view":"Màn Công nợ","expected":"Danh sách hoá đơn còn nợ, có tên bệnh nhân"}
