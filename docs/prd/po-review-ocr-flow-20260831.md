@@ -104,6 +104,8 @@
 
 **Đề xuất xem xét:** Cân nhắc tách permission `inbody_report.confirm` (cấp cho `ky_thuat_vien` + `bac_si`) khác với `inbody_report.upload` (có thể cấp thêm cho lễ tân nếu lễ tân được phép scan và upload). Hoặc giữ nguyên nếu BO xác nhận `patient.clinical.write` đủ bảo vệ.
 
+**Quyết định triển khai (đợt sửa gap OCR — backend):** GIỮ NGUYÊN `patient.clinical.write`, KHÔNG tách permission. Căn cứ kiểm tra thực tế migration RBAC: `patient.clinical.write` (tạo ở `9153_rbac_p2_clinical_write_permission.sql`) chỉ được gán cho `bac_si` và `ky_thuat_vien` — lễ tân (`le_tan`) KHÔNG được cấp quyền này ở bất kỳ migration nào (đã grep toàn bộ `db/migrations/*.sql`). Vì vậy lễ tân đã tự nhiên KHÔNG thể confirm InBody (ghi sinh hiệu), mục tiêu bảo mật của việc tách quyền đã đạt được. Tách thêm `inbody_report.confirm` chỉ làm phình RBAC mà không thêm giá trị an toàn. Endpoint `DELETE /inbody-reports/{id}` (GAP-1, soft-delete) dùng CÙNG quyền `patient.clinical.write` để nhất quán với confirm. Nếu sau này lễ tân được cấp `patient.clinical.write` cho việc khác, cần xem lại quyết định này.
+
 ---
 
 ## 5. Hiệu năng và UX khi OCR chạy lâu

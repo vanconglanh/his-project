@@ -40,9 +40,13 @@ public static class InBodyIndicatorTypes
     public const string Bmr = "BMR";
     public const string InBodyScore = "INBODY_SCORE";
 
-    /// <summary>Cac indicator ghi vao bang generic diab_his_cli_indicator_reading (khong bao gom Weight/Bmi).</summary>
+    /// <summary>
+    /// Cac indicator ghi vao bang generic diab_his_cli_indicator_reading.
+    /// Bug B fix: THEM Bmi vao day de BMI (doc duoc tu parser) khong bi roi mat khi confirm.
+    /// KHONG bao gom Weight — Weight ghi rieng vao diab_his_enc_vital_signs (weight_kg).
+    /// </summary>
     public static readonly IReadOnlyList<string> IndicatorTableTypes = new[]
     {
-        Smm, BodyFatMass, Pbf, VisceralFat, Tbw, Bmr, InBodyScore
+        Bmi, Smm, BodyFatMass, Pbf, VisceralFat, Tbw, Bmr, InBodyScore
     };
 }

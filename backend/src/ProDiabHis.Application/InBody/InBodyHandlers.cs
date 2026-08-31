@@ -27,12 +27,21 @@ file static class InBodyMapper
         if (string.IsNullOrWhiteSpace(json)) return Array.Empty<InBodyFieldDto>();
         try
         {
-            return JsonSerializer.Deserialize<List<InBodyFieldDto>>(json) ?? new List<InBodyFieldDto>();
+            var parsed = JsonSerializer.Deserialize<List<InBodyFieldDto>>(json) ?? new List<InBodyFieldDto>();
+            // Luon tinh lai canh bao ngoai khoang tu Value hien tai (JSON cu co the thieu 2 field nay).
+            return parsed.Select(WithPlausibleRange).ToList();
         }
         catch (JsonException)
         {
             return Array.Empty<InBodyFieldDto>();
         }
+    }
+
+    /// <summary>Gan co OutOfPlausibleRange + PlausibleRangeNote dua tren Value hien tai.</summary>
+    public static InBodyFieldDto WithPlausibleRange(InBodyFieldDto f)
+    {
+        var (outOfRange, note) = InBodyPlausibleRanges.Evaluate(f.IndicatorType, f.Value);
+        return f with { OutOfPlausibleRange = outOfRange, PlausibleRangeNote = note };
     }
 }
 
@@ -79,7 +88,22 @@ public class UploadInBodyReportCommandHandler : IRequestHandler<UploadInBodyRepo
         var sizeBytes = buffer.Length;
 
         buffer.Position = 0;
-        var extractResult = await _provider.ExtractAsync(buffer, cmd.FileName, ct);
+        // GAP-7: bao ve OCR timeout 90 giay (file qua lon / nhieu trang). Ghi DB nam SAU extract,
+        // nen timeout se return truoc khi insert -> khong sinh ban ghi rac.
+        Result<InBodyReportData> extractResult;
+        using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+        {
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(90));
+            try
+            {
+                extractResult = await _provider.ExtractAsync(buffer, cmd.FileName, timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                return Result<InBodyReportResponse>.Failure("INBODY_OCR_TIMEOUT",
+                    "Xử lý OCR quá thời gian cho phép (90 giây). File có thể quá lớn hoặc nhiều trang, vui lòng thử lại.");
+            }
+        }
         if (!extractResult.IsSuccess)
             return Result<InBodyReportResponse>.Failure(extractResult.ErrorCode!, extractResult.ErrorMessage!);
         var data = extractResult.Value!;
@@ -108,7 +132,9 @@ public class UploadInBodyReportCommandHandler : IRequestHandler<UploadInBodyRepo
                 Now = now
             });
 
-        var fieldDtos = data.Fields.Select(f => new InBodyFieldDto(f.IndicatorType, f.Value, f.Unit, f.Extracted)).ToList();
+        var fieldDtos = data.Fields
+            .Select(f => InBodyMapper.WithPlausibleRange(new InBodyFieldDto(f.IndicatorType, f.Value, f.Unit, f.Extracted)))
+            .ToList();
         var status = !data.HasAnyExtracted ? "failed" : (data.IsFullyExtracted ? "pending" : "partial");
         // Luu y: status "pending" khi extract du/1 phan deu la trang thai CHUA XAC NHAN — dung
         // "pending" lam mac dinh chung, chi dung "failed" khi khong doc duoc gi (vd PDF scan anh).
@@ -266,8 +292,22 @@ public class ConfirmInBodyReportCommandHandler : IRequestHandler<ConfirmInBodyRe
                 TenantId = _tenant.TenantId
             });
 
+        // GAP-3: khong chan cung, nhung ghi audit co gia tri ngoai khoang vat ly kha di (neu co).
+        var outOfRangeFields = included
+            .Where(f => InBodyPlausibleRanges.Evaluate(f.IndicatorType, f.Value).OutOfRange)
+            .Select(f => f.IndicatorType)
+            .ToList();
+
         await _audit.LogAsync("CONFIRM", "InBodyReport", reportIdStr,
-            new { patientId, encounterId, includedFields = included.Select(f => f.IndicatorType), status }, ct);
+            new
+            {
+                patientId,
+                encounterId,
+                includedFields = included.Select(f => f.IndicatorType),
+                status,
+                hasOutOfPlausibleRange = outOfRangeFields.Count > 0,
+                outOfPlausibleRangeFields = outOfRangeFields
+            }, ct);
 
         string? signedUrl = null;
         if (row.file_url is not null)
@@ -340,5 +380,50 @@ public class ListInBodyReportsQueryHandler : IRequestHandler<ListInBodyReportsQu
         }
 
         return Result<PagedResult<InBodyReportResponse>>.Success(new PagedResult<InBodyReportResponse>(items, page, pageSize, total));
+    }
+}
+
+// ─────────────────────────────────────────────────
+// DELETE — soft-delete (GAP-1). KHONG hard-delete. Ghi ly do + audit.
+// ─────────────────────────────────────────────────
+public class DeleteInBodyReportCommandHandler : IRequestHandler<DeleteInBodyReportCommand, Result<bool>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+    private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
+
+    public DeleteInBodyReportCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
+        ICurrentUser user, IAuditService audit)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; }
+
+    public async Task<Result<bool>> Handle(DeleteInBodyReportCommand cmd, CancellationToken ct)
+    {
+        using var conn = (IDbConnection)_db.CreateConnection();
+        var reportIdStr = cmd.ReportId.ToString();
+
+        // Kiem tra ton tai + thuoc tenant + chua bi xoa.
+        var exists = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM diab_his_cli_inbody_report WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
+            new { Id = reportIdStr, TenantId = _tenant.TenantId });
+        if (exists == 0)
+            return Result<bool>.Failure("INBODY_REPORT_NOT_FOUND", "Không tìm thấy báo cáo InBody");
+
+        var now = DateTime.UtcNow;
+        await conn.ExecuteAsync(@"
+            UPDATE diab_his_cli_inbody_report
+            SET deleted_at=@Now, deleted_by=@DeletedBy, delete_reason=@Reason, updated_at=@Now
+            WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
+            new
+            {
+                Now = now,
+                DeletedBy = _user.UserId?.ToString(),
+                Reason = cmd.Reason,
+                Id = reportIdStr,
+                TenantId = _tenant.TenantId
+            });
+
+        await _audit.LogAsync("DELETE", "InBodyReport", reportIdStr, new { reason = cmd.Reason }, ct);
+        return Result<bool>.Success(true);
     }
 }

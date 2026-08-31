@@ -92,6 +92,26 @@ public class InBodyReportsController : ControllerBase
 
         return Ok(new { data = result.Value });
     }
+
+    // DELETE /api/v1/inbody-reports/{id}
+    // Soft-delete (GAP-1). Dung cung quyen voi confirm (ghi sinh hieu) — patient.clinical.write.
+    [HttpDelete("api/v1/inbody-reports/{id:guid}")]
+    [RequirePermission("patient.clinical.write")]
+    public async Task<IActionResult> Delete(
+        Guid id,
+        [FromQuery] string? reason = null,
+        [FromBody] DeleteInBodyReportBody? body = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new DeleteInBodyReportCommand(id, body?.reason ?? reason), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode == "INBODY_REPORT_NOT_FOUND" ? 404 : 422;
+            return StatusCode(status, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return Ok(new { data = new { deleted = true } });
+    }
 }
 
 public record ConfirmInBodyReportBody(Guid? encounter_id, List<ConfirmInBodyFieldItem>? fields);
+public record DeleteInBodyReportBody(string? reason);
