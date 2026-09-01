@@ -1,0 +1,7 @@
+transaction_date,amount,reference_no,description
+28/08/2026,2000000,VCB20260826001,Thu vien phi chuyen khoan
+31/08/2026,1100000,VCB20260829001,Thu tien kham CK
+30/08/2026,900000,,POS TCB thanh toan the
+28/08/2026,1500000,VNPAY20260827A01,Thanh toan VISA POS
+31/08/2026,12345000,XYZ999888,Giao dich khong ro nguon
+27/08/2026,999000,ABC111222,Phi dich vu la

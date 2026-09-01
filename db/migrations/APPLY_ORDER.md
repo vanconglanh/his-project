@@ -32,6 +32,10 @@
 > (`add_col_if_missing`, idempotent). Fresh build **212/212 file, 0 lỗi**, prescriptions → 200.
 > Evidence: `docs/qc/evidence-full-coverage-fixes-20260831/viec3-migration/smoke-test-real-compose-20260901.md`.
 >
+> **Bổ sung 2026-09-01:** `9195_bank_reconciliation.sql` (F-02 đối soát sao kê NH) — 2 bảng
+> `diab_his_bil_bank_statements` + `diab_his_bil_bank_statement_lines`, `CREATE TABLE IF NOT EXISTS`
+> (idempotent). Đã apply thủ công vào DB dev đang chạy + verify apply 2 lần liên tiếp 0 lỗi.
+>
 > ⚠️ **Caveat idempotency (chưa xử lý — ngoài phạm vi "dựng sạch từ 0"):** RE-APPLY toàn bộ chuỗi
 > lên một DB ĐÃ migrate xong thì một số migration lớp 00xx lỗi `Table 'pat_pii_data' doesn't exist`
 > (bảng legacy đã bị `9000_drop_legacy` xoá ở lượt đầu). Migrator thiết kế chạy **1 lần trên DB sạch**

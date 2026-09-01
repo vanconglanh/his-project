@@ -121,6 +121,7 @@
     "recall": "Follow-up Recall",
     "chainDashboard": "Chain Dashboard",
     "interBranchDebts": "Inter-branch Debts",
+    "bankReconciliation": "Bank Reconciliation",
     "legacyImport": "Legacy Records Import (OCR)",
     "internalReferrals": "Internal Referrals",
     "masterCodes": "Code Lists",

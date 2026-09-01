@@ -351,6 +351,8 @@ public static class DependencyInjection
         services.AddScoped<IDrugCucQldSync, MockDrugCucQldSync>();
         services.AddScoped<ICucQldLienThong, MockCucQldLienThong>();
         services.AddScoped<IExcelImporter, ClosedXmlImporter>();
+        services.AddScoped<ProDiabHis.Application.Billing.BankReconciliation.IBankStatementParser,
+            ProDiabHis.Infrastructure.Billing.BankStatementParserImpl>();
 
         // Telehealth (FR-801..803) - tich hop Docosan, xem docs/erd/telehealth-docosan.md
         {

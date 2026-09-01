@@ -294,12 +294,47 @@ Toàn bộ 9 báo cáo P0 đã triển khai bằng **config-driven report engine
 | C-01 | `hba1c-trend` — XU HƯỚNG HbA1c THEO THÁNG | Clinical | 6 tháng (TB 8.2 → mới nhất 6.63) | `diab_his_cli_diabetes_assessments` GroupBy tháng, AVG(hba1c) + % kiểm soát tốt. Khác chart distribution (cross-section) |
 | F-05 | `bhyt-reconcile-detail` — ĐỐI SOÁT BHYT CHI TIẾT THEO HỒ SƠ | Bhyt | 11 items (duyệt/từ chối/lý do) | `diab_his_int_bhyt_export_items` + exports |
 | A-02 | `bhyt-period-status` — TÌNH TRẠNG NỘP XML BHYT THEO KỲ | Bhyt | 3 kỳ | `diab_his_int_bhyt_exports` GroupBy period. Sinh file XML 4210 đã có sẵn ở module `/bhyt` |
-| F-02 | `payment-method-reconcile` — ĐỐI SOÁT THU TIỀN THEO PHƯƠNG THỨC | Financial | 14 rows (tách NH/POS vs tiền mặt) | `diab_his_bil_payments` GroupBy ngày+method. **Phần đối soát với sao kê ngân hàng thật (import statement + matching) CHƯA làm** — cần bảng + màn riêng, hoãn để tránh đụng task migrator đang chạy |
+| F-02 | `payment-method-reconcile` — ĐỐI SOÁT THU TIỀN THEO PHƯƠNG THỨC | Financial | 14 rows (tách NH/POS vs tiền mặt) | `diab_his_bil_payments` GroupBy ngày+method. **✅ HOÀN TẤT (2026-09-01):** đã bổ sung import sao kê NH thật (Excel/CSV) + auto-matching + màn kế toán khớp/gỡ khớp thủ công — xem mục 6.1 |
 | F-01 | `doanh-thu-theo-bac-si` — TỔNG HỢP DOANH THU THEO BÁC SĨ | Financial | 1 BS, 2.555.000đ | Alias nhóm Tài chính của `luot-kham-theo-bs` (vốn ở nhóm Thống kê, kế toán khó tìm). Ngưỡng KPI/target theo tháng: chưa (cần bảng config target — hoãn) |
 
 **Bug phát hiện + fix trong lúc verify:** `ReportExcelExporter.cs` dùng Title báo cáo làm tên sheet Excel; Excel giới hạn tên sheet ≤31 ký tự → export Excel 500 với các báo cáo tên dài (recall-due/cls/bhyt/payment). Đã thêm `SanitizeSheetName` (cắt ≤31 + bỏ ký tự cấm). Fix chung, có lợi cho mọi báo cáo. Verify lại: cả 9 export Excel + PDF đều 200.
 
 **Gate cuối:** `dotnet build` sạch; `dotnet test` = 2165 pass (Arch 7 + Unit 965 + Integration 1193), 0 fail, 0 skip (giữ nguyên baseline); export PDF/Excel verify 200 + magic bytes hợp lệ; browser thật render KPI + bảng + xuất.
+
+---
+
+## 6.1. F-02 — Đối soát sao kê ngân hàng thật (import + auto-matching) — ✅ HOÀN TẤT (2026-09-01)
+
+Bổ sung phần còn thiếu của F-02 (trước đó chỉ có đối soát nội bộ theo phương thức). Kế toán tải file
+sao kê ngân hàng (Excel .xlsx / CSV) cuối kỳ → hệ thống auto-match từng dòng với khoản thu
+`BANK_TRANSFER`/thẻ/QR trong `diab_his_bil_payments` → hiển thị khớp/chưa khớp + cho khớp thủ công.
+
+**Migration:** `db/migrations/9195_bank_reconciliation.sql` (idempotent, CREATE TABLE IF NOT EXISTS) —
+2 bảng `diab_his_bil_bank_statements` (file import) + `diab_his_bil_bank_statement_lines`
+(match_status ENUM MATCHED/UNMATCHED/MANUAL_MATCHED/IGNORED).
+
+**Backend (route `/api/v1/bil/bank-statements`, perm `payment.read`/`payment.collect`):**
+`POST /import` (parse Excel qua ClosedXML — tái dùng lib có sẵn — / CSV, chạy auto-match ngay),
+`GET /` (lịch sử), `GET /{id}/lines` (chi tiết + payment đã khớp), `GET /lines/{lineId}/candidates`
+(payment ứng viên), `POST /lines/{lineId}/manual-match | ignore | unmatch`. Files:
+`ProDiabHis.Api/Controllers/BankStatementsController.cs`,
+`ProDiabHis.Application/Billing/BankReconciliation/*`,
+`ProDiabHis.Infrastructure/Billing/BankStatementParserImpl.cs`.
+
+**Auto-match logic:** amount = số tiền dòng + ABS(paid_at − transaction_date) ≤ 1 ngày; ưu tiên khớp
+`reference` chính xác trước, sau đó khớp amount+ngày nếu ứng viên duy nhất; một payment chỉ khớp 1 dòng
+trong statement. Mọi query Dapper có `WHERE tenant_id`.
+
+**Frontend:** màn `/cashier/bank-reconciliation` (nav nhóm Thu ngân, icon Landmark) — upload dialog,
+bảng lịch sử, bảng chi tiết dòng với Badge màu (xanh Đã khớp / xanh dương Khớp thủ công / vàng Chưa
+khớp / xám Bỏ qua), dialog khớp thủ công. Files: `frontend/app/(dashboard)/cashier/bank-reconciliation/`,
+`.../cashier/_components/{BankReconciliationView,ImportStatementDialog,StatementLinesTable,ManualMatchDialog}.tsx`,
+`frontend/lib/api/bank-reconciliation.ts`, `frontend/lib/hooks/use-bank-reconciliation.ts`, `nav-items.ts`, `messages/vi.json`.
+
+**Verify LIVE:** migration apply 2 lần idempotent; import CSV 6 dòng → 4 matched / 2 unmatched đúng
+kỳ vọng (kể cả case ±1 ngày + amount-only match); manual-match/unmatch OK qua cả API và UI thật
+(login ke_toan). BE build sạch + 2165/2165 test pass; FE tsc sạch. Contract BE↔FE đối chiếu trên
+response THẬT. Evidence: `docs/qc/evidence-bank-reconciliation-20260901/`.
 
 ---
 
