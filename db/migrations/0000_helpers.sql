@@ -25,24 +25,38 @@ CREATE PROCEDURE add_col_if_missing(
     IN p_coldef TEXT
 )
 BEGIN
-    DECLARE v_count INT DEFAULT 0;
+    DECLARE v_count      INT DEFAULT 0;
+    DECLARE v_tbl_exists INT DEFAULT 0;
     DECLARE v_db   VARCHAR(64);
     DECLARE v_sql  TEXT;
 
     SET v_db = DATABASE();
 
-    SELECT COUNT(*) INTO v_count
-    FROM information_schema.COLUMNS
+    -- Bang dich phai ton tai truoc, tranh loi 1146 "table doesn't exist"
+    -- khi DB dang o trang thai thieu bang (vd dump chua nap het, hoac
+    -- migration chay tren DB da co du lieu nhung thieu 1 vai bang).
+    SELECT COUNT(*) INTO v_tbl_exists
+    FROM information_schema.TABLES
     WHERE TABLE_SCHEMA = v_db
-      AND TABLE_NAME   = p_tbl
-      AND COLUMN_NAME  = p_col;
+      AND TABLE_NAME    = p_tbl
+      AND TABLE_TYPE    = 'BASE TABLE';
 
-    IF v_count = 0 THEN
-        SET v_sql = CONCAT('ALTER TABLE `', p_tbl, '` ADD COLUMN `', p_col, '` ', p_coldef);
-        SET @__ddl = v_sql;
-        PREPARE __stmt FROM @__ddl;
-        EXECUTE __stmt;
-        DEALLOCATE PREPARE __stmt;
+    IF v_tbl_exists = 0 THEN
+        SELECT CONCAT('[SKIP add_col_if_missing] Bang `', p_tbl, '` khong ton tai, bo qua them cot `', p_col, '`') AS warning;
+    ELSE
+        SELECT COUNT(*) INTO v_count
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = v_db
+          AND TABLE_NAME   = p_tbl
+          AND COLUMN_NAME  = p_col;
+
+        IF v_count = 0 THEN
+            SET v_sql = CONCAT('ALTER TABLE `', p_tbl, '` ADD COLUMN `', p_col, '` ', p_coldef);
+            SET @__ddl = v_sql;
+            PREPARE __stmt FROM @__ddl;
+            EXECUTE __stmt;
+            DEALLOCATE PREPARE __stmt;
+        END IF;
     END IF;
 END$$
 DELIMITER ;
@@ -64,24 +78,35 @@ CREATE PROCEDURE add_index_if_missing(
     IN p_col_list TEXT
 )
 BEGIN
-    DECLARE v_count INT DEFAULT 0;
+    DECLARE v_count      INT DEFAULT 0;
+    DECLARE v_tbl_exists INT DEFAULT 0;
     DECLARE v_db   VARCHAR(64);
     DECLARE v_sql  TEXT;
 
     SET v_db = DATABASE();
 
-    SELECT COUNT(*) INTO v_count
-    FROM information_schema.STATISTICS
+    SELECT COUNT(*) INTO v_tbl_exists
+    FROM information_schema.TABLES
     WHERE TABLE_SCHEMA = v_db
-      AND TABLE_NAME   = p_tbl
-      AND INDEX_NAME   = p_idx_name;
+      AND TABLE_NAME    = p_tbl
+      AND TABLE_TYPE    = 'BASE TABLE';
 
-    IF v_count = 0 THEN
-        SET v_sql = CONCAT('ALTER TABLE `', p_tbl, '` ADD INDEX `', p_idx_name, '` ', p_col_list);
-        SET @__ddl = v_sql;
-        PREPARE __stmt FROM @__ddl;
-        EXECUTE __stmt;
-        DEALLOCATE PREPARE __stmt;
+    IF v_tbl_exists = 0 THEN
+        SELECT CONCAT('[SKIP add_index_if_missing] Bang `', p_tbl, '` khong ton tai, bo qua tao index `', p_idx_name, '`') AS warning;
+    ELSE
+        SELECT COUNT(*) INTO v_count
+        FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = v_db
+          AND TABLE_NAME   = p_tbl
+          AND INDEX_NAME   = p_idx_name;
+
+        IF v_count = 0 THEN
+            SET v_sql = CONCAT('ALTER TABLE `', p_tbl, '` ADD INDEX `', p_idx_name, '` ', p_col_list);
+            SET @__ddl = v_sql;
+            PREPARE __stmt FROM @__ddl;
+            EXECUTE __stmt;
+            DEALLOCATE PREPARE __stmt;
+        END IF;
     END IF;
 END$$
 DELIMITER ;
@@ -103,24 +128,35 @@ CREATE PROCEDURE add_unique_index_if_missing(
     IN p_col_list TEXT
 )
 BEGIN
-    DECLARE v_count INT DEFAULT 0;
+    DECLARE v_count      INT DEFAULT 0;
+    DECLARE v_tbl_exists INT DEFAULT 0;
     DECLARE v_db   VARCHAR(64);
     DECLARE v_sql  TEXT;
 
     SET v_db = DATABASE();
 
-    SELECT COUNT(*) INTO v_count
-    FROM information_schema.STATISTICS
+    SELECT COUNT(*) INTO v_tbl_exists
+    FROM information_schema.TABLES
     WHERE TABLE_SCHEMA = v_db
-      AND TABLE_NAME   = p_tbl
-      AND INDEX_NAME   = p_idx_name;
+      AND TABLE_NAME    = p_tbl
+      AND TABLE_TYPE    = 'BASE TABLE';
 
-    IF v_count = 0 THEN
-        SET v_sql = CONCAT('ALTER TABLE `', p_tbl, '` ADD UNIQUE INDEX `', p_idx_name, '` ', p_col_list);
-        SET @__ddl = v_sql;
-        PREPARE __stmt FROM @__ddl;
-        EXECUTE __stmt;
-        DEALLOCATE PREPARE __stmt;
+    IF v_tbl_exists = 0 THEN
+        SELECT CONCAT('[SKIP add_unique_index_if_missing] Bang `', p_tbl, '` khong ton tai, bo qua tao unique index `', p_idx_name, '`') AS warning;
+    ELSE
+        SELECT COUNT(*) INTO v_count
+        FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = v_db
+          AND TABLE_NAME   = p_tbl
+          AND INDEX_NAME   = p_idx_name;
+
+        IF v_count = 0 THEN
+            SET v_sql = CONCAT('ALTER TABLE `', p_tbl, '` ADD UNIQUE INDEX `', p_idx_name, '` ', p_col_list);
+            SET @__ddl = v_sql;
+            PREPARE __stmt FROM @__ddl;
+            EXECUTE __stmt;
+            DEALLOCATE PREPARE __stmt;
+        END IF;
     END IF;
 END$$
 DELIMITER ;

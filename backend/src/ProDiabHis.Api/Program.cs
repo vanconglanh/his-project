@@ -382,6 +382,11 @@ try
     // Minimal endpoint kiem tra nhanh
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
+    // Healthcheck cho Docker/monitoring (docker-compose.prod.yml healthcheck goi endpoint nay).
+    // Chi tra ve 200 khi process con song - khong check DB/Redis de tranh false negative
+    // khi dependency cham tam thoi (dependency that duoc healthcheck rieng trong compose).
+    app.MapGet("/healthz", () => Results.Ok(new { status = "ok" })).ExcludeFromDescription();
+
     Log.Information("ProDiabHis API started successfully");
     app.Run();
 }

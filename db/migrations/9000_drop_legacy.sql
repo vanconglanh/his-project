@@ -28,7 +28,8 @@ BEGIN
         FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME NOT LIKE 'diab\_his\_%'
-          AND TABLE_NAME NOT LIKE 'hangfire\_%';
+          AND TABLE_NAME NOT LIKE 'hangfire\_%'
+          AND TABLE_NAME <> '_schema_migrations';
 
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = TRUE;
 

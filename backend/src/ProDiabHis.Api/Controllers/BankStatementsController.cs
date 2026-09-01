@@ -21,9 +21,10 @@ public class BankStatementsController : ControllerBase
 
     // POST /api/v1/bil/bank-statements/import
     [HttpPost("import")]
+    [Consumes("multipart/form-data")]
     [RequirePermission("payment.collect")]
     public async Task<IActionResult> Import(
-        [FromForm] IFormFile file,
+        IFormFile file,
         [FromForm] string? bank_code,
         [FromForm] DateOnly? statement_date,
         CancellationToken ct = default)

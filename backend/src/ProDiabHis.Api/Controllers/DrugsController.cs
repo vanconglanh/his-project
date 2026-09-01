@@ -36,8 +36,9 @@ public class DrugsController : ControllerBase
 
     // POST /api/v1/drugs/import  (must be before /{id} to avoid route conflict)
     [HttpPost("import")]
+    [Consumes("multipart/form-data")]
     [RequirePermission("drug.import")]
-    public async Task<IActionResult> Import([FromForm] IFormFile file, [FromForm] string mode = "UPSERT", CancellationToken ct = default)
+    public async Task<IActionResult> Import(IFormFile file, [FromForm] string mode = "UPSERT", CancellationToken ct = default)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { error = new { code = "DRUG_IMPORT_INVALID_FORMAT", message = "Vui long upload file Excel." } });
