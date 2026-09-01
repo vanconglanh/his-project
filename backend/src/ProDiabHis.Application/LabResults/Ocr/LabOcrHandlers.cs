@@ -81,7 +81,7 @@ public class ExtractLabResultOcrCommandHandler
         var fields = parseResult.Fields
             .Select(f =>
             {
-                var (outOfRange, note) = LabPlausibleRanges.Check(f.TestCode, f.ValueNumeric);
+                var (outOfRange, note) = LabPlausibleRanges.Check(f.TestCode, f.ValueNumeric, f.Unit);
                 return new LabOcrExtractFieldDto(f.LabOrderItemId, f.TestCode, f.TestName,
                     f.RawValue, f.ValueNumeric, f.Unit, f.Extracted, outOfRange, note);
             })

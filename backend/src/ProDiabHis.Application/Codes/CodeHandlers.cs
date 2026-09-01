@@ -51,21 +51,14 @@ public class GetCodeGroupsQueryHandler
 public class GetCodeItemsQueryHandler
     : IRequestHandler<GetCodeItemsQuery, Result<IReadOnlyList<CodeItemDto>>>
 {
-    private readonly IDapperConnectionFactory _db;
+    private readonly ICodeResolver _resolver;
 
-    public GetCodeItemsQueryHandler(IDapperConnectionFactory db) => _db = db;
+    public GetCodeItemsQueryHandler(ICodeResolver resolver) => _resolver = resolver;
 
     public async Task<Result<IReadOnlyList<CodeItemDto>>> Handle(GetCodeItemsQuery q, CancellationToken ct)
     {
-        using var conn = _db.CreateConnection();
-        var rows = await conn.QueryAsync<dynamic>(@"
-            SELECT code, name
-            FROM diab_his_sys_code_detail
-            WHERE code_master_id = @GroupId AND is_active = 1
-            ORDER BY sort_order, code",
-            new { GroupId = q.GroupId });
-
-        var result = rows.Select(r => new CodeItemDto((string)r.code, (string)r.name)).ToList();
+        var items = await _resolver.GetAsync(q.GroupId, ct);
+        var result = items.Select(i => new CodeItemDto(i.Code, i.Name)).ToList();
         return Result<IReadOnlyList<CodeItemDto>>.Success(result.AsReadOnly());
     }
 }
@@ -76,9 +69,9 @@ public class GetCodeItemsQueryHandler
 public class GetCodeBatchQueryHandler
     : IRequestHandler<GetCodeBatchQuery, Result<IReadOnlyDictionary<string, IReadOnlyList<CodeItemDto>>>>
 {
-    private readonly IDapperConnectionFactory _db;
+    private readonly ICodeResolver _resolver;
 
-    public GetCodeBatchQueryHandler(IDapperConnectionFactory db) => _db = db;
+    public GetCodeBatchQueryHandler(ICodeResolver resolver) => _resolver = resolver;
 
     public async Task<Result<IReadOnlyDictionary<string, IReadOnlyList<CodeItemDto>>>> Handle(
         GetCodeBatchQuery q, CancellationToken ct)
@@ -88,21 +81,10 @@ public class GetCodeBatchQueryHandler
         if (ids.Count == 0)
             return Result<IReadOnlyDictionary<string, IReadOnlyList<CodeItemDto>>>.Success(map);
 
-        using var conn = _db.CreateConnection();
-        var rows = await conn.QueryAsync<dynamic>(@"
-            SELECT code_master_id, code, name
-            FROM diab_his_sys_code_detail
-            WHERE code_master_id IN @Ids AND is_active = 1
-            ORDER BY code_master_id, sort_order, code",
-            new { Ids = ids });
-
         foreach (var id in ids)
-            map[id] = new List<CodeItemDto>();
-
-        foreach (var r in rows)
         {
-            var gid = (string)r.code_master_id;
-            ((List<CodeItemDto>)map[gid]).Add(new CodeItemDto((string)r.code, (string)r.name));
+            var items = await _resolver.GetAsync(id, ct);
+            map[id] = items.Select(i => new CodeItemDto(i.Code, i.Name)).ToList();
         }
 
         return Result<IReadOnlyDictionary<string, IReadOnlyList<CodeItemDto>>>.Success(map);

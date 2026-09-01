@@ -122,6 +122,8 @@ public static class DependencyInjection
             ProDiabHis.Infrastructure.Services.PackageEntitlementService>();
         services.AddScoped<ProDiabHis.Application.Common.ISettingsProvider,
             ProDiabHis.Infrastructure.Services.SettingsProvider>();
+        services.AddScoped<ProDiabHis.Application.Codes.ICodeResolver,
+            ProDiabHis.Infrastructure.Services.CodeResolver>();
 
         // MinIO / File storage
         var minioEndpoint = configuration["Minio:Endpoint"] ?? "localhost:9000";

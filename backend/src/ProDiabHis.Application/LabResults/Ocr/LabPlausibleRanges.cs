@@ -19,9 +19,10 @@ public static class LabPlausibleRanges
     // Map theo TỪ KHÓA chuẩn hóa (uppercase) xuất hiện trong test_code. Khớp linh hoạt:
     // test_code chứa 1 trong các từ khóa (substring) -> áp ngưỡng tương ứng.
     // Thứ tự quan trọng: từ khóa dài/cụ thể trước (HBA1C trước GLU, LDL/HDL trước CHOL...).
-    private static readonly (string Keyword, PlausibleRange Range)[] Rules =
+    // Ngưỡng theo don vi mmol/L (mac dinh, hanh vi hien tai)
+    private static readonly (string Keyword, PlausibleRange Range)[] RulesMmol =
     {
-        // HbA1c (%): sinh lý 2-20%
+        // HbA1c (%): sinh lý 2-20% - khong phu thuoc mmol/mg
         ("HBA1C", new PlausibleRange(2m, 20m)),
         ("A1C",   new PlausibleRange(2m, 20m)),
 
@@ -39,12 +40,28 @@ public static class LabPlausibleRanges
         ("CHOL", new PlausibleRange(0m, 50m)),
         ("LIPID", new PlausibleRange(0m, 50m)),
 
-        // Tuyến giáp
+        // Tuyến giáp - khong phu thuoc mmol/mg
         ("TSH", new PlausibleRange(0m, 100m)),   // mIU/L
         ("FT3", new PlausibleRange(0m, 100m)),   // pmol/L
         ("FT4", new PlausibleRange(0m, 200m)),   // pmol/L
         ("T3",  new PlausibleRange(0m, 100m)),
         ("T4",  new PlausibleRange(0m, 500m)),
+    };
+
+    // Ngưỡng rieng cho don vi mg/dL (glucose/lipid quy doi ~18x cho glucose, ~38.6x cho cholesterol/TG)
+    private static readonly (string Keyword, PlausibleRange Range)[] RulesMgDl =
+    {
+        ("GLUCOSE", new PlausibleRange(10m, 2000m)),
+        ("GLU",     new PlausibleRange(10m, 2000m)),
+
+        ("TRIGLYCERIDE", new PlausibleRange(0m, 2000m)),
+        ("TRIG", new PlausibleRange(0m, 2000m)),
+        ("TG",   new PlausibleRange(0m, 2000m)),
+        ("LDL",  new PlausibleRange(0m, 2000m)),
+        ("HDL",  new PlausibleRange(0m, 2000m)),
+        ("CHOLESTEROL", new PlausibleRange(0m, 2000m)),
+        ("CHOL", new PlausibleRange(0m, 2000m)),
+        ("LIPID", new PlausibleRange(0m, 2000m)),
     };
 
     private const string DefaultNote =
@@ -55,21 +72,32 @@ public static class LabPlausibleRanges
     /// Trả về (outOfRange, note). Không có quy tắc cho test_code -> (false, null).
     /// value null (không đọc được số) -> (false, null).
     /// </summary>
-    public static (bool OutOfPlausibleRange, string? Note) Check(string? testCode, decimal? value)
+    public static (bool OutOfPlausibleRange, string? Note) Check(string? testCode, decimal? value, string? unit = null)
     {
         if (value is null || string.IsNullOrWhiteSpace(testCode))
             return (false, null);
 
         var normCode = testCode.Trim().ToUpperInvariant();
+        // Detect don vi tu chinh du lieu OCR: co "mg" (mg/dL) -> dung nguong mg/dL,
+        // khong co / null -> mac dinh mmol/L (giu hanh vi cu, an toan nguoc).
+        var isMgDl = !string.IsNullOrWhiteSpace(unit) && unit.Contains("mg", StringComparison.OrdinalIgnoreCase);
 
-        foreach (var (keyword, range) in Rules)
+        // Uu tien bang nguong theo don vi (mg/dL); XN khong co trong bang rieng
+        // (HbA1c %, TSH, FT3/FT4...) fallback sang bang mmol/L mac dinh (khong
+        // phu thuoc don vi mg/mmol nen gia tri giong nhau o ca 2 bang).
+        if (isMgDl)
+        {
+            foreach (var (keyword, range) in RulesMgDl)
+            {
+                if (normCode.Contains(keyword))
+                    return value.Value < range.Min || value.Value > range.Max ? (true, DefaultNote) : (false, null);
+            }
+        }
+
+        foreach (var (keyword, range) in RulesMmol)
         {
             if (normCode.Contains(keyword))
-            {
-                if (value.Value < range.Min || value.Value > range.Max)
-                    return (true, DefaultNote);
-                return (false, null);
-            }
+                return value.Value < range.Min || value.Value > range.Max ? (true, DefaultNote) : (false, null);
         }
 
         return (false, null);

@@ -41,20 +41,23 @@ public class CreateReportDefinitionHandler : IRequestHandler<CreateReportDefinit
     private readonly IDatasetRegistry _datasets;
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _currentUser;
+    private readonly IDapperConnectionFactory _db;
 
     public CreateReportDefinitionHandler(
-        IReportDefinitionStore store, IDatasetRegistry datasets, ITenantProvider tenant, ICurrentUser currentUser)
+        IReportDefinitionStore store, IDatasetRegistry datasets, ITenantProvider tenant, ICurrentUser currentUser, IDapperConnectionFactory db)
     {
         _store = store;
         _datasets = datasets;
         _tenant = tenant;
         _currentUser = currentUser;
+        _db = db;
     }
 
     public async Task<ReportDefinition> Handle(CreateReportDefinitionCommand request, CancellationToken ct)
     {
         var validated = ReportDefinitionValidation.ValidateAndResolveDataset(_datasets, request.Input);
         _ = validated;
+        await ReportDefinitionValidation.EnsureSharedRolesExistAsync(_db, _tenant.TenantId, request.Input, ct);
 
         var createdBy = _currentUser.UserId?.ToString()
             ?? throw new ReportValidationException("REPORT_UNAUTHENTICATED", "Không xác định được người dùng hiện tại");
@@ -70,19 +73,22 @@ public class UpdateReportDefinitionHandler : IRequestHandler<UpdateReportDefinit
     private readonly IDatasetRegistry _datasets;
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _currentUser;
+    private readonly IDapperConnectionFactory _db;
 
     public UpdateReportDefinitionHandler(
-        IReportDefinitionStore store, IDatasetRegistry datasets, ITenantProvider tenant, ICurrentUser currentUser)
+        IReportDefinitionStore store, IDatasetRegistry datasets, ITenantProvider tenant, ICurrentUser currentUser, IDapperConnectionFactory db)
     {
         _store = store;
         _datasets = datasets;
         _tenant = tenant;
         _currentUser = currentUser;
+        _db = db;
     }
 
     public async Task<ReportDefinition> Handle(UpdateReportDefinitionCommand request, CancellationToken ct)
     {
         ReportDefinitionValidation.ValidateAndResolveDataset(_datasets, request.Input);
+        await ReportDefinitionValidation.EnsureSharedRolesExistAsync(_db, _tenant.TenantId, request.Input, ct);
 
         var existing = await _store.GetByIdAsync(_tenant.TenantId, request.Id, ct)
             ?? throw new ReportValidationException("REPORT_NOT_FOUND", "Không tìm thấy báo cáo tự tạo");
@@ -227,6 +233,29 @@ internal static class ReportDefinitionValidation
         }
 
         return dataset;
+    }
+
+    /// <summary>N3: khi luu bao cao voi Visibility=ROLE, validate moi role code trong SharedRoles
+    /// phai ton tai trong diab_his_sec_roles (cua tenant hien tai hoac role global tenant_id NULL).
+    /// Neu khong -> ROLE_NOT_FOUND, tranh gan role "ao" khong bao gio duoc ai co the xem duoc bao cao.</summary>
+    public static async Task EnsureSharedRolesExistAsync(
+        IDapperConnectionFactory db, int tenantId, ReportDefinitionInput input, CancellationToken ct)
+    {
+        if (input.Visibility != ReportVisibility.Role) return;
+        var roles = input.SharedRoles?.Where(r => !string.IsNullOrWhiteSpace(r)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+            ?? new List<string>();
+        if (roles.Count == 0) return;
+
+        using var conn = db.CreateConnection();
+        var existing = (await conn.QueryAsync<string>(
+            @"SELECT code FROM diab_his_sec_roles
+              WHERE code IN @Roles AND (tenant_id = @TenantId OR tenant_id IS NULL)",
+            new { Roles = roles, TenantId = tenantId }))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var missing = roles.Where(r => !existing.Contains(r)).ToList();
+        if (missing.Count > 0)
+            throw new ReportValidationException("ROLE_NOT_FOUND", $"Vai trò không tồn tại: {string.Join(", ", missing)}");
     }
 
     public static void EnsureOwnerOrAdmin(ReportDefinition existing, ICurrentUser currentUser)
