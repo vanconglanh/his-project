@@ -6,11 +6,21 @@ namespace ProDiabHis.Infrastructure.Reports;
 
 public class ReportExcelExporter : IExcelExporter
 {
+    /// <summary>Excel gioi han ten sheet <=31 ky tu va cam cac ky tu : \ / ? * [ ]. Cat + thay ky tu cam.</summary>
+    private static string SanitizeSheetName(string? name)
+    {
+        var s = string.IsNullOrWhiteSpace(name) ? "Bao cao" : name.Trim();
+        foreach (var ch in new[] { ':', '\\', '/', '?', '*', '[', ']' })
+            s = s.Replace(ch, ' ');
+        if (s.Length > 31) s = s.Substring(0, 31).TrimEnd();
+        return string.IsNullOrWhiteSpace(s) ? "Bao cao" : s;
+    }
+
     /// <summary>Xuat bao cao config-driven (Report Engine) — header tu descriptor.Columns, dong subtotal/total.</summary>
     public byte[] ExportGeneric(ReportDescriptor descriptor, ReportDataResult data, string sheetName)
     {
         using var wb = new XLWorkbook();
-        var ws = wb.Worksheets.Add(sheetName);
+        var ws = wb.Worksheets.Add(SanitizeSheetName(sheetName));
         var columns = descriptor.Columns;
 
         // Header
@@ -120,7 +130,7 @@ public class ReportExcelExporter : IExcelExporter
     public byte[] Export<T>(IEnumerable<T> rows, string sheetName)
     {
         using var wb = new XLWorkbook();
-        var ws = wb.Worksheets.Add(sheetName);
+        var ws = wb.Worksheets.Add(SanitizeSheetName(sheetName));
 
         var list = rows.ToList();
         if (!list.Any())
