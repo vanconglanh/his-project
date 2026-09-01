@@ -338,4 +338,30 @@ response THẬT. Evidence: `docs/qc/evidence-bank-reconciliation-20260901/`.
 
 ---
 
+## 7. Triển khai 13 báo cáo P1/P2 (2026-09-01) — ✅ HOÀN TẤT
+
+Toàn bộ backlog P1/P2 (§3 + §5) triển khai bằng **config-driven report engine** (thêm ReportDescriptor tĩnh vào `backend/src/ProDiabHis.Infrastructure/Reports/ReportRegistry.cs`, dòng đăng ký "Dot 13"). Không sửa controller/exporter/FE. Verify LIVE qua API thật của container `prodiab-backend` (build sẵn, không bind-mount) + catalog FE. Seed tenant 1: `db/seeds/seed_reports_p1p2_tenant1.sql` (cleanup `db/seeds/cleanup_reports_p1p2_tenant1.sql`).
+
+| ID | Code | Nhóm | Rows verify (LIVE API) | Ghi chú |
+|---|---|---|---|---|
+| F-03 | `refund-detail` | Financial | 3 rows, tổng 425.000đ | Group theo lý do hoàn. Schema `bil_payments` không có cột approver/refund_reason riêng → dùng `note` làm lý do, `paid_by` làm người phê duyệt (best-effort, như A2) |
+| D-02 | `slow-moving-drugs` | Pharmacy | 4 thuốc, 1.259.200đ tồn ứ | Tồn > N ngày (Enum mặc định 90) không có EXPORT `stock_movements`; daysNoMovement suy từ last EXPORT hoặc ngày nhập |
+| A-01 | `audit-access-log` | Statistics | 12 rows (2 cảnh báo) | `diab_his_sec_audit_logs` + filter action/resourceType. **Hạn chế**: engine chỉ gate `report.read/export` chung, chưa gate riêng Admin-only theo báo cáo (cần bổ sung per-descriptor permission nếu muốn giới hạn) |
+| F-04 | `revenue-by-service` | Financial | 7 dịch vụ, 720.000đ | Mix + % đóng góp qua `SUM() OVER()` |
+| O-01 | `avg-wait-time` | Statistics | 4 ngày (TB chờ gọi 26.9', tổng 50.4') | `rcp_queue_tickets` (checked_in_at→called_at→finished_at). Lưu ý: dùng `finished_at` của queue (encounter dùng cột `finished_at`, KHÔNG có `ended_at`) |
+| O-02 | `revisit-rate` | Statistics | 3 khung (30d=90%) | Self-join `enc_encounters` theo patient_id, MIN ngày tới lượt kế |
+| D-03 | `drug-use-by-doctor` | Pharmacy | 3 rows, 285.000đ | `prescription_items` × `prescriptions.doctor_id`, chi phí = line_total |
+| P-02 | `package-utilization-by-patient` | Financial | 6 BN (TB 55.6%, 3 BN <30%) | Roll-up `entitlement_balances` theo subscription/BN |
+| C-02 | `diabetes-complications` | Clinical | 5 loại, 6 BN | Parse `complications` JSON qua `JSON_TABLE`. **Tổng hợp** theo loại (không tên BN) vì `assessments.patient_id` INT không join `pat_patients` UUID |
+| C-04 | `diabetes-risk-stratification` | Clinical | 3 tầng (Cao=2, TB=3, Thấp=3) | Assessment mới nhất/BN, phân tầng HbA1c(≥9/7-9/<7) + biến chứng. Tổng hợp (lý do như C-02) |
+| O-03 | `no-show-by-doctor` | Statistics | 2 BS (tổng 10 hẹn, 2 no-show) | `sch_appointments` join `doctor_ref` |
+| O-04 | `appointment-performance` | Statistics | 5 chỉ số (đúng giờ 30%) | **Best-effort**: `sch_appointments` không có `checked_in_at` → suy đúng giờ/trễ/hủy cuối phút từ `updated_at` vs `appointment_at` |
+| D-04 | `abc-inventory-analysis` | Pharmacy | 2 thuốc (1 nhóm A) | ABC = Pareto lũy kế giá trị tiêu thụ EXPORT; XYZ = CV tiêu thụ theo tháng. **Không hoãn** — làm phần khả thi. Giới hạn: CV cần lịch sử tiêu thụ nhiều kỳ đủ dài (production) mới ổn định; hiện tính trên `stock_movements` đã seed |
+
+**Gate cuối:** `dotnet build` sạch (0 error); `dotnet test` = **2165 pass / 0 fail / 0 skip** (giữ nguyên baseline); 13/13 endpoint `/api/v1/reports/{code}/data` trả rows thật; export PDF (magic `%PDF`) + Excel (magic `PK`) đều 200; FE `/reports` catalog render đủ 13 báo cáo đúng nhóm (Tài chính/Khám bệnh/Thống kê/Dược).
+
+**Không đụng:** `DrugsController.Import`, migration `pat_pii_data`, các file F-02 bank-reconciliation.
+
+---
+
 *Tài liệu này là output của phiên làm việc PO 2026-09-01. Evidence: screenshots lưu trong `docs/qc/dashboard-report-review-20260901/`. Code fixes: `frontend/lib/api/dashboard.ts`, `frontend/app/(dashboard)/_components/DashboardOverview.tsx`, `frontend/lib/api/reports.ts`, `frontend/app/(dashboard)/reports/_components/FinancialTab.tsx`, `frontend/messages/vi.json`.*
