@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DrugAutocomplete } from "@/components/domain/DrugAutocomplete";
 import { useBranches } from "@/lib/hooks/use-branches";
 import { useCreateStockTransfer } from "@/lib/hooks/use-stock-transfers";
-import { STOCK_TRANSFER_APPROVAL_THRESHOLD } from "@/lib/api/stock-transfers";
+import { useSettingNumber } from "@/lib/hooks/use-settings";
 import type { DrugMasterResponse } from "@/lib/api/drugs";
 import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { useBranchStore } from "@/lib/stores/branch-store";
@@ -84,7 +84,8 @@ export function StockTransferForm({ onSuccess, formId = "stock-transfer-form", o
     [items]
   );
 
-  const requiresRegionalApproval = totalValue > STOCK_TRANSFER_APPROVAL_THRESHOLD;
+  const approvalThreshold = useSettingNumber("stock_transfer_approval_threshold", 5_000_000);
+  const requiresRegionalApproval = totalValue > approvalThreshold;
 
   useEffect(() => {
     onSubmittingChange?.(createTransfer.isPending);
@@ -255,7 +256,7 @@ export function StockTransferForm({ onSuccess, formId = "stock-transfer-form", o
         <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
           <p>
-            Giá trị phiếu vượt ngưỡng {STOCK_TRANSFER_APPROVAL_THRESHOLD.toLocaleString("vi-VN")}đ (BR-58) — phiếu
+            Giá trị phiếu vượt ngưỡng {approvalThreshold.toLocaleString("vi-VN")}đ (BR-58) — phiếu
             này cần <strong>Quản lý vùng/Admin</strong> duyệt thay vì Quản lý chi nhánh gửi.
           </p>
         </div>

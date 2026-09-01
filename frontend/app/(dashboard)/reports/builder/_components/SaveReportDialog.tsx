@@ -1,23 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import * as rolesApi from "@/lib/api/roles";
 import type { ReportRoleCode, ReportVisibility } from "@/lib/api/reports";
-
-const ROLE_OPTIONS: { code: ReportRoleCode; label: string }[] = [
-  { code: "bac_si", label: "Bác sĩ" },
-  { code: "le_tan", label: "Lễ tân" },
-  { code: "duoc_si", label: "Dược sĩ" },
-  { code: "ke_toan", label: "Kế toán" },
-  { code: "ky_thuat_vien", label: "Kỹ thuật viên" },
-  { code: "admin", label: "Quản trị viên" },
-];
 
 interface SaveReportDialogProps {
   isEditing: boolean;
@@ -43,6 +36,12 @@ export function SaveReportDialog({
   const [title, setTitle] = useState(defaultTitle);
   const [visibility, setVisibility] = useState<ReportVisibility>(defaultVisibility);
   const [sharedRoles, setSharedRoles] = useState<ReportRoleCode[]>(defaultSharedRoles);
+
+  const { data: roles = [], isLoading: isLoadingRoles } = useQuery({
+    queryKey: ["roles"],
+    queryFn: rolesApi.listRoles,
+    enabled: open,
+  });
 
   useEffect(() => {
     if (open) {
@@ -108,18 +107,27 @@ export function SaveReportDialog({
               </RadioGroup>
 
               {visibility === "ROLE" && (
-                <div className="ml-6 grid grid-cols-2 gap-1.5 rounded-md border p-2.5">
-                  {ROLE_OPTIONS.map((r) => (
-                    <label key={r.code} className="flex min-h-9 items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={sharedRoles.includes(r.code)}
-                        onCheckedChange={(v) => toggleRole(r.code, v === true)}
-                      />
-                      {r.label}
-                    </label>
-                  ))}
-                  {sharedRoles.length === 0 && (
-                    <p className="col-span-2 text-xs text-[color:var(--status-warning)]">
+                <div className="ml-6 space-y-1.5 rounded-md border p-2.5">
+                  {isLoadingRoles ? (
+                    <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Đang tải danh sách vai trò...
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {roles.map((r) => (
+                        <label key={r.code} className="flex min-h-9 items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={sharedRoles.includes(r.code)}
+                            onCheckedChange={(v) => toggleRole(r.code, v === true)}
+                          />
+                          {r.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  {!isLoadingRoles && sharedRoles.length === 0 && (
+                    <p className="text-xs text-[color:var(--status-warning)]">
                       Chọn ít nhất 1 vai trò được chia sẻ.
                     </p>
                   )}

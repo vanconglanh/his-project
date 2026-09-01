@@ -122,7 +122,9 @@
     "chainDashboard": "Chain Dashboard",
     "interBranchDebts": "Inter-branch Debts",
     "legacyImport": "Legacy Records Import (OCR)",
-    "internalReferrals": "Internal Referrals"
+    "internalReferrals": "Internal Referrals",
+    "masterCodes": "Code Lists",
+    "systemSettings": "System Settings"
   },
   "ApiPartner": {
     "title": "API Partners",

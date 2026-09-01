@@ -4,8 +4,9 @@
  * Dùng cho prop `items` của <Select> (Base UI) để hiển thị TEXT thay vì code
  * sau khi chọn, và để hiển thị name (không phải code) ở list/detail.
  *
- * PHA 2: đây là nguồn dữ liệu seed cho bảng CODE_MASTER / CODE_DETAIL_MASTER.
- * Khi có API /codes/{groupId}, thay dần các hằng số này bằng hook useCodes(groupId).
+ * ĐÃ MIGRATE: các nhóm mã ở đây giờ được nạp qua API /codes/{groupId} (useCodes/useCodeItems).
+ * Các hằng số trong file này CHỈ còn dùng làm fallback offline/SSR (khi API chưa trả kịp)
+ * và làm seed dữ liệu ban đầu cho CODE_MASTER / CODE_DETAIL_MASTER. KHÔNG xoá file này.
  *
  * Quy ước: mỗi nhóm là Record<code, name_vi>. Key nhóm = id CODE_MASTER (SCREAMING_SNAKE).
  */

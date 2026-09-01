@@ -262,9 +262,10 @@ export interface PermissionResponse {
 
 export type Gender = "MALE" | "FEMALE" | "OTHER";
 export type PatientStatus = "ACTIVE" | "INACTIVE" | "DECEASED";
-export type PatientType = "SERVICE" | "BHYT" | "FREE" | "CONTRACT";
-export type MaritalStatus = "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED" | "OTHER";
-export type VisitType = "FIRST_VISIT" | "FOLLOW_UP" | "EMERGENCY" | "SPECIALIST";
+// Danh mục động (API /codes/{groupId}) — không còn union cứng, BE là nguồn sự thật.
+export type PatientType = string;
+export type MaritalStatus = string;
+export type VisitType = string;
 export type BloodType =
   | "A_POS"
   | "A_NEG"

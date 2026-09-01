@@ -99,9 +99,6 @@ export interface StockTransferListParams {
   page_size?: number;
 }
 
-/** Ngưỡng duyệt cấp chi nhánh gửi theo BR-58 (mặc định — cấu hình được theo tenant). */
-export const STOCK_TRANSFER_APPROVAL_THRESHOLD = 5_000_000;
-
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 export async function listStockTransfers(

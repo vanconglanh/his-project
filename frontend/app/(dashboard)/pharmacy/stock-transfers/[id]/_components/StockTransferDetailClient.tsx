@@ -43,7 +43,7 @@ import {
   useCancelStockTransfer,
 } from "@/lib/hooks/use-stock-transfers";
 import { usePermissions } from "@/lib/hooks/use-permissions";
-import { STOCK_TRANSFER_APPROVAL_THRESHOLD } from "@/lib/api/stock-transfers";
+import { useSettingNumber } from "@/lib/hooks/use-settings";
 
 interface Props {
   id: string;
@@ -52,6 +52,7 @@ interface Props {
 export function StockTransferDetailClient({ id }: Props) {
   const { data: transfer, isLoading } = useStockTransfer(id);
   const { has } = usePermissions();
+  const approvalThreshold = useSettingNumber("stock_transfer_approval_threshold", 5_000_000);
 
   const submit = useSubmitStockTransfer();
   const approve = useApproveStockTransfer();
@@ -96,7 +97,7 @@ export function StockTransferDetailClient({ id }: Props) {
   const canReceive = status === "IN_TRANSIT" && has("stock_transfer.receive");
   const canClose = status === "PARTIALLY_RECEIVED" && has("stock_transfer.receive");
 
-  const overThreshold = transfer.total_value > STOCK_TRANSFER_APPROVAL_THRESHOLD;
+  const overThreshold = transfer.total_value > approvalThreshold;
 
   function openReceiveDialog() {
     const defaults: Record<string, number> = {};
@@ -267,7 +268,7 @@ export function StockTransferDetailClient({ id }: Props) {
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
           <p>
             Giá trị phiếu {transfer.total_value.toLocaleString("vi-VN")}đ vượt ngưỡng{" "}
-            {STOCK_TRANSFER_APPROVAL_THRESHOLD.toLocaleString("vi-VN")}đ (BR-58) — cần Quản lý vùng/Admin duyệt.
+            {approvalThreshold.toLocaleString("vi-VN")}đ (BR-58) — cần Quản lý vùng/Admin duyệt.
           </p>
         </div>
       )}

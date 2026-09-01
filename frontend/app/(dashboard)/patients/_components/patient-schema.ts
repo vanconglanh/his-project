@@ -3,13 +3,15 @@ import { z } from "zod";
 const PHONE_VN = /^(\+84|0)\d{9,10}$/;
 const ID_NUMBER = /^\d{9}$|^\d{12}$/;
 
+// Danh sách fallback (offline/SSR) — nguồn thật lấy từ API /codes/{groupId} (useCodes).
+// Không còn dùng làm z.enum() chặn giá trị — BE là nguồn sự thật cho danh mục.
 export const PATIENT_TYPES = ["SERVICE", "BHYT", "FREE", "CONTRACT"] as const;
 export const MARITAL_STATUSES = ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "OTHER"] as const;
 export const VISIT_TYPES = ["FIRST_VISIT", "FOLLOW_UP", "EMERGENCY", "SPECIALIST"] as const;
 
-export type PatientType = (typeof PATIENT_TYPES)[number];
-export type MaritalStatus = (typeof MARITAL_STATUSES)[number];
-export type VisitType = (typeof VISIT_TYPES)[number];
+export type PatientType = string;
+export type MaritalStatus = string;
+export type VisitType = string;
 
 export const patientSchema = z.object({
   full_name: z.string().min(2, "Họ tên tối thiểu 2 ký tự").max(200),
@@ -51,9 +53,9 @@ export const patientSchema = z.object({
     }),
   id_card_issued_place: z.string().max(255).optional(),
   nationality: z.string().optional().default("VN"),
-  patient_type: z.enum(PATIENT_TYPES).optional().default("SERVICE"),
-  marital_status: z.enum(MARITAL_STATUSES).optional(),
-  visit_type: z.enum(VISIT_TYPES).optional().default("FIRST_VISIT"),
+  patient_type: z.string().min(1, "Vui lòng chọn đối tượng").optional().default("SERVICE"),
+  marital_status: z.string().optional(),
+  visit_type: z.string().min(1, "Vui lòng chọn loại khám").optional().default("FIRST_VISIT"),
 });
 
 export type PatientFormValues = z.infer<typeof patientSchema>;

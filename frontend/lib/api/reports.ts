@@ -233,8 +233,12 @@ export interface ReportDefinitionBody {
 
 export type ReportVisibility = "TENANT" | "PRIVATE" | "ROLE";
 
-/** Vai trò hệ thống (code snake_case dùng cho chia sẻ báo cáo theo vai trò). */
-export type ReportRoleCode = "admin" | "bac_si" | "le_tan" | "duoc_si" | "ke_toan" | "ky_thuat_vien";
+/**
+ * Mã vai trò dùng để chia sẻ báo cáo theo vai trò.
+ * Trước đây là union cứng snake_case (lệch với mã vai trò thật trong DB, vd "BacSi").
+ * Nay lấy động từ API /roles (RoleResponse.code) — không còn union chặn giá trị.
+ */
+export type ReportRoleCode = string;
 
 export interface SaveReportDefinitionRequest {
   title: string;

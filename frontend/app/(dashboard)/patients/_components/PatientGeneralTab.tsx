@@ -16,7 +16,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { PatientFormValues } from "./patient-schema";
-import { PATIENT_TYPES, MARITAL_STATUSES, VISIT_TYPES } from "./patient-schema";
+import { useCodeItems } from "@/lib/hooks/use-codes";
+import {
+  GENDER,
+  BLOOD_TYPE,
+  NATIONALITY,
+  MARITAL_STATUS,
+  PATIENT_TYPE,
+  VISIT_TYPE,
+} from "@/lib/constants/code-labels";
 
 interface PatientGeneralTabProps {
   register: UseFormRegister<PatientFormValues>;
@@ -37,37 +45,6 @@ function computeAge(dob: string | undefined): string {
   return age >= 0 ? `${age} tuổi` : "";
 }
 
-const PATIENT_TYPE_LABELS: Record<string, string> = {
-  SERVICE: "Dịch vụ",
-  BHYT: "Bảo hiểm y tế",
-  FREE: "Miễn phí",
-  CONTRACT: "Hợp đồng",
-};
-
-const MARITAL_STATUS_LABELS: Record<string, string> = {
-  SINGLE: "Độc thân",
-  MARRIED: "Đã kết hôn",
-  DIVORCED: "Ly hôn",
-  WIDOWED: "Goá",
-  OTHER: "Khác",
-};
-
-const VISIT_TYPE_LABELS: Record<string, string> = {
-  FIRST_VISIT: "Khám lần đầu",
-  FOLLOW_UP: "Tái khám",
-  EMERGENCY: "Cấp cứu",
-  SPECIALIST: "Khám chuyên khoa",
-};
-
-const NATIONALITY_OPTIONS = [
-  { value: "VN", label: "Việt Nam" },
-  { value: "US", label: "Hoa Kỳ" },
-  { value: "CN", label: "Trung Quốc" },
-  { value: "JP", label: "Nhật Bản" },
-  { value: "KR", label: "Hàn Quốc" },
-  { value: "OTHER", label: "Khác" },
-];
-
 export function PatientGeneralTab({
   register,
   errors,
@@ -77,6 +54,15 @@ export function PatientGeneralTab({
 }: PatientGeneralTabProps) {
   const dob = watch("date_of_birth");
   const age = computeAge(dob);
+
+  // Danh muc DB-driven (API /codes/{groupId}), fallback ve hang so code-labels.ts
+  // khi dang tai hoac loi (offline/SSR) de UI khong vo.
+  const genderItems = useCodeItems("GENDER", GENDER);
+  const bloodTypeItems = useCodeItems("BLOOD_TYPE", BLOOD_TYPE);
+  const nationalityItems = useCodeItems("NATIONALITY", NATIONALITY);
+  const maritalStatusItems = useCodeItems("MARITAL_STATUS", MARITAL_STATUS);
+  const patientTypeItems = useCodeItems("PATIENT_TYPE", PATIENT_TYPE);
+  const visitTypeItems = useCodeItems("VISIT_TYPE", VISIT_TYPE);
 
   return (
     <div className="space-y-6">
@@ -107,7 +93,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="gender">Giới tính</Label>
             <Select
-              items={{ MALE: "Nam", FEMALE: "Nữ", OTHER: "Khác" }}
+              items={genderItems}
               value={watch("gender") ?? ""}
               onValueChange={(v) =>
                 setValue("gender", v as "MALE" | "FEMALE" | "OTHER", { shouldDirty: true })
@@ -117,9 +103,9 @@ export function PatientGeneralTab({
                 <SelectValue placeholder="Chọn giới tính" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MALE">Nam</SelectItem>
-                <SelectItem value="FEMALE">Nữ</SelectItem>
-                <SelectItem value="OTHER">Khác</SelectItem>
+                {Object.entries(genderItems).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -179,7 +165,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="blood_type">Nhóm máu</Label>
             <Select
-              items={{ A_POS: "A+", A_NEG: "A-", B_POS: "B+", B_NEG: "B-", AB_POS: "AB+", AB_NEG: "AB-", O_POS: "O+", O_NEG: "O-", UNKNOWN: "Chưa xác định" }}
+              items={bloodTypeItems}
               value={watch("blood_type") ?? ""}
               onValueChange={(v) =>
                 setValue("blood_type", v as PatientFormValues["blood_type"], { shouldDirty: true })
@@ -189,12 +175,8 @@ export function PatientGeneralTab({
                 <SelectValue placeholder="Chọn nhóm máu" />
               </SelectTrigger>
               <SelectContent>
-                {(
-                  ["A_POS", "A_NEG", "B_POS", "B_NEG", "AB_POS", "AB_NEG", "O_POS", "O_NEG", "UNKNOWN"] as const
-                ).map((bt) => (
-                  <SelectItem key={bt} value={bt}>
-                    {bt.replace("_POS", "+").replace("_NEG", "-").replace("UNKNOWN", "Chưa xác định")}
-                  </SelectItem>
+                {Object.entries(bloodTypeItems).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -283,7 +265,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="nationality">Quốc tịch</Label>
             <Select
-              items={NATIONALITY_OPTIONS}
+              items={nationalityItems}
               value={watch("nationality") ?? "VN"}
               onValueChange={(v) => setValue("nationality", v ?? "VN", { shouldDirty: true })}
             >
@@ -291,10 +273,8 @@ export function PatientGeneralTab({
                 <SelectValue placeholder="Chọn quốc tịch" />
               </SelectTrigger>
               <SelectContent>
-                {NATIONALITY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
+                {Object.entries(nationalityItems).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -304,7 +284,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="marital_status">Tình trạng hôn nhân</Label>
             <Select
-              items={MARITAL_STATUS_LABELS}
+              items={maritalStatusItems}
               value={watch("marital_status") ?? ""}
               onValueChange={(v) =>
                 setValue(
@@ -318,10 +298,8 @@ export function PatientGeneralTab({
                 <SelectValue placeholder="Chọn tình trạng" />
               </SelectTrigger>
               <SelectContent>
-                {MARITAL_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {MARITAL_STATUS_LABELS[s]}
-                  </SelectItem>
+                {Object.entries(maritalStatusItems).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -331,7 +309,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="patient_type">Đối tượng</Label>
             <Select
-              items={PATIENT_TYPE_LABELS}
+              items={patientTypeItems}
               value={watch("patient_type") ?? "SERVICE"}
               onValueChange={(v) =>
                 setValue(
@@ -345,10 +323,8 @@ export function PatientGeneralTab({
                 <SelectValue placeholder="Chọn đối tượng" />
               </SelectTrigger>
               <SelectContent>
-                {PATIENT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {PATIENT_TYPE_LABELS[t]}
-                  </SelectItem>
+                {Object.entries(patientTypeItems).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -358,7 +334,7 @@ export function PatientGeneralTab({
           <div className="space-y-1">
             <Label htmlFor="visit_type">Loại khám</Label>
             <Select
-              items={VISIT_TYPE_LABELS}
+              items={visitTypeItems}
               value={watch("visit_type") ?? "FIRST_VISIT"}
               onValueChange={(v) =>
                 setValue(
@@ -372,10 +348,8 @@ export function PatientGeneralTab({
                 <SelectValue placeholder="Chọn loại khám" />
               </SelectTrigger>
               <SelectContent>
-                {VISIT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {VISIT_TYPE_LABELS[t]}
-                  </SelectItem>
+                {Object.entries(visitTypeItems).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

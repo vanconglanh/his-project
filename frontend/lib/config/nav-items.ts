@@ -30,6 +30,8 @@ import {
   Wand2,
   ArrowLeftRight,
   ScanLine,
+  ListTree,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -322,6 +324,18 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "legacyImport",
         icon: ScanLine,
         permissions: ["legacy_import.write"],
+      },
+      {
+        href: "/admin/master-codes",
+        labelKey: "masterCodes",
+        icon: ListTree,
+        permissions: ["code.read"],
+      },
+      {
+        href: "/admin/settings",
+        labelKey: "systemSettings",
+        icon: SlidersHorizontal,
+        permissions: ["setting.manage"],
       },
     ],
   },
