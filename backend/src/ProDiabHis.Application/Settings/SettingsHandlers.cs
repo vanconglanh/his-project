@@ -39,12 +39,17 @@ public class GetPublicSettingsQueryHandler : IRequestHandler<GetPublicSettingsQu
     public async Task<Result<IReadOnlyDictionary<string, string?>>> Handle(GetPublicSettingsQuery q, CancellationToken ct)
     {
         using var conn = _db.CreateConnection();
-        var keys = (await conn.QueryAsync<string>(
-            "SELECT setting_key FROM diab_his_sys_setting_meta WHERE is_public = 1")).ToList();
+        var metas = (await conn.QueryAsync<dynamic>(
+            "SELECT setting_key, default_value FROM diab_his_sys_setting_meta WHERE is_public = 1")).ToList();
 
         var result = new Dictionary<string, string?>();
-        foreach (var key in keys)
-            result[key] = await _settings.GetRawAsync(key, ct);
+        foreach (var m in metas)
+        {
+            string key = (string)m.setting_key;
+            string? defaultValue = m.default_value is null ? null : (string)m.default_value;
+            // Resolve tenant > global > default_value (meta) — tranh FE phai hardcode gia tri mac dinh.
+            result[key] = await _settings.GetRawAsync(key, ct) ?? defaultValue;
+        }
 
         return Result<IReadOnlyDictionary<string, string?>>.Success(result);
     }
