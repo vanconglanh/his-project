@@ -28,6 +28,23 @@ Phát hiện quan trọng nhất: **hạ tầng master data đã tồn tại nh�
 
 ---
 
+## 0b. Trạng thái xử lý (cập nhật 2026-09-01)
+
+Đã triển khai đợt P0 nền tảng + 3 bug xác nhận. `dotnet test` 2165 PASS/0 FAIL, `tsc` sạch, migration 9193/9194 verify idempotent trên DB thật. Evidence: `docs/qc/evidence-master-data-config-20260901/`.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| P0-1 `tenant_id` cho code_detail/master + `ICodeResolver` + Admin CRUD API | ✅ Done | Migration `9193`. Resolve tenant>global, fallback mặc định, cache 5 phút. Màn `/admin/master-codes`. Đã fix thêm bug hide mã hệ thống phát hiện khi verify. |
+| P0-2 Migrate FE (A2/A3/A4) sang `useCodes()` | ✅ Done | patient-schema.ts, PatientGeneralTab.tsx, code-labels.ts (giữ làm fallback). ENCOUNTER_TYPE vs VISIT_TYPE xác nhận là 2 nhóm khác nhau, seed đã khớp code — không seed lại. |
+| P0-4 Public settings endpoint (B2) | ✅ Done | `GET /api/v1/settings/public` (whitelist qua `sys_setting_meta.is_public`). FE bỏ hằng số 5tr. |
+| P0-5 Role list động report sharing (A5) | ✅ Done | FE `listRoles`; BE validate `ROLE_NOT_FOUND`. |
+| Việc 4 — Màn quản lý cấu hình chung | ✅ Done | Migration `9194` bảng `sys_setting_meta` (nhãn tiếng Việt + is_public). Màn `/admin/settings`. |
+| A11 — LabPlausibleRanges đơn vị mg/dL | ✅ Done | `Check(...)` thêm tham số `unit`, bảng ngưỡng riêng mg/dL. |
+| P0-2 các nhóm PAYMENT_METHOD/SERVICE_CATEGORY/LEGACY_DOC_TYPE... (A6/A7/A8) | ⏳ Chưa | Hạ tầng đã sẵn (tenant override + admin UI). Migrate BE validator sang `ICodeResolver` + seed nhóm còn thiếu là đợt kế tiếp. |
+| Nhóm P1 (A9-A16, B7, D1) | ⏳ Chưa | Gom đợt sau theo khuyến nghị mục 4 (dùng chung pattern resolver + tenant override). |
+
+---
+
 ## 1. Bảng audit chi tiết
 
 ### Nhóm A — Enum / const danh mục nghiệp vụ trong C#
