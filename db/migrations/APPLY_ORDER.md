@@ -22,6 +22,20 @@
 > | `9138_cli_lab_orders_add_deleted_by` | 2 inline proc thiếu `DELIMITER` | Bọc `DELIMITER` cả 2 proc |
 > | `9160_notification_channels` | inline proc `_notif_add_col` thiếu `DELIMITER` | Bọc `DELIMITER` |
 > | `9171_drop_legacy_lab_rad_orders` | 3730: quên drop `fk_lab_results_order` (chỉ xử lý phía rad) → `DROP TABLE diab_his_lab_orders` bị FK chặn | Thêm block drop + re-point FK phía `diab_his_lab_results` sang `cli_lab_orders`, mirror pattern rad |
+>
+> **Smoke test cuối trên docker-compose THẬT (2026-09-01):** `down -v` → `up` → migrator container
+> thật (`ops/scripts/apply-migrations.sh`) chạy sạch 211 file (0 lỗi, 183 bảng) → rebuild + boot app.
+> Login thật OK, `GET /api/fhir/r4/metadata` (no token) = 200 (BUG-001), sweep endpoint chính 0 lỗi 500.
+> **Phát hiện thêm 1 drift** (chỉ lộ khi build DB sạch từ migration): `diab_his_pha_prescription_items`
+> thiếu 6 cột (do `0035` tạo bảng trước → `CREATE TABLE IF NOT EXISTS` ở `9005` no-op) →
+> `GET /prescriptions` 500 "Unknown column 'i.line_total'". **Fix:** thêm `9192_fix_prescription_items_missing_cols.sql`
+> (`add_col_if_missing`, idempotent). Fresh build **212/212 file, 0 lỗi**, prescriptions → 200.
+> Evidence: `docs/qc/evidence-full-coverage-fixes-20260831/viec3-migration/smoke-test-real-compose-20260901.md`.
+>
+> ⚠️ **Caveat idempotency (chưa xử lý — ngoài phạm vi "dựng sạch từ 0"):** RE-APPLY toàn bộ chuỗi
+> lên một DB ĐÃ migrate xong thì một số migration lớp 00xx lỗi `Table 'pat_pii_data' doesn't exist`
+> (bảng legacy đã bị `9000_drop_legacy` xoá ở lượt đầu). Migrator thiết kế chạy **1 lần trên DB sạch**
+> (đúng use-case go-live) nên không chặn mục tiêu; muốn re-run an toàn cần guard tồn tại bảng ở nhóm 00xx.
 
 ### Bối cảnh nợ kỹ thuật (4 nhóm nguyên nhân gốc)
 Chain có 2 thế hệ: **lớp 00xx** (pre-Clean-Slate, thao tác trên bảng short-name của base dump)
