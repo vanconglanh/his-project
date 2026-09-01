@@ -14,7 +14,9 @@
       "revenue": "Doanh thu hôm nay",
       "encounters": "Lượt khám",
       "newPatients": "BN mới",
-      "prescriptions": "Đơn thuốc"
+      "prescriptions": "Đơn thuốc",
+      "waitingPatients": "Bệnh nhân chờ",
+      "bhytPending": "BHYT chờ xử lý"
     },
     "chart": {
       "revenueTrend": "Xu hướng doanh thu 30 ngày",

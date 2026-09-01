@@ -1,5 +1,5 @@
 "use client";
-
+// fix: khop field flat DashboardOverviewResponse + ChartResponse.series (2026-09-01)
 import { useState, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -142,46 +142,44 @@ export function DashboardOverview() {
         />
       )}
 
-      {/* KPI Cards */}
+      {/* KPI Cards — field names khớp DashboardOverviewResponse (flat, snake_case) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title={t("kpi.revenue")}
           value={
             overviewLoading ? "—"
-            : overviewError || overview?.today === undefined ? "—"
-            : formatRevenue(overview.today.revenue ?? 0)
+            : overviewError || overview === undefined ? "—"
+            : formatRevenue(overview.today_revenue ?? 0)
           }
           icon={TrendingUp}
-          delta={overview?.delta_vs_yesterday?.revenue_pct}
           loading={overviewLoading}
         />
         <KpiCard
           title={t("kpi.encounters")}
           value={
             overviewLoading ? "—"
-            : overviewError || overview?.today === undefined ? "—"
-            : (overview.today.encounter_count ?? "—")
+            : overviewError || overview === undefined ? "—"
+            : (overview.today_encounters ?? "—")
           }
           icon={Stethoscope}
-          delta={overview?.delta_vs_yesterday?.encounter_pct}
           loading={overviewLoading}
         />
         <KpiCard
-          title={t("kpi.newPatients")}
+          title={t("kpi.waitingPatients")}
           value={
             overviewLoading ? "—"
-            : overviewError || overview?.today === undefined ? "—"
-            : (overview.today.new_patient_count ?? "—")
+            : overviewError || overview === undefined ? "—"
+            : (overview.waiting_patients ?? "—")
           }
           icon={Users}
           loading={overviewLoading}
         />
         <KpiCard
-          title={t("kpi.prescriptions")}
+          title={t("kpi.bhytPending")}
           value={
             overviewLoading ? "—"
-            : overviewError || overview?.today === undefined ? "—"
-            : (overview.today.prescription_count ?? "—")
+            : overviewError || overview === undefined ? "—"
+            : (overview.bhyt_pending_count ?? "—")
           }
           icon={ClipboardList}
           loading={overviewLoading}
@@ -191,16 +189,16 @@ export function DashboardOverview() {
       {/* Charts 2x2 */}
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartCard title={t("chart.revenueTrend")} loading={revLoading} error={revError}>
-          <RevenueTrendChart data={revenueTrend?.points ?? []} />
+          <RevenueTrendChart data={revenueTrend?.series ?? []} />
         </ChartCard>
 
         <ChartCard title={t("chart.encountersTrend")} loading={encLoading} error={encError}>
-          <EncountersTrendChart data={encountersTrend?.points ?? []} />
+          <EncountersTrendChart data={encountersTrend?.series ?? []} />
         </ChartCard>
 
         <ChartCard title={t("chart.topDoctors")} loading={docLoading} error={docError}>
           <HorizontalBarChart
-            data={topDoctors?.points ?? []}
+            data={topDoctors?.series ?? []}
             valueLabel="Doanh thu"
             color="hsl(var(--primary))"
           />
@@ -208,7 +206,7 @@ export function DashboardOverview() {
 
         <ChartCard title={t("chart.topDrugs")} loading={drugLoading} error={drugError}>
           <HorizontalBarChart
-            data={topDrugs?.points ?? []}
+            data={topDrugs?.series ?? []}
             valueLabel="Doanh thu"
             color="#8b5cf6"
           />
@@ -220,7 +218,7 @@ export function DashboardOverview() {
         <h3 className="text-base font-semibold mb-3">{t("diabetes.sectionTitle")}</h3>
         <div className="grid gap-4 lg:grid-cols-2">
           <ChartCard title={t("diabetes.hba1cDistribution")} loading={hba1cLoading} error={hba1cError}>
-            <Hba1cDistributionChart data={hba1c?.points ?? []} />
+            <Hba1cDistributionChart data={hba1c?.series ?? []} />
           </ChartCard>
 
           <ChartCard title={t("diabetes.complicationsRate")}>

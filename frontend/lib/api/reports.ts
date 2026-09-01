@@ -448,16 +448,25 @@ export async function deleteReportSchedule(id: number | string): Promise<void> {
 
 export type ReportPeriod = "DAY" | "WEEK" | "MONTH" | "YEAR";
 
-export interface RevenueBreakdownItem {
-  period_label: string;
-  total: number;
-  secondary_value?: number | null;
+/**
+ * Khớp với BE RevenueReportResponse (snake_case).
+ * series dùng chung ChartDataPoint shape: { label, value, color? }.
+ */
+export interface RevenueReport {
+  period: string;
+  from: string;
+  to: string;
+  total_revenue: number;
+  total_invoices: number;
+  total_refunds: number;
+  net_revenue: number;
+  series: Array<{ label: string; value: number; color?: string | null }>;
 }
 
-export interface RevenueReport {
+/** @deprecated - chỉ dùng cho mock nội bộ, không match BE. */
+interface _LegacyRevenueBreakdownItem {
+  period_label: string;
   total: number;
-  currency: string;
-  by_breakdown: RevenueBreakdownItem[];
 }
 
 export interface BreakdownItem {
@@ -467,13 +476,19 @@ export interface BreakdownItem {
   percentage?: number | null;
 }
 
+/**
+ * Khớp với backend DoctorKpiResponse thật: { doctor_id, doctor_name, total_encounters,
+ * total_revenue, avg_revenue_per_encounter, prescription_count }.
+ * FE cũ dùng name/encounter_count/revenue/rvu — không khớp, "rvu" không tồn tại ở BE
+ * (backend không tính RVU) nên đổi cột hiển thị sang "Số đơn thuốc" (prescription_count).
+ */
 export interface DoctorKpi {
   doctor_id: string;
-  name: string;
-  encounter_count: number;
-  revenue: number;
+  doctor_name: string;
+  total_encounters: number;
+  total_revenue: number;
   avg_revenue_per_encounter: number;
-  rvu: number;
+  prescription_count: number;
 }
 
 export interface EncounterCountItem {
@@ -539,10 +554,10 @@ export interface ExportReportResult {
 
 // ---- Mock helpers ----
 
-function mockRevenueSeries(from: string, to: string, period: ReportPeriod): RevenueBreakdownItem[] {
+function mockRevenueSeries(from: string, to: string, period: ReportPeriod): _LegacyRevenueBreakdownItem[] {
   const start = new Date(from);
   const end = new Date(to);
-  const result: RevenueBreakdownItem[] = [];
+  const result: _LegacyRevenueBreakdownItem[] = [];
   const cur = new Date(start);
   while (cur <= end) {
     result.push({
@@ -572,8 +587,20 @@ export async function getRevenueReport(
     });
     return data.data;
   } catch {
-    const by_breakdown = mockRevenueSeries(from, to, period);
-    return { total: by_breakdown.reduce((s, x) => s + x.total, 0), currency: "VND", by_breakdown };
+    // Fallback mock — shape khớp RevenueReportResponse (BE nguồn chân lý)
+    const legacySeries = mockRevenueSeries(from, to, period);
+    const series = legacySeries.map((x) => ({ label: x.period_label, value: x.total }));
+    const total_revenue = series.reduce((s, x) => s + x.value, 0);
+    return {
+      period,
+      from,
+      to,
+      total_revenue,
+      net_revenue: total_revenue,
+      total_invoices: series.length,
+      total_refunds: 0,
+      series,
+    };
   }
 }
 
@@ -602,11 +629,11 @@ export async function getTopDoctorsReport(from: string, to: string, top = 20): P
   } catch {
     return Array.from({ length: 5 }, (_, i) => ({
       doctor_id: `doc-${i}`,
-      name: `BS. Bác sĩ ${i + 1}`,
-      encounter_count: Math.round(50 + Math.random() * 150),
-      revenue: Math.round(10_000_000 + Math.random() * 50_000_000),
+      doctor_name: `BS. Bác sĩ ${i + 1}`,
+      total_encounters: Math.round(50 + Math.random() * 150),
+      total_revenue: Math.round(10_000_000 + Math.random() * 50_000_000),
       avg_revenue_per_encounter: Math.round(200_000 + Math.random() * 300_000),
-      rvu: Math.round(100 + Math.random() * 400),
+      prescription_count: Math.round(20 + Math.random() * 100),
     }));
   }
 }

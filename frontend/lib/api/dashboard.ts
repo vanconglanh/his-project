@@ -2,32 +2,40 @@ import apiClient from "./client";
 
 // ---- Types ----
 
+/**
+ * Khớp với backend DashboardOverviewResponse (flat, snake_case).
+ * GET /api/v1/dashboard/overview → { data: DashboardOverview }
+ */
 export interface DashboardOverview {
-  date: string;
-  today: {
-    revenue: number;
-    encounter_count: number;
-    new_patient_count: number;
-    prescription_count: number;
-    alert_count: number;
-  };
-  delta_vs_yesterday: {
-    revenue_pct: number;
-    encounter_pct: number;
-  };
+  today_encounters: number;
+  waiting_patients: number;
+  today_revenue: number;
+  low_stock_alerts: number;
+  near_expiry_alerts: number;
+  bhyt_pending_count: number;
+  dtqg_failed_count: number;
 }
 
+/**
+ * Khớp với backend ChartDataPoint record: { label, value, color? }.
+ * FE cũ dùng secondary_value — đã đổi thành color để khớp BE.
+ */
 export interface ChartDataPoint {
   label: string;
   value: number;
-  secondary_value?: number | null;
+  color?: string | null;
 }
 
+/**
+ * Khớp với shape backend chart endpoints trả về:
+ * { data: { series: ChartDataPoint[] } }
+ * FE cũ dùng "points" — đã đổi thành "series" để khớp BE.
+ */
 export interface ChartResponse {
   chart_type: "line" | "bar" | "pie" | "histogram";
   x_label: string;
   y_label: string;
-  points: ChartDataPoint[];
+  series: ChartDataPoint[];
 }
 
 export interface AlertItem {
@@ -71,20 +79,15 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     const { data } = await apiClient.get<{ data: DashboardOverview }>("/dashboard/overview");
     return data.data;
   } catch {
-    // Graceful fallback mock
+    // Graceful fallback mock — shape khớp DashboardOverviewResponse backend
     return {
-      date: new Date().toISOString().slice(0, 10),
-      today: {
-        revenue: 12_500_000,
-        encounter_count: 38,
-        new_patient_count: 7,
-        prescription_count: 29,
-        alert_count: 3,
-      },
-      delta_vs_yesterday: {
-        revenue_pct: 12.5,
-        encounter_pct: -4.2,
-      },
+      today_encounters: 38,
+      waiting_patients: 7,
+      today_revenue: 12_500_000,
+      low_stock_alerts: 2,
+      near_expiry_alerts: 1,
+      bhyt_pending_count: 3,
+      dtqg_failed_count: 0,
     };
   }
 }
@@ -97,7 +100,7 @@ export async function getRevenueTrend(range: "7d" | "30d" | "90d" = "30d"): Prom
     return data.data;
   } catch {
     const days = range === "7d" ? 7 : range === "90d" ? 90 : 30;
-    return { chart_type: "line", x_label: "Ngày", y_label: "VND", points: mockRevenueTrend(days) };
+    return { chart_type: "line", x_label: "Ngày", y_label: "VND", series: mockRevenueTrend(days) };
   }
 }
 
@@ -109,7 +112,7 @@ export async function getEncountersTrend(range: "7d" | "30d" | "90d" = "30d"): P
     return data.data;
   } catch {
     const days = range === "7d" ? 7 : range === "90d" ? 90 : 30;
-    return { chart_type: "bar", x_label: "Ngày", y_label: "Lượt", points: mockEncounterTrend(days) };
+    return { chart_type: "bar", x_label: "Ngày", y_label: "Lượt", series: mockEncounterTrend(days) };
   }
 }
 
@@ -124,7 +127,7 @@ export async function getTopDoctors(range: "7d" | "30d" | "90d" = "30d", top = 1
       "BS. Vũ F", "BS. Đặng G", "BS. Bùi H", "BS. Đỗ I", "BS. Ngô K"];
     return {
       chart_type: "bar", x_label: "Bác sĩ", y_label: "VND",
-      points: names.slice(0, top).map((name) => ({
+      series: names.slice(0, top).map((name) => ({
         label: name,
         value: Math.round(5_000_000 + Math.random() * 20_000_000),
       })),
@@ -144,7 +147,7 @@ export async function getTopDrugs(range: "7d" | "30d" | "90d" = "30d", top = 10)
       "Empagliflozin 10mg", "Linagliptin 5mg"];
     return {
       chart_type: "bar", x_label: "Thuốc", y_label: "VND",
-      points: drugs.slice(0, top).map((name) => ({
+      series: drugs.slice(0, top).map((name) => ({
         label: name,
         value: Math.round(1_000_000 + Math.random() * 8_000_000),
       })),
@@ -160,7 +163,7 @@ export async function getHba1cDistribution(): Promise<ChartResponse> {
     const bins = ["<6", "6-6.5", "6.5-7", "7-7.5", "7.5-8", "8-8.5", "8.5-9", "9-9.5", "9.5-10", ">10"];
     return {
       chart_type: "histogram", x_label: "HbA1c (%)", y_label: "Bệnh nhân",
-      points: bins.map((label) => ({ label, value: Math.round(5 + Math.random() * 40) })),
+      series: bins.map((label) => ({ label, value: Math.round(5 + Math.random() * 40) })),
     };
   }
 }

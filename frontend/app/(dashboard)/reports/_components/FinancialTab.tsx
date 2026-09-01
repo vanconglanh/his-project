@@ -67,10 +67,10 @@ export function FinancialTab() {
                 <p className="text-xs text-muted-foreground mb-2">
                   Tổng:{" "}
                   <span className="font-semibold text-foreground">
-                    {vnd(revenue.total)} ₫
+                    {vnd(revenue.total_revenue)} ₫
                   </span>
                 </p>
-                <RevenueTrendChart data={(revenue.by_breakdown ?? []).map((x) => ({ label: (x.period_label ?? "").slice(5), value: x.total ?? 0 }))} />
+                <RevenueTrendChart data={(revenue.series ?? []).map((x) => ({ label: (x.label ?? "").slice(5), value: x.value ?? 0 }))} />
               </>
             ) : null}
           </CardContent>
@@ -108,17 +108,17 @@ export function FinancialTab() {
                   <TableHead className="text-right">Lượt khám</TableHead>
                   <TableHead className="text-right">Doanh thu</TableHead>
                   <TableHead className="text-right">TB/lượt</TableHead>
-                  <TableHead className="text-right">RVU</TableHead>
+                  <TableHead className="text-right">Số đơn thuốc</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(doctors ?? []).map((d, idx) => (
                   <TableRow key={d.doctor_id ?? `doc-${idx}`}>
-                    <TableCell className="font-medium">{d.name}</TableCell>
-                    <TableCell className="text-right">{d.encounter_count}</TableCell>
-                    <TableCell className="text-right">{vnd(d.revenue)} ₫</TableCell>
+                    <TableCell className="font-medium">{d.doctor_name}</TableCell>
+                    <TableCell className="text-right">{d.total_encounters}</TableCell>
+                    <TableCell className="text-right">{vnd(d.total_revenue)} ₫</TableCell>
                     <TableCell className="text-right">{vnd(d.avg_revenue_per_encounter)} ₫</TableCell>
-                    <TableCell className="text-right">{d.rvu}</TableCell>
+                    <TableCell className="text-right">{d.prescription_count}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
