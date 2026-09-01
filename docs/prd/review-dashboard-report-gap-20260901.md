@@ -279,4 +279,28 @@ Báo cáo kiểm tra thực tế:
 
 ---
 
+---
+
+## 6. Triển khai 9 báo cáo P0 (2026-09-01) — ✅ HOÀN TẤT
+
+Toàn bộ 9 báo cáo P0 đã triển khai bằng **config-driven report engine** (thêm ReportDescriptor tĩnh vào `backend/src/ProDiabHis.Infrastructure/Reports/ReportRegistry.cs` → tự động có endpoint data + export PDF/Excel + branch/tenant filter). Verify LIVE qua API thật + browser thật (login ke_toan), seed data tenant 1.
+
+| ID | Code báo cáo | Nhóm | Rows verify (LIVE) | Ghi chú |
+|---|---|---|---|---|
+| C-03 | `recall-due` — DANH SÁCH BỆNH NHÂN CẦN TÁI KHÁM | Clinical | 8 rows (4 quá hạn) | Query `diab_his_cli_followup_recall` + JOIN patient, AllowPiiPlaintext (LeTan cần tên+SĐT để gọi) |
+| P-01 | `package-expiring` — GÓI DỊCH VỤ SẮP HẾT HẠN | Financial | 3/6 (đúng cửa sổ 30 ngày) | `diab_his_pkg_subscriptions.expiry_date`, filter `daysWindow` |
+| C-05 | `cls-abnormal-unreviewed` — KẾT QUẢ CLS BẤT THƯỜNG CHƯA DUYỆT | Clinical | 21 rows | `diab_his_lab_results` `flag NOT IN (NORMAL,N) AND verified_at IS NULL`. Giới hạn: chỉ XN (lab); CĐHA (`diab_his_rad_results`) không có flag số nên chưa gộp |
+| D-01 | `ton-kho-theo-nhom` — GIÁ TRỊ TỒN KHO THEO NHÓM THUỐC | Pharmacy | 14 nhóm, tổng 12.368.100đ | GroupBy `drug_category` + subtotal; bổ sung cho `ton-kho` (per-SKU) đã có |
+| C-01 | `hba1c-trend` — XU HƯỚNG HbA1c THEO THÁNG | Clinical | 6 tháng (TB 8.2 → mới nhất 6.63) | `diab_his_cli_diabetes_assessments` GroupBy tháng, AVG(hba1c) + % kiểm soát tốt. Khác chart distribution (cross-section) |
+| F-05 | `bhyt-reconcile-detail` — ĐỐI SOÁT BHYT CHI TIẾT THEO HỒ SƠ | Bhyt | 11 items (duyệt/từ chối/lý do) | `diab_his_int_bhyt_export_items` + exports |
+| A-02 | `bhyt-period-status` — TÌNH TRẠNG NỘP XML BHYT THEO KỲ | Bhyt | 3 kỳ | `diab_his_int_bhyt_exports` GroupBy period. Sinh file XML 4210 đã có sẵn ở module `/bhyt` |
+| F-02 | `payment-method-reconcile` — ĐỐI SOÁT THU TIỀN THEO PHƯƠNG THỨC | Financial | 14 rows (tách NH/POS vs tiền mặt) | `diab_his_bil_payments` GroupBy ngày+method. **Phần đối soát với sao kê ngân hàng thật (import statement + matching) CHƯA làm** — cần bảng + màn riêng, hoãn để tránh đụng task migrator đang chạy |
+| F-01 | `doanh-thu-theo-bac-si` — TỔNG HỢP DOANH THU THEO BÁC SĨ | Financial | 1 BS, 2.555.000đ | Alias nhóm Tài chính của `luot-kham-theo-bs` (vốn ở nhóm Thống kê, kế toán khó tìm). Ngưỡng KPI/target theo tháng: chưa (cần bảng config target — hoãn) |
+
+**Bug phát hiện + fix trong lúc verify:** `ReportExcelExporter.cs` dùng Title báo cáo làm tên sheet Excel; Excel giới hạn tên sheet ≤31 ký tự → export Excel 500 với các báo cáo tên dài (recall-due/cls/bhyt/payment). Đã thêm `SanitizeSheetName` (cắt ≤31 + bỏ ký tự cấm). Fix chung, có lợi cho mọi báo cáo. Verify lại: cả 9 export Excel + PDF đều 200.
+
+**Gate cuối:** `dotnet build` sạch; `dotnet test` = 2165 pass (Arch 7 + Unit 965 + Integration 1193), 0 fail, 0 skip (giữ nguyên baseline); export PDF/Excel verify 200 + magic bytes hợp lệ; browser thật render KPI + bảng + xuất.
+
+---
+
 *Tài liệu này là output của phiên làm việc PO 2026-09-01. Evidence: screenshots lưu trong `docs/qc/dashboard-report-review-20260901/`. Code fixes: `frontend/lib/api/dashboard.ts`, `frontend/app/(dashboard)/_components/DashboardOverview.tsx`, `frontend/lib/api/reports.ts`, `frontend/app/(dashboard)/reports/_components/FinancialTab.tsx`, `frontend/messages/vi.json`.*
