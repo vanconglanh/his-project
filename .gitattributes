@@ -2,3 +2,7 @@
 # Neu de Git tu dong convert theo core.autocrlf tren May Windows, script se
 # bi CRLF -> bash trong container loi "$'\r': command not found".
 *.sh text eol=lf
+
+# File SQL migration nap qua "mysql < file" trong container Linux (migrator) PHAI LF.
+# CRLF lam hong DELIMITER trong stored proc + phu thuoc line-ending.
+*.sql text eol=lf
