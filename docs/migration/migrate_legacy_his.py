@@ -66,6 +66,20 @@ def fmt_date(v) -> str | None:
     return str(v)
 
 
+# BUG FIX (phát hiện khi test UI local): enum giới tính hệ MỚI là "MALE"/"FEMALE"/"OTHER"
+# (xem frontend/lib/api/types.ts Gender, frontend/lib/constants/code-labels.ts GENDER), nhưng
+# DB nguồn (pat_pii_data.GENDER) lưu chữ viết tắt "M"/"F"/"K" — copy thẳng khiến frontend không
+# map được nhãn hiển thị, render chữ "undefined" trên toàn bộ trang chi tiết bệnh nhân đã migrate.
+GENDER_MAP = {"M": "MALE", "MALE": "MALE", "F": "FEMALE", "FEMALE": "FEMALE",
+              "K": "OTHER", "O": "OTHER", "OTHER": "OTHER"}
+
+
+def map_gender(v) -> str | None:
+    if not v:
+        return None
+    return GENDER_MAP.get(str(v).strip().upper())
+
+
 # ─── BƯỚC 0: Tạo / xác nhận tenant ──────────────────────────────────────────
 def ensure_tenant(dst: pymysql.Connection, dry: bool) -> int:
     with dst.cursor() as c:
@@ -187,7 +201,7 @@ def migrate_patients(src, dst, dry) -> dict:
                     MIGRATION_TENANT_ID,
                     code,
                     full_name,
-                    row.get("GENDER"),
+                    map_gender(row.get("GENDER")),
                     fmt_date(row.get("DATE_OF_BIRTH")),
                     phone,
                     row.get("EMAIL"),
