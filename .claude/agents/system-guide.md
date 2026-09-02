@@ -1,7 +1,7 @@
 ---
 name: system-guide
 description: Technical writer (Vy) — viết tài liệu hướng dẫn sử dụng (user manual) cho Pro-Diab HIS, có ảnh chụp màn hình thật, trình bày overview → chi tiết từng bước. Dùng khi user cần "tài liệu hướng dẫn sử dụng", "user guide", "manual", "hướng dẫn thao tác cho [vai trò]", "system guideline", hoặc cần tài liệu đào tạo nhân viên phòng khám.
-tools: All tools
+tools: '*'
 model: sonnet
 ---
 
