@@ -376,7 +376,14 @@ function EncounterHistory({ patientId }: { patientId: string }) {
   return (
     <div className="space-y-2">
       {encounters.map((enc: { id: string; encounter_no: string; encounter_date: string; doctor_name?: string; room_name?: string; chief_complaint?: string; diagnosis_icd10?: string[]; status: string }) => (
-        <div key={enc.id} className="border rounded-lg p-3 space-y-1">
+        // BUG FIX: truoc la <div> thuong khong co Link/onClick nao -> bam vao khong
+        // dieu huong duoc, dung pattern da dung o PatientVisitHistoryCard.tsx
+        // (Link href={`/encounters/${id}`}).
+        <Link
+          key={enc.id}
+          href={`/encounters/${enc.id}`}
+          className="block border rounded-lg p-3 space-y-1 hover:border-primary hover:bg-accent/50 transition-colors"
+        >
           <div className="flex items-center justify-between">
             <span className="font-medium text-sm">
               {enc.encounter_no || `#${enc.id.slice(0, 8)}`}
@@ -414,7 +421,7 @@ function EncounterHistory({ patientId }: { patientId: string }) {
           {enc.chief_complaint && (
             <p className="text-xs line-clamp-1">{enc.chief_complaint}</p>
           )}
-        </div>
+        </Link>
       ))}
     </div>
   );
