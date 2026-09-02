@@ -126,9 +126,15 @@ public static class DependencyInjection
             ProDiabHis.Infrastructure.Services.CodeResolver>();
 
         // MinIO / File storage
-        var minioEndpoint = configuration["Minio:Endpoint"] ?? "localhost:9000";
-        var minioAccessKey = configuration["Minio:AccessKey"] ?? "minioadmin";
-        var minioSecretKey = configuration["Minio:SecretKey"] ?? "minioadmin";
+        // Dung IsNullOrWhiteSpace thay vi "??" cho ca 3 gia tri - env var Docker Compose co the
+        // bi set thanh CHUOI RONG "" (khong phai null, xem ghi chu o Minio:PublicEndpoint ben
+        // duoi) neu bien nguon (vd MINIO_ROOT_USER trong .env) chua duoc dien - "??" khong bat
+        // duoc chuoi rong nen se de lot gia tri rong xuong tang duoi gay loi kho hieu.
+        string OrDefault(string key, string fallback) =>
+            string.IsNullOrWhiteSpace(configuration[key]) ? fallback : configuration[key]!;
+        var minioEndpoint = OrDefault("Minio:Endpoint", "localhost:9000");
+        var minioAccessKey = OrDefault("Minio:AccessKey", "minioadmin");
+        var minioSecretKey = OrDefault("Minio:SecretKey", "minioadmin");
         var minioUseSsl = configuration.GetValue<bool>("Minio:UseSsl", false);
 
         services.AddSingleton<IMinioClient>(sp =>
@@ -145,7 +151,12 @@ public static class DependencyInjection
         // "Minio:Endpoint" chi resolve duoc trong docker network noi bo (vd "minio:9000") -> KHONG
         // dung endpoint nay de tra ve FE. Dung "Minio:PublicEndpoint" (vd "localhost:9000" o dev,
         // domain that o prod) rieng cho muc dich nay, giu nguyen Minio:Endpoint cho ket noi server-to-server.
-        var minioPublicEndpoint = configuration["Minio:PublicEndpoint"] ?? minioEndpoint;
+        // Dung IsNullOrWhiteSpace thay vi "??": bien env Minio__PublicEndpoint co the duoc set
+        // thanh CHUOI RONG "" (khong phai null) khi khong cau hinh - "??" khong bat duoc chuoi
+        // rong nen se truyen "" thang vao WithEndpoint() gay ArgumentException that (da xay ra
+        // tren his.diab.vn: moi API tra file MinIO nhu /lab-results deu 500).
+        var minioPublicEndpointRaw = configuration["Minio:PublicEndpoint"];
+        var minioPublicEndpoint = string.IsNullOrWhiteSpace(minioPublicEndpointRaw) ? minioEndpoint : minioPublicEndpointRaw;
         var minioPublicUseSsl = configuration.GetValue<bool?>("Minio:PublicUseSsl") ?? minioUseSsl;
 
         services.AddKeyedSingleton<IMinioClient>("public", (sp, _) =>
