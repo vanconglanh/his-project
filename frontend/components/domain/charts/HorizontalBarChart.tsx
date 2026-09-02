@@ -28,7 +28,10 @@ export function HorizontalBarChart({
   data,
   valueLabel = "Giá trị",
   formatValue = formatVND,
-  color = "hsl(var(--primary))",
+  // BUG FIX: token --primary la mau hex/oklch day du (xem globals.css), khong phai
+  // bo 3 so HSL tran -> boc trong hsl(...) la CSS khong hop le -> Recharts fallback
+  // ve mau den mac dinh. Dung thang gia tri token, khong wrap hsl().
+  color = "var(--primary)",
 }: Props) {
   const rows = data ?? [];
   if (rows.length === 0) {

@@ -35,7 +35,9 @@ export function EncountersTrendChart({ data }: Props) {
           formatter={(v) => [Number(v), "Lượt khám"]}
           contentStyle={{ fontSize: 12 }}
         />
-        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={24} />
+        {/* BUG FIX: --primary la mau hex/oklch day du, hsl(var(--primary)) la CSS khong
+            hop le -> bar render mau den mac dinh thay vi mau brand. */}
+        <Bar dataKey="value" fill="var(--primary)" radius={[3, 3, 0, 0]} maxBarSize={24} />
       </BarChart>
     </ResponsiveContainer>
   );

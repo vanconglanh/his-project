@@ -200,7 +200,7 @@ export function DashboardOverview() {
           <HorizontalBarChart
             data={topDoctors?.series ?? []}
             valueLabel="Doanh thu"
-            color="hsl(var(--primary))"
+            color="var(--primary)"
           />
         </ChartCard>
 
