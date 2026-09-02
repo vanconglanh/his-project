@@ -4,6 +4,7 @@ import { useEncounter } from "@/lib/hooks/use-encounters";
 import { useLabOrders, useRadOrders } from "@/lib/hooks/use-cls-orders";
 import { useQuery } from "@tanstack/react-query";
 import { getClinicLetterhead } from "@/lib/api/tenant-letterhead";
+import { ClinicPrintHeader } from "@/components/domain/ClinicPrintHeader";
 import { printLabOrdersPdf, printRadOrdersPdf } from "@/lib/api/cls-orders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -165,23 +166,19 @@ export default function ClsOrderPrintClient({ encounterId }: Props) {
       </div>
 
       {/* Nội dung in khổ A4 */}
-      <div className="print-page mx-auto max-w-[794px] p-[15mm] bg-white text-sm leading-relaxed print:p-0 print:max-w-none">
-        {/* Letterhead lấy từ cấu hình tenant (GET /tenants/me/letterhead) */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="text-xs leading-tight">
-            <p className="font-bold uppercase">{letterhead?.clinic_name ?? "Phòng khám đa khoa Pro-Diab"}</p>
-            {letterhead?.company_name && <p className="text-gray-600">{letterhead.company_name}</p>}
-            {letterhead?.cskcb_code && <p className="text-gray-600">Mã CSKCB: {letterhead.cskcb_code}</p>}
-            {letterhead?.address && <p className="text-gray-600">{letterhead.address}</p>}
-            {letterhead?.phone && <p className="text-gray-600">ĐT: {letterhead.phone}</p>}
-            {!letterhead && <p className="text-gray-600">Hệ thống quản lý phòng khám</p>}
-          </div>
-          <div className="text-right text-xs text-gray-500">
-            <p>Mã lượt khám: {encounter.id}</p>
-            <p>Ngày chỉ định: {orderedAt}</p>
-          </div>
-        </div>
+      <div className="print-page mx-auto max-w-[794px] bg-white text-sm leading-relaxed print:max-w-none">
+        {/* Letterhead chuẩn diaB (logo + thông tin phòng khám, đồng bộ header PDF backend) */}
+        <ClinicPrintHeader
+          letterhead={letterhead}
+          meta={
+            <>
+              <p>Mã lượt khám: {encounter.id}</p>
+              <p>Ngày chỉ định: {orderedAt}</p>
+            </>
+          }
+        />
 
+        <div className="p-[15mm] pt-6 print:p-0 print:pt-6">
         <div className="text-center mb-5">
           <h1 className="text-xl font-bold uppercase tracking-wide">
             Phiếu chỉ định cận lâm sàng
@@ -290,8 +287,9 @@ export default function ClsOrderPrintClient({ encounterId }: Props) {
             <p className="text-xs text-gray-500">
               In lúc {format(new Date(), "HH:mm, dd/MM/yyyy", { locale: vi })}
             </p>
-            <p className="text-xs text-gray-400 mt-1">Pro-Diab HIS — Hệ thống quản lý phòng khám</p>
+            <p className="text-xs text-gray-400 mt-1">diaB — Hệ thống quản lý phòng khám</p>
           </div>
+        </div>
         </div>
       </div>
 

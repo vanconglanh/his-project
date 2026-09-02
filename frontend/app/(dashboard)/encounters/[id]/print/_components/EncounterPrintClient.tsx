@@ -1,6 +1,9 @@
 "use client";
 
 import { useEncounter } from "@/lib/hooks/use-encounters";
+import { useQuery } from "@tanstack/react-query";
+import { getClinicLetterhead } from "@/lib/api/tenant-letterhead";
+import { ClinicPrintHeader } from "@/components/domain/ClinicPrintHeader";
 import apiClient from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -28,6 +31,12 @@ interface Props {
 
 export default function EncounterPrintClient({ encounterId }: Props) {
   const { data: encounter, isLoading } = useEncounter(encounterId);
+  // Letterhead chuẩn diaB (logo/tên/địa chỉ phòng khám) — GET /tenants/me/letterhead
+  const { data: letterhead } = useQuery({
+    queryKey: ["tenant", "letterhead"],
+    queryFn: getClinicLetterhead,
+    staleTime: 300_000,
+  });
 
   if (isLoading) {
     return (
@@ -95,18 +104,21 @@ export default function EncounterPrintClient({ encounterId }: Props) {
       </div>
 
       {/* A4 print content */}
-      <div className="print-page mx-auto max-w-[794px] p-[15mm] bg-white text-sm leading-relaxed print:p-0 print:max-w-none">
-        {/* Clinic header */}
-        <div className="text-center mb-6">
-          <h1 className="text-xl font-bold uppercase tracking-wide">
-            PHIẾU KHÁM BỆNH
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Mã lượt khám: {encounter.id}
-          </p>
-        </div>
+      <div className="print-page mx-auto max-w-[794px] bg-white text-sm leading-relaxed print:max-w-none">
+        {/* Letterhead chuẩn diaB (logo + thông tin phòng khám, đồng bộ header PDF backend) */}
+        <ClinicPrintHeader
+          letterhead={letterhead}
+          meta={<p>Mã lượt khám: {encounter.id}</p>}
+        />
 
-        <hr className="border-gray-300 mb-5" />
+        <div className="p-[15mm] pt-6 print:p-0 print:pt-6">
+          <div className="text-center mb-6">
+            <h1 className="text-xl font-bold uppercase tracking-wide">
+              PHIẾU KHÁM BỆNH
+            </h1>
+          </div>
+
+          <hr className="border-gray-300 mb-5" />
 
         {/* Patient info */}
         <section className="mb-5">
@@ -206,14 +218,15 @@ export default function EncounterPrintClient({ encounterId }: Props) {
           </section>
         )}
 
-        {/* Footer */}
-        <div className="mt-10 pt-4 border-t border-gray-200">
-          <div className="flex justify-end">
-            <div className="text-center">
-              <p className="text-xs text-gray-500">
-                In lúc {format(new Date(), "HH:mm, dd/MM/yyyy", { locale: vi })}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">Pro-Diab HIS — Hệ thống quản lý phòng khám</p>
+          {/* Footer */}
+          <div className="mt-10 pt-4 border-t border-gray-200">
+            <div className="flex justify-end">
+              <div className="text-center">
+                <p className="text-xs text-gray-500">
+                  In lúc {format(new Date(), "HH:mm, dd/MM/yyyy", { locale: vi })}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">diaB — Hệ thống quản lý phòng khám</p>
+              </div>
             </div>
           </div>
         </div>

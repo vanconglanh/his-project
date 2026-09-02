@@ -223,8 +223,10 @@
   --avatar-9-foreground: #ffffff;
   --avatar-10-foreground: #ffffff;
 
-  /* Màu tiêu đề khi in (letterhead) — cố định, KHÔNG đổi theo dark mode vì trang in luôn nền trắng */
-  --print-header: #0f766e;
+  /* Màu tiêu đề khi in (letterhead) — cố định, KHÔNG đổi theo dark mode vì trang in luôn nền trắng.
+     Đồng bộ với ReportPdfCommon.Brand (backend) = "#01645A" — màu nhận diện diaB chính thức,
+     để phiếu in HTML (ClinicPrintHeader) và PDF backend cùng một bộ nhận diện. */
+  --print-header: #01645a;
   --print-header-foreground: #ffffff;
 }
 
