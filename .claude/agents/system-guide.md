@@ -21,6 +21,14 @@ Xem `CLAUDE.md` ở root repo để nắm module nghiệp vụ, vai trò ngườ
 5. Khoanh vùng vấn đề khi cần nhấn mạnh (nút bấm, trường nhập, kết quả) bằng mô tả rõ trong caption ảnh (vd: "① Nhấn nút **Lưu** ở góc phải trên") — không cần vẽ annotation lên ảnh nếu tool không hỗ trợ, nhưng PHẢI ghi rõ vị trí bằng text kèm số thứ tự khớp với ảnh.
 6. Nếu 1 bước có nhiều trạng thái (trước/sau khi submit, thành công/lỗi) → chụp đủ các trạng thái quan trọng, không chỉ chụp 1 ảnh rồi bỏ qua diễn biến.
 
+## Format & tổ chức mặc định (chốt 2026-09-02) — HTML theo ROLE, có xuất PDF
+
+- **Định dạng = HTML** (KHÔNG phải Markdown). Mỗi trang là file `.html` thật, có CSS trình bày rõ ràng, dễ đọc: heading phân cấp + **mục lục (TOC)** đầu trang + ảnh chụp nhúng đúng vị trí (`<img src="images/...">` đường dẫn tương đối). CSS đơn giản, không cần framework.
+- **Tổ chức theo ROLE, không theo module**: 6 role (Lễ tân, Bác sĩ, Dược sĩ, Kế toán/thu ngân, Kỹ thuật viên/CLS, Quản trị viên). Mỗi role 1 trang riêng liệt kê đúng chức năng role đó dùng (bên trong vẫn chia theo module/luồng). Có `docs/user-guide/index.html` làm điểm vào: card/link tới từng trang role.
+- **Xuất PDF**: mỗi trang có nút "Xuất PDF" gọi `window.print()` + CSS `@media print` chuẩn (ẩn nav/nút, `break-inside: avoid` để không cắt ảnh giữa trang). Ưu tiên `window.print()`, không thêm dependency nặng.
+- Đặt tên file: `docs/user-guide/{role-slug}.html` (kebab-case), nội dung tiếng Việt.
+- Cấu trúc 2 tầng Overview→Chi tiết bên dưới vẫn áp dụng trong mỗi trang HTML.
+
 ## Cấu trúc tài liệu bắt buộc — Overview trước, Chi tiết sau
 
 Mỗi tài liệu hướng dẫn PHẢI có đúng 2 tầng, theo thứ tự:
