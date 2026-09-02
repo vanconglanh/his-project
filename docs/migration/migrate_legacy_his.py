@@ -16,6 +16,7 @@ Nguyên tắc:
 """
 
 import sys
+import json
 import uuid
 import logging
 import argparse
@@ -78,6 +79,76 @@ def map_gender(v) -> str | None:
     if not v:
         return None
     return GENDER_MAP.get(str(v).strip().upper())
+
+
+# ─── Converter: schema JSON tuỳ biến của hệ cũ → ProseMirror doc cho TipTap ──
+# Xem ghi chú BUG FIX ở migrate_emr(): content_json PHẢI là doc hợp lệ, không
+# phải copy thẳng field cũ (ThongTinBenhNhan/SinhHieu/ThongTinDotKham/ToaThuoc).
+def _text_node(s):
+    return [{"type": "text", "text": s}] if s else []
+
+
+def _heading(level, text):
+    return {"type": "heading", "attrs": {"level": level}, "content": _text_node(text)}
+
+
+def _paragraph(text):
+    node = {"type": "paragraph"}
+    nodes = _text_node(text)
+    if nodes:
+        node["content"] = nodes
+    return node
+
+
+def _bullet_list(items):
+    return {"type": "bulletList",
+            "content": [{"type": "listItem", "content": [_paragraph(it)]} for it in items]}
+
+
+def legacy_json_to_tiptap_doc(legacy: dict) -> dict:
+    content = []
+    dot_kham = legacy.get("ThongTinDotKham") or {}
+
+    ly_do = dot_kham.get("LyDoDenKham")
+    if ly_do:
+        content.append(_heading(2, "Lý do khám"))
+        content.append(_paragraph(ly_do))
+
+    chan_doan = " - ".join(filter(None, [
+        dot_kham.get("ChanDoanChinh"), dot_kham.get("ChanDoanPhu"), dot_kham.get("ChanDoanBanDau"),
+    ]))
+    if chan_doan:
+        content.append(_heading(2, "Chẩn đoán"))
+        content.append(_paragraph(chan_doan))
+
+    sinh_hieu = legacy.get("SinhHieu") or {}
+    sh_map = [("Mach", "Mạch"), ("NhietDo", "Nhiệt độ"), ("HuyetAp", "Huyết áp"),
+              ("NhipTho", "Nhịp thở"), ("CanNang", "Cân nặng"), ("ChieuCao", "Chiều cao"),
+              ("BMI", "BMI"), ("SPO2", "SpO2")]
+    sh_parts = [f"{label}: {sinh_hieu[key]}" for key, label in sh_map if sinh_hieu.get(key) not in (None, "")]
+    if sh_parts:
+        content.append(_heading(2, "Sinh hiệu"))
+        content.append(_paragraph(" · ".join(sh_parts)))
+
+    toa_thuoc = legacy.get("ToaThuoc") or []
+    if toa_thuoc:
+        items = []
+        for t in toa_thuoc:
+            name = t.get("TenThuoc") or t.get("TenDV") or "Thuốc"
+            dose = t.get("LieuDung") or t.get("CachDung") or ""
+            items.append(f"{name}{(' — ' + dose) if dose else ''}")
+        content.append(_heading(2, "Toa thuốc"))
+        content.append(_bullet_list(items))
+
+    ghi_chu = dot_kham.get("GhiChu")
+    if ghi_chu:
+        content.append(_heading(2, "Ghi chú"))
+        content.append(_paragraph(ghi_chu))
+
+    if not content:
+        content.append(_paragraph("(Không có nội dung bệnh án chi tiết từ hệ cũ)"))
+
+    return {"type": "doc", "content": content}
 
 
 # ─── BƯỚC 0: Tạo / xác nhận tenant ──────────────────────────────────────────
@@ -365,7 +436,24 @@ def migrate_emr(src, dst, dry, enc_map):
 
         content_raw  = row.get("CONTENT") or ""
         struct_raw   = row.get("STRUCTURED_DATA") or ""
-        content_json = struct_raw if struct_raw.strip().startswith("{") else "{}"
+        # BUG FIX (phát hiện khi test UI local): trước đây copy THẲNG struct_raw (schema JSON
+        # tuỳ biến của hệ cũ - ThongTinBenhNhan/SinhHieu/ThongTinDotKham/ToaThuoc...) vào
+        # content_json. Nhưng EmrEditor.tsx (frontend) dùng TipTap, content_json PHẢI là
+        # ProseMirror doc hợp lệ ({type:"doc", content:[...]}) — set content sai schema thất
+        # bại ÂM THẦM, tab "Bệnh án" hiện trống dù DB có đủ dữ liệu (384/384 dòng dính khi
+        # test). Dùng legacy_json_to_tiptap_doc() để build doc thật từ các field cũ, đồng
+        # thời giữ nguyên JSON gốc trong structured_values_json để không mất dữ liệu thô.
+        legacy_dict = None
+        if struct_raw.strip().startswith("{"):
+            try:
+                legacy_dict = json.loads(struct_raw)
+            except Exception:
+                legacy_dict = None
+        content_json = json.dumps(
+            legacy_json_to_tiptap_doc(legacy_dict) if legacy_dict else {"type": "doc", "content": []},
+            ensure_ascii=False,
+        )
+        structured_values_json = struct_raw if legacy_dict else None
         content_html = content_raw or None
 
         new_uuid = uid()
@@ -380,14 +468,15 @@ def migrate_emr(src, dst, dry, enc_map):
                 c.execute("""
                     INSERT INTO diab_his_enc_emr_contents
                         (id, tenant_id, encounter_id, content_json, content_html,
-                         version, created_at, updated_at)
-                    VALUES (%s,%s,%s,%s,%s,1,%s,%s)
+                         structured_values_json, version, created_at, updated_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,1,%s,%s)
                 """, (
                     new_uuid,
                     MIGRATION_TENANT_ID,
                     new_enc,
                     content_json,
                     content_html,
+                    structured_values_json,
                     fmt_ts(row.get("CREATED_AT")),
                     fmt_ts(row.get("CREATED_AT")),
                 ))

@@ -170,6 +170,21 @@ Nếu DB production thật có PII đã mã hóa:
   Đã sửa: bỏ cột `created_by` khỏi INSERT (mặc định NULL). Đồng thời sửa luôn logic idempotent
   của hàm này (biến `existing_ids` cũ tính xong nhưng không dùng ở đâu — chạy lại script sẽ
   insert trùng và vỡ UNIQUE(encounter_id); giờ check đúng theo `encounter_id` đã tồn tại).
+- Enum giới tính: hệ mới dùng `MALE`/`FEMALE`/`OTHER` (frontend/lib/api/types.ts), DB nguồn
+  lưu tắt `M`/`F`/`K` — copy thẳng khiến trang chi tiết bệnh nhân hiện chữ "undefined" thay vì
+  "Nam"/"Nữ" (326/326 bệnh nhân dính). Đã thêm `map_gender()`.
+- **Nội dung bệnh án không hiển thị dù DB có data** (bug sâu nhất, phát hiện khi user tự test):
+  `migrate_emr()` copy THẲNG `STRUCTURED_DATA` (schema JSON tuỳ biến của hệ cũ — các field
+  `ThongTinBenhNhan`/`SinhHieu`/`ThongTinDotKham`/`ToaThuoc`...) vào `content_json`. Nhưng
+  frontend dùng TipTap editor (`EmrEditor.tsx`), `content_json` BẮT BUỘC phải là ProseMirror
+  doc hợp lệ (`{type:"doc", content:[...]}`) — `editor.commands.setContent()` với JSON sai
+  schema thất bại ÂM THẦM (không throw, không log lỗi phía FE), tab "Bệnh án" hiện trống dù
+  API trả về đủ dữ liệu. Đã thêm `legacy_json_to_tiptap_doc()` — build lại doc TipTap thật từ
+  các field cũ (Lý do khám, Chẩn đoán, Sinh hiệu, Toa thuốc, Ghi chú), đồng thời giữ nguyên
+  JSON gốc trong cột `structured_values_json` (có sẵn trong schema, không mất dữ liệu thô).
+  Đã convert 384/384 dòng trên DB test local (script `convert_emr_content.py` chạy 1 lần,
+  KHÔNG phải phần của migration chính — logic đã được đưa vào `migrate_legacy_his.py` cho lần
+  chạy thật) và verify qua UI (tab "Bệnh án" hiện đúng Lý do khám/Sinh hiệu/Ghi chú).
 - Đã UPDATE trực tiếp 384 dòng `created_by=NULL` trên DB test local để verify ngay, và sửa gốc
   trong `migrate_legacy_his.py` để lần chạy thật (mục 9) không dính lại.
 
