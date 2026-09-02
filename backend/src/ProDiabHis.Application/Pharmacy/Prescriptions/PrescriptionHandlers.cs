@@ -178,13 +178,42 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
                 doctorMap[(string)dr.id] = (string)dr.full_name;
         }
 
+        // BUG FIX (phát hiện khi test data migrate): list truoc day LUON tra "items: []"
+        // cho moi don thuoc (hardcode) — man /prescriptions hien duoc nhung tab "Don thuoc"
+        // trong Kham benh (goi list voi page_size=1 de lay 1 don) luon thay "Chua co don
+        // thuoc" du DB co du du lieu. Batch load items giong pattern patient/doctor o tren.
+        var presIds = rowList.Select(r => r.Id?.ToString()).Where(id => !string.IsNullOrEmpty(id)).ToList();
+        var itemsByPres = new Dictionary<string, List<PrescriptionItemResponse>>();
+        if (presIds.Count > 0)
+        {
+            var itemRows = await conn.QueryAsync<PrescriptionItemRow>(
+                @"SELECT i.id as Id, i.prescription_id as PrescriptionId, i.drug_id as DrugId, d.name as DrugName,
+                         d.strength as Strength, d.unit as Unit,
+                         i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
+                         i.duration_days as DurationDays, i.quantity as Quantity,
+                         i.note as Instructions, NULL as BatchDispensedJson
+                  FROM diab_his_pha_prescription_items i
+                  JOIN diab_his_pha_drugs d ON d.id = i.drug_id
+                  WHERE i.prescription_id IN @presIds AND i.tenant_id = @tenantId AND i.deleted_at IS NULL",
+                new { presIds, tenantId });
+            foreach (var ir in itemRows)
+            {
+                if (!itemsByPres.TryGetValue(ir.PrescriptionId, out var list))
+                    itemsByPres[ir.PrescriptionId] = list = new List<PrescriptionItemResponse>();
+                list.Add(GetPrescriptionHandler.MapItem(ir));
+            }
+        }
+
         var items = rowList.Select(r =>
         {
             var pid = r.PatientId?.ToString();
             var patient = pid != null && patientMap.TryGetValue(pid, out var p) ? p : null;
             var did = r.DoctorId?.ToString();
             var doctorName = did != null && doctorMap.TryGetValue(did, out var dn) ? dn : null;
-            return MapToResponse(r, patient, doctorName, [], []);
+            var presId = r.Id?.ToString();
+            var presItems = presId != null && itemsByPres.TryGetValue(presId, out var pi)
+                ? (IReadOnlyList<PrescriptionItemResponse>)pi : [];
+            return MapToResponse(r, patient, doctorName, presItems, []);
         }).ToList();
         return Result<PagedResult<PrescriptionResponse>>.Success(
             new PagedResult<PrescriptionResponse>(items, q.Page, q.PageSize, total));
@@ -294,7 +323,8 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
         return Result<PrescriptionResponse>.Success(response);
     }
 
-    private static PrescriptionItemResponse MapItem(PrescriptionItemRow r) =>
+    // internal (khong private) de ListPrescriptionsHandler tai su dung khi batch-load items.
+    internal static PrescriptionItemResponse MapItem(PrescriptionItemRow r) =>
         new(Guid.TryParse(r.Id, out var g) ? g : Guid.Empty,
             r.DrugId, r.DrugName ?? "", r.Strength, r.Unit,
             r.Dosage, r.Frequency, r.Route, r.DurationDays, r.Quantity,
@@ -1236,6 +1266,7 @@ internal class PrescriptionRow
 internal class PrescriptionItemRow
 {
     public string? Id { get; set; }
+    public string PrescriptionId { get; set; } = string.Empty;
     public string DrugId { get; set; } = string.Empty;
     public string? DrugName { get; set; }
     public string? Strength { get; set; }

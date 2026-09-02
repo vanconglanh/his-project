@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DrugAutocomplete } from "./DrugAutocomplete";
 import { PrescriptionItemForm } from "./PrescriptionItemForm";
@@ -60,6 +60,20 @@ export function PrescriptionForm({ encounterId, patientId, existingPrescriptionI
 
   // Use existing or create
   const [prescriptionId, setPrescriptionId] = useState(existingPrescriptionId ?? "");
+
+  // BUG FIX (phát hiện khi test data migrate): existingPrescriptionId đến từ
+  // PrescriptionTabPanel qua React Query (usePrescriptions) — thường CHƯA có
+  // giá trị ở lần render đầu (đang loading). useState(existingPrescriptionId)
+  // chỉ đọc giá trị này 1 LẦN lúc mount, nên khi query resolve xong và prop đổi
+  // từ undefined -> id thật, state KHÔNG tự cập nhật theo — tab "Đơn thuốc" luôn
+  // hiện "Chưa có đơn thuốc" dù đã có đơn (ẩn với mọi lượt khám đã có sẵn đơn
+  // thuốc từ trước khi vào tab, không riêng gì data migrate).
+  useEffect(() => {
+    if (existingPrescriptionId && existingPrescriptionId !== prescriptionId) {
+      setPrescriptionId(existingPrescriptionId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingPrescriptionId]);
 
   const { data: prescription } = usePrescription(prescriptionId);
   const { data: ddiData } = useDdiCheck(prescriptionId);
