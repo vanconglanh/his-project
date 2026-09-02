@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn cho Bác sĩ — Pro-Diab HIS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <a class="home-link" href="index.html">← Trang chủ tài liệu</a>
+    <button class="btn-print" onclick="window.print()">🖨️ Xuất PDF</button>
+  </div>
+
+  <header class="doc-header">
+    <p class="eyebrow">Vai trò: Bác sĩ</p>
+    <h1>Khám bệnh, kê đơn &amp; duyệt kết quả CLS</h1>
+    <p class="lede">Hướng dẫn đầy đủ luồng khám của bác sĩ: nhận bệnh nhân, ghi bệnh án, chẩn đoán ICD-10, kê đơn thuốc, và xem/duyệt kết quả cận lâm sàng bất thường.</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Mục lục</h2>
+    <ol>
+      <li><a href="#tong-quan">Tổng quan luồng khám bệnh</a></li>
+      <li><a href="#b1">Bước 1 — Chọn lượt khám</a></li>
+      <li><a href="#b2">Bước 2 — Mở lượt khám &amp; Bắt đầu khám</a></li>
+      <li><a href="#b3">Bước 3 — Ghi bệnh án</a></li>
+      <li><a href="#b4">Bước 4 — Chẩn đoán ICD-10</a></li>
+      <li><a href="#b5">Bước 5 — Kê đơn thuốc</a></li>
+      <li><a href="#b6">Bước 6 — Kết thúc khám</a></li>
+      <li><a href="#cls">Bước 7 — Xem &amp; duyệt kết quả CLS bất thường</a></li>
+      <li><a href="#faq">Câu hỏi thường gặp</a></li>
+    </ol>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <section id="tong-quan">
+    <h2 class="section">Tổng quan luồng khám bệnh</h2>
+    <p>Từ danh sách lượt khám, bác sĩ mở hồ sơ bệnh nhân đang chờ, <strong>bắt đầu khám</strong>, lần lượt ghi <strong>bệnh án</strong>, thêm <strong>chẩn đoán ICD-10</strong>, <strong>kê đơn thuốc</strong>, chỉ định cận lâm sàng nếu cần, rồi <strong>kết thúc khám</strong>. Với kết quả xét nghiệm bất thường, bác sĩ xem và duyệt trên màn hình CLS.</p>
+
+    <h3 class="step">Sơ đồ luồng rút gọn</h3>
+    <ol class="flow">
+      <li>Mở <strong>Khám bệnh</strong> → chọn lượt khám (Chờ khám / Đang khám).</li>
+      <li>Bấm <strong>Bắt đầu khám</strong>.</li>
+      <li>Thẻ <strong>Bệnh án</strong>: ghi diễn biến (có thể dùng “Mẫu bệnh án”).</li>
+      <li>Thẻ <strong>Chẩn đoán</strong>: tìm &amp; thêm mã ICD-10 (chính/phụ).</li>
+      <li>Thẻ <strong>Đơn thuốc</strong>: tìm thuốc, nhập liều dùng, lưu đơn.</li>
+      <li>(Tuỳ chọn) chỉ định CLS, <strong>Ký số bệnh án</strong>.</li>
+      <li>Bấm <strong>Kết thúc khám</strong>.</li>
+    </ol>
+
+    <h3 class="step">Vai trò tham gia</h3>
+    <table class="grid">
+      <tr><th>Vai trò</th><th>Tham gia bước nào</th><th>Quyền cần có</th></tr>
+      <tr><td>Bác sĩ</td><td>Toàn bộ luồng khám, chẩn đoán, kê đơn, duyệt CLS</td><td>Vai trò Bác sĩ (67 quyền)</td></tr>
+      <tr><td>Kỹ thuật viên</td><td>Nhập kết quả CLS do bác sĩ chỉ định</td><td>Vai trò Kỹ thuật viên</td></tr>
+      <tr><td>Dược sĩ</td><td>Cấp phát thuốc theo đơn bác sĩ kê</td><td>Vai trò Dược sĩ</td></tr>
+    </table>
+
+    <h3 class="step">Điều kiện tiên quyết</h3>
+    <ul>
+      <li>Đã đăng nhập bằng tài khoản <strong>Bác sĩ</strong> và chọn đúng chi nhánh.</li>
+      <li>Có bệnh nhân đã được lễ tân tiếp đón và xếp vào hàng đợi phòng khám.</li>
+    </ul>
+  </section>
+
+  <!-- STEPS -->
+  <section id="b1">
+    <h3 class="step"><span class="num">1</span>Chọn lượt khám</h3>
+    <p>Vào menu <strong>Khám bệnh</strong>. Danh sách lượt khám hiển thị theo cột: <strong>Bệnh nhân, Bác sĩ, Chi nhánh, Loại khám, Trạng thái, Bắt đầu, Cảnh báo</strong>. Lọc nhanh bằng các thẻ <strong>Đang khám hôm nay</strong>, <strong>Chờ khám</strong>, <strong>Quá 12h</strong>.</p>
+    <figure class="shot">
+      <img src="images/bac-si/01-danh-sach-kham.png" alt="Danh sách lượt khám">
+      <div class="ph">📷 images/bac-si/01-danh-sach-kham.png — Danh sách Khám bệnh với bộ lọc (Đang khám hôm nay / Chờ khám / Quá 12h) và bảng lượt khám kèm trạng thái “Đang khám”, “Chờ khám”.</div>
+      <figcaption>
+        <span class="cap-title">Danh sách lượt khám</span>
+        <ol>
+          <li><span class="mk">①</span> Bộ lọc nhanh: <strong>Đang khám hôm nay / Chờ khám / Quá 12h</strong>.</li>
+          <li><span class="mk">②</span> Cột <strong>Trạng thái</strong>: <em>Chờ khám</em> (vàng) hoặc <em>Đang khám</em> (xanh).</li>
+          <li><span class="mk">③</span> Bấm vào một dòng để mở lượt khám.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b2">
+    <h3 class="step"><span class="num">2</span>Mở lượt khám &amp; Bắt đầu khám</h3>
+    <p>Màn hình chi tiết lượt khám có các thẻ: <strong>Bệnh án, Tiền sử, CLS, Kết quả, Chẩn đoán, Đơn thuốc, Tái khám, Tập tin</strong>. Bấm <strong>Bắt đầu khám</strong> để chuyển trạng thái sang <em>Đang khám</em>; khi đó xuất hiện thêm các nút <strong>Chờ kết quả CLS</strong>, <strong>Ký số bệnh án</strong>, <strong>In</strong>, <strong>Kết thúc khám</strong>.</p>
+    <figure class="shot">
+      <img src="images/bac-si/02-bat-dau-kham.png" alt="Bắt đầu khám">
+      <div class="ph">📷 images/bac-si/02-bat-dau-kham.png — Chi tiết lượt khám sau khi bấm “Bắt đầu khám”: trạng thái “Đang khám”, hàng nút Chờ kết quả CLS / Ký số bệnh án / In / Kết thúc khám, và dải thẻ Bệnh án…Đơn thuốc.</div>
+      <figcaption>
+        <span class="cap-title">Bắt đầu khám</span>
+        <ol>
+          <li><span class="mk">①</span> Nút <strong>Bắt đầu khám</strong> → trạng thái chuyển <strong>Đang khám</strong>.</li>
+          <li><span class="mk">②</span> Dải thẻ công việc: <strong>Bệnh án · Tiền sử · CLS · Kết quả · Chẩn đoán · Đơn thuốc · Tái khám</strong>.</li>
+          <li><span class="mk">③</span> Nút <strong>Kết thúc khám</strong> (dùng ở bước cuối) và <strong>Ký số bệnh án</strong>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b3">
+    <h3 class="step"><span class="num">3</span>Ghi bệnh án</h3>
+    <p>Ở thẻ <strong>Bệnh án</strong>, dùng trình soạn thảo để ghi lý do khám, triệu chứng, khám lâm sàng… Có thanh định dạng (đậm, nghiêng, tiêu đề, danh sách, bảng…) và nút <strong>Lưu nháp</strong>. Bấm <strong>Mẫu bệnh án</strong> để chèn nhanh mẫu có sẵn (EMR) nhằm tiết kiệm thời gian.</p>
+    <figure class="shot">
+      <img src="images/bac-si/03-benh-an.png" alt="Trình soạn thảo bệnh án">
+      <div class="ph">📷 images/bac-si/03-benh-an.png — Thẻ Bệnh án với nút “Mẫu bệnh án”, thanh công cụ định dạng và nút “Lưu nháp”.</div>
+      <figcaption>
+        <span class="cap-title">Ghi bệnh án</span>
+        <ol>
+          <li><span class="mk">①</span> Nút <strong>Mẫu bệnh án</strong> — chèn mẫu EMR có sẵn.</li>
+          <li><span class="mk">②</span> Thanh công cụ định dạng văn bản.</li>
+          <li><span class="mk">③</span> Nút <strong>Lưu nháp</strong> để lưu tạm nội dung.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b4">
+    <h3 class="step"><span class="num">4</span>Chẩn đoán ICD-10</h3>
+    <p>Chuyển sang thẻ <strong>Chẩn đoán</strong>. Chọn loại <strong>Chính</strong> hoặc <strong>Phụ</strong>, gõ tên bệnh hoặc mã vào ô <strong>Tìm ICD-10</strong> (VD: “E11” hoặc “đái tháo đường”), rồi bấm chọn kết quả. Hệ thống báo <strong>“Đã thêm chẩn đoán”</strong> và số lượng chẩn đoán hiển thị trên nhãn thẻ.</p>
+    <figure class="shot">
+      <img src="images/bac-si/04-chan-doan-icd.png" alt="Tìm ICD-10">
+      <div class="ph">📷 images/bac-si/04-chan-doan-icd.png — Ô tìm ICD-10 gõ “E11” và danh sách gợi ý: E11 Bệnh đái tháo đường type 2, E11.0…E11.4 các biến chứng.</div>
+      <figcaption>
+        <span class="cap-title">Tìm &amp; thêm chẩn đoán ICD-10</span>
+        <ol>
+          <li><span class="mk">①</span> Chọn loại <strong>Chính / Phụ</strong>.</li>
+          <li><span class="mk">②</span> Ô <strong>Tìm ICD-10</strong> — gõ mã/tên bệnh (VD “E11”).</li>
+          <li><span class="mk">③</span> Bấm chọn mã trong danh sách gợi ý (VD <em>E11 – Bệnh đái tháo đường type 2</em>).</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="images/bac-si/05-da-them-chan-doan.png" alt="Đã thêm chẩn đoán">
+      <div class="ph">📷 images/bac-si/05-da-them-chan-doan.png — Thông báo “Đã thêm chẩn đoán” và nhãn thẻ “Chẩn đoán” hiển thị số đếm (1).</div>
+      <figcaption>
+        <span class="cap-title">Đã thêm chẩn đoán</span>
+        <ol>
+          <li><span class="mk">①</span> Thông báo xanh <strong>“Đã thêm chẩn đoán”</strong>.</li>
+          <li><span class="mk">②</span> Nhãn thẻ <strong>Chẩn đoán</strong> hiển thị số lượng đã thêm.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout tip"><p><span class="lbl">💡</span> Có thể dùng khối <strong>“Nhập nhanh nhiều chẩn đoán”</strong> để nhập một loạt mã ICD-10 kèm loại (Chính/Phụ) và mô tả thêm.</p></div>
+  </section>
+
+  <section id="b5">
+    <h3 class="step"><span class="num">5</span>Kê đơn thuốc</h3>
+    <p>Chuyển sang thẻ <strong>Đơn thuốc</strong>. Gõ tên hoặc mã thuốc vào ô <strong>Tìm thuốc</strong>, bấm chọn thuốc — hệ thống tạo <strong>đơn nháp</strong>. Với mỗi thuốc, nhập <strong>Liều dùng, Tần suất, Đường dùng, Số ngày</strong>, rồi bấm <strong>Lưu đơn</strong>.</p>
+    <figure class="shot">
+      <img src="images/bac-si/06-tim-thuoc.png" alt="Tìm thuốc">
+      <div class="ph">📷 images/bac-si/06-tim-thuoc.png — Thẻ Đơn thuốc: ô “Tìm thuốc theo tên hoặc mã” gõ “Met” và kết quả “Metformin 500mg — OTC — 500đ/Viên”.</div>
+      <figcaption>
+        <span class="cap-title">Tìm thuốc</span>
+        <ol>
+          <li><span class="mk">①</span> Ô <strong>Tìm thuốc theo tên hoặc mã</strong>.</li>
+          <li><span class="mk">②</span> Bấm chọn thuốc trong kết quả (VD <em>Metformin 500mg</em>) → tạo đơn nháp.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="images/bac-si/07-lieu-dung.png" alt="Nhập liều dùng">
+      <div class="ph">📷 images/bac-si/07-lieu-dung.png — Dòng thuốc Metformin 500mg với các trường Liều dùng (1 viên), Tần suất (2 lần/ngày), Đường dùng (Uống), Số ngày (7) và nút “Lưu đơn”.</div>
+      <figcaption>
+        <span class="cap-title">Nhập liều dùng &amp; lưu đơn</span>
+        <ol>
+          <li><span class="mk">①</span> Nhập <strong>Liều dùng</strong> (VD 1 viên) và <strong>Tần suất</strong> (VD 2 lần/ngày).</li>
+          <li><span class="mk">②</span> Chọn <strong>Đường dùng</strong> (VD Uống) và <strong>Số ngày</strong> (VD 7).</li>
+          <li><span class="mk">③</span> Bấm <strong>Lưu đơn</strong>; dùng <strong>Hủy đơn</strong> nếu muốn bỏ.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout warn"><p><span class="lbl">⚠️ Lưu ý:</span> Đơn ở trạng thái <strong>Nháp</strong> cho tới khi bạn lưu/hoàn tất. Sau khi khám xong, đơn được chuyển tới kho dược để dược sĩ cấp phát (xem trang <a href="duoc-si.html">Dược sĩ</a>).</p></div>
+  </section>
+
+  <section id="b6">
+    <h3 class="step"><span class="num">6</span>Kết thúc khám</h3>
+    <p>Khi đã ghi đủ bệnh án, chẩn đoán và đơn thuốc, bấm <strong>Ký số bệnh án</strong> (nếu áp dụng) rồi <strong>Kết thúc khám</strong>. Nếu còn chờ kết quả xét nghiệm, dùng nút <strong>Chờ kết quả CLS</strong> để tạm giữ ca và gọi bệnh nhân tiếp theo.</p>
+    <div class="callout note"><p><span class="lbl">Nhánh rẽ:</span> <strong>Chờ kết quả CLS</strong> — dùng khi đã chỉ định xét nghiệm/chẩn đoán hình ảnh: ca khám được tạm dừng, chờ kỹ thuật viên nhập kết quả rồi bác sĩ tiếp tục đánh giá.</p></div>
+  </section>
+
+  <!-- CLS REVIEW -->
+  <section id="cls">
+    <h3 class="step"><span class="num">7</span>Xem &amp; duyệt kết quả CLS bất thường</h3>
+    <p>Vào menu <strong>CLS (Cận lâm sàng)</strong>. Màn hình liệt kê kết quả theo cột <strong>Bệnh nhân, Chỉ số, Giá trị, Đơn vị, KTTC, Cờ</strong>. Cột <strong>Cờ</strong> cho biết kết quả <strong>Bình thường</strong> hay bất thường (<strong>Cao</strong>/<strong>Thấp</strong>, hiển thị màu đỏ) — giúp bác sĩ nhận ra ngay chỉ số cần chú ý.</p>
+    <figure class="shot">
+      <img src="images/bac-si/08-cls-bat-thuong.png" alt="Kết quả CLS với cờ bất thường">
+      <div class="ph">📷 images/bac-si/08-cls-bat-thuong.png — Bảng kết quả xét nghiệm: HDL 1.1 “Bình thường”, LDL 3.8 “Cao”, Cholesterol toàn phần 5.9 “Cao” (giá trị bất thường màu đỏ).</div>
+      <figcaption>
+        <span class="cap-title">Kết quả CLS &amp; cờ bất thường</span>
+        <ol>
+          <li><span class="mk">①</span> Thẻ danh mục: <strong>Kết quả xét nghiệm · Kết quả CĐHA · Đối tác lab · Tích hợp lab</strong>.</li>
+          <li><span class="mk">②</span> Cột <strong>Cờ</strong>: <em>Bình thường</em> (xanh) hoặc <em>Cao/Thấp</em> (đỏ) — chỉ số bất thường.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <p>Để lọc riêng các kết quả <strong>chưa duyệt</strong>, mở bộ lọc trạng thái và chọn <strong>Nháp</strong> (kết quả kỹ thuật viên vừa nhập, chưa được xác thực). Sau khi kiểm tra, bác sĩ/người có quyền <strong>xác thực</strong> để chuyển kết quả sang trạng thái <strong>Đã xác thực</strong>.</p>
+    <figure class="shot">
+      <img src="images/bac-si/09-loc-chua-duyet.png" alt="Lọc trạng thái chưa duyệt">
+      <div class="ph">📷 images/bac-si/09-loc-chua-duyet.png — Bộ lọc trạng thái mở ra với các lựa chọn: Nháp, Đã xác thực, Đã sửa.</div>
+      <figcaption>
+        <span class="cap-title">Lọc kết quả chưa duyệt</span>
+        <ol>
+          <li><span class="mk">①</span> Bộ lọc trạng thái: <strong>Nháp</strong> (chưa duyệt) / <strong>Đã xác thực</strong> / <strong>Đã sửa</strong>.</li>
+          <li><span class="mk">②</span> Chọn <strong>Nháp</strong> để chỉ xem kết quả cần duyệt.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout tip"><p><span class="lbl">💡</span> Báo cáo <strong>“Kết quả CLS bất thường chưa duyệt”</strong> trong mục Báo cáo giúp quản lý/bác sĩ theo dõi tập trung các kết quả bất thường còn tồn đọng.</p></div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <h2 class="section">Câu hỏi thường gặp</h2>
+    <dl class="faq">
+      <dt>Gõ ICD-10 nhưng không ra kết quả?</dt>
+      <dd>Thử gõ mã (VD “E11”) thay vì tên, hoặc gõ từ khoá tiếng Việt không dấu. Danh mục ICD-10 do quản trị viên cấu hình trong mục Danh mục mã.</dd>
+      <dt>Lỡ chọn nhầm thuốc trong đơn?</dt>
+      <dd>Dùng nút <strong>Hủy đơn</strong> để bỏ đơn nháp và tạo lại, hoặc xoá dòng thuốc rồi tìm thuốc khác.</dd>
+      <dt>Đã bắt đầu khám nhưng cần tạm dừng để khám ca khác?</dt>
+      <dd>Dùng nút tạm dừng ca khám (gọi bệnh nhân tiếp theo) hoặc <strong>Chờ kết quả CLS</strong>; ca khám vẫn được giữ để quay lại sau.</dd>
+    </dl>
+  </section>
+
+  <footer class="doc-footer">
+    <p><a href="index.html">← Về trang chủ tài liệu</a></p>
+    <p>Ảnh chụp từ hệ thống thật tại <code>https://his.diab.vn</code> (dữ liệu demo).</p>
+  </footer>
+
+</div>
+<script>
+document.querySelectorAll('figure.shot img').forEach(function(img){
+  function mark(){ var f=img.closest('figure.shot'); if(f) f.classList.add('missing'); }
+  if (img.complete && img.naturalWidth === 0) mark();
+  img.addEventListener('error', mark);
+});
+</script>
+</body>
+</html>

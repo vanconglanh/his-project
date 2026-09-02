@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn cho Kỹ thuật viên CLS — Pro-Diab HIS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <a class="home-link" href="index.html">← Trang chủ tài liệu</a>
+    <button class="btn-print" onclick="window.print()">🖨️ Xuất PDF</button>
+  </div>
+
+  <header class="doc-header">
+    <p class="eyebrow">Vai trò: Kỹ thuật viên (Cận lâm sàng)</p>
+    <h1>Nhập kết quả xét nghiệm &amp; chẩn đoán hình ảnh</h1>
+    <p class="lede">Hướng dẫn kỹ thuật viên nhập kết quả CLS do bác sĩ chỉ định, gắn cờ bình thường/bất thường, để bác sĩ xem và duyệt.</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Mục lục</h2>
+    <ol>
+      <li><a href="#tong-quan">Tổng quan luồng CLS</a></li>
+      <li><a href="#b1">Bước 1 — Mở màn hình CLS</a></li>
+      <li><a href="#b2">Bước 2 — Nhập kết quả</a></li>
+      <li><a href="#b3">Bước 3 — Trạng thái &amp; cờ kết quả</a></li>
+      <li><a href="#faq">Câu hỏi thường gặp</a></li>
+    </ol>
+  </nav>
+
+  <section id="tong-quan">
+    <h2 class="section">Tổng quan luồng CLS</h2>
+    <p>Khi bác sĩ chỉ định xét nghiệm hoặc chẩn đoán hình ảnh, kỹ thuật viên thực hiện và <strong>nhập kết quả</strong> vào hệ thống. Kết quả có thể nhập tay hoặc đọc từ file. Hệ thống tự gắn <strong>cờ</strong> (Bình thường / Cao / Thấp) theo khoảng tham chiếu. Kết quả mới ở trạng thái <strong>Nháp</strong> cho tới khi được <strong>xác thực</strong> (bác sĩ/người có quyền duyệt).</p>
+
+    <h3 class="step">Sơ đồ luồng rút gọn</h3>
+    <ol class="flow">
+      <li>Mở màn hình <strong>CLS</strong>.</li>
+      <li>Bấm <strong>+ Nhập kết quả</strong>.</li>
+      <li>Chọn chỉ định XN của bệnh nhân, nhập giá trị, đơn vị, phương pháp, thời gian.</li>
+      <li>Lưu — kết quả ở trạng thái <strong>Nháp</strong>, gắn cờ tự động.</li>
+      <li>Bác sĩ xem, xác thực → <strong>Đã xác thực</strong>.</li>
+    </ol>
+
+    <h3 class="step">Vai trò tham gia</h3>
+    <table class="grid">
+      <tr><th>Vai trò</th><th>Tham gia bước nào</th><th>Quyền cần có</th></tr>
+      <tr><td>Kỹ thuật viên</td><td>Nhập kết quả xét nghiệm, CĐHA</td><td>Vai trò Kỹ thuật viên (25 quyền)</td></tr>
+      <tr><td>Bác sĩ</td><td>Xem &amp; xác thực (duyệt) kết quả</td><td>Vai trò Bác sĩ</td></tr>
+    </table>
+
+    <h3 class="step">Điều kiện tiên quyết</h3>
+    <ul>
+      <li>Đã đăng nhập bằng tài khoản <strong>Kỹ thuật viên</strong>.</li>
+      <li>Có chỉ định CLS do bác sĩ tạo cho bệnh nhân.</li>
+    </ul>
+  </section>
+
+  <section id="b1">
+    <h3 class="step"><span class="num">1</span>Mở màn hình CLS</h3>
+    <p>Vào menu <strong>CLS (Cận lâm sàng)</strong>. Màn hình có các thẻ: <strong>Kết quả xét nghiệm, Kết quả CĐHA, Đối tác lab, Tích hợp lab</strong>. Bảng kết quả hiển thị theo cột <strong>Bệnh nhân, Chỉ số, Giá trị, Đơn vị, KTTC, Cờ</strong>, kèm ô tìm kiếm và bộ lọc trạng thái/cờ.</p>
+    <figure class="shot">
+      <img src="images/ky-thuat-vien/01-man-hinh-cls.png" alt="Màn hình CLS">
+      <div class="ph">📷 images/ky-thuat-vien/01-man-hinh-cls.png — Màn hình CLS: thẻ Kết quả xét nghiệm/CĐHA/Đối tác lab/Tích hợp lab, nút “+ Nhập kết quả”, bảng kết quả với cột Cờ (Bình thường/Cao).</div>
+      <figcaption>
+        <span class="cap-title">Màn hình Cận lâm sàng</span>
+        <ol>
+          <li><span class="mk">①</span> Thẻ danh mục kết quả (Xét nghiệm / CĐHA / Đối tác lab / Tích hợp lab).</li>
+          <li><span class="mk">②</span> Bộ lọc <strong>trạng thái</strong> và <strong>cờ</strong>; ô <strong>Tìm chỉ số</strong>.</li>
+          <li><span class="mk">③</span> Nút <strong>+ Nhập kết quả</strong> ở góc phải.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b2">
+    <h3 class="step"><span class="num">2</span>Nhập kết quả</h3>
+    <p>Bấm <strong>+ Nhập kết quả</strong>. Bảng nhập mở ra bên phải với 2 chế độ: <strong>Nhập tay</strong> hoặc <strong>Đọc từ file</strong>. Với nhập tay, điền các trường:</p>
+    <ul>
+      <li><strong>Chỉ định XN cần nhập kết quả</strong> (bắt buộc) — tìm theo tên/mã bệnh nhân hoặc tên xét nghiệm.</li>
+      <li><strong>Giá trị kết quả</strong> (bắt buộc) — VD: 6.2 hoặc “Âm tính”.</li>
+      <li><strong>Giá trị số</strong> và <strong>Đơn vị</strong> — VD: 6.2 / mmol/L.</li>
+      <li><strong>Phương pháp</strong> — VD: Enzymatic.</li>
+      <li><strong>Thời gian thực hiện</strong> (bắt buộc) và <strong>Ghi chú</strong>.</li>
+    </ul>
+    <figure class="shot">
+      <img src="images/ky-thuat-vien/02-nhap-ket-qua.png" alt="Bảng nhập kết quả XN">
+      <div class="ph">📷 images/ky-thuat-vien/02-nhap-ket-qua.png — Bảng “Nhập kết quả XN” với 2 chế độ Nhập tay/Đọc từ file và các trường Chỉ định XN, Giá trị kết quả, Giá trị số, Đơn vị, Phương pháp, Thời gian thực hiện, Ghi chú.</div>
+      <figcaption>
+        <span class="cap-title">Bảng nhập kết quả xét nghiệm</span>
+        <ol>
+          <li><span class="mk">①</span> Chế độ <strong>Nhập tay</strong> / <strong>Đọc từ file</strong>.</li>
+          <li><span class="mk">②</span> Ô <strong>Chỉ định XN cần nhập kết quả</strong> — chọn đúng chỉ định của bệnh nhân.</li>
+          <li><span class="mk">③</span> Nhập <strong>Giá trị kết quả</strong>, <strong>Giá trị số</strong>, <strong>Đơn vị</strong>.</li>
+          <li><span class="mk">④</span> Chọn <strong>Thời gian thực hiện</strong> rồi lưu.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout tip"><p><span class="lbl">💡 Đọc từ file:</span> Nếu máy xét nghiệm xuất file kết quả, dùng chế độ <strong>Đọc từ file</strong> để nhập nhanh thay vì gõ tay.</p></div>
+  </section>
+
+  <section id="b3">
+    <h3 class="step"><span class="num">3</span>Trạng thái &amp; cờ kết quả</h3>
+    <p>Sau khi lưu, kết quả xuất hiện trong bảng với <strong>cờ</strong> tự động: <strong>Bình thường</strong> (xanh) hoặc <strong>Cao / Thấp</strong> (đỏ) theo khoảng tham chiếu. Trạng thái kết quả gồm: <strong>Nháp</strong> (vừa nhập, chưa duyệt), <strong>Đã xác thực</strong> (đã duyệt), <strong>Đã sửa</strong>.</p>
+    <figure class="shot">
+      <img src="images/ky-thuat-vien/03-loc-trang-thai.png" alt="Bộ lọc trạng thái">
+      <div class="ph">📷 images/ky-thuat-vien/03-loc-trang-thai.png — Bộ lọc trạng thái mở ra: Nháp, Đã xác thực, Đã sửa.</div>
+      <figcaption>
+        <span class="cap-title">Lọc theo trạng thái</span>
+        <ol>
+          <li><span class="mk">①</span> <strong>Nháp</strong> — kết quả vừa nhập, đang chờ bác sĩ duyệt.</li>
+          <li><span class="mk">②</span> <strong>Đã xác thực</strong> / <strong>Đã sửa</strong> — kết quả đã được duyệt/chỉnh.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout warn"><p><span class="lbl">⚠️ Lưu ý:</span> Kiểm tra kỹ <strong>chỉ định</strong>, <strong>đơn vị</strong> và <strong>giá trị</strong> trước khi lưu. Kết quả sai có thể ảnh hưởng chẩn đoán. Nếu phát hiện sai sau khi lưu, chỉnh lại (trạng thái chuyển “Đã sửa”) và báo bác sĩ duyệt lại.</p></div>
+  </section>
+
+  <section id="faq">
+    <h2 class="section">Câu hỏi thường gặp</h2>
+    <dl class="faq">
+      <dt>Không tìm thấy chỉ định XN của bệnh nhân?</dt>
+      <dd>Đảm bảo bác sĩ đã tạo chỉ định CLS cho lượt khám. Tìm theo mã bệnh nhân hoặc tên xét nghiệm trong ô “Chỉ định XN”.</dd>
+      <dt>Kết quả gắn cờ sai (bình thường thành cao)?</dt>
+      <dd>Cờ được tính theo khoảng tham chiếu của chỉ số. Nếu khoảng tham chiếu chưa đúng, báo quản trị viên cập nhật danh mục chỉ số/khoảng tham chiếu.</dd>
+    </dl>
+  </section>
+
+  <footer class="doc-footer">
+    <p><a href="index.html">← Về trang chủ tài liệu</a></p>
+    <p>Ảnh chụp từ hệ thống thật tại <code>https://his.diab.vn</code> (dữ liệu demo).</p>
+  </footer>
+
+</div>
+<script>
+document.querySelectorAll('figure.shot img').forEach(function(img){
+  function mark(){ var f=img.closest('figure.shot'); if(f) f.classList.add('missing'); }
+  if (img.complete && img.naturalWidth === 0) mark();
+  img.addEventListener('error', mark);
+});
+</script>
+</body>
+</html>

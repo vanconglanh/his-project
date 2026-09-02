@@ -7,8 +7,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HelpCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { HelpCircle, BookOpen } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { usePermissions } from "@/lib/hooks/use-permissions";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { resolveTour, normalizeRouteKey } from "@/lib/tours";
@@ -19,6 +20,7 @@ import {
   isOnboardingSeen,
 } from "@/lib/tours/engine";
 import { ONBOARDING_DONE_EVENT } from "@/components/domain/OnboardingTour";
+import { resolveUserGuideLink } from "@/lib/user-guide";
 
 export function TourButton() {
   const pathname = usePathname();
@@ -26,6 +28,7 @@ export function TourButton() {
   const searchParams = useSearchParams();
   const { has } = usePermissions();
   const userId = useAuthStore((s) => s.user?.id);
+  const roles = useAuthStore((s) => s.roles);
 
   // Chỉ render sau khi mount để tránh lệch SSR (driver.js + localStorage là client-only).
   const [mounted, setMounted] = useState(false);
@@ -101,18 +104,40 @@ export function TourButton() {
     ? "Chưa có hướng dẫn cho trang này"
     : "Hướng dẫn sử dụng trang này";
 
+  // Tài liệu HTML (ảnh chụp + step-by-step, có nút Xuất PDF) — khác voi tour highlight UI
+  // ở trên. Chỉ hiện khi xác định được vai trò user (roles trong auth-store).
+  const guideLink = resolveUserGuideLink(pathname, roles);
+
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={start}
-      disabled={disabled}
-      className="min-h-[44px] min-w-[44px]"
-      aria-label={label}
-      title={label}
-      data-tour="topbar-help"
-    >
-      <HelpCircle className="h-5 w-5" aria-hidden="true" />
-    </Button>
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={start}
+        disabled={disabled}
+        className="min-h-[44px] min-w-[44px]"
+        aria-label={label}
+        title={label}
+        data-tour="topbar-help"
+      >
+        <HelpCircle className="h-5 w-5" aria-hidden="true" />
+      </Button>
+      {guideLink && (
+        <a
+          href={guideLink.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "icon" }),
+            "min-h-[44px] min-w-[44px]"
+          )}
+          aria-label={guideLink.label}
+          title={guideLink.label}
+          data-tour="topbar-guide"
+        >
+          <BookOpen className="h-5 w-5" aria-hidden="true" />
+        </a>
+      )}
+    </>
   );
 }

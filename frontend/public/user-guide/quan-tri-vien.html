@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn cho Quản trị viên — Pro-Diab HIS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <a class="home-link" href="index.html">← Trang chủ tài liệu</a>
+    <button class="btn-print" onclick="window.print()">🖨️ Xuất PDF</button>
+  </div>
+
+  <header class="doc-header">
+    <p class="eyebrow">Vai trò: Quản trị viên</p>
+    <h1>Dashboard, báo cáo &amp; quản trị hệ thống</h1>
+    <p class="lede">Hướng dẫn theo dõi dashboard tổng quan, khai thác các báo cáo tiêu biểu (nhắc tái khám, gói sắp hết hạn, xu hướng HbA1c) và quản trị hệ thống (danh mục mã, cấu hình chung, người dùng &amp; phân quyền).</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Mục lục</h2>
+    <ol>
+      <li><a href="#tong-quan">Tổng quan</a></li>
+      <li><a href="#dash">A. Dashboard tổng quan</a></li>
+      <li><a href="#bc">B. Báo cáo &amp; thống kê</a>
+        <ol>
+          <li><a href="#bc-hub">B1 — Trung tâm báo cáo</a></li>
+          <li><a href="#bc-recall">B2 — Nhắc tái khám</a></li>
+          <li><a href="#bc-hba1c">B3 — Xu hướng HbA1c</a></li>
+          <li><a href="#bc-goi">B4 — Gói sắp hết hạn</a></li>
+        </ol>
+      </li>
+      <li><a href="#qt">C. Quản trị hệ thống</a>
+        <ol>
+          <li><a href="#qt-hub">C1 — Trang hub quản trị</a></li>
+          <li><a href="#qt-danhmuc">C2 — Danh mục mã</a></li>
+          <li><a href="#qt-cauhinh">C3 — Cấu hình hệ thống</a></li>
+          <li><a href="#qt-vaitro">C4 — Vai trò &amp; phân quyền</a></li>
+          <li><a href="#qt-nguoidung">C5 — Người dùng</a></li>
+        </ol>
+      </li>
+      <li><a href="#faq">Câu hỏi thường gặp</a></li>
+    </ol>
+  </nav>
+
+  <section id="tong-quan">
+    <h2 class="section">Tổng quan</h2>
+    <p>Quản trị viên có <strong>toàn quyền hệ thống</strong>. Công việc chính gồm 3 nhóm: theo dõi <strong>Dashboard</strong> (hoạt động phòng khám theo thời gian thực), khai thác <strong>Báo cáo &amp; thống kê</strong> (tài chính, lâm sàng, kho dược, BHYT), và <strong>Quản trị hệ thống</strong> (danh mục mã, cấu hình chung, người dùng, phân quyền, tích hợp).</p>
+
+    <h3 class="step">Vai trò tham gia</h3>
+    <table class="grid">
+      <tr><th>Vai trò</th><th>Tham gia</th><th>Quyền cần có</th></tr>
+      <tr><td>Quản trị viên</td><td>Dashboard, mọi báo cáo, toàn bộ quản trị hệ thống</td><td>Vai trò Quản trị viên (toàn quyền)</td></tr>
+      <tr><td>Kế toán / Bác sĩ</td><td>Xem báo cáo trong phạm vi quyền của mình</td><td>Vai trò tương ứng</td></tr>
+    </table>
+
+    <h3 class="step">Điều kiện tiên quyết</h3>
+    <ul>
+      <li>Đã đăng nhập bằng tài khoản <strong>Quản trị viên</strong>.</li>
+      <li>Đã chọn đúng chi nhánh (một số báo cáo lọc theo chi nhánh đang chọn).</li>
+    </ul>
+  </section>
+
+  <!-- A. DASHBOARD -->
+  <section id="dash">
+    <h2 class="section">A. Dashboard tổng quan</h2>
+    <p>Trang <strong>Tổng quan</strong> hiển thị hoạt động phòng khám trong ngày: <strong>Doanh thu hôm nay, Lượt khám, Bệnh nhân chờ, BHYT chờ xử lý</strong>, cùng các biểu đồ <strong>Xu hướng doanh thu 30 ngày</strong> và <strong>Lượt khám 30 ngày</strong>. Bấm <strong>Làm mới</strong> để cập nhật.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/01-dashboard.png" alt="Dashboard tổng quan">
+      <div class="ph">📷 images/quan-tri-vien/01-dashboard.png — Trang Tổng quan: 4 ô Doanh thu hôm nay / Lượt khám / Bệnh nhân chờ / BHYT chờ xử lý và nút “Làm mới”.</div>
+      <figcaption>
+        <span class="cap-title">Dashboard — chỉ số nhanh</span>
+        <ol>
+          <li><span class="mk">①</span> Bốn ô chỉ số: <strong>Doanh thu hôm nay, Lượt khám, Bệnh nhân chờ, BHYT chờ xử lý</strong>.</li>
+          <li><span class="mk">②</span> Nút <strong>Làm mới</strong> ở góc phải.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/02-dashboard-charts.png" alt="Biểu đồ dashboard">
+      <div class="ph">📷 images/quan-tri-vien/02-dashboard-charts.png — Biểu đồ “Xu hướng doanh thu 30 ngày” (đường) và “Lượt khám 30 ngày” (cột) với tooltip theo ngày.</div>
+      <figcaption>
+        <span class="cap-title">Biểu đồ xu hướng</span>
+        <ol>
+          <li><span class="mk">①</span> Biểu đồ <strong>Xu hướng doanh thu 30 ngày</strong>.</li>
+          <li><span class="mk">②</span> Biểu đồ <strong>Lượt khám 30 ngày</strong> — di chuột để xem chi tiết từng ngày.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- B. REPORTS -->
+  <section id="bc">
+    <h2 class="section">B. Báo cáo &amp; thống kê</h2>
+
+    <h3 class="step" id="bc-hub">B1 — Trung tâm báo cáo</h3>
+    <p>Vào menu <strong>Báo cáo</strong>. Bên trái là danh sách báo cáo chia nhóm: <strong>Tài chính, Khám bệnh/Sổ, Thống kê, BHYT, Kho dược</strong> (chuyển nhanh bằng các thẻ <strong>Tài chính / Lâm sàng / Kho dược</strong>). Chọn một báo cáo, đặt <strong>khoảng thời gian</strong> và bộ lọc, rồi bấm <strong>Lấy dữ liệu</strong>. Mỗi báo cáo có nút <strong>In Phiếu</strong> và <strong>Xuất Excel</strong>.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/03-bao-cao-hub.png" alt="Trung tâm báo cáo">
+      <div class="ph">📷 images/quan-tri-vien/03-bao-cao-hub.png — Trang Báo cáo &amp; Thống kê: danh sách báo cáo nhóm TÀI CHÍNH bên trái, thẻ danh mục Tài chính/Lâm sàng/Kho dược, nút In báo cáo / Xuất báo cáo, và biểu đồ Tổng quan.</div>
+      <figcaption>
+        <span class="cap-title">Trung tâm báo cáo</span>
+        <ol>
+          <li><span class="mk">①</span> Danh sách báo cáo theo nhóm; ô <strong>Tìm báo cáo</strong>.</li>
+          <li><span class="mk">②</span> Thẻ danh mục <strong>Tài chính / Lâm sàng / Kho dược</strong>.</li>
+          <li><span class="mk">③</span> Nút <strong>In báo cáo</strong> / <strong>Xuất báo cáo</strong>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout note"><p><span class="lbl">Báo cáo tiêu biểu:</span> Doanh thu ngày/tháng, Công nợ bệnh nhân, KPI theo bác sĩ, Top thuốc kê nhiều, Thống kê ICD-10, Tồn kho, Thuốc cận date, Đối soát BHYT… và các báo cáo lâm sàng chuyên biệt cho đái tháo đường.</p></div>
+
+    <h3 class="step" id="bc-recall">B2 — Danh sách bệnh nhân cần tái khám (nhắc tái khám)</h3>
+    <p>Chọn báo cáo <strong>“Danh sách bệnh nhân cần tái khám”</strong>. Đặt <strong>khoảng thời gian</strong>, <strong>trạng thái</strong>, bấm <strong>Lấy dữ liệu</strong>. Kết quả gồm các thẻ tổng hợp (<strong>Tổng số</strong>, <strong>Quá hạn</strong>) và danh sách bệnh nhân đến hạn/quá hạn tái khám — dùng để gọi/nhắc bệnh nhân.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/04-bao-cao-tai-kham.png" alt="Báo cáo tái khám">
+      <div class="ph">📷 images/quan-tri-vien/04-bao-cao-tai-kham.png — Báo cáo “Danh sách bệnh nhân cần tái khám”: bộ lọc Khoảng thời gian/Từ ngày/Đến ngày/Trạng thái, nút Lấy dữ liệu, thẻ KPI “Tổng số” và “Quá hạn”.</div>
+      <figcaption>
+        <span class="cap-title">Báo cáo nhắc tái khám</span>
+        <ol>
+          <li><span class="mk">①</span> Bộ lọc <strong>Khoảng thời gian</strong> &amp; <strong>Trạng thái</strong>.</li>
+          <li><span class="mk">②</span> Nút <strong>Lấy dữ liệu</strong> → hiện thẻ <strong>Tổng số</strong> / <strong>Quá hạn</strong>.</li>
+          <li><span class="mk">③</span> Nút <strong>In Phiếu</strong> / <strong>Xuất Excel</strong>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout tip"><p><span class="lbl">💡</span> Ngoài báo cáo, còn có màn hình thao tác <strong>Nhắc tái khám</strong> (menu riêng) để lập và gửi nhắc lịch qua kênh SMS/Zalo.</p></div>
+
+    <h3 class="step" id="bc-hba1c">B3 — Xu hướng HbA1c theo tháng</h3>
+    <p>Chọn báo cáo <strong>“Xu hướng HbA1c theo tháng”</strong> (nhóm lâm sàng). Đặt khoảng thời gian rồi <strong>Lấy dữ liệu</strong>. Báo cáo hiển thị các thẻ chỉ số (VD số lượt đo HbA1c, trung bình toàn phòng khám) và biểu đồ xu hướng — phục vụ theo dõi kiểm soát đường huyết của nhóm bệnh nhân đái tháo đường.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/05-bao-cao-hba1c.png" alt="Báo cáo xu hướng HbA1c">
+      <div class="ph">📷 images/quan-tri-vien/05-bao-cao-hba1c.png — Báo cáo “Xu hướng HbA1c theo tháng”: bộ lọc thời gian, nút Lấy dữ liệu, thẻ KPI (HbA1c…, TB toàn…), In Phiếu / Xuất Excel.</div>
+      <figcaption>
+        <span class="cap-title">Xu hướng HbA1c</span>
+        <ol>
+          <li><span class="mk">①</span> Bộ lọc <strong>Khoảng thời gian</strong> (Từ ngày / Đến ngày).</li>
+          <li><span class="mk">②</span> Thẻ KPI: số đo HbA1c &amp; trung bình toàn phòng khám.</li>
+          <li><span class="mk">③</span> Biểu đồ xu hướng theo tháng + <strong>Xuất Excel</strong>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+
+    <h3 class="step" id="bc-goi">B4 — Gói dịch vụ sắp hết hạn</h3>
+    <p>Chọn báo cáo <strong>“Gói dịch vụ sắp hết hạn”</strong> (nhóm tài chính). Báo cáo liệt kê các gói dịch vụ trả trước của bệnh nhân sắp đến hạn — giúp phòng khám chủ động nhắc gia hạn hoặc sử dụng hết định mức.</p>
+    <div class="callout note"><p><span class="lbl">Cách dùng:</span> Thao tác giống các báo cáo khác — chọn báo cáo trong danh sách, đặt khoảng thời gian, bấm <strong>Lấy dữ liệu</strong>, rồi <strong>Xuất Excel</strong>/<strong>In Phiếu</strong>. Các báo cáo liên quan: “Báo cáo tỷ lệ sử dụng định mức gói”, “Công nợ gói dịch vụ tồn đọng”, “Doanh thu gói dịch vụ”.</p></div>
+  </section>
+
+  <!-- C. ADMIN -->
+  <section id="qt">
+    <h2 class="section">C. Quản trị hệ thống</h2>
+
+    <h3 class="step" id="qt-hub">C1 — Trang hub quản trị</h3>
+    <p>Vào menu <strong>Quản trị</strong> (địa chỉ <code>/admin</code>). Trang là một <strong>bảng thẻ</strong> dẫn tới từng khu vực quản lý: <strong>Phòng khám, Chi nhánh, Người dùng, Vai trò, Nhật ký, Mẫu bệnh án, ĐTQG, Nhà cung cấp, HĐĐT, API Partners, Cấu hình thông báo, Kênh nhắc lịch (SMS/Zalo), Nhập hồ sơ cũ (OCR), Danh mục mã, Cấu hình hệ thống</strong>.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/06-admin-hub.png" alt="Trang hub quản trị">
+      <div class="ph">📷 images/quan-tri-vien/06-admin-hub.png — Trang “Quản trị hệ thống” dạng lưới thẻ: Phòng khám, Chi nhánh, Người dùng, Vai trò, Nhật ký, Mẫu bệnh án… mỗi thẻ có mô tả ngắn.</div>
+      <figcaption>
+        <span class="cap-title">Trang hub quản trị</span>
+        <ol>
+          <li><span class="mk">①</span> Mỗi <strong>thẻ</strong> là một khu vực quản lý, có mô tả ngắn.</li>
+          <li><span class="mk">②</span> Bấm thẻ để vào khu vực tương ứng.</li>
+        </ol>
+      </figcaption>
+    </figure>
+
+    <h3 class="step" id="qt-danhmuc">C2 — Danh mục mã</h3>
+    <p>Thẻ <strong>Danh mục mã</strong> quản lý các <strong>nhóm mã dùng chung</strong>: Giới tính, Nhóm máu, Quốc tịch, Tình trạng hôn nhân, Đối tượng bệnh nhân, Loại khám, Dạng bào chế, Nhóm dịch vụ, Thuế VAT, Trạng thái đơn thuốc/thuốc… Chọn một nhóm mã để xem/thêm/sửa/ẩn các mã bên trong. Thay đổi chỉ áp dụng cho phòng khám của bạn, không ảnh hưởng phòng khám khác.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/07-danh-muc-ma.png" alt="Danh mục mã">
+      <div class="ph">📷 images/quan-tri-vien/07-danh-muc-ma.png — Trang Danh mục mã: danh sách Nhóm mã (Giới tính, Nhóm máu, Quốc tịch, Tình trạng hôn nhân, Đối tượng bệnh nhân, Loại khám…).</div>
+      <figcaption>
+        <span class="cap-title">Danh mục mã</span>
+        <ol>
+          <li><span class="mk">①</span> Danh sách <strong>Nhóm mã</strong> dùng chung.</li>
+          <li><span class="mk">②</span> Chọn một nhóm để quản lý các mã bên trong (thêm/sửa/ẩn).</li>
+        </ol>
+      </figcaption>
+    </figure>
+
+    <h3 class="step" id="qt-cauhinh">C3 — Cấu hình hệ thống</h3>
+    <p>Thẻ <strong>Cấu hình hệ thống</strong> chứa các tham số nghiệp vụ tuỳ chỉnh cho phòng khám, chia theo nhóm (Bảo mật, Gói dịch vụ…). Mỗi tham số có mô tả, ô nhập giá trị và nút <strong>Lưu</strong> riêng. Ví dụ: <strong>Vai trò bắt buộc xác thực 2 lớp (2FA)</strong>, <strong>Tỷ lệ cọc tối thiểu gói (%)</strong>.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/08-cau-hinh.png" alt="Cấu hình hệ thống">
+      <div class="ph">📷 images/quan-tri-vien/08-cau-hinh.png — Trang Cấu hình hệ thống: nhóm Bảo mật (Vai trò bắt buộc 2FA = admin), nhóm Gói dịch vụ (Tỷ lệ cọc tối thiểu gói = 50%), mỗi mục có nút Lưu.</div>
+      <figcaption>
+        <span class="cap-title">Cấu hình hệ thống</span>
+        <ol>
+          <li><span class="mk">①</span> Nhóm <strong>Bảo mật</strong> — VD <em>Vai trò bắt buộc 2FA</em>.</li>
+          <li><span class="mk">②</span> Nhóm <strong>Gói dịch vụ</strong> — VD <em>Tỷ lệ cọc tối thiểu gói (%)</em>.</li>
+          <li><span class="mk">③</span> Mỗi tham số có nút <strong>Lưu</strong> riêng.</li>
+        </ol>
+      </figcaption>
+    </figure>
+
+    <h3 class="step" id="qt-vaitro">C4 — Vai trò &amp; phân quyền (RBAC)</h3>
+    <p>Thẻ <strong>Vai trò</strong> hiển thị bảng vai trò: <strong>Mã vai trò, Tên vai trò, Loại, Số quyền, Mô tả</strong> (VD: bac_si – Bác sĩ – 67 quyền; le_tan – Lễ tân – 32 quyền; admin – Quản trị viên – toàn quyền). Bấm một vai trò để mở <strong>ma trận quyền</strong>, bật/tắt từng quyền theo nhóm chức năng. Dùng <strong>+ Tạo vai trò mới</strong> để định nghĩa vai trò tuỳ chỉnh.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/09-vai-tro.png" alt="Danh sách vai trò">
+      <div class="ph">📷 images/quan-tri-vien/09-vai-tro.png — Trang Vai trò &amp; Quyền hạn: bảng bac_si (67 quyền), duoc_si (26), ke_toan (45), ky_thuat_vien (25), le_tan (32), admin (toàn quyền); nút “+ Tạo vai trò mới”.</div>
+      <figcaption>
+        <span class="cap-title">Vai trò &amp; quyền hạn</span>
+        <ol>
+          <li><span class="mk">①</span> Bảng vai trò với <strong>Số quyền</strong> và mô tả.</li>
+          <li><span class="mk">②</span> Nút <strong>+ Tạo vai trò mới</strong>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/10-ma-tran-quyen.png" alt="Ma trận quyền">
+      <div class="ph">📷 images/quan-tri-vien/10-ma-tran-quyen.png — Bảng “Ma trận quyền — Bác sĩ”: danh sách quyền theo nhóm (ADMIN: audit_log, backup, role_manage…; AI: suggest…) với công tắc bật/tắt từng quyền.</div>
+      <figcaption>
+        <span class="cap-title">Ma trận quyền của vai trò</span>
+        <ol>
+          <li><span class="mk">①</span> Quyền nhóm theo module (ADMIN, AI, Khám bệnh…).</li>
+          <li><span class="mk">②</span> Công tắc <strong>bật/tắt</strong> từng quyền.</li>
+        </ol>
+      </figcaption>
+    </figure>
+
+    <h3 class="step" id="qt-nguoidung">C5 — Người dùng</h3>
+    <p>Thẻ <strong>Người dùng</strong> quản lý tài khoản nhân viên: bảng <strong>Người dùng, Điện thoại, Vai trò, Trạng thái</strong>; tìm theo tên/email và lọc theo vai trò. Dùng <strong>+ Mời người dùng</strong> để tạo tài khoản mới và gán vai trò.</p>
+    <figure class="shot">
+      <img src="images/quan-tri-vien/11-nguoi-dung.png" alt="Quản lý người dùng">
+      <div class="ph">📷 images/quan-tri-vien/11-nguoi-dung.png — Trang Quản lý người dùng: nút “+ Mời người dùng”, bộ lọc vai trò, bảng người dùng với nhãn Vai trò (Lễ tân, Dược sĩ, Kế toán, Kỹ thuật viên) và Trạng thái “Hoạt động”.</div>
+      <figcaption>
+        <span class="cap-title">Quản lý người dùng</span>
+        <ol>
+          <li><span class="mk">①</span> Nút <strong>+ Mời người dùng</strong> và bộ lọc <strong>vai trò</strong>.</li>
+          <li><span class="mk">②</span> Cột <strong>Vai trò</strong> &amp; <strong>Trạng thái</strong> của từng tài khoản.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout warn"><p><span class="lbl">⚠️ Lưu ý bảo mật:</span> Chỉ cấp vai trò tối thiểu đủ dùng cho từng nhân viên. Bật <strong>2FA</strong> cho các vai trò nhạy cảm (VD admin) trong Cấu hình hệ thống. Mọi thao tác trên dữ liệu bệnh nhân được ghi tại <strong>Nhật ký</strong> (audit log).</p></div>
+  </section>
+
+  <section id="faq">
+    <h2 class="section">Câu hỏi thường gặp</h2>
+    <dl class="faq">
+      <dt>Báo cáo hiện “Chưa có dữ liệu để xem”?</dt>
+      <dd>Kiểm tra <strong>khoảng thời gian</strong> đã bao gồm ngày có dữ liệu chưa, và đúng chi nhánh chưa. Sau khi chỉnh, bấm lại <strong>Lấy dữ liệu</strong>.</dd>
+      <dt>Trang /admin trước đây trống (“Sprint 3”)?</dt>
+      <dd>Bản hiện tại đã là trang hub đầy đủ với các thẻ khu vực quản lý. Nếu vẫn thấy màn hình trống, bản triển khai chưa cập nhật — liên hệ bộ phận kỹ thuật.</dd>
+      <dt>Thêm mã mới vào danh mục có ảnh hưởng phòng khám khác không?</dt>
+      <dd>Không. Danh mục mã cho phép thêm/sửa/ẩn mã riêng cho phòng khám của bạn mà không ảnh hưởng các phòng khám khác.</dd>
+    </dl>
+  </section>
+
+  <footer class="doc-footer">
+    <p><a href="index.html">← Về trang chủ tài liệu</a></p>
+    <p>Ảnh chụp từ hệ thống thật tại <code>https://his.diab.vn</code> (dữ liệu demo).</p>
+  </footer>
+
+</div>
+<script>
+document.querySelectorAll('figure.shot img').forEach(function(img){
+  function mark(){ var f=img.closest('figure.shot'); if(f) f.classList.add('missing'); }
+  if (img.complete && img.naturalWidth === 0) mark();
+  img.addEventListener('error', mark);
+});
+</script>
+</body>
+</html>

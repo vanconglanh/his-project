@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn cho Dược sĩ — Pro-Diab HIS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <a class="home-link" href="index.html">← Trang chủ tài liệu</a>
+    <button class="btn-print" onclick="window.print()">🖨️ Xuất PDF</button>
+  </div>
+
+  <header class="doc-header">
+    <p class="eyebrow">Vai trò: Dược sĩ</p>
+    <h1>Kê đơn, danh mục thuốc &amp; điều chuyển kho</h1>
+    <p class="lede">Hướng dẫn dược sĩ xem/xử lý đơn thuốc do bác sĩ kê, quản lý danh mục thuốc của phòng khám và tạo phiếu điều chuyển thuốc/vật tư giữa các chi nhánh.</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Mục lục</h2>
+    <ol>
+      <li><a href="#tong-quan">Tổng quan</a></li>
+      <li><a href="#b1">Bước 1 — Danh sách đơn thuốc (Kê đơn)</a></li>
+      <li><a href="#b2">Bước 2 — Danh mục thuốc</a></li>
+      <li><a href="#b3">Bước 3 — Điều chuyển kho nội bộ</a></li>
+      <li><a href="#faq">Câu hỏi thường gặp</a></li>
+    </ol>
+  </nav>
+
+  <section id="tong-quan">
+    <h2 class="section">Tổng quan</h2>
+    <p>Vai trò Dược sĩ trên Pro-Diab HIS hiện có 3 mục chức năng chính (nhóm <strong>DƯỢC</strong> ở thanh bên trái): <strong>Kê đơn</strong> (xem danh sách và chi tiết đơn thuốc do bác sĩ kê, gồm trạng thái Nháp/Đã ký/Đã phát), <strong>Danh mục thuốc</strong> (quản lý danh mục thuốc của phòng khám: mã, tên, hoạt chất, hàm lượng, trạng thái) và <strong>Điều chuyển kho</strong> (tạo phiếu điều chuyển thuốc/vật tư giữa các chi nhánh trong cùng tenant).</p>
+    <div class="callout note"><p><span class="lbl">Lưu ý:</span> Màn hình chưa có các thẻ Tồn kho theo lô/HSD, hàng chờ phát thuốc hay cảnh báo hết hạn riêng — nghiệp vụ nhập/xuất/tồn kho chi tiết theo lô hiện gắn liền với module <strong>Điều chuyển kho</strong> và <strong>Danh mục thuốc</strong>. Nếu phiên bản hệ thống bạn dùng có thêm các màn hình này, tài liệu sẽ được cập nhật.</p></div>
+
+    <h3 class="step">Vai trò tham gia</h3>
+    <table class="grid">
+      <tr><th>Vai trò</th><th>Tham gia bước nào</th><th>Quyền cần có</th></tr>
+      <tr><td>Dược sĩ</td><td>Xem đơn thuốc, quản lý danh mục thuốc, điều chuyển kho</td><td>Vai trò Dược sĩ (27 quyền)</td></tr>
+      <tr><td>Bác sĩ</td><td>Kê đơn (nguồn của danh sách đơn thuốc)</td><td>Vai trò Bác sĩ</td></tr>
+    </table>
+
+    <h3 class="step">Điều kiện tiên quyết</h3>
+    <ul>
+      <li>Đã đăng nhập bằng tài khoản <strong>Dược sĩ</strong> và chọn đúng chi nhánh.</li>
+      <li>Có đơn thuốc do bác sĩ kê (trạng thái Nháp/Đã ký/Đã phát) để xem/xử lý.</li>
+    </ul>
+  </section>
+
+  <section id="b1">
+    <h3 class="step"><span class="num">1</span>Danh sách đơn thuốc (Kê đơn)</h3>
+    <p>Vào menu <strong>Kê đơn</strong>. Bảng liệt kê đơn thuốc theo cột <strong>Bệnh nhân, Bác sĩ, Ngày kê, Trạng thái, Mã ĐTQG, Số thuốc, Tổng tiền</strong>. Trạng thái gồm: <strong>Nháp</strong> (bác sĩ đang kê), <strong>Đã ký</strong> (bác sĩ đã ký số, đơn hoàn chỉnh) và <strong>Đã phát</strong> (đã cấp phát cho bệnh nhân). Tìm theo tên bệnh nhân/mã đơn, lọc theo trạng thái. Bấm nút <strong>…</strong> ở cuối dòng → <strong>Xem chi tiết</strong> để mở đơn.</p>
+    <figure class="shot">
+      <img src="images/duoc-si/01-ke-don-danh-sach.png" alt="Danh sách đơn thuốc">
+      <div class="ph">📷 images/duoc-si/01-ke-don-danh-sach.png — Bảng “Kê đơn thuốc” với cột Bệnh nhân/Bác sĩ/Ngày kê/Trạng thái (Đã phát, Đã ký, Nháp)/Mã ĐTQG/Số thuốc/Tổng tiền và nút “…” → Xem chi tiết.</div>
+      <figcaption>
+        <span class="cap-title">Danh sách đơn thuốc</span>
+        <ol>
+          <li><span class="mk">①</span> Ô <strong>Tìm theo tên BN, mã đơn</strong> và bộ lọc <strong>Trạng thái</strong>.</li>
+          <li><span class="mk">②</span> Cột <strong>Trạng thái</strong>: Nháp / Đã ký / Đã phát.</li>
+          <li><span class="mk">③</span> Nút <strong>…</strong> → <strong>Xem chi tiết</strong> để mở đơn.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <p>Mở một đơn để xem <strong>chi tiết</strong>: thông tin bệnh nhân, danh sách thuốc (Tên thuốc, Liều, Tần suất, Đường dùng, Ngày, Số lượng) và thông tin <strong>Ký số</strong> (thời điểm bác sĩ ký). Có thể <strong>In đơn</strong> để đưa cho bệnh nhân/lưu hồ sơ.</p>
+    <figure class="shot">
+      <img src="images/duoc-si/04-chi-tiet-don.png" alt="Chi tiết đơn thuốc">
+      <div class="ph">📷 images/duoc-si/04-chi-tiet-don.png — Trang “Chi tiết đơn” trạng thái Đã ký: bảng Danh sách thuốc (Insulin Glargine, Metformin) với Liều/Tần suất/Đường dùng/Ngày/SL, khối “Ký số” và nút “In đơn”.</div>
+      <figcaption>
+        <span class="cap-title">Chi tiết đơn thuốc</span>
+        <ol>
+          <li><span class="mk">①</span> Thông tin bệnh nhân &amp; trạng thái đơn (góc trên).</li>
+          <li><span class="mk">②</span> Bảng <strong>Danh sách thuốc</strong> với liều dùng chi tiết.</li>
+          <li><span class="mk">③</span> Khối <strong>Ký số</strong> và nút <strong>In đơn</strong>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b2">
+    <h3 class="step"><span class="num">2</span>Danh mục thuốc</h3>
+    <p>Vào menu <strong>Danh mục thuốc</strong>. Bảng liệt kê thuốc của phòng khám theo cột <strong>Mã, Tên thuốc, ATC, Dạng, Hàm lượng, NSX, Loại, Giá, TT (trạng thái)</strong>. Có thể <strong>tìm theo tên/mã/hoạt chất</strong>, lọc theo trạng thái và loại (Kê đơn/OTC…). Nút <strong>Sync Cục QLD</strong> đồng bộ danh mục từ Cục Quản lý Dược, <strong>Import Excel</strong> nhập hàng loạt, <strong>Tạo thuốc</strong> thêm thuốc mới. Mỗi dòng có nút sửa/xoá.</p>
+    <figure class="shot">
+      <img src="images/duoc-si/02-danh-muc-thuoc.png" alt="Danh mục thuốc">
+      <div class="ph">📷 images/duoc-si/02-danh-muc-thuoc.png — Bảng “Danh mục thuốc”: các dòng TH001–TH008 (Metformin, Amlodipine, Atorvastatin…) với cột ATC/Dạng/Hàm lượng/Giá/TT “Hoạt động”; nút Sync Cục QLD, Import Excel, Tạo thuốc.</div>
+      <figcaption>
+        <span class="cap-title">Danh mục thuốc phòng khám</span>
+        <ol>
+          <li><span class="mk">①</span> Ô tìm kiếm và bộ lọc <strong>Trạng thái</strong> / <strong>Kê đơn</strong>.</li>
+          <li><span class="mk">②</span> Nút <strong>Sync Cục QLD</strong>, <strong>Import Excel</strong>, <strong>Tạo thuốc</strong>.</li>
+          <li><span class="mk">③</span> Mỗi dòng thuốc có nút <strong>sửa</strong> (bút chì) / <strong>xoá</strong> (thùng rác).</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b3">
+    <h3 class="step"><span class="num">3</span>Điều chuyển kho nội bộ</h3>
+    <p>Vào menu <strong>Điều chuyển kho</strong>. Màn hình quản lý các phiếu <strong>điều chuyển thuốc/vật tư giữa các chi nhánh</strong> trong cùng tenant. Khi chưa có phiếu nào, màn hình hiển thị trạng thái rỗng cùng nút <strong>+ Tạo phiếu điều chuyển</strong>. Có thể lọc theo <strong>chi nhánh nguồn/đích</strong> (2 dropdown “ALL” ở đầu trang).</p>
+    <figure class="shot">
+      <img src="images/duoc-si/03-dieu-chuyen-kho.png" alt="Điều chuyển kho nội bộ">
+      <div class="ph">📷 images/duoc-si/03-dieu-chuyen-kho.png — Trang “Điều chuyển kho nội bộ”: 2 bộ lọc chi nhánh (ALL/ALL), trạng thái rỗng “Chưa có phiếu điều chuyển kho nào”, nút “+ Tạo phiếu điều chuyển”.</div>
+      <figcaption>
+        <span class="cap-title">Điều chuyển kho nội bộ</span>
+        <ol>
+          <li><span class="mk">①</span> Bộ lọc <strong>chi nhánh nguồn</strong> / <strong>chi nhánh đích</strong>.</li>
+          <li><span class="mk">②</span> Nút <strong>+ Tạo phiếu điều chuyển</strong> để lập phiếu mới.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout warn"><p><span class="lbl">⚠️ Lưu ý:</span> Phiếu điều chuyển có ngưỡng giá trị cần <strong>phê duyệt bổ sung</strong> (cấu hình tại <em>Quản trị → Cấu hình hệ thống → mục Kho</em>, tham số <code>stock_transfer_approval_threshold</code>).</p></div>
+  </section>
+
+  <section id="faq">
+    <h2 class="section">Câu hỏi thường gặp</h2>
+    <dl class="faq">
+      <dt>Không thấy đơn thuốc của một bệnh nhân?</dt>
+      <dd>Kiểm tra bác sĩ đã tạo đơn cho lượt khám đó chưa. Tìm theo tên bệnh nhân hoặc mã đơn trong ô tìm kiếm ở trang <strong>Kê đơn</strong>.</dd>
+      <dt>Thuốc không có trong Danh mục thuốc khi bác sĩ kê đơn?</dt>
+      <dd>Vào <strong>Danh mục thuốc</strong>, dùng <strong>Tạo thuốc</strong> hoặc <strong>Import Excel</strong> để bổ sung, hoặc <strong>Sync Cục QLD</strong> nếu thuốc đã có trong danh mục quốc gia.</dd>
+      <dt>Tạo phiếu điều chuyển nhưng không lưu được?</dt>
+      <dd>Kiểm tra giá trị phiếu có vượt <strong>ngưỡng duyệt điều chuyển kho</strong> hay không — nếu vượt, phiếu cần người có quyền phê duyệt bổ sung trước khi hoàn tất.</dd>
+    </dl>
+  </section>
+
+  <footer class="doc-footer">
+    <p><a href="index.html">← Về trang chủ tài liệu</a></p>
+    <p>Ảnh chụp từ hệ thống thật tại <code>https://his.diab.vn</code> (dữ liệu demo).</p>
+  </footer>
+
+</div>
+<script>
+document.querySelectorAll('figure.shot img').forEach(function(img){
+  function mark(){ var f=img.closest('figure.shot'); if(f) f.classList.add('missing'); }
+  if (img.complete && img.naturalWidth === 0) mark();
+  img.addEventListener('error', mark);
+});
+</script>
+</body>
+</html>
