@@ -287,6 +287,24 @@ docker exec prodiab-his-mysql mysql -uroot -p prodiab_his -e "
 
 ---
 
+## 9b. Bug thứ 3 phát hiện khi test tab "Đơn thuốc": drug_id không trỏ tới danh mục thuốc
+
+`migrate_medications()` dùng UUID placeholder ngẫu nhiên cho `drug_id` (comment gốc trong code
+đã thừa nhận "chưa có drug master"). Mọi nơi đọc `prescription_items` đều `INNER JOIN
+diab_his_pha_drugs` — item biến mất khỏi TOÀN BỘ màn hình (list, detail, tab "Đơn thuốc" trong
+Khám bệnh), không chỉ 1 chỗ.
+
+Đã xử lý cho DB test local: script `backfill_drugs.py` (không có trong repo, chạy 1 lần) tạo
+110 bản ghi danh mục "Legacy Import" trong `diab_his_pha_drugs` (gom theo tên thuốc duy nhất
+xuất hiện trong `prescription_items.drug_name`), rồi UPDATE `drug_id` của 3.424/3.424 dòng
+item trỏ đúng về danh mục vừa tạo.
+
+**CHƯA đưa logic này vào `migrate_legacy_his.py`** — khác với các bug trước, đây không phải
+sửa 1 hàm độc lập: cần quyết định trước khi chạy migration thật liệu tenant đích đã có sẵn
+danh mục thuốc chuẩn (mã, hàm lượng, ATC, giá BHYT...) hay chưa. Nếu có sẵn, nên ưu tiên
+match theo tên thuốc gần đúng (fuzzy match) vào danh mục có sẵn trước khi tạo mới, để tránh
+trùng lặp/rác danh mục. Cần thảo luận thêm trước khi tự động hoá bước này.
+
 ## 10. Việc còn lại chưa xử lý
 
 | Hạng mục | Ưu tiên | Ghi chú |
