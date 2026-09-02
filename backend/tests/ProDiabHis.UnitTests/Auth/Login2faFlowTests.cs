@@ -53,7 +53,7 @@ public class Login2faFlowTests
         hasher.Verify("password123", user.PasswordHash).Returns(true);
 
         var handler = new LoginCommandHandler(db, jwt, hasher,
-            Substitute.For<ILogger<LoginCommandHandler>>(), new ConfigurationBuilder().Build());
+            Substitute.For<ILogger<LoginCommandHandler>>(), new ConfigurationBuilder().Build(), new FakeEmptyDapperConnectionFactory());
 
         var result = await handler.Handle(new LoginCommand("doc2fa@clinic.vn", "password123"), default);
 
@@ -91,7 +91,7 @@ public class Login2faFlowTests
         hasher.Verify("password123", user.PasswordHash).Returns(true);
 
         var handler = new LoginCommandHandler(db, jwt, hasher,
-            Substitute.For<ILogger<LoginCommandHandler>>(), new ConfigurationBuilder().Build());
+            Substitute.For<ILogger<LoginCommandHandler>>(), new ConfigurationBuilder().Build(), new FakeEmptyDapperConnectionFactory());
 
         var result = await handler.Handle(new LoginCommand("normal@clinic.vn", "password123"), default);
 
@@ -126,7 +126,7 @@ public class Login2faFlowTests
         hasher.Verify("password123", user.PasswordHash).Returns(true);
 
         var handler = new LoginCommandHandler(db, jwt, hasher,
-            Substitute.For<ILogger<LoginCommandHandler>>(), new ConfigurationBuilder().Build());
+            Substitute.For<ILogger<LoginCommandHandler>>(), new ConfigurationBuilder().Build(), new FakeEmptyDapperConnectionFactory());
 
         var result = await handler.Handle(new LoginCommand("admin@clinic.vn", "password123"), default);
 
@@ -173,7 +173,7 @@ public class Login2faFlowTests
             .Returns(allowRate);
 
         var loginHandler = new LoginCommandHandler(db, jwt, Substitute.For<IPasswordHasher>(),
-            Substitute.For<ILogger<LoginCommandHandler>>(), new ConfigurationBuilder().Build());
+            Substitute.For<ILogger<LoginCommandHandler>>(), new ConfigurationBuilder().Build(), new FakeEmptyDapperConnectionFactory());
 
         var handler = new Verify2faLoginCommandHandler(db, jwt, rate, _encryption, loginHandler,
             Substitute.For<ILogger<Verify2faLoginCommandHandler>>());

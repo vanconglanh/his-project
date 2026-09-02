@@ -25,7 +25,7 @@ public class LoginCommandHandlerTests
         _passwordHasher = Substitute.For<IPasswordHasher>();
         _logger = Substitute.For<ILogger<LoginCommandHandler>>();
         _configuration = new ConfigurationBuilder().Build();
-        _handler = new LoginCommandHandler(_db, _jwtService, _passwordHasher, _logger, _configuration);
+        _handler = new LoginCommandHandler(_db, _jwtService, _passwordHasher, _logger, _configuration, new FakeEmptyDapperConnectionFactory());
     }
 
     [Fact]

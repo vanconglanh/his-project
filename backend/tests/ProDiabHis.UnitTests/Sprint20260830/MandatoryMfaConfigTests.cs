@@ -16,18 +16,22 @@ namespace ProDiabHis.UnitTests.Sprint20260830;
 /// </summary>
 public class MandatoryMfaConfigTests
 {
-    private static IReadOnlyList<string> ReadRoles(IConfiguration config)
+    private static async Task<IReadOnlyList<string>> ReadRoles(IConfiguration config)
     {
         var handler = new LoginCommandHandler(
             Substitute.For<IApplicationDbContext>(),
             Substitute.For<IJwtService>(),
             Substitute.For<IPasswordHasher>(),
             Substitute.For<ILogger<LoginCommandHandler>>(),
-            config);
+            config,
+            // FakeEmptyDapperConnectionFactory tra ve khong row nao -> ham fallback dung config
+            // (dung y dinh goc cua test nay: chi kiem tra nhanh doc config, khong dung setting DB).
+            new FakeEmptyDapperConnectionFactory());
 
         var method = typeof(LoginCommandHandler).GetMethod(
-            "GetMandatoryMfaRoleCodes", BindingFlags.Instance | BindingFlags.NonPublic)!;
-        return (IReadOnlyList<string>)method.Invoke(handler, null)!;
+            "GetMandatoryMfaRoleCodesAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var task = (Task<IReadOnlyList<string>>)method.Invoke(handler, new object[] { 1, CancellationToken.None })!;
+        return await task;
     }
 
     private static IConfiguration Cfg(params (string key, string value)[] pairs) =>
@@ -37,18 +41,18 @@ public class MandatoryMfaConfigTests
 
     // UTC-H10-01 — khong cau hinh gi -> mac dinh chi "admin" bat buoc 2FA
     [Fact]
-    public void KhongCauHinh_MacDinhLaAdmin()
+    public async Task KhongCauHinh_MacDinhLaAdmin()
     {
-        var roles = ReadRoles(new ConfigurationBuilder().Build());
+        var roles = await ReadRoles(new ConfigurationBuilder().Build());
 
         roles.Should().ContainSingle().Which.Should().Be("admin");
     }
 
     // UTC-H10-02 — dang mang JSON (appsettings.json thuc te)
     [Fact]
-    public void CauHinhDangMang_DocDuTatCaRole()
+    public async Task CauHinhDangMang_DocDuTatCaRole()
     {
-        var roles = ReadRoles(Cfg(
+        var roles = await ReadRoles(Cfg(
             ("Security:MandatoryMfaRoles:0", "admin"),
             ("Security:MandatoryMfaRoles:1", "ke_toan")));
 
@@ -57,9 +61,9 @@ public class MandatoryMfaConfigTests
 
     // UTC-H10-03 — dang chuoi CSV (bien moi truong docker-compose)
     [Fact]
-    public void CauHinhDangChuoiCsv_TachDungVaTrimKhoangTrang()
+    public async Task CauHinhDangChuoiCsv_TachDungVaTrimKhoangTrang()
     {
-        var roles = ReadRoles(Cfg(("Security:MandatoryMfaRoles", "admin, ke_toan ,duoc_si")));
+        var roles = await ReadRoles(Cfg(("Security:MandatoryMfaRoles", "admin, ke_toan ,duoc_si")));
 
         roles.Should().BeEquivalentTo(new[] { "admin", "ke_toan", "duoc_si" });
     }
@@ -67,18 +71,18 @@ public class MandatoryMfaConfigTests
     // UTC-H10-04 — BIEN: chuoi rong -> fallback ve mac dinh, KHONG tra danh sach rong
     // (danh sach rong = khong role nao bat buoc 2FA = ha thap bao mat am tham)
     [Fact]
-    public void CauHinhChuoiRong_FallbackVeMacDinhAdmin()
+    public async Task CauHinhChuoiRong_FallbackVeMacDinhAdmin()
     {
-        var roles = ReadRoles(Cfg(("Security:MandatoryMfaRoles", "   ")));
+        var roles = await ReadRoles(Cfg(("Security:MandatoryMfaRoles", "   ")));
 
         roles.Should().ContainSingle().Which.Should().Be("admin");
     }
 
     // UTC-H10-05 — CSV co dau phay thua -> khong sinh phan tu rong
     [Fact]
-    public void CauHinhCsvCoDauPhayThua_KhongSinhPhanTuRong()
+    public async Task CauHinhCsvCoDauPhayThua_KhongSinhPhanTuRong()
     {
-        var roles = ReadRoles(Cfg(("Security:MandatoryMfaRoles", "admin,,ke_toan,")));
+        var roles = await ReadRoles(Cfg(("Security:MandatoryMfaRoles", "admin,,ke_toan,")));
 
         roles.Should().BeEquivalentTo(new[] { "admin", "ke_toan" });
         roles.Should().NotContain(string.Empty);
