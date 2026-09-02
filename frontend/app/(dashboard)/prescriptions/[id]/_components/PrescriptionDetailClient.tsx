@@ -113,9 +113,17 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/*
+        BUG FIX: layout cu "grid-cols-3" + "col-span-2" luon danh co dinh 1/3 chieu
+        rong cho sidebar (QR/DTQG/Ky so) du sidebar co it noi dung (vd chi 1 the
+        "Ky so" ngan) - phan content chinh (bang thuoc) bi ep con 2/3 width, phai
+        cuon ngang du con nhieu khoang trong ben phai. Doi sidebar sang width co
+        dinh vua du (320px) thay vi ty le 1/3, content chinh duoc "1fr" chiem het
+        phan con lai.
+      */}
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px] gap-6">
         {/* Main content */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="space-y-6">
           {/* Patient info */}
           <Card>
             <CardHeader>

@@ -161,18 +161,37 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
             }
         }
 
+        // BUG FIX: doctor_name chua tung duoc query o day (luon truyen null cho FE) - batch load
+        // ten bac si giong cach da lam voi patient_summary (BUG-09) o tren.
+        var doctorIds = rowList
+            .Select(r => r.DoctorId?.ToString())
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct()
+            .ToList();
+        var doctorMap = new Dictionary<string, string>();
+        if (doctorIds.Count > 0)
+        {
+            var doctorRows = await conn.QueryAsync<dynamic>(
+                "SELECT id, full_name FROM diab_his_sec_users WHERE id IN @ids AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { ids = doctorIds, tenantId = _currentUser.TenantId!.Value });
+            foreach (var dr in doctorRows)
+                doctorMap[(string)dr.id] = (string)dr.full_name;
+        }
+
         var items = rowList.Select(r =>
         {
             var pid = r.PatientId?.ToString();
             var patient = pid != null && patientMap.TryGetValue(pid, out var p) ? p : null;
-            return MapToResponse(r, patient, [], []);
+            var did = r.DoctorId?.ToString();
+            var doctorName = did != null && doctorMap.TryGetValue(did, out var dn) ? dn : null;
+            return MapToResponse(r, patient, doctorName, [], []);
         }).ToList();
         return Result<PagedResult<PrescriptionResponse>>.Success(
             new PagedResult<PrescriptionResponse>(items, q.Page, q.PageSize, total));
     }
 
     private static PrescriptionResponse MapToResponse(PrescriptionRow r, PatientSummary? patient,
-        IReadOnlyList<PrescriptionItemResponse> items, IReadOnlyList<DdiWarning> warnings) =>
+        string? doctorName, IReadOnlyList<PrescriptionItemResponse> items, IReadOnlyList<DdiWarning> warnings) =>
         new(
             Guid.TryParse(r.Id?.ToString(), out var g) ? g : Guid.Empty,
             r.TenantId,
@@ -181,7 +200,9 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
             // tuy MySqlConnector suy dien, xem GuidFormat=None o Infrastructure/DependencyInjection.cs).
             Guid.TryParse(r.EncounterId?.ToString(), out var eg) ? eg : Guid.Empty,
             Guid.TryParse(r.PatientId?.ToString(), out var pg) ? pg : Guid.Empty,
-            patient, null, null,
+            patient,
+            Guid.TryParse(r.DoctorId?.ToString(), out var dg) ? dg : null,
+            doctorName,
             r.Status ?? "DRAFT", r.PrescribedAt,
             r.SignedAt, r.SignedBy, r.DtqgCode, r.DtqgStatus ?? "NONE",
             items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt);
@@ -221,6 +242,38 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
         if (pres == null)
             return Result<PrescriptionResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
 
+        // BUG FIX: man chi tiet /prescriptions/[id] truoc day luon hien "Thong tin benh nhan"
+        // rong (Ho ten/Gioi tinh/Ngay sinh/Bac si ke deu trong) vi handler nay chua tung query
+        // patient_summary/doctor_name - chi ListPrescriptionsHandler (BUG-09) duoc fix truoc do.
+        PatientSummary? patient = null;
+        if (pres.PatientId != null)
+        {
+            var pr = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                @"SELECT p.full_name, p.gender, p.date_of_birth AS dob,
+                         (SELECT i.card_no_masked FROM diab_his_pat_insurances i
+                          WHERE i.patient_id = p.id AND i.deleted_at IS NULL
+                          ORDER BY i.valid_to DESC LIMIT 1) AS bhyt_card_no_masked
+                  FROM diab_his_pat_patients p
+                  WHERE p.id = @id AND p.tenant_id = @tenantId AND p.deleted_at IS NULL",
+                new { id = pres.PatientId.ToString(), tenantId });
+            if (pr != null)
+            {
+                patient = new PatientSummary(
+                    (string)pr.full_name,
+                    (string?)pr.gender,
+                    pr.dob == null ? null : DateOnly.FromDateTime((DateTime)pr.dob),
+                    (string?)pr.bhyt_card_no_masked);
+            }
+        }
+
+        string? doctorName = null;
+        if (pres.DoctorId != null)
+        {
+            doctorName = await conn.ExecuteScalarAsync<string?>(
+                "SELECT full_name FROM diab_his_sec_users WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { id = pres.DoctorId.ToString(), tenantId });
+        }
+
         var items = await conn.QueryAsync<PrescriptionItemRow>(
             @"SELECT i.id as Id, i.drug_id as DrugId, d.name as DrugName,
                      d.strength as Strength, d.unit as Unit,
@@ -233,7 +286,7 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
             new { presId = pres.Id, tenantId });
 
         var itemResponses = items.Select(MapItem).ToList();
-        var response = MapPresRow(pres, itemResponses, []);
+        var response = MapPresRow(pres, patient, doctorName, itemResponses, []);
 
         // P0-01: ghi nhat ky truy cap (doc) don thuoc - yeu cau tuan thu TT 13/2025/TT-BYT
         await _audit.LogAsync(AuditAction.View, "Prescription", response.Id.ToString(), null, ct);
@@ -247,13 +300,15 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
             r.Dosage, r.Frequency, r.Route, r.DurationDays, r.Quantity,
             r.Instructions, null);
 
-    private static PrescriptionResponse MapPresRow(PrescriptionRow r,
-        IReadOnlyList<PrescriptionItemResponse> items, IReadOnlyList<DdiWarning> warnings) =>
+    private static PrescriptionResponse MapPresRow(PrescriptionRow r, PatientSummary? patient,
+        string? doctorName, IReadOnlyList<PrescriptionItemResponse> items, IReadOnlyList<DdiWarning> warnings) =>
         new(Guid.TryParse(r.Id?.ToString(), out var g) ? g : Guid.Empty,
             r.TenantId,
             Guid.TryParse(r.EncounterId?.ToString(), out var eg) ? eg : Guid.Empty,
             Guid.TryParse(r.PatientId?.ToString(), out var pg) ? pg : Guid.Empty,
-            null, null, null,
+            patient,
+            Guid.TryParse(r.DoctorId?.ToString(), out var dg) ? dg : null,
+            doctorName,
             r.Status ?? "DRAFT", r.PrescribedAt,
             r.SignedAt, r.SignedBy, r.DtqgCode, r.DtqgStatus ?? "NONE",
             items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt);

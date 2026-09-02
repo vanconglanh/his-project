@@ -40,7 +40,10 @@ public record PrescriptionResponse(
     Guid EncounterId,
     Guid PatientId,
     PatientSummary? PatientSummary,
-    int? DoctorId,
+    // BUG FIX: truoc la "int? DoctorId" nhung cot that su la char(36) GUID
+    // (diab_his_pha_prescriptions.doctor_id -> diab_his_sec_users.id) - sai kieu
+    // khien khong bao gio gan duoc gia tri that (luon truyen null).
+    Guid? DoctorId,
     string? DoctorName,
     string Status,
     DateTime PrescribedAt,
