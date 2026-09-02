@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn cho Lễ tân — Pro-Diab HIS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <a class="home-link" href="index.html">← Trang chủ tài liệu</a>
+    <button class="btn-print" onclick="window.print()">🖨️ Xuất PDF</button>
+  </div>
+
+  <header class="doc-header">
+    <p class="eyebrow">Vai trò: Lễ tân</p>
+    <h1>Tiếp đón bệnh nhân &amp; Lấy số chờ khám</h1>
+    <p class="lede">Hướng dẫn đầy đủ công việc lễ tân dùng hằng ngày: đón bệnh nhân, quét CCCD, tạo hồ sơ, xếp phòng và cấp số thứ tự chờ khám.</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Mục lục</h2>
+    <ol>
+      <li><a href="#tong-quan">Tổng quan luồng tiếp đón</a></li>
+      <li><a href="#b1">Bước 1 — Mở màn hình Tiếp đón</a></li>
+      <li><a href="#b2">Bước 2 — Tìm bệnh nhân đã có hồ sơ</a></li>
+      <li><a href="#b3">Bước 3 — Tạo bệnh nhân mới (nhánh rẽ)</a></li>
+      <li><a href="#b4">Bước 4 — Chọn phòng khám</a></li>
+      <li><a href="#b5">Bước 5 — Ưu tiên &amp; lý do khám</a></li>
+      <li><a href="#b6">Bước 6 — Hoàn tất &amp; lấy số</a></li>
+      <li><a href="#b7">Bước 7 — Theo dõi bảng hàng đợi</a></li>
+      <li><a href="#faq">Câu hỏi thường gặp</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section id="tong-quan">
+    <h2 class="section">Tổng quan luồng tiếp đón</h2>
+    <p>Màn hình <strong>Tiếp đón</strong> là nơi lễ tân đón bệnh nhân đến khám: tra cứu hồ sơ có sẵn (hoặc tạo mới), quét thẻ CCCD, chọn phòng khám và <strong>cấp số thứ tự chờ khám</strong>. Sau khi tiếp đón, bệnh nhân được xếp vào hàng đợi của phòng khám tương ứng và bác sĩ sẽ gọi vào theo số thứ tự.</p>
+
+    <h3 class="step">Sơ đồ luồng rút gọn</h3>
+    <ol class="flow">
+      <li>Mở màn hình <strong>Tiếp đón</strong>.</li>
+      <li>Tìm bệnh nhân (tên / SĐT / CMND / BHYT) <em>hoặc</em> quét CCCD <em>hoặc</em> tạo hồ sơ mới.</li>
+      <li>Chọn <strong>phòng khám</strong> sẽ khám.</li>
+      <li>Chọn mức <strong>ưu tiên</strong> và nhập <strong>lý do khám</strong>.</li>
+      <li>Nhấn <strong>Tiếp đón (F4)</strong> → hệ thống cấp <strong>số thứ tự</strong> và đưa vào hàng đợi.</li>
+      <li>Theo dõi <strong>Bảng hàng đợi</strong> (tự động làm mới mỗi 5 giây).</li>
+    </ol>
+
+    <h3 class="step">Vai trò tham gia</h3>
+    <table class="grid">
+      <tr><th>Vai trò</th><th>Tham gia bước nào</th><th>Quyền cần có</th></tr>
+      <tr><td>Lễ tân</td><td>Toàn bộ luồng tiếp đón, cấp số, quản lý hàng đợi</td><td>Đăng nhập vai trò Lễ tân</td></tr>
+      <tr><td>Bác sĩ</td><td>Nhận bệnh nhân từ hàng đợi (bấm “Đưa vào khám”)</td><td>Đăng nhập vai trò Bác sĩ</td></tr>
+    </table>
+
+    <h3 class="step">Điều kiện tiên quyết</h3>
+    <ul>
+      <li>Đã đăng nhập bằng tài khoản <strong>Lễ tân</strong>.</li>
+      <li>Đã chọn đúng <strong>chi nhánh</strong> đang làm việc (hiển thị trên thanh trên cùng).</li>
+      <li>Bệnh nhân đã có hồ sơ, hoặc bạn sẽ tạo hồ sơ mới ngay trong luồng này.</li>
+    </ul>
+  </section>
+
+  <!-- ============ CHI TIẾT ============ -->
+  <section id="b1">
+    <h3 class="step"><span class="num">1</span>Mở màn hình Tiếp đón</h3>
+    <p>Vào menu <strong>Tiếp đón</strong> ở thanh bên trái. Màn hình hiển thị 4 ô thống kê nhanh trong ngày: <strong>Đang chờ</strong>, <strong>Đang khám</strong>, <strong>Đã khám hôm nay</strong>, <strong>Đã huỷ</strong>.</p>
+    <figure class="shot">
+      <img src="images/le-tan/01-man-hinh-tiep-don.png" alt="Màn hình Tiếp đón với 4 ô thống kê">
+      <div class="ph">📷 images/le-tan/01-man-hinh-tiep-don.png — Màn hình Tiếp đón: nút “Thêm bệnh nhân (F2)” góc phải trên và 4 ô thống kê Đang chờ / Đang khám / Đã khám hôm nay / Đã huỷ.</div>
+      <figcaption>
+        <span class="cap-title">Màn hình Tiếp đón — thống kê nhanh</span>
+        <ol>
+          <li><span class="mk">①</span> Nút <strong>Thêm bệnh nhân (F2)</strong> góc phải trên — dùng khi bệnh nhân chưa có hồ sơ.</li>
+          <li><span class="mk">②</span> Bốn ô thống kê cập nhật theo thời gian thực.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout tip"><p><span class="lbl">💡 Mẹo:</span> Lần đầu vào màn hình, hệ thống hiển thị hộp “Hướng dẫn màn hình Tiếp đón”. Bạn có thể bấm <strong>Tiếp →</strong> để xem hoặc dấu <strong>×</strong> để đóng.</p></div>
+  </section>
+
+  <section id="b2">
+    <h3 class="step"><span class="num">2</span>Tìm bệnh nhân đã có hồ sơ</h3>
+    <p>Cuộn xuống khối <strong>Tiếp đón bệnh nhân</strong>. Đặt con trỏ vào ô <strong>Bệnh nhân</strong> và gõ <strong>tên, số điện thoại, CMND/CCCD hoặc số thẻ BHYT</strong>. Hệ thống hiển thị danh sách gợi ý; bấm chọn đúng bệnh nhân.</p>
+    <figure class="shot">
+      <img src="images/le-tan/02-tim-benh-nhan.png" alt="Tìm bệnh nhân theo tên">
+      <div class="ph">📷 images/le-tan/02-tim-benh-nhan.png — Ô “Bệnh nhân” đang gõ từ khoá và danh sách gợi ý hiện tên kèm mã bệnh nhân (BN00002).</div>
+      <figcaption>
+        <span class="cap-title">Tìm bệnh nhân</span>
+        <ol>
+          <li><span class="mk">①</span> Ô <strong>Bệnh nhân</strong> — gõ từ khoá (ví dụ “Nguyễn”).</li>
+          <li><span class="mk">②</span> Kết quả gợi ý hiện tên và <strong>mã bệnh nhân</strong> (VD: <em>Nguyễn Thị Lan — BN00002</em>). Bấm để chọn.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <p>Sau khi chọn, hệ thống hiển thị tên kèm mã và thông tin <strong>gói dịch vụ</strong> (nếu có). Nếu bệnh nhân không mua gói, dòng ghi <em>“Không có gói dịch vụ”</em>.</p>
+    <figure class="shot">
+      <img src="images/le-tan/03-da-chon-benh-nhan.png" alt="Đã chọn bệnh nhân">
+      <div class="ph">📷 images/le-tan/03-da-chon-benh-nhan.png — Bệnh nhân đã chọn (Nguyễn Thị Lan — BN00002) với dòng “Không có gói dịch vụ”.</div>
+      <figcaption>
+        <span class="cap-title">Đã chọn bệnh nhân</span>
+        <ol>
+          <li><span class="mk">①</span> Bệnh nhân đã chọn: <strong>Nguyễn Thị Lan — BN00002</strong>.</li>
+          <li><span class="mk">②</span> Dòng trạng thái gói dịch vụ: <em>Không có gói dịch vụ</em>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout warn"><p><span class="lbl">⚠️ Nhánh rẽ — Quét CCCD:</span> Thay vì gõ tay, đặt con trỏ vào ô <strong>“Quét CCCD”</strong> rồi dùng máy quét USB quét mã QR trên thẻ căn cước. Hệ thống tự đọc thông tin và tìm/điền hồ sơ. Dùng cách này khi có máy quét để nhập nhanh và chính xác.</p></div>
+  </section>
+
+  <section id="b3">
+    <h3 class="step"><span class="num">3</span>Tạo bệnh nhân mới <span class="branch">Nhánh rẽ</span></h3>
+    <p>Nếu tìm không ra, bấm <strong>Thêm bệnh nhân (F2)</strong> ở góc phải trên, hoặc <strong>Tạo bệnh nhân mới</strong> ngay trong ô kết quả tìm kiếm. Màn hình mở ra với các thẻ: <strong>Thông tin chung</strong>, <strong>Bảo hiểm y tế</strong>, <strong>Liên hệ khẩn cấp</strong>, <strong>Dị ứng</strong>.</p>
+    <figure class="shot">
+      <img src="images/le-tan/04-tao-benh-nhan-moi.png" alt="Form tạo bệnh nhân mới">
+      <div class="ph">📷 images/le-tan/04-tao-benh-nhan-moi.png — Form “Tạo bệnh nhân mới”: ô Quét CCCD, nhóm Thông tin cá nhân (Họ và tên, Giới tính, Ngày sinh) và nút “Tạo bệnh nhân”.</div>
+      <figcaption>
+        <span class="cap-title">Tạo bệnh nhân mới</span>
+        <ol>
+          <li><span class="mk">①</span> Ô <strong>Quét CCCD</strong> — quét thẻ để tự điền thông tin cá nhân.</li>
+          <li><span class="mk">②</span> Nhóm <strong>Thông tin cá nhân</strong>: <strong>Họ và tên</strong> (bắt buộc), Giới tính, Ngày sinh…</li>
+          <li><span class="mk">③</span> Nút <strong>Tạo bệnh nhân</strong> ở góc phải trên để lưu.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout tip"><p><span class="lbl">💡</span> Sau khi tạo xong, hệ thống tự quay lại màn hình Tiếp đón và điền sẵn bệnh nhân vừa tạo — bạn tiếp tục từ Bước 4.</p></div>
+  </section>
+
+  <section id="b4">
+    <h3 class="step"><span class="num">4</span>Chọn phòng khám</h3>
+    <p>Trong danh sách <strong>Phòng khám</strong>, bấm chọn phòng sẽ tiếp nhận bệnh nhân. Mỗi phòng hiển thị số bệnh nhân <strong>đang chờ</strong> (“Chờ: n”) để bạn cân đối, tránh dồn quá tải một phòng.</p>
+    <figure class="shot">
+      <img src="images/le-tan/05-chon-phong-kham.png" alt="Chọn phòng khám">
+      <div class="ph">📷 images/le-tan/05-chon-phong-kham.png — Các lựa chọn Phòng khám số 1/2, Quầy thu ngân, Phòng xét nghiệm; phòng được chọn có viền xanh; mỗi phòng hiển thị “Chờ: 0”.</div>
+      <figcaption>
+        <span class="cap-title">Chọn phòng khám</span>
+        <ol>
+          <li><span class="mk">①</span> Các lựa chọn: <strong>Phòng khám số 1</strong>, <strong>số 2</strong>, <strong>Quầy thu ngân</strong>, <strong>Phòng xét nghiệm</strong>.</li>
+          <li><span class="mk">②</span> Phòng được chọn có <strong>viền xanh</strong> nổi bật.</li>
+          <li><span class="mk">③</span> Số <strong>Chờ: n</strong> bên phải cho biết hàng đợi hiện tại.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b5">
+    <h3 class="step"><span class="num">5</span>Chọn ưu tiên &amp; nhập lý do khám</h3>
+    <ul>
+      <li><strong>Ưu tiên:</strong> mặc định <em>Thông thường</em>. Chuyển sang mức ưu tiên cao cho người già, trẻ nhỏ, cấp cứu… (ca ưu tiên được gọi trước trong hàng đợi).</li>
+      <li><strong>Lý do khám:</strong> nhập triệu chứng/lý do (VD: <em>“Tái khám đái tháo đường, mệt mỏi”</em>).</li>
+      <li><strong>Ghi chú cho lễ tân:</strong> ghi chú nội bộ, không bắt buộc.</li>
+    </ul>
+    <figure class="shot">
+      <img src="images/le-tan/06-uu-tien-ly-do.png" alt="Ưu tiên và lý do khám">
+      <div class="ph">📷 images/le-tan/06-uu-tien-ly-do.png — Trường Ưu tiên (Thông thường), Lý do khám (đã nhập), Ghi chú cho lễ tân và nút xanh “Tiếp đón (F4)”.</div>
+      <figcaption>
+        <span class="cap-title">Ưu tiên &amp; lý do khám</span>
+        <ol>
+          <li><span class="mk">①</span> <strong>Ưu tiên</strong> — mặc định <em>Thông thường</em>.</li>
+          <li><span class="mk">②</span> <strong>Lý do khám</strong> — nhập triệu chứng/lý do đến khám.</li>
+          <li><span class="mk">③</span> <strong>Ghi chú cho lễ tân</strong> — ghi chú nội bộ, tuỳ chọn.</li>
+          <li><span class="mk">④</span> Nút <strong>Tiếp đón (F4)</strong> màu xanh để hoàn tất.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b6">
+    <h3 class="step"><span class="num">6</span>Hoàn tất tiếp đón &amp; lấy số</h3>
+    <p>Bấm <strong>Tiếp đón (F4)</strong>. Hệ thống lưu lại, hiển thị thông báo <strong>“Tiếp đón thành công”</strong> và đẩy bệnh nhân vào hàng đợi kèm <strong>số thứ tự</strong>.</p>
+    <figure class="shot">
+      <img src="images/le-tan/07-tiep-don-thanh-cong.png" alt="Tiếp đón thành công">
+      <div class="ph">📷 images/le-tan/07-tiep-don-thanh-cong.png — Thông báo xanh “Tiếp đón thành công” ở góc trên màn hình.</div>
+      <figcaption>
+        <span class="cap-title">Tiếp đón thành công</span>
+        <ol><li><span class="mk">①</span> Thông báo xanh <strong>“Tiếp đón thành công”</strong>.</li></ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b7">
+    <h3 class="step"><span class="num">7</span>Theo dõi Bảng hàng đợi</h3>
+    <p>Cuộn xuống <strong>Bảng hàng đợi</strong>. Mỗi phòng hiển thị danh sách bệnh nhân đang chờ theo <strong>số thứ tự</strong> (VD <strong>001</strong>), kèm tên, mã, lý do khám và trạng thái <strong>Chờ</strong>. Bảng <strong>tự động làm mới mỗi 5 giây</strong> (hoặc bấm <strong>Tải lại</strong>).</p>
+    <figure class="shot">
+      <img src="images/le-tan/08-bang-hang-doi.png" alt="Bảng hàng đợi với số 001">
+      <div class="ph">📷 images/le-tan/08-bang-hang-doi.png — Bảng hàng đợi Phòng khám số 1: số thứ tự 001, tên bệnh nhân, lý do khám, nhãn “Chờ”, nút “Đưa vào khám” / “Gọi vào” và các nút huỷ/in số.</div>
+      <figcaption>
+        <span class="cap-title">Bảng hàng đợi — số thứ tự 001</span>
+        <ol>
+          <li><span class="mk">①</span> <strong>Số thứ tự 001</strong> — số chờ khám vừa cấp.</li>
+          <li><span class="mk">②</span> Thông tin bệnh nhân + lý do khám + nhãn <strong>Chờ</strong>.</li>
+          <li><span class="mk">③</span> Nút <strong>Đưa vào khám</strong> (bác sĩ dùng) và <strong>Gọi vào</strong>.</li>
+          <li><span class="mk">④</span> Các nút phụ: chuyển bước, <strong>huỷ (×)</strong>, <strong>in số</strong>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout warn">
+      <p><span class="lbl">⚠️ Lưu ý nghiệp vụ:</span></p>
+      <p>• Số thứ tự cấp <strong>theo từng phòng</strong> và tăng dần trong ngày.</p>
+      <p>• Ca <strong>ưu tiên</strong> được xếp lên trước trong hàng đợi của phòng.</p>
+      <p>• Muốn <strong>huỷ</strong> một lượt tiếp đón nhầm, bấm nút <strong>×</strong> trên thẻ bệnh nhân — lượt này được tính vào ô thống kê <strong>“Đã huỷ”</strong>.</p>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq">
+    <h2 class="section">Câu hỏi thường gặp</h2>
+    <dl class="faq">
+      <dt>Không tìm thấy bệnh nhân dù đã gõ đúng tên?</dt>
+      <dd>Thử gõ số điện thoại hoặc số CMND/CCCD thay vì tên (tên có thể trùng hoặc sai dấu). Nếu chắc chắn chưa có hồ sơ, bấm <strong>Thêm bệnh nhân</strong> để tạo mới.</dd>
+      <dt>Quét CCCD nhưng không nhận?</dt>
+      <dd>Đảm bảo con trỏ đang nằm trong ô <strong>“Quét CCCD”</strong> trước khi quét, và máy quét USB ở chế độ đọc QR. Nếu vẫn lỗi, nhập tay thông tin.</dd>
+      <dt>Cấp nhầm phòng thì sao?</dt>
+      <dd>Huỷ lượt tiếp đón trên hàng đợi (nút ×) rồi tiếp đón lại vào đúng phòng.</dd>
+    </dl>
+  </section>
+
+  <footer class="doc-footer">
+    <p><a href="index.html">← Về trang chủ tài liệu</a></p>
+    <p>Ảnh chụp từ hệ thống thật tại <code>https://his.diab.vn</code> (dữ liệu demo). Liên hệ hỗ trợ: bộ phận CNTT phòng khám.</p>
+  </footer>
+
+</div>
+<script>
+document.querySelectorAll('figure.shot img').forEach(function(img){
+  function mark(){ var f=img.closest('figure.shot'); if(f) f.classList.add('missing'); }
+  if (img.complete && img.naturalWidth === 0) mark();
+  img.addEventListener('error', mark);
+});
+</script>
+</body>
+</html>

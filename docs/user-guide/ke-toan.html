@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn cho Kế toán / Thu ngân — Pro-Diab HIS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <a class="home-link" href="index.html">← Trang chủ tài liệu</a>
+    <button class="btn-print" onclick="window.print()">🖨️ Xuất PDF</button>
+  </div>
+
+  <header class="doc-header">
+    <p class="eyebrow">Vai trò: Kế toán / Thu ngân</p>
+    <h1>Thu ngân, thanh toán &amp; công nợ</h1>
+    <p class="lede">Hướng dẫn thu tiền hóa đơn khám bệnh (đủ các phương thức), xử lý thanh toán một phần dẫn tới công nợ, và theo dõi danh sách bệnh nhân còn nợ.</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Mục lục</h2>
+    <ol>
+      <li><a href="#tong-quan">Tổng quan luồng thu ngân</a></li>
+      <li><a href="#b1">Bước 1 — Danh sách hóa đơn</a></li>
+      <li><a href="#b2">Bước 2 — Mở chi tiết hóa đơn</a></li>
+      <li><a href="#b3">Bước 3 — Thu tiền (thanh toán đủ)</a></li>
+      <li><a href="#b4">Bước 4 — Thanh toán một phần → công nợ</a></li>
+      <li><a href="#b5">Bước 5 — Theo dõi công nợ</a></li>
+      <li><a href="#faq">Câu hỏi thường gặp</a></li>
+    </ol>
+  </nav>
+
+  <section id="tong-quan">
+    <h2 class="section">Tổng quan luồng thu ngân</h2>
+    <p>Sau khi bệnh nhân khám xong, hệ thống sinh <strong>hóa đơn</strong> gồm phí khám, dịch vụ, thuốc. Thu ngân mở hóa đơn, <strong>thu tiền</strong> bằng nhiều phương thức (tiền mặt, chuyển khoản, thẻ, QR, ví điện tử). Nếu bệnh nhân trả thiếu, hóa đơn chuyển sang <strong>thanh toán một phần</strong> và phần còn lại thành <strong>công nợ</strong>. Có thể <strong>phát hành hóa đơn điện tử</strong>.</p>
+
+    <h3 class="step">Sơ đồ luồng rút gọn</h3>
+    <ol class="flow">
+      <li>Mở <strong>Hoá đơn</strong> → chọn hóa đơn cần thu.</li>
+      <li>Bấm <strong>Thu tiền</strong> → chọn phương thức, nhập số tiền.</li>
+      <li><strong>Trả đủ:</strong> hóa đơn “Đã thanh toán”.</li>
+      <li><strong>Trả thiếu:</strong> hóa đơn “Thanh toán một phần”, còn lại là công nợ.</li>
+      <li>Theo dõi <strong>Công nợ</strong> để thu tiếp lần sau.</li>
+    </ol>
+
+    <h3 class="step">Vai trò tham gia</h3>
+    <table class="grid">
+      <tr><th>Vai trò</th><th>Tham gia bước nào</th><th>Quyền cần có</th></tr>
+      <tr><td>Kế toán / Thu ngân</td><td>Thu tiền, quản lý hóa đơn, công nợ, HĐĐT</td><td>Vai trò Kế toán (45 quyền)</td></tr>
+      <tr><td>Lễ tân</td><td>Có thể thu ngân bước tiếp đón (tuỳ cấu hình)</td><td>Vai trò Lễ tân</td></tr>
+    </table>
+
+    <h3 class="step">Điều kiện tiên quyết</h3>
+    <ul>
+      <li>Đã đăng nhập bằng tài khoản <strong>Kế toán</strong> và chọn đúng chi nhánh.</li>
+      <li>Có hóa đơn ở trạng thái chờ thu (VD “Đã xác nhận”).</li>
+    </ul>
+  </section>
+
+  <section id="b1">
+    <h3 class="step"><span class="num">1</span>Danh sách hóa đơn</h3>
+    <p>Vào menu <strong>Hoá đơn</strong>. Bảng hiển thị theo cột <strong>Số HĐ, Bệnh nhân, Phải trả, Đã thu, Còn lại, Trạng thái, Ngày tạo</strong>. Tìm theo số HĐ/tên bệnh nhân và lọc theo trạng thái. Hóa đơn còn nợ có số <strong>Còn lại</strong> màu đỏ.</p>
+    <figure class="shot">
+      <img src="images/ke-toan/01-danh-sach-hoa-don.png" alt="Danh sách hóa đơn">
+      <div class="ph">📷 images/ke-toan/01-danh-sach-hoa-don.png — Bảng Hoá đơn với cột Số HĐ / Bệnh nhân / Phải trả / Đã thu / Còn lại / Trạng thái; có dòng “Đã thanh toán” và dòng còn nợ (Còn lại đỏ, trạng thái “Đã xác nhận”).</div>
+      <figcaption>
+        <span class="cap-title">Danh sách hóa đơn</span>
+        <ol>
+          <li><span class="mk">①</span> Cột <strong>Phải trả / Đã thu / Còn lại</strong>.</li>
+          <li><span class="mk">②</span> Cột <strong>Trạng thái</strong>: <em>Đã thanh toán</em> (đủ) hoặc <em>Đã xác nhận</em> (chờ thu / còn nợ).</li>
+          <li><span class="mk">③</span> Bấm một dòng để mở chi tiết.</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b2">
+    <h3 class="step"><span class="num">2</span>Mở chi tiết hóa đơn</h3>
+    <p>Màn hình chi tiết gồm: <strong>Mục hóa đơn</strong> (Nội dung, SL, Đơn giá, VAT, Thành tiền, BHYT), <strong>Lịch sử thanh toán</strong>, <strong>Tổng hợp</strong> (Tạm tính, VAT, Bệnh nhân phải trả, Đã thu, Còn lại) và mục <strong>Hoá đơn điện tử</strong>. Trên cùng có các nút <strong>Thu tiền</strong>, <strong>Thanh toán QR</strong>, <strong>In hoá đơn</strong>, <strong>Huỷ hoá đơn</strong>.</p>
+    <figure class="shot">
+      <img src="images/ke-toan/02-chi-tiet-hoa-don.png" alt="Chi tiết hóa đơn">
+      <div class="ph">📷 images/ke-toan/02-chi-tiet-hoa-don.png — Chi tiết hóa đơn HD-2026-00003 (Đã xác nhận): nút Thu tiền / Thanh toán QR / In hoá đơn / Huỷ hoá đơn; mục Mục hóa đơn, Lịch sử thanh toán, Tổng hợp.</div>
+      <figcaption>
+        <span class="cap-title">Chi tiết hóa đơn</span>
+        <ol>
+          <li><span class="mk">①</span> Nút <strong>Thu tiền</strong> (chính), <strong>Thanh toán QR</strong>, <strong>In hoá đơn</strong>.</li>
+          <li><span class="mk">②</span> Mục <strong>Mục hóa đơn</strong> và <strong>Lịch sử thanh toán</strong>.</li>
+          <li><span class="mk">③</span> Mục <strong>Tổng hợp</strong> (Phải trả / Đã thu / Còn lại).</li>
+        </ol>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="b3">
+    <h3 class="step"><span class="num">3</span>Thu tiền (thanh toán đủ)</h3>
+    <p>Bấm <strong>Thu tiền</strong>. Bảng thu tiền cho chọn <strong>Phương thức thanh toán</strong> (phím tắt 1–7): <strong>Tiền mặt (1), Chuyển khoản (2), Visa (3), Mastercard (4), VietQR (5), MoMo (6), VNPay (7)</strong>. Nhập <strong>Số tiền</strong> (mặc định bằng số cần thu). Với tiền mặt, nhập <strong>Khách đưa</strong> để hệ thống tính <strong>Tiền thừa</strong>. Bấm <strong>Xác nhận thu tiền (F4)</strong>.</p>
+    <figure class="shot">
+      <img src="images/ke-toan/03-thu-tien.png" alt="Bảng thu tiền các phương thức">
+      <div class="ph">📷 images/ke-toan/03-thu-tien.png — Bảng “Thu tiền”: lưới phương thức Tiền mặt/Chuyển khoản/Visa/Mastercard/VietQR/MoMo/VNPay, ô Số tiền (Cần thu: 320.000đ), Khách đưa, Tiền thừa, nút “Xác nhận thu tiền (F4)”.</div>
+      <figcaption>
+        <span class="cap-title">Bảng thu tiền</span>
+        <ol>
+          <li><span class="mk">①</span> Chọn <strong>Phương thức thanh toán</strong> (1–7).</li>
+          <li><span class="mk">②</span> Nhập <strong>Số tiền</strong> (mặc định = số cần thu).</li>
+          <li><span class="mk">③</span> (Tiền mặt) nhập <strong>Khách đưa</strong> → hiện <strong>Tiền thừa</strong>.</li>
+          <li><span class="mk">④</span> Bấm <strong>Xác nhận thu tiền (F4)</strong>.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout note"><p><span class="lbl">Nhánh rẽ — Thanh toán QR:</span> Nút <strong>Thanh toán QR</strong> tạo mã QR (VietQR) để bệnh nhân quét chuyển khoản; sau khi nhận tiền, xác nhận để ghi nhận thanh toán.</p></div>
+  </section>
+
+  <section id="b4">
+    <h3 class="step"><span class="num">4</span>Thanh toán một phần → công nợ <span class="branch">Nhánh còn nợ</span></h3>
+    <p>Nếu bệnh nhân chỉ trả một phần, nhập <strong>Số tiền</strong> nhỏ hơn số cần thu rồi xác nhận. Hóa đơn chuyển sang trạng thái <strong>“Thanh toán một phần”</strong>; phần chưa trả được ghi là <strong>Còn lại</strong> (công nợ). Mục <strong>Lịch sử thanh toán</strong> ghi lại từng lần thu.</p>
+    <figure class="shot">
+      <img src="images/ke-toan/04-thanh-toan-mot-phan.png" alt="Thanh toán một phần - còn nợ">
+      <div class="ph">📷 images/ke-toan/04-thanh-toan-mot-phan.png — Mục Tổng hợp: Tạm tính 320.000đ, Bệnh nhân phải trả 320.000đ, Đã thu 200.000đ (xanh), Còn lại 120.000đ (đỏ); Lịch sử thanh toán: CASH 200.000đ; mục “Hoá đơn điện tử — Phát hành HĐĐT”.</div>
+      <figcaption>
+        <span class="cap-title">Thanh toán một phần &amp; công nợ</span>
+        <ol>
+          <li><span class="mk">①</span> <strong>Đã thu</strong> (VD 200.000đ, màu xanh) &lt; <strong>Bệnh nhân phải trả</strong>.</li>
+          <li><span class="mk">②</span> <strong>Còn lại</strong> (VD 120.000đ, màu đỏ) = công nợ.</li>
+          <li><span class="mk">③</span> <strong>Lịch sử thanh toán</strong> ghi lần thu (VD CASH 200.000đ).</li>
+          <li><span class="mk">④</span> Nút <strong>Phát hành HĐĐT</strong> để xuất hóa đơn điện tử.</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout warn"><p><span class="lbl">⚠️ Lưu ý:</span> Với hóa đơn còn nợ, lần sau bấm lại <strong>Thu tiền</strong> — hệ thống hiển thị <strong>Cần thu</strong> đúng bằng phần còn lại để thu nốt.</p></div>
+  </section>
+
+  <section id="b5">
+    <h3 class="step"><span class="num">5</span>Theo dõi công nợ</h3>
+    <p>Vào trang <strong>Công nợ</strong> (khu vực Thu ngân). Trang liệt kê <strong>bệnh nhân còn nợ</strong> kèm <strong>Điện thoại, Đã thu, Còn nợ, Lần TT cuối</strong> và <strong>Aging</strong> (tuổi nợ: 0–30 ngày, 31–60…). Tiêu đề hiển thị <strong>Tổng nợ</strong> toàn phòng khám.</p>
+    <figure class="shot">
+      <img src="images/ke-toan/05-cong-no.png" alt="Danh sách công nợ">
+      <div class="ph">📷 images/ke-toan/05-cong-no.png — Trang Công nợ: “Tổng nợ: 185.000đ”, bảng bệnh nhân còn nợ (Mã BN, Tên, Điện thoại, Đã thu, Còn nợ đỏ, Lần TT cuối, Aging 0–30 ngày).</div>
+      <figcaption>
+        <span class="cap-title">Danh sách công nợ</span>
+        <ol>
+          <li><span class="mk">①</span> <strong>Tổng nợ</strong> toàn phòng khám ở tiêu đề.</li>
+          <li><span class="mk">②</span> Cột <strong>Còn nợ</strong> (đỏ) theo từng bệnh nhân.</li>
+          <li><span class="mk">③</span> Cột <strong>Aging</strong> — phân nhóm tuổi nợ (0–30 ngày…).</li>
+        </ol>
+      </figcaption>
+    </figure>
+    <div class="callout note"><p><span class="lbl">Liên quan:</span> Khu vực Thu ngân còn có <strong>Đối soát ngân hàng</strong> và <strong>Công nợ nội bộ giữa các chi nhánh</strong> để đối chiếu dòng tiền.</p></div>
+  </section>
+
+  <section id="faq">
+    <h2 class="section">Câu hỏi thường gặp</h2>
+    <dl class="faq">
+      <dt>Thu tiền mặt nhưng nút xác nhận chưa bấm được?</dt>
+      <dd>Với tiền mặt cần nhập ô <strong>Khách đưa</strong> để hệ thống tính tiền thừa; sau đó nút <strong>Xác nhận thu tiền (F4)</strong> mới hoàn tất.</dd>
+      <dt>Thu nhầm số tiền?</dt>
+      <dd>Kiểm tra lại ở mục <strong>Lịch sử thanh toán</strong>. Việc điều chỉnh/hoàn tiền thực hiện theo quy trình (báo cáo hoàn tiền) — liên hệ quản lý.</dd>
+      <dt>Bệnh nhân muốn hóa đơn điện tử?</dt>
+      <dd>Sau khi thanh toán, dùng nút <strong>Phát hành HĐĐT</strong> trong mục Hoá đơn điện tử của hóa đơn.</dd>
+    </dl>
+  </section>
+
+  <footer class="doc-footer">
+    <p><a href="index.html">← Về trang chủ tài liệu</a></p>
+    <p>Ảnh chụp từ hệ thống thật tại <code>https://his.diab.vn</code> (dữ liệu demo).</p>
+  </footer>
+
+</div>
+<script>
+document.querySelectorAll('figure.shot img').forEach(function(img){
+  function mark(){ var f=img.closest('figure.shot'); if(f) f.classList.add('missing'); }
+  if (img.complete && img.naturalWidth === 0) mark();
+  img.addEventListener('error', mark);
+});
+</script>
+</body>
+</html>
