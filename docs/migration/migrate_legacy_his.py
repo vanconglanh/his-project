@@ -572,6 +572,18 @@ def migrate_diagnoses(dst, dry):
 
 # ─── BƯỚC 4: Migrate vital signs ─────────────────────────────────────────────
 def migrate_vitals(src, dst, dry, enc_map, pat_map):
+    # BUG FIX (phát hiện khi chạy lại script để vá bug file/cls_uploads): bước này
+    # KHÔNG idempotent (không có check "đã tồn tại" như migrate_patients/encounters/emr) —
+    # chạy script 2 lần sẽ tạo trùng gấp đôi. Vì cả file này chỉ migrate cho 1 tenant
+    # legacy-import duy nhất, guard đơn giản: nếu tenant đã có vital sign nào rồi thì coi
+    # như bước này đã chạy, bỏ qua toàn bộ (không insert lại). Muốn chạy lại thật sự thì
+    # xoá dữ liệu tenant đó trước.
+    if not dry:
+        with dst.cursor() as c:
+            c.execute("SELECT COUNT(*) AS n FROM diab_his_enc_vital_signs WHERE tenant_id=%s", (MIGRATION_TENANT_ID,))
+            if c.fetchone()["n"] > 0:
+                log.info("Vital signs: tenant %s đã có dữ liệu → bỏ qua (không idempotent theo dòng, xoá trước nếu muốn chạy lại).", MIGRATION_TENANT_ID)
+                return
     with src.cursor() as c:
         c.execute("""
             SELECT ID, PATIENT_ID, VISIT_ID, MEASUREMENT_DATE,
@@ -639,6 +651,16 @@ def migrate_lab_orders(src, dst, dry, enc_map) -> dict:
     Trả về: {old_lab_order_id → [new_lab_order_uuids]}
     """
     import json as _json
+
+    # BUG FIX: xem ghi chú idempotent ở migrate_vitals() — áp dụng tương tự ở đây.
+    # order_map trả về rỗng khi bỏ qua nên migrate_lab_results() gọi sau đó sẽ tự
+    # skip theo (không map được order_id) — an toàn.
+    if not dry:
+        with dst.cursor() as c:
+            c.execute("SELECT COUNT(*) AS n FROM diab_his_cli_lab_orders WHERE tenant_id=%s", (MIGRATION_TENANT_ID,))
+            if c.fetchone()["n"] > 0:
+                log.info("Lab orders: tenant %s đã có dữ liệu → bỏ qua (xoá trước nếu muốn chạy lại).", MIGRATION_TENANT_ID)
+                return {}
 
     with src.cursor() as c:
         c.execute("""
@@ -712,6 +734,13 @@ def migrate_lab_orders(src, dst, dry, enc_map) -> dict:
 
 # ─── BƯỚC 6: Migrate lab results ─────────────────────────────────────────────
 def migrate_lab_results(src, dst, dry, pat_map, enc_map, order_map):
+    # BUG FIX: xem ghi chú idempotent ở migrate_vitals().
+    if not dry:
+        with dst.cursor() as c:
+            c.execute("SELECT COUNT(*) AS n FROM diab_his_lab_results WHERE tenant_id=%s", (MIGRATION_TENANT_ID,))
+            if c.fetchone()["n"] > 0:
+                log.info("Lab results: tenant %s đã có dữ liệu → bỏ qua (xoá trước nếu muốn chạy lại).", MIGRATION_TENANT_ID)
+                return
     with src.cursor() as c:
         c.execute("""
             SELECT ID, LAB_ORDER_ID, PATIENT_ID, TEST_CODE, TEST_NAME,
@@ -790,6 +819,15 @@ def migrate_medications(src, dst, dry, enc_map, pat_map):
     cli_medications (old) gom theo VISIT_ID → 1 prescription/visit → N items.
     Drugs trong DB mới chưa có drug_id → dùng NULL-safe placeholder UUID.
     """
+    # BUG FIX: xem ghi chú idempotent ở migrate_vitals(). INSERT IGNORE ở
+    # diab_his_pha_prescriptions không đủ vì id là UUID random mỗi lần (không đụng
+    # unique key nào) và prescription_items hoàn toàn không có guard.
+    if not dry:
+        with dst.cursor() as c:
+            c.execute("SELECT COUNT(*) AS n FROM diab_his_pha_prescription_items WHERE tenant_id=%s", (MIGRATION_TENANT_ID,))
+            if c.fetchone()["n"] > 0:
+                log.info("Medications: tenant %s đã có dữ liệu → bỏ qua (xoá trước nếu muốn chạy lại).", MIGRATION_TENANT_ID)
+                return
     with src.cursor() as c:
         c.execute("""
             SELECT ID, PATIENT_ID, VISIT_ID, MEDICATION_NAME, GENERIC_NAME,
@@ -873,14 +911,29 @@ def migrate_medications(src, dst, dry, enc_map, pat_map):
 
 
 # ─── BƯỚC 8: Migrate fil_files ───────────────────────────────────────────────
-def migrate_files(src, dst, dry, pat_map):
+def migrate_files(src, dst, dry, pat_map, enc_map):
     """
-    fil_files (old) → fil_files (new - restructured)
+    fil_files (old) → fil_files (new - restructured) + diab_his_fil_cls_uploads (link).
     Lưu ý: file thực tế ở VStorage cũ không accessible → chỉ migrate metadata.
+
+    BUG đã fix: bản trước chỉ insert vào fil_files (bảng lưu metadata blob, KHÔNG có
+    patient_id/encounter_id) mà bỏ qua diab_his_fil_cls_uploads (bảng link
+    file <-> patient/encounter mà tab "Tập tin" trong màn Khám bệnh thực sự đọc).
+    Kết quả: 89/89 file bị "mồ côi" — có trong DB nhưng KHÔNG hiện ở bất kỳ đâu trên
+    UI, giống hệt bug drug_id (xem migrate_medications). File không có PATIENT_ID hợp
+    lệ (không map được sang pat_map) thì vẫn giữ metadata trong fil_files nhưng
+    không tạo link (chấp nhận mất liên kết, không có patient để gán).
     """
+    # BUG FIX: xem ghi chú idempotent ở migrate_vitals().
+    if not dry:
+        with dst.cursor() as c:
+            c.execute("SELECT COUNT(*) AS n FROM fil_files WHERE tenant_id=%s AND bucket='legacy-import'", (MIGRATION_TENANT_ID,))
+            if c.fetchone()["n"] > 0:
+                log.info("Files: tenant %s đã có dữ liệu → bỏ qua (xoá trước nếu muốn chạy lại).", MIGRATION_TENANT_ID)
+                return
     with src.cursor() as c:
         c.execute("""
-            SELECT ID, CODE, PATIENT_ID, FILE_TYPE, FILE_NAME, FILE_PATH,
+            SELECT ID, CODE, PATIENT_ID, VISIT_ID, FILE_TYPE, FILE_NAME, FILE_PATH,
                    FILE_SIZE, MIME_TYPE, CREATED_AT
             FROM fil_files
             WHERE STATUS = 1
@@ -888,11 +941,13 @@ def migrate_files(src, dst, dry, pat_map):
         rows = c.fetchall()
 
     log.info("Tìm thấy %d file records.", len(rows))
-    inserted = 0; skipped = 0
+    inserted = 0; skipped = 0; linked = 0; no_patient = 0
 
     for row in rows:
         new_uuid = uid()
         file_name = row.get("FILE_NAME") or row.get("CODE") or f"legacy_{row['ID']}"
+        new_pat = pat_map.get(row.get("PATIENT_ID"))
+        new_enc = enc_map.get(row.get("VISIT_ID"))
         # Kiểm tra xem new fil_files có cột nào giống không
         if not dry:
             try:
@@ -914,13 +969,40 @@ def migrate_files(src, dst, dry, pat_map):
                         fmt_ts(row.get("CREATED_AT")),
                     ))
                 inserted += 1
+
+                if new_pat is not None:
+                    with dst.cursor() as c:
+                        c.execute("""
+                            INSERT INTO diab_his_fil_cls_uploads
+                                (id, tenant_id, patient_id, encounter_id, doc_type,
+                                 file_id, file_path, file_name, mime_type,
+                                 file_size_bytes, uploaded_at, created_at, updated_at)
+                            VALUES (%s,%s,%s,%s,'LEGACY_IMPORT',%s,%s,%s,%s,%s,%s,%s,%s)
+                        """, (
+                            uid(),
+                            MIGRATION_TENANT_ID,
+                            new_pat,
+                            new_enc,
+                            new_uuid,
+                            row.get("FILE_PATH") or f"legacy/{row['ID']}",
+                            file_name[:255],
+                            row.get("MIME_TYPE"),
+                            row.get("FILE_SIZE") or 0,
+                            fmt_ts(row.get("CREATED_AT")),
+                            fmt_ts(row.get("CREATED_AT")),
+                            fmt_ts(row.get("CREATED_AT")),
+                        ))
+                    linked += 1
+                else:
+                    no_patient += 1
             except Exception as e:
-                log.warning("fil_files insert lỗi (bỏ qua): %s", e)
+                log.warning("fil_files/cls_uploads insert lỗi (bỏ qua): %s", e)
                 skipped += 1
 
     if not dry:
         dst.commit()
-    log.info("Files: %d inserted, %d bỏ", inserted, skipped)
+    log.info("Files: %d inserted, %d linked vào CLS uploads, %d không có patient, %d bỏ",
+              inserted, linked, no_patient, skipped)
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
@@ -966,7 +1048,7 @@ def main():
         migrate_medications(src, dst, dry, enc_map, pat_map)
 
         log.info("─── BƯỚC 8: Files metadata ───")
-        migrate_files(src, dst, dry, pat_map)
+        migrate_files(src, dst, dry, pat_map, enc_map)
 
         log.info("=== HOÀN TẤT %s ===", "(DRY-RUN)" if dry else "")
 
