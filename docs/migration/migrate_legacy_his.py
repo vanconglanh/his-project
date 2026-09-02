@@ -675,7 +675,10 @@ def migrate_lab_orders(src, dst, dry, enc_map) -> dict:
                 test_name = str(test)[:200]
 
             new_uuid = uid()
-            new_uuids.append(new_uuid)
+            # BUG FIX (phát hiện khi test UI): migrate_lab_results() cần cả encounter_id để
+            # ghi vào diab_his_lab_results.encounter_id (xem bug bên dưới) — lưu kèm new_enc
+            # thay vì chỉ uuid, tránh phải query lại DB đích.
+            new_uuids.append((new_uuid, new_enc))
             if not dry:
                 with dst.cursor() as c:
                     c.execute("""
@@ -726,8 +729,8 @@ def migrate_lab_results(src, dst, dry, pat_map, enc_map, order_map):
         new_pat = pat_map.get(row.get("PATIENT_ID"))
         # order_map có thể có nhiều UUID mới per old order_id → dùng cái đầu tiên
         old_order_id = row.get("LAB_ORDER_ID")
-        new_order_uuids = order_map.get(old_order_id, [])
-        new_order_id = new_order_uuids[0] if new_order_uuids else None
+        new_order_entries = order_map.get(old_order_id, [])
+        new_order_id, new_order_enc = new_order_entries[0] if new_order_entries else (None, None)
 
         if not new_pat:
             skipped += 1
@@ -739,21 +742,31 @@ def migrate_lab_results(src, dst, dry, pat_map, enc_map, order_map):
         new_uuid = uid()
         if not dry:
             with dst.cursor() as c:
+                # BUG FIX (phát hiện khi test UI local): entity LabResult.cs (EF) map CẢ 4 cột
+                # lab_order_id, value, encounter_id, patient_id thành C# non-nullable string —
+                # nhưng INSERT trước đây chỉ set order_id (cột "legacy") + result_value (cột
+                # "legacy") + patient_id, để lab_order_id/value/encounter_id NULL. Kết quả:
+                # GET /api/v1/lab-results?encounter_id=... LUÔN trả rỗng (filter theo cột NULL),
+                # và nếu gọi không filter thì 500 InvalidCastException (DBNull -> string) ngay
+                # khi EF đọc value/lab_order_id. Giờ set đủ cả 2 cặp cột (legacy + mới).
                 c.execute("""
                     INSERT INTO diab_his_lab_results
-                        (id, tenant_id, order_id, test_code, test_name,
-                         result_value, result_unit, normal_range,
+                        (id, tenant_id, order_id, lab_order_id, encounter_id, test_code, test_name,
+                         result_value, value, result_unit, normal_range,
                          is_abnormal, result_flag, performed_at,
                          patient_id, source, note,
                          created_at, updated_at)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'LEGACY_IMPORT',%s,%s,%s)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'LEGACY_IMPORT',%s,%s,%s)
                 """, (
                     new_uuid,
                     MIGRATION_TENANT_ID,
                     new_order_id or new_uuid,   # fallback: self-ref nếu không có order
+                    new_order_id or new_uuid,
+                    new_order_enc,
                     (row.get("TEST_CODE") or "UNKNOWN")[:50],
                     (row.get("TEST_NAME") or "")[:200],
                     row.get("RESULT_VALUE"),
+                    row.get("RESULT_VALUE") or "",
                     row.get("RESULT_UNIT"),
                     row.get("REFERENCE_RANGE"),
                     is_abnormal,

@@ -159,6 +159,17 @@ Nếu DB production thật có PII đã mã hóa:
 **Cố ý KHÔNG migrate (nguồn thực sự không có data, không phải bug):**
 - Dị ứng (`cli_allergies` nguồn = 0 dòng), CĐHA (`cli_rad_orders` nguồn = 0 dòng).
 
+**Bug thứ 2 phát hiện khi test tab "Kết quả CLS" trong lượt khám:**
+- `diab_his_lab_results` có 2 cặp cột trùng ý nghĩa do lịch sử phát triển: cột "cũ"
+  (`order_id`, `result_value`) và cột "mới" (`lab_order_id`, `value`, `encounter_id`) — entity
+  EF `LabResult.cs` (backend) chỉ đọc/ghi qua cột MỚI (`Value`, `LabOrderId`, `EncounterId` đều
+  map non-nullable `string`). Migration chỉ set cột cũ, để `lab_order_id`/`value`/`encounter_id`
+  NULL toàn bộ 356/356 dòng → `GET /lab-results?encounter_id=...` LUÔN trả rỗng (filter theo
+  cột NULL), và gọi API lab-results nói chung thì 500 `InvalidCastException` (EF không đọc được
+  DBNull vào non-nullable string). Đã sửa: ghi đủ cả 2 cặp cột, `migrate_lab_orders()` trả kèm
+  `encounter_id` để `migrate_lab_results()` set đúng. Đã backfill DB test local + verify UI tab
+  "Kết quả" hiện đủ 6/6 kết quả cho ca test.
+
 **Spot checks đã verify:**
 - Bệnh nhân ID=91 (MRN=DIAB2512110072) → `diab_his_pat_patients` đúng gender/dob
 - Vital sign ID=2 (T=37, HR=50, BP=90/60, W=50, H=167) → `diab_his_enc_vital_signs` khớp chính xác
