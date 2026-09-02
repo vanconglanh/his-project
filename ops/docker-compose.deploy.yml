@@ -110,6 +110,14 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: ${APP_PUBLIC_URL}
+        # Panel "Dang nhap nhanh theo vai tro" - CHI bat tren moi truong test/demo qua
+        # NEXT_PUBLIC_TEST_LOGIN_PANEL=true trong ops/.env server tuong ung. Mac dinh "false"
+        # (production that KHONG set bien nay trong .env se tu dong tat panel).
+        # QUAN TRONG: neu build lai frontend bang lenh `docker build` thu cong (khong qua
+        # `docker compose ... build`), PHAI tu truyen --build-arg NEXT_PUBLIC_TEST_LOGIN_PANEL
+        # dung gia tri nay, neu khong panel se bien mat (da xay ra that tren his.diab.vn khi
+        # 1 lan deploy khac chi rebuild bang docker build thuan, quen flag nay).
+        NEXT_PUBLIC_TEST_LOGIN_PANEL: ${NEXT_PUBLIC_TEST_LOGIN_PANEL:-false}
     image: prodiab-his-frontend:latest
     container_name: prodiab-his-frontend
     restart: unless-stopped
