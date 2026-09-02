@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdminHubClient } from "./_components/AdminHubClient";
 
 export const metadata: Metadata = { title: "Quản trị" };
 
@@ -8,12 +9,10 @@ export default function AdminPage() {
       <div>
         <h2 className="text-xl font-bold tracking-tight">Quản trị hệ thống</h2>
         <p className="text-sm text-muted-foreground">
-          Người dùng, phân quyền, cài đặt phòng khám
+          Chọn khu vực để quản lý: người dùng, phân quyền, danh mục mã, cấu hình phòng khám.
         </p>
       </div>
-      <div className="flex h-64 items-center justify-center rounded-xl border border-dashed text-muted-foreground text-sm">
-        Quản trị — Sprint 3
-      </div>
+      <AdminHubClient />
     </div>
   );
 }

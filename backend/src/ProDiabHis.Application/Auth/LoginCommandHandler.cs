@@ -1,3 +1,4 @@
+using Dapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,37 +16,69 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
     private readonly IPasswordHasher _passwordHasher;
     private readonly ILogger<LoginCommandHandler> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IDapperConnectionFactory _dapper;
 
     public LoginCommandHandler(
         IApplicationDbContext db,
         IJwtService jwtService,
         IPasswordHasher passwordHasher,
         ILogger<LoginCommandHandler> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IDapperConnectionFactory dapper)
     {
         _db = db;
         _jwtService = jwtService;
         _passwordHasher = passwordHasher;
         _logger = logger;
         _configuration = configuration;
+        _dapper = dapper;
     }
 
-    /// <summary>Danh sach role_code bat buoc 2FA (FR-1011), cau hinh qua Security:MandatoryMfaRoles
-    /// (CSV hoac mang trong appsettings). Mac dinh chi "admin" (Quan tri vien) vi he thong hien khong co
-    /// role rieng "quan_ly_chi_nhanh" — Quan ly chi nhanh trong SRS duoc anh xa toi role "admin" (role duy
-    /// nhat co quyen branch.create/update/delete/assign_user, xem db/migrations/9086_seed_branch_permissions.sql).</summary>
-    private IReadOnlyList<string> GetMandatoryMfaRoleCodes()
+    /// <summary>Setting key (diab_his_sys_setting_meta / diab_his_sys_settings) — danh sach role_code
+    /// bat buoc 2FA, dang CSV. Admin bat/tat qua UI /admin/settings, ap dung ngay lan login sau.</summary>
+    private const string MandatoryMfaRolesSettingKey = "security.mandatory_mfa_roles";
+
+    /// <summary>Danh sach role_code bat buoc 2FA (FR-1011). Thu tu uu tien:
+    /// 1) Setting UI (key security.mandatory_mfa_roles, CSV) — doc theo tenant cua user (tenant-specific
+    ///    row uu tien, fallback row global tenant_id IS NULL). Admin bat/tat qua /admin/settings, ap dung
+    ///    ngay lan login sau, KHONG can deploy lai.
+    /// 2) appsettings/bien moi truong Security:MandatoryMfaRoles (tuong thich nguoc).
+    /// 3) Mac dinh ["admin"] (Quan tri vien) neu chua cau hinh gi — giu hanh vi hien tai.
+    /// Luu y: login la anonymous nen ITenantProvider chua co tenant; ta doc scoped theo user.TenantId
+    /// (da biet sau khi tim thay user) thay vi qua ISettingsProvider (bind theo request tenant = rong).</summary>
+    private async Task<IReadOnlyList<string>> GetMandatoryMfaRoleCodesAsync(int tenantId, CancellationToken ct)
     {
+        try
+        {
+            using var conn = _dapper.CreateConnection();
+            // Tenant-specific row uu tien, fallback global (tenant_id IS NULL)
+            var raw = await conn.QueryFirstOrDefaultAsync<string?>(new CommandDefinition(
+                @"SELECT setting_value FROM diab_his_sys_settings
+                  WHERE setting_key=@key AND (tenant_id=@tenantId OR tenant_id IS NULL)
+                  ORDER BY (tenant_id IS NULL) ASC LIMIT 1",
+                new { key = MandatoryMfaRolesSettingKey, tenantId }, cancellationToken: ct));
+
+            // raw != null => co row cau hinh (du la chuoi rong): honor tuyet doi.
+            // Chuoi rong = admin da TAT bat buoc 2FA cho moi role (danh sach rong), KHONG fallback default.
+            if (raw != null)
+            {
+                return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Neu bang setting chua migrate hoac loi DB -> fallback config, khong chan login
+            _logger.LogWarning(ex, "Khong doc duoc setting {Key}, fallback config", MandatoryMfaRolesSettingKey);
+        }
+
         var section = _configuration.GetSection("Security:MandatoryMfaRoles");
         var fromArray = section.GetChildren().Select(c => c.Value).Where(v => !string.IsNullOrWhiteSpace(v)).ToArray();
         if (fromArray.Length > 0)
             return fromArray!;
 
-        var raw = _configuration["Security:MandatoryMfaRoles"];
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        }
+        var rawCfg = _configuration["Security:MandatoryMfaRoles"];
+        if (!string.IsNullOrWhiteSpace(rawCfg))
+            return rawCfg.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         return new[] { "admin" };
     }
@@ -100,7 +133,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         // FR-1011: 2FA bat buoc cho role trong danh sach cau hinh (vd admin/quan ly chi nhanh) khi
         // user chua bat 2FA. P0: KHONG cap token day du nua (truoc day chi canh bao, bypass duoc).
         // Tra ve mfa-setup token de client bat 2FA lan dau qua me/2fa/setup + me/2fa/enable.
-        var mandatoryRoles = GetMandatoryMfaRoleCodes();
+        var mandatoryRoles = await GetMandatoryMfaRoleCodesAsync(user.TenantId, cancellationToken);
         var isMandatoryMfaRole = roleCodes.Any(rc => mandatoryRoles.Contains(rc, StringComparer.OrdinalIgnoreCase));
         if (isMandatoryMfaRole && !user.TwoFaEnabled)
         {
