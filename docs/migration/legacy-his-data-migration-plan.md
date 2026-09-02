@@ -154,6 +154,10 @@ Nếu DB production thật có PII đã mã hóa:
 | `diab_his_pha_prescriptions` | 127 | 117 visits có medications |
 | `diab_his_pha_prescription_items` | 3.424 | 3.414 (cli_medications) |
 | `fil_files` | 89 | 89 (fil_files) |
+| `diab_his_enc_diagnoses` | 253 | 164/384 encounter có text chẩn đoán (tách từ EMR content, xem bug bên dưới) |
+
+**Cố ý KHÔNG migrate (nguồn thực sự không có data, không phải bug):**
+- Dị ứng (`cli_allergies` nguồn = 0 dòng), CĐHA (`cli_rad_orders` nguồn = 0 dòng).
 
 **Spot checks đã verify:**
 - Bệnh nhân ID=91 (MRN=DIAB2512110072) → `diab_his_pat_patients` đúng gender/dob
@@ -185,6 +189,15 @@ Nếu DB production thật có PII đã mã hóa:
   Đã convert 384/384 dòng trên DB test local (script `convert_emr_content.py` chạy 1 lần,
   KHÔNG phải phần của migration chính — logic đã được đưa vào `migrate_legacy_his.py` cho lần
   chạy thật) và verify qua UI (tab "Bệnh án" hiện đúng Lý do khám/Sinh hiệu/Ghi chú).
+- **Chẩn đoán bị bỏ sót hoàn toàn** (0/384 dòng ở lần migrate đầu, dù nguồn có text chẩn đoán
+  cho 164/384 encounter): nguồn cũ không có bảng `diagnoses` riêng, chỉ có text tự do trong
+  `ThongTinDotKham.ChanDoanChinh/ChanDoanPhu/ChanDoanBanDau`. Đã thêm hàm `migrate_diagnoses()`
+  — parse text này (thường đã có sẵn mã ICD-10 thật kèm trong ngoặc đơn, vd
+  "Đái tháo đường (E11)", nhiều bệnh cách nhau bởi ";") tách ra tên + mã ICD-10; dòng nào không
+  tách được mã thật (33/253) thì dùng mã tạm `R69` ("Illness, unspecified") + ghi rõ trong
+  `note` để không bịa mã sai. Chạy sau `migrate_emr()` (đọc lại `structured_values_json` vừa
+  ghi). Đã test trên DB local: 253 dòng insert, verify qua UI tab "Chẩn đoán" hiện đúng badge
+  số lượng + nội dung.
 - Đã UPDATE trực tiếp 384 dòng `created_by=NULL` trên DB test local để verify ngay, và sửa gốc
   trong `migrate_legacy_his.py` để lần chạy thật (mục 9) không dính lại.
 

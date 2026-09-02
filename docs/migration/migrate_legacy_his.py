@@ -17,6 +17,7 @@ Nguyên tắc:
 
 import sys
 import json
+import re
 import uuid
 import logging
 import argparse
@@ -488,6 +489,87 @@ def migrate_emr(src, dst, dry, enc_map):
               inserted, skipped_enc, skipped_existing)
 
 
+# BUG FIX (phát hiện khi user tự test UI): diab_his_enc_diagnoses hoàn toàn không được
+# migrate ở lần chạy đầu (0/384 dòng) — tab "Chẩn đoán" trống dù nguồn có sẵn text chẩn
+# đoán cho 164/384 lượt khám. Nguồn cũ KHÔNG có bảng chẩn đoán riêng, chỉ có text tự do
+# trong ThongTinDotKham.ChanDoanChinh/ChanDoanPhu/ChanDoanBanDau — nhưng may mắn text này
+# thường đã kèm sẵn mã ICD-10 thật trong ngoặc đơn, vd "Đái tháo đường (E11)", nhiều bệnh
+# phân tách bằng ";". Parse tách tên + mã ICD10 thật; nếu không tách được (format lạ) thì
+# dùng mã tạm R69 ("Illness, unspecified") + ghi rõ trong note để không bịa mã sai.
+_ICD10_IN_PARENS_RE = re.compile(r"^(.*?)\(([A-Z]\d{2}(?:\.\d+)?)\)\s*$")
+_DIAGNOSIS_FALLBACK_ICD10 = "R69"
+
+
+def _parse_diagnosis_field(raw: str):
+    out = []
+    for part in raw.split(";"):
+        part = part.strip()
+        if not part:
+            continue
+        m = _ICD10_IN_PARENS_RE.match(part)
+        name, code = (m.group(1).strip(), m.group(2)) if m else (part, _DIAGNOSIS_FALLBACK_ICD10)
+        if name:
+            out.append((name[:255], code))
+    return out
+
+
+def migrate_diagnoses(dst, dry):
+    """Chạy SAU migrate_emr() — đọc lại structured_values_json vừa ghi để tách chẩn đoán."""
+    with dst.cursor() as c:
+        c.execute("""
+            SELECT encounter_id, structured_values_json FROM diab_his_enc_emr_contents
+            WHERE tenant_id=%s AND structured_values_json IS NOT NULL
+        """, (MIGRATION_TENANT_ID,))
+        rows = c.fetchall()
+
+    inserted = 0; skipped_no_diag = 0
+    for row in rows:
+        try:
+            legacy = json.loads(row["structured_values_json"])
+        except Exception:
+            continue
+        dot_kham = legacy.get("ThongTinDotKham") or {}
+        chinh = (dot_kham.get("ChanDoanChinh") or "").strip()
+        phu = (dot_kham.get("ChanDoanPhu") or "").strip()
+        ban_dau = (dot_kham.get("ChanDoanBanDau") or "").strip()
+
+        entries = []  # (type, name, icd10_code)
+        primary_src = chinh or ban_dau
+        if primary_src:
+            for i, (name, code) in enumerate(_parse_diagnosis_field(primary_src)):
+                entries.append(("PRIMARY" if i == 0 else "SECONDARY", name, code))
+        if phu:
+            entries.extend(("SECONDARY", name, code) for name, code in _parse_diagnosis_field(phu))
+
+        if not entries:
+            skipped_no_diag += 1
+            continue
+
+        if not dry:
+            with dst.cursor() as c:
+                for sort_i, (typ, name, code) in enumerate(entries):
+                    c.execute("""
+                        INSERT INTO diab_his_enc_diagnoses
+                            (id, tenant_id, encounter_id, icd10_code, name, type, note, sort_order,
+                             created_at, updated_at)
+                        SELECT UUID(), %s, %s, %s, %s, %s,
+                               IF(%s=%s, N'Chẩn đoán từ hệ cũ (Legacy Import) — không tách được mã ICD-10 gốc, dùng mã tạm', NULL),
+                               %s, NOW(), NOW()
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM diab_his_enc_diagnoses WHERE encounter_id=%s AND name=%s
+                        )
+                    """, (MIGRATION_TENANT_ID, row["encounter_id"], code, name, typ,
+                          code, _DIAGNOSIS_FALLBACK_ICD10, sort_i,
+                          row["encounter_id"], name))
+                    inserted += c.rowcount
+        else:
+            inserted += len(entries)
+
+    if not dry:
+        dst.commit()
+    log.info("Chẩn đoán: %d inserted, %d bỏ (không có text chẩn đoán)", inserted, skipped_no_diag)
+
+
 # ─── BƯỚC 4: Migrate vital signs ─────────────────────────────────────────────
 def migrate_vitals(src, dst, dry, enc_map, pat_map):
     with src.cursor() as c:
@@ -854,6 +936,9 @@ def main():
 
         log.info("─── BƯỚC 3: EMR contents ───")
         migrate_emr(src, dst, dry, enc_map)
+
+        log.info("─── BƯỚC 3b: Chẩn đoán (tách từ EMR content) ───")
+        migrate_diagnoses(dst, dry)
 
         log.info("─── BƯỚC 4: Vital signs ───")
         migrate_vitals(src, dst, dry, enc_map, pat_map)
