@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { QuickLoginPanel } from "@/components/forms/QuickLoginPanel";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useSetup2FA, useEnable2FA } from "@/lib/hooks/use-users";
 import { verify2fa } from "@/lib/api/auth";
@@ -40,6 +41,11 @@ type LoginFormData = z.infer<typeof loginSchema>;
 // - mfaSetup:    role bắt buộc 2FA nhưng chưa bật → thiết lập 2FA ngay tại đây
 type LoginStep = "credentials" | "mfa" | "mfaSetup";
 type MfaSetupSub = "loading" | "setup" | "verify" | "done";
+
+// Chi bat panel dang nhap nhanh khi build voi NEXT_PUBLIC_TEST_LOGIN_PANEL=true
+// (Docker build-arg, xem frontend/Dockerfile). Mac dinh KHONG bat - production/
+// staging build binh thuong khong truyen arg nay nen panel khong bao gio xuat hien.
+const SHOW_QUICK_LOGIN = process.env.NEXT_PUBLIC_TEST_LOGIN_PANEL === "true";
 
 export function LoginForm() {
   const t = useTranslations("Auth");
@@ -371,9 +377,22 @@ export function LoginForm() {
     );
   }
 
+  // Dang nhap nhanh (dev/test) doi bang cach dien san email/mat khau roi goi
+  // dung onSubmit() nhu form that - tai su dung nguyen ven luong 2FA (mfa/
+  // mfaSetup) o tren, khong duplicate logic rieng (da tung gay bug: panel cu
+  // tu goi API roi push("/") thang, bo qua case mfaSetupRequired -> dang
+  // nhap "khong duoc" voi tai khoan admin bat buoc 2FA).
+  async function quickLogin(email: string, password: string) {
+    setValue("email", email);
+    setValue("password", password);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handleSubmit(onSubmit as any)();
+  }
+
   // ─── Render: bước nhập email + mật khẩu (mặc định) ───────────────────────────
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    <>
+    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
     <form onSubmit={handleSubmit(onSubmit as any)} noValidate className="space-y-4">
       {/* Email */}
       <div className="space-y-1.5">
@@ -473,5 +492,9 @@ export function LoginForm() {
         )}
       </Button>
     </form>
+    {SHOW_QUICK_LOGIN && (
+      <QuickLoginPanel onQuickLogin={quickLogin} disabled={isSubmitting} />
+    )}
+    </>
   );
 }
