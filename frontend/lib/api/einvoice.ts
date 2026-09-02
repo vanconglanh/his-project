@@ -74,7 +74,32 @@ export async function cancelEInvoice(id: string, reason: string): Promise<void> 
   await apiClient.post(`/einvoices/${id}/cancel`, { reason });
 }
 
-export function downloadEInvoiceXml(id: string): void {
+export async function downloadEInvoiceXml(id: string): Promise<void> {
+  // BUG FIX (cùng pattern QC print-button audit 2026-09-02): window.open() không
+  // gửi Bearer token (API dùng JWT trong localStorage, không phải cookie) -> 401.
   const url = `${apiClient.defaults.baseURL}/einvoices/${id}/xml-download`;
-  window.open(url, "_blank");
+  const resp = await fetch(url, {
+    credentials: "include",
+    headers: (() => {
+      const headers: Record<string, string> = {};
+      try {
+        const raw = localStorage.getItem("auth-store");
+        const token = raw ? JSON.parse(raw)?.state?.accessToken : null;
+        if (token) headers.Authorization = `Bearer ${token}`;
+      } catch {
+        // ignore parse error
+      }
+      return headers;
+    })(),
+  });
+  if (!resp.ok) throw new Error(`Lỗi tải XML: ${resp.status}`);
+  const blob = await resp.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = `hoa-don-dien-tu-${id}.xml`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objectUrl);
 }

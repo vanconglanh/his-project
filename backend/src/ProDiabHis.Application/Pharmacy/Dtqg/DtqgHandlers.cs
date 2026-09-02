@@ -110,7 +110,7 @@ public class SubmitDtqgHandler : IRequestHandler<SubmitDtqgCommand, Result<DtqgS
 
     internal static DtqgSubmissionResponse MapSubmission(dynamic row) =>
         new(Guid.TryParse((string?)row.id, out var g) ? g : Guid.Empty,
-            (int)row.prescription_id,
+            Guid.TryParse((string?)row.prescription_id, out var pg) ? pg : Guid.Empty,
             (string?)row.ma_don_thuoc,
             (string?)row.qr_payload, null,
             (string)row.status,

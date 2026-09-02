@@ -112,6 +112,9 @@ export async function listDispenseHistory(params?: {
 }
 
 export async function printDispenseReceipt(id: string): Promise<void> {
+  // BUG FIX (QC print-button audit 2026-09-02): window.open() không gửi Bearer
+  // token (API dùng JWT trong localStorage, không phải cookie) -> luôn 401.
   const url = `${apiClient.defaults.baseURL}/pharmacy/dispense/${id}/receipt-pdf`;
-  window.open(url, "_blank");
+  const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
+  await printPdfBlob(url);
 }

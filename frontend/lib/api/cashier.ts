@@ -116,13 +116,18 @@ export async function listDebts(params?: DebtListParams): Promise<{
   return data;
 }
 
-export function printShiftPdf(shiftId: string): void {
+export async function printShiftPdf(shiftId: string): Promise<void> {
+  // BUG FIX (QC print-button audit 2026-09-02): window.open() không gửi Bearer
+  // token (API dùng JWT trong localStorage, không phải cookie) -> luôn 401.
   const url = `${apiClient.defaults.baseURL}/cashier/closing/${shiftId}/pdf`;
-  window.open(url, "_blank");
+  const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
+  await printPdfBlob(url);
 }
 
 export async function printReceiptPdf(paymentId: string): Promise<void> {
   const url = `${apiClient.defaults.baseURL}/cashier/receipts/${paymentId}/print`;
   const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
-  await printPdfBlob(url);
+  // BUG FIX (QC print-button audit 2026-09-02): backend khai báo [HttpPost]
+  // cho endpoint này, gọi GET mặc định trả 405.
+  await printPdfBlob(url, "POST");
 }

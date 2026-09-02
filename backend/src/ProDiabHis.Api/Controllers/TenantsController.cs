@@ -140,8 +140,12 @@ public class TenantsController : ControllerBase
     /// Tra ve ClinicName, CompanyName, Address, Phone, Email, LogoUrl cua tenant hien tai.
     /// Bat ky user nao trong tenant deu xem duoc.
     /// </remarks>
+    // BUG FIX (QC print-button audit 2026-09-02): endpoint nay dung de render header
+    // (logo/ten phong kham) tren cac trang in (encounter print, cls-print...) - moi
+    // role da dang nhap deu can xem duoc (dung nhu comment tren da noi), nhung truoc
+    // day bat buoc "tenant.read" ma role Bac si (va nhieu role khac) khong duoc cap
+    // -> 403, trang in mat logo/ten phong kham. Chi can [Authorize] o class la du.
     [HttpGet("me/letterhead")]
-    [RequirePermission("tenant.read")]
     public async Task<IActionResult> GetMyLetterhead(CancellationToken ct)
     {
         var result = await _mediator.Send(new GetLetterheadQuery(), ct);

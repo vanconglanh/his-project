@@ -2,7 +2,11 @@ namespace ProDiabHis.Application.Pharmacy.Dtqg;
 
 public record DtqgSubmissionResponse(
     Guid Id,
-    int PrescriptionId,
+    // BUG FIX (QC print-button audit 2026-09-02): truoc la "int PrescriptionId" nhung cot
+    // diab_his_int_dtqg_submissions.prescription_id thuc te luu GUID dang CHAR(36) (khop
+    // pha_prescriptions.ID) -> ep kieu (int)row.prescription_id trong MapSubmission luon
+    // nem InvalidCastException -> GET /prescriptions/{id}/dtqg/status tra 500 lien tuc.
+    Guid PrescriptionId,
     string? MaDonThuoc,
     string? QrPayload,
     string? QrImageUrl,
