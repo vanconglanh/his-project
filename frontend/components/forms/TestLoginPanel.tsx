@@ -18,17 +18,21 @@ interface TestAccount {
   email: string;
 }
 
+// Danh sach tai khoan test khop voi seed dang dung THAT (db/seeds/diab_test_tenant.sql,
+// tenant_id=2 "DIAB-TEST") - email/mat khau phai dong bo neu doi seed. Admin bat buoc
+// 2FA nen sau khi bam se chuyen sang man thiet lap 2FA, dung hanh vi that cua he thong.
 const TEST_ACCOUNTS: TestAccount[] = [
-  { roleCode: "admin", roleLabel: "Quản trị viên", email: "qc.admin@prodiab.test" },
-  { roleCode: "bac_si", roleLabel: "Bác sĩ", email: "bacsi.test@prodiab.test" },
-  { roleCode: "le_tan", roleLabel: "Lễ tân", email: "letan.test@prodiab.test" },
-  { roleCode: "duoc_si", roleLabel: "Dược sĩ", email: "duocsi.test@prodiab.test" },
-  { roleCode: "ke_toan", roleLabel: "Kế toán", email: "ketoan.test@prodiab.test" },
-  { roleCode: "ky_thuat_vien", roleLabel: "Kỹ thuật viên", email: "ktv.test@prodiab.test" },
+  { roleCode: "admin", roleLabel: "Quản trị viên", email: "admin.test@diabtest.local" },
+  { roleCode: "bac_si", roleLabel: "Bác sĩ", email: "bacsi.test@diabtest.local" },
+  { roleCode: "bac_si_2", roleLabel: "Bác sĩ 2", email: "bacsi2.test@diabtest.local" },
+  { roleCode: "le_tan", roleLabel: "Lễ tân", email: "letan.test@diabtest.local" },
+  { roleCode: "duoc_si", roleLabel: "Dược sĩ", email: "duocsi.test@diabtest.local" },
+  { roleCode: "ke_toan", roleLabel: "Kế toán", email: "ketoan.test@diabtest.local" },
+  { roleCode: "ky_thuat_vien", roleLabel: "Kỹ thuật viên", email: "ktv.test@diabtest.local" },
 ];
 
-// Mat khau chung cho tat ca tai khoan test - chi ton tai o moi truong dev/local.
-const TEST_PASSWORD = "Test@123";
+// Mat khau chung cho tat ca tai khoan test - chi ton tai o moi truong dev/staging test.
+const TEST_PASSWORD = "admin123";
 
 export function TestLoginPanel() {
   const router = useRouter();
