@@ -78,6 +78,12 @@ services:
       Encryption__MasterKey: ${ENCRYPTION_MASTER_KEY}
       Encryption__BlindIndexKey: ${ENCRYPTION_BLIND_INDEX_KEY}
       CorsHardening__AllowedOrigins__0: ${APP_PUBLIC_URL}
+      # TAM THOI TAT bat buoc 2FA cho role admin tren moi truong TEST/STAGING nay
+      # (mac dinh appsettings.json la ["admin"] - xem LoginCommandHandler.cs).
+      # Chi ap dung khi Security__MandatoryMfaRoles duoc set trong ops/.env server -
+      # KHONG dat gia tri co dinh o day de production that van giu bat buoc 2FA
+      # theo dung mac dinh code neu bien nay khong duoc set.
+      Security__MandatoryMfaRoles: ${SECURITY_MANDATORY_MFA_ROLES:-admin}
     depends_on:
       mysql:
         condition: service_healthy
