@@ -80,10 +80,15 @@ services:
       CorsHardening__AllowedOrigins__0: ${APP_PUBLIC_URL}
       # TAM THOI TAT bat buoc 2FA cho role admin tren moi truong TEST/STAGING nay
       # (mac dinh appsettings.json la ["admin"] - xem LoginCommandHandler.cs).
-      # Chi ap dung khi Security__MandatoryMfaRoles duoc set trong ops/.env server -
+      # QUAN TRONG: appsettings.json dinh nghia mang ["admin"] tao key
+      # Security:MandatoryMfaRoles:0 - .NET config KHONG the ghi de 1 phan tu
+      # mang bang bien scalar khong index (Security__MandatoryMfaRoles ="")
+      # vi child key :0 tu appsettings.json van con, GetChildren() van thay
+      # no. Phai ghi de DUNG index :0 thi moi override duoc gia tri that.
+      # Chi ap dung khi SECURITY_MANDATORY_MFA_ROLES_0 duoc set trong ops/.env -
       # KHONG dat gia tri co dinh o day de production that van giu bat buoc 2FA
       # theo dung mac dinh code neu bien nay khong duoc set.
-      Security__MandatoryMfaRoles: ${SECURITY_MANDATORY_MFA_ROLES:-admin}
+      Security__MandatoryMfaRoles__0: ${SECURITY_MANDATORY_MFA_ROLES_0:-admin}
     depends_on:
       mysql:
         condition: service_healthy
