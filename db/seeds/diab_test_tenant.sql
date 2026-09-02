@@ -116,15 +116,16 @@ VALUES
     (UUID(), 2, 'd2000000-0000-0000-0000-000000000007', 'T-IN02', '2025-06-01', '2027-12-31',                          100, 178000, NOW());
 
 -- ============================================================
--- LUẬT TƯƠNG TÁC THUỐC (DDI) — Atorvastatin + Gemfibrozil = CHỐNG CHỈ ĐỊNH
--- (thực tế: statin + fibrate làm tăng nguy cơ tiêu cơ vân)
+-- LUẬT TƯƠNG TÁC THUỐC (DDI) — BỎ QUA, KHÔNG SEED THEO TENANT
+-- `diab_his_pha_ddi_rules` là bảng tham chiếu TOÀN CỤC (xem migration
+-- 0035_create_prescription_extensions.sql: "FK drug_master.ID", drug1_id/
+-- drug2_id kiểu INT, KHÔNG có cột tenant_id) — không phải bảng theo tenant.
+-- Insert cũ ở đây dùng UUID thuốc theo tenant (diab_his_pha_drugs.id) nhét
+-- vào cột INT tham chiếu bảng thuốc toàn cục khác — sai kiểu dữ liệu ngay
+-- từ đầu, làm gãy toàn bộ script seed phía sau. Đã bỏ hẳn insert này khỏi
+-- seed theo tenant; nếu cần seed DDI rule mẫu, phải làm ở seed toàn cục
+-- riêng (không gắn với 1 tenant cụ thể), dùng đúng ID từ bảng drug_master.
 -- ============================================================
-INSERT IGNORE INTO `diab_his_pha_ddi_rules`
-    (`id`, `tenant_id`, `drug1_id`, `drug2_id`, `severity`, `description`, `created_at`)
-VALUES
-    ('dd200000-0000-0000-0000-000000000001', 2,
-     'd2000000-0000-0000-0000-000000000003', 'd2000000-0000-0000-0000-000000000008',
-     'CONTRAINDICATED', 'Atorvastatin + Gemfibrozil: tăng nguy cơ tiêu cơ vân (rhabdomyolysis) — chống chỉ định phối hợp.', NOW());
 
 -- ============================================================
 -- ~15 BỆNH NHÂN "CŨ" (ambient) — để populate hàng đợi/dashboard.
