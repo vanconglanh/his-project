@@ -26,9 +26,21 @@ COPY src/ ./src/
 COPY tessdata/ ./tessdata/
 
 # Publish (cache NuGet packages giua cac lan build de tang toc)
+# LUU Y (bug 05/09): TRUOC DAY dung "--no-restore" o day. Layer "dotnet restore" ben tren
+#   duoc Docker cache theo noi dung .csproj, NHUNG goi NuGet that su nam trong cache mount
+#   (--mount=type=cache target=/root/.nuget/packages). Hai co che het han DOC LAP:
+#   khi cache mount bi Docker builder don (GC/prune) MA layer restore van con cached ->
+#   "dotnet publish --no-restore" khong tim thay goi -> fail NETSDK1064 "Package ... was
+#   not found", thong bao KHONG he goi y nguyen nhan that -> tung suyt deploy nham image cu.
+# FIX (chon do BEN thay vi toc do): BO "--no-restore". Publish tu bao dam restore lai neu
+#   goi thieu. Khi cache mount con am, restore-in-publish la incremental nen gan nhu mien
+#   phi; khi cache mount da bi don, publish tu keo goi ve thay vi fail kho hieu.
+#   Danh doi: moi lan publish co them 1 buoc restore-check (vai giay khi cache am) — chap
+#   nhan de doi lay build khong bao gio fail bi an. Layer "dotnet restore" ben tren VAN GIU
+#   de warm cache mount o buoc som (invalidate theo .csproj), rut ngan restore-check nay.
 RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet publish src/ProDiabHis.Api/ProDiabHis.Api.csproj \
-    -c Release -o /app/publish --no-restore /p:UseAppHost=false
+    -c Release -o /app/publish /p:UseAppHost=false
 
 # ---------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
