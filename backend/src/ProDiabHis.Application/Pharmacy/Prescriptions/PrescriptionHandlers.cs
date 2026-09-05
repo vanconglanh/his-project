@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using Dapper;
+using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Cdss;
@@ -342,6 +343,51 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
             r.Status ?? "DRAFT", r.PrescribedAt,
             r.SignedAt, r.SignedBy, r.DtqgCode, r.DtqgStatus ?? "NONE",
             items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Validators
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// NEW-BUG-02: thieu patient_id (hoac encounter_id/items) trong body POST /prescriptions truoc day
+// khong bi chan o tang validation -> roi xuong tan INSERT -> vi pham FK constraint -> HTTP 500
+// thay vi 400 VALIDATION_ERROR. Bo sung validator theo dung pattern CreatePaymentValidator/
+// CreatePaymentCommandValidator (Billing/PaymentHandlers.cs) de ValidatorWrappingArchitectureTests
+// khong bao loi va MediatR ValidationBehavior thuc su chay.
+public class PrescriptionItemRequestValidator : AbstractValidator<PrescriptionItemRequest>
+{
+    public PrescriptionItemRequestValidator()
+    {
+        RuleFor(x => x.DrugId).NotEmpty().WithMessage("Mã thuốc là bắt buộc");
+        RuleFor(x => x.Dosage).NotEmpty().WithMessage("Liều dùng là bắt buộc");
+        RuleFor(x => x.Frequency).NotEmpty().WithMessage("Tần suất sử dụng là bắt buộc");
+        RuleFor(x => x.Route).NotEmpty().WithMessage("Đường dùng thuốc là bắt buộc");
+        RuleFor(x => x.DurationDays).GreaterThan(0).WithMessage("Số ngày sử dụng phải lớn hơn 0");
+        RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Số lượng thuốc phải lớn hơn 0");
+    }
+}
+
+public class PrescriptionCreateRequestValidator : AbstractValidator<PrescriptionCreateRequest>
+{
+    public PrescriptionCreateRequestValidator()
+    {
+        RuleFor(x => x.PatientId).NotEmpty().WithMessage("Bệnh nhân là bắt buộc");
+        RuleFor(x => x.EncounterId).NotEmpty().WithMessage("Lượt khám là bắt buộc");
+        RuleFor(x => x.Items).NotNull().WithMessage("Danh sách thuốc là bắt buộc")
+            .Must(items => items != null && items.Count > 0)
+            .WithMessage("Đơn thuốc phải có ít nhất một loại thuốc");
+        RuleForEach(x => x.Items).SetValidator(new PrescriptionItemRequestValidator())
+            .When(x => x.Items != null);
+    }
+}
+
+public class CreatePrescriptionCommandValidator : AbstractValidator<CreatePrescriptionCommand>
+{
+    public CreatePrescriptionCommandValidator()
+    {
+        RuleFor(x => x.Request).NotNull().WithMessage("Thiếu dữ liệu kê đơn")
+            .SetValidator(new PrescriptionCreateRequestValidator());
+    }
 }
 
 public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionCommand, Result<PrescriptionResponse>>
