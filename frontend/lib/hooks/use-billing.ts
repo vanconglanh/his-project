@@ -11,9 +11,11 @@ import {
   applyBhyt,
   getBillingsByEncounter,
   generateDynamicBillingQr,
+  listPendingEncounters,
   type BillingListParams,
   type BillingItemUpsert,
   type PayerType,
+  type PendingEncounterListParams,
 } from "@/lib/api/billing";
 
 export const BILLING_KEYS = {
@@ -21,7 +23,16 @@ export const BILLING_KEYS = {
   list: (params?: BillingListParams) => ["billings", "list", params] as const,
   detail: (id: string) => ["billings", id] as const,
   byEncounter: (encounterId: string) => ["billings", "encounter", encounterId] as const,
+  pendingEncounters: (params?: PendingEncounterListParams) => ["billings", "pending-encounters", params] as const,
 };
+
+/** BUG-F01 — hook cho màn "Hàng chờ thu ngân" (lượt khám chưa lập hoá đơn). */
+export function usePendingEncounters(params?: PendingEncounterListParams) {
+  return useQuery({
+    queryKey: BILLING_KEYS.pendingEncounters(params),
+    queryFn: () => listPendingEncounters(params),
+  });
+}
 
 export function useBillings(params?: BillingListParams) {
   return useQuery({
@@ -51,7 +62,10 @@ export function useCreateBilling() {
   return useMutation({
     mutationFn: (body: { encounter_id: string; include_dispensing?: boolean; payer?: PayerType; note?: string }) =>
       createBilling(body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: BILLING_KEYS.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: BILLING_KEYS.all });
+      qc.invalidateQueries({ queryKey: ["billings", "pending-encounters"] });
+    },
   });
 }
 

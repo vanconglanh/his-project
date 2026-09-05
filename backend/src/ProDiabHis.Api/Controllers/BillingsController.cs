@@ -39,6 +39,36 @@ public class BillingsController : ControllerBase
         return Ok(new { data = paged.Items, meta = new { page = paged.Page, page_size = paged.PageSize, total = paged.Total } });
     }
 
+    /// <summary>BUG-F01: hang cho thu ngan - luot kham co dich vu (CLS/thuoc) nhung chua lap hoa don</summary>
+    // GET /api/v1/billings/pending-encounters
+    [HttpGet("pending-encounters")]
+    [RequirePermission("billing.read")]
+    public async Task<IActionResult> PendingEncounters(
+        [FromQuery] int? branch_id,
+        [FromQuery] DateOnly? date,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ListPendingEncountersQuery(branch_id, date), ct);
+        if (!result.IsSuccess) return Problem(result.ErrorMessage, statusCode: 400);
+        var v = result.Value!;
+        return Ok(new
+        {
+            data = v.Data.Select(x => new
+            {
+                encounter_id = x.EncounterId,
+                patient_code = x.PatientCode,
+                patient_name = x.PatientName,
+                doctor_name = x.DoctorName,
+                has_lab = x.HasLab,
+                has_rad = x.HasRad,
+                has_drug = x.HasDrug,
+                estimated_total = x.EstimatedTotal,
+                created_at = x.CreatedAt
+            }),
+            meta = new { total = v.Total }
+        });
+    }
+
     // POST /api/v1/billings
     [HttpPost]
     [RequirePermission("billing.create")]

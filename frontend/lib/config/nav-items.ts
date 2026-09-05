@@ -166,6 +166,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         permissions: ["cashier.read"],
       },
       {
+        href: "/cashier/pending",
+        labelKey: "cashierPending",
+        icon: ClipboardList,
+        permissions: ["cashier.read"],
+      },
+      {
         href: "/billings",
         labelKey: "billings",
         icon: FileText,

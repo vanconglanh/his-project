@@ -95,6 +95,28 @@ export interface BillingItemUpsert {
   bhyt_applicable?: boolean;
 }
 
+export interface PendingEncounter {
+  encounter_id: string;
+  patient_code: string;
+  patient_name: string;
+  doctor_name: string;
+  has_lab: boolean;
+  has_rad: boolean;
+  has_drug: boolean;
+  estimated_total: number;
+  created_at: string;
+}
+
+export interface PendingEncounterListParams {
+  branch_id?: string;
+  date?: string;
+}
+
+export interface PendingEncounterListResponse {
+  data: PendingEncounter[];
+  meta: ApiMeta;
+}
+
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 export async function listBillings(params?: BillingListParams): Promise<BillingListResponse> {
@@ -152,6 +174,12 @@ export async function applyBhyt(id: string, body: {
 }): Promise<BillingResponse> {
   const { data } = await apiClient.post<{ data: BillingResponse }>(`/billings/${id}/apply-bhyt`, body);
   return data.data;
+}
+
+/** BUG-F01 — liệt kê lượt khám có dịch vụ nhưng CHƯA lập hoá đơn, phục vụ màn "Hàng chờ thu ngân". */
+export async function listPendingEncounters(params?: PendingEncounterListParams): Promise<PendingEncounterListResponse> {
+  const { data } = await apiClient.get<PendingEncounterListResponse>("/billings/pending-encounters", { params });
+  return data;
 }
 
 export async function getBillingsByEncounter(encounterId: string): Promise<BillingResponse[]> {

@@ -88,6 +88,7 @@
     "prescriptions": "Prescriptions",
     "pharmacy": "Pharmacy",
     "cashier": "Cashier",
+    "cashierPending": "Pending Billing",
     "reports": "Reports",
     "reportBuilder": "Report Builder",
     "reportDashboards": "Dashboards",
