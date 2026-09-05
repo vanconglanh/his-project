@@ -4,11 +4,13 @@ import { useState } from "react";
 import {
   CheckCircle,
   ChevronDown,
+  FileText,
   Loader2,
   PauseCircle,
   PenTool,
   Play,
   Printer,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +46,13 @@ export interface EncounterToolbarProps {
   onTransferRoom: (roomId: string) => void;
   onPrintEncounter: () => void;
   onPrintCls: () => void;
+  /** Item 5 — nút Lập hoá đơn / Xem hoá đơn (chỉ hiện nếu FE có quyền billing.write). */
+  canManageBilling?: boolean;
+  hasBilling?: boolean;
+  isBillingLoading?: boolean;
+  isCreatingBilling?: boolean;
+  onCreateBilling?: () => void;
+  onViewBilling?: () => void;
 }
 
 export function EncounterToolbar({
@@ -65,6 +74,12 @@ export function EncounterToolbar({
   onTransferRoom,
   onPrintEncounter,
   onPrintCls,
+  canManageBilling,
+  hasBilling,
+  isBillingLoading,
+  isCreatingBilling,
+  onCreateBilling,
+  onViewBilling,
 }: EncounterToolbarProps) {
   const [confirmClose, setConfirmClose] = useState(false);
   const isWaiting = status === "WAITING";
@@ -141,6 +156,25 @@ export function EncounterToolbar({
           >
             <PenTool className="h-4 w-4" aria-hidden="true" />
             {isEmrSigned ? "Đã ký số bệnh án" : "Ký số bệnh án"}
+          </Button>
+        )}
+
+        {canManageBilling && (
+          <Button
+            variant={hasBilling ? "outline" : "default"}
+            className="min-h-[44px] gap-2"
+            onClick={hasBilling ? onViewBilling : onCreateBilling}
+            disabled={isBillingLoading || isCreatingBilling}
+            title={hasBilling ? "Lượt khám đã có hoá đơn" : "Lập hoá đơn cho lượt khám này"}
+          >
+            {isCreatingBilling ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : hasBilling ? (
+              <FileText className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Receipt className="h-4 w-4" aria-hidden="true" />
+            )}
+            {hasBilling ? "Xem hoá đơn" : "Lập hoá đơn"}
           </Button>
         )}
 

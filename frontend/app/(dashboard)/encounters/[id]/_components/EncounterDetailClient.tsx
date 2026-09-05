@@ -50,6 +50,8 @@ import {
   useWaitClsTicket,
 } from "@/lib/hooks/use-reception";
 import { usePermissions } from "@/lib/hooks/use-permissions";
+import { useBillingsByEncounter, useCreateBilling } from "@/lib/hooks/use-billing";
+import { toast } from "sonner";
 import type { DiagnosisType, Icd10Response } from "@/lib/api/types";
 
 interface Props {
@@ -67,6 +69,11 @@ export function EncounterDetailClient({ encounterId }: Props) {
   const { data: clsRounds } = useClsRounds(encounterId);
   const { data: allergies } = useAllergies(encounter?.patient_id ?? "");
   const { data: queue } = useReceptionQueue();
+
+  // Item 5 — kiểm tra lượt khám đã có hoá đơn chưa để tránh lập trùng
+  const { data: billings, isLoading: isBillingLoading } = useBillingsByEncounter(encounterId);
+  const createBilling = useCreateBilling();
+  const existingBilling = billings?.[0];
 
   const startEncounter = useStartEncounter(encounterId);
   const closeEncounter = useCloseEncounter(encounterId);
@@ -222,6 +229,27 @@ export function EncounterDetailClient({ encounterId }: Props) {
         }}
         onPrintEncounter={() => window.open(`/encounters/${encounterId}/print`, "_blank")}
         onPrintCls={() => window.open(`/encounters/${encounterId}/cls-print`, "_blank")}
+        canManageBilling={has("billing.write")}
+        hasBilling={!!existingBilling}
+        isBillingLoading={isBillingLoading}
+        isCreatingBilling={createBilling.isPending}
+        onCreateBilling={() => {
+          createBilling.mutate(
+            { encounter_id: encounterId },
+            {
+              onSuccess: (billing) => {
+                toast.success("Đã lập hoá đơn cho lượt khám");
+                router.push(`/billings/${billing.id}`);
+              },
+              onError: () => {
+                toast.error("Lập hoá đơn thất bại, vui lòng thử lại");
+              },
+            }
+          );
+        }}
+        onViewBilling={() => {
+          if (existingBilling) router.push(`/billings/${existingBilling.id}`);
+        }}
       />
 
       {isLocked && (

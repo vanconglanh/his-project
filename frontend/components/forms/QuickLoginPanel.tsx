@@ -1,5 +1,8 @@
 "use client";
 
+// TODO(REMOVE-BEFORE-PROD): tien ich dev/test, xoa file nay truoc khi len
+// production. Grep marker "TODO(REMOVE-BEFORE-PROD)" de tim tat ca cho lien
+// quan (xem them LoginForm.tsx) khi don dep truoc prod.
 // Panel dang nhap nhanh CHI DUNG CHO DEV/TEST - KHONG bao gio hien tren
 // production/staging build thuong (env NEXT_PUBLIC_TEST_LOGIN_PANEL phai duoc
 // bat tuong minh luc build qua Docker build-arg, mac dinh la tat).

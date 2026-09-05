@@ -42,6 +42,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 type LoginStep = "credentials" | "mfa" | "mfaSetup";
 type MfaSetupSub = "loading" | "setup" | "verify" | "done";
 
+// TODO(REMOVE-BEFORE-PROD): tien ich dev/test dang nhap nhanh, xoa truoc khi
+// len production. Grep marker "TODO(REMOVE-BEFORE-PROD)" de don dep het cho
+// lien quan (bao gom ca QuickLoginPanel.tsx).
 // Chi bat panel dang nhap nhanh khi build voi NEXT_PUBLIC_TEST_LOGIN_PANEL=true
 // (Docker build-arg, xem frontend/Dockerfile). Mac dinh KHONG bat - production/
 // staging build binh thuong khong truyen arg nay nen panel khong bao gio xuat hien.
@@ -492,6 +495,7 @@ export function LoginForm() {
         )}
       </Button>
     </form>
+    {/* TODO(REMOVE-BEFORE-PROD): render panel dang nhap nhanh dev/test - xoa cung SHOW_QUICK_LOGIN o tren */}
     {SHOW_QUICK_LOGIN && (
       <QuickLoginPanel onQuickLogin={quickLogin} disabled={isSubmitting} />
     )}
