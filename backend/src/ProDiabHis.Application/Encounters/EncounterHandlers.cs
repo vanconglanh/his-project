@@ -20,11 +20,12 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
     private readonly IDapperConnectionFactory _dapperDb;
+    private readonly IBranchProvider? _branch;
 
     public CreateEncounterCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit, IDapperConnectionFactory? dapperDb = null)
+        ICurrentUser user, IAuditService audit, IBranchProvider? branch = null, IDapperConnectionFactory? dapperDb = null)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit; _dapperDb = dapperDb!;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _branch = branch; _dapperDb = dapperDb!;
     }
 
     public async Task<Result<EncounterResponse>> Handle(CreateEncounterCommand command, CancellationToken ct)
@@ -37,6 +38,8 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
             return Result<EncounterResponse>.Failure("PATIENT_NOT_FOUND", "Không tìm thấy bệnh nhân");
 
         var now = DateTime.UtcNow;
+        // BUG-F05: gan branch_id cho luot kham - uu tien body, sau do lay tu chi nhanh dang lam viec cua user
+        var branchId = req.BranchId ?? (_branch is not null && _branch.BranchId > 0 ? _branch.BranchId : (int?)null);
         var encounter = new Encounter
         {
             Id = Guid.NewGuid(),
@@ -49,6 +52,7 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
             ReasonForVisit = req.ReasonForVisit,
             ChiefComplaint = req.ChiefComplaint,
             TelehealthSessionId = req.TelehealthSessionId,
+            BranchId = branchId,
             CreatedAt = now,
             CreatedBy = _user.UserId,
             UpdatedAt = now
@@ -125,11 +129,12 @@ public class UpdateEncounterCommandHandler : IRequestHandler<UpdateEncounterComm
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IBranchProvider _branch;
 
     public UpdateEncounterCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
+        ICurrentUser user, IAuditService audit, IBranchProvider branch)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _branch = branch;
     }
 
     public async Task<Result<EncounterResponse>> Handle(UpdateEncounterCommand cmd, CancellationToken ct)
@@ -149,7 +154,7 @@ public class UpdateEncounterCommandHandler : IRequestHandler<UpdateEncounterComm
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync("UPDATE", "Encounter", enc.Id.ToString(), null, ct);
 
-        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit);
+        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit, _branch);
         return Result<EncounterResponse>.Success(await helper.BuildEncounterResponse(enc, ct));
     }
 }

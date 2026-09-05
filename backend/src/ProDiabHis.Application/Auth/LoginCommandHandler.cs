@@ -153,7 +153,20 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         }
 
         // Luong binh thuong: cap token day du.
-        return Result<LoginResponse>.Success(await BuildSuccessResponseAsync(user, cancellationToken));
+        var successResponse = await BuildSuccessResponseAsync(user, cancellationToken);
+
+        // BUG-F06: khong duoc tra HTTP 200 kem accessToken/refreshToken rong khi khong o luong
+        // 2FA (Requires2fa/MfaSetupRequired da xu ly & return o tren). Neu toi day ma JwtService
+        // tra ve token rong (vd loi cau hinh khoa ky, DI thieu) thi phai bao loi ro rang thay vi
+        // gia vo dang nhap thanh cong voi token rong (client se tuong dang nhap OK roi hong o request ke).
+        if (string.IsNullOrEmpty(successResponse.AccessToken) || string.IsNullOrEmpty(successResponse.RefreshToken))
+        {
+            _logger.LogError("Login: JwtService tra ve token rong cho user {UserId} - chan dang nhap", user.Id);
+            return Result<LoginResponse>.Failure("AUTH_TOKEN_ISSUE_FAILED",
+                "Không thể phát hành phiên đăng nhập, vui lòng thử lại sau");
+        }
+
+        return Result<LoginResponse>.Success(successResponse);
     }
 
     /// <summary>Tao AccessToken + RefreshToken + cap nhat LastLoginAt + build LoginResponse day du.

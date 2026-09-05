@@ -496,6 +496,21 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
               FROM diab_his_pha_prescriptions WHERE id = @presId AND tenant_id = @tenantId",
             new { presId, tenantId });
 
+        // BUG-F07: truoc day hard-code items=[] khien response tao don luon rong du da insert
+        // day du item o Handle() ben tren. Load lai item vua luu (giong GetPrescriptionHandler)
+        // de tra ve dung du lieu, tranh FE dieu huong sang trang chi tiet bang response rong.
+        var items = await conn.QueryAsync<PrescriptionItemRow>(
+            @"SELECT i.id as Id, i.drug_id as DrugId, d.name as DrugName,
+                     d.strength as Strength, d.unit as Unit,
+                     i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
+                     i.duration_days as DurationDays, i.quantity as Quantity,
+                     i.note as Instructions, NULL as BatchDispensedJson
+              FROM diab_his_pha_prescription_items i
+              JOIN diab_his_pha_drugs d ON d.id = i.drug_id
+              WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL",
+            new { presId, tenantId });
+        var itemResponses = items.Select(GetPrescriptionHandler.MapItem).ToList();
+
         return new PrescriptionResponse(
             Guid.TryParse(pres.Id?.ToString(), out var g) ? g : Guid.NewGuid(),
             pres.TenantId,
@@ -505,7 +520,7 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
             null, null, null,
             pres.Status ?? "DRAFT", pres.PrescribedAt,
             pres.SignedAt, pres.SignedBy, pres.DtqgCode, pres.DtqgStatus ?? "NONE",
-            [], [], pres.TotalAmount, pres.Note, pres.CreatedAt, pres.UpdatedAt);
+            itemResponses, [], pres.TotalAmount, pres.Note, pres.CreatedAt, pres.UpdatedAt);
     }
 }
 

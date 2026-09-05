@@ -193,6 +193,10 @@ public class DispenseHandler : IRequestHandler<DispenseCommand, Result<DispenseR
         // ── GIAI DOAN 2: GHI (trong 1 TRANSACTION duy nhat) ────────────────────
         // Toan bo tru kho + tao phieu phat + phieu xuat + cap nhat trang thai don nam
         // trong CUNG 1 transaction: bat ky loi nao -> rollback SACH, khong that thoat ton kho.
+        // BUG-F08: dispensed_by/performed_by phai ghi UUID nguoi cap phat hien tai (audit log
+        // du lieu benh nhan). truoc day hard-code 0 vi cot con kieu INT legacy (da fix o
+        // migration 9201_fix_dispensed_by_uuid.sql).
+        var dispensedByUserId = _currentUser.UserId?.ToString();
         using (var conn = (IDbConnection)_db.CreateConnection())
         {
             conn.Open();
@@ -219,7 +223,7 @@ public class DispenseHandler : IRequestHandler<DispenseCommand, Result<DispenseR
                     await conn.ExecuteAsync(
                         @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, unit_price, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
                           VALUES (@tenantId, @stockId, @wh, 'EXPORT', @qty, @cost, 'PRESCRIPTION', @presId, NOW(), @userId, NOW(), NOW())",
-                        new { tenantId, stockId = line.StockId, wh = cmd.Request.WarehouseId, qty = line.Quantity, cost = line.UnitCost, presId = cmd.PrescriptionId, userId = 0 }, tx);
+                        new { tenantId, stockId = line.StockId, wh = cmd.Request.WarehouseId, qty = line.Quantity, cost = line.UnitCost, presId = cmd.PrescriptionId, userId = dispensedByUserId }, tx);
 
                     var dispItemId = Guid.NewGuid().ToString();
                     await conn.ExecuteAsync(
@@ -234,7 +238,7 @@ public class DispenseHandler : IRequestHandler<DispenseCommand, Result<DispenseR
                 await conn.ExecuteAsync(
                     @"INSERT INTO diab_his_pha_dispense_records (id, tenant_id, prescription_id, warehouse_id, dispensed_at, dispensed_by, status, note, total_amount, created_at, updated_at)
                       VALUES (@id, @tenantId, @presId, @wh, NOW(), @dispensedBy, 'DISPENSED', @note, @totalAmount, NOW(), NOW())",
-                    new { id = dispenseId, tenantId, presId = cmd.PrescriptionId, wh = cmd.Request.WarehouseId, dispensedBy = 0, note = cmd.Request.Note, totalAmount }, tx);
+                    new { id = dispenseId, tenantId, presId = cmd.PrescriptionId, wh = cmd.Request.WarehouseId, dispensedBy = dispensedByUserId, note = cmd.Request.Note, totalAmount }, tx);
 
                 await conn.ExecuteAsync(
                     "UPDATE diab_his_pha_prescriptions SET status = 'DISPENSED', updated_at = NOW() WHERE id = @id AND tenant_id = @tenantId",
@@ -252,12 +256,22 @@ public class DispenseHandler : IRequestHandler<DispenseCommand, Result<DispenseR
         }
 
         // ── Sau khi commit: cac tac dong phu (audit, lien thong Cuc QLD) ───────
-        await _audit.LogAsync("DISPENSE", "pha_prescriptions", cmd.PrescriptionId.ToString(), new { dispenseId, status = "DISPENSED" }, ct);
+        await _audit.LogAsync("DISPENSE", "pha_prescriptions", cmd.PrescriptionId.ToString(), new { dispenseId, status = "DISPENSED", dispensedBy = dispensedByUserId }, ct);
         await _cucQld.ReportExportAsync(Guid.Parse(dispenseId), ct);
+
+        // BUG-F08: tra ve dung nguoi vua cap phat thay vi null.
+        string? dispensedByName = null;
+        if (!string.IsNullOrEmpty(dispensedByUserId))
+        {
+            using var nameConn = ((IDbConnection)_db.CreateConnection());
+            dispensedByName = await nameConn.ExecuteScalarAsync<string?>(
+                "SELECT full_name FROM diab_his_sec_users WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { id = dispensedByUserId, tenantId });
+        }
 
         return Result<DispenseRecordResponse>.Success(new DispenseRecordResponse(
             dispenseId, tenantId, cmd.PrescriptionId, cmd.Request.WarehouseId,
-            DateTime.UtcNow, null, null, "DISPENSED", cmd.Request.Note, dispenseItems, totalAmount));
+            DateTime.UtcNow, dispensedByUserId, dispensedByName, "DISPENSED", cmd.Request.Note, dispenseItems, totalAmount));
     }
 }
 
@@ -323,12 +337,13 @@ public class ReturnDispenseHandler : IRequestHandler<ReturnDispenseCommand, Resu
                   WHERE tenant_id = @tenantId AND drug_id = @drug AND lot_number = @batch",
                 new { qty = retItem.Quantity, tenantId, drug = (string)di.drug_id, batch = (string)di.batch_no });
 
-            // Movement RETURN
+            // Movement RETURN — ghi UUID nguoi thuc hien (BUG-F08, dong bo voi dispense)
+            var performedBy = _currentUser.UserId?.ToString();
             await conn.ExecuteAsync(
                 @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
-                  SELECT @tenantId, id, @wh, 'RETURN', @qty, 'PRESCRIPTION', @presId, NOW(), 0, NOW(), NOW()
+                  SELECT @tenantId, id, @wh, 'RETURN', @qty, 'PRESCRIPTION', @presId, NOW(), @performedBy, NOW(), NOW()
                   FROM diab_his_pha_stock WHERE tenant_id = @tenantId AND drug_id = @drug AND lot_number = @batch LIMIT 1",
-                new { tenantId, qty = retItem.Quantity, presId = (string)record.prescription_id, wh = (string)record.warehouse_id, drug = (string)di.drug_id, batch = (string)di.batch_no });
+                new { tenantId, qty = retItem.Quantity, presId = (string)record.prescription_id, wh = (string)record.warehouse_id, drug = (string)di.drug_id, batch = (string)di.batch_no, performedBy });
 
             await conn.ExecuteAsync(
                 "UPDATE diab_his_pha_dispense_items SET is_returned = 1, returned_quantity = @qty, updated_at = NOW() WHERE id = @id",
@@ -374,13 +389,14 @@ public class GetDispenseHistoryHandler : IRequestHandler<GetDispenseHistoryQuery
 
         var rows = await conn.QueryAsync<dynamic>(
             $@"SELECT dr.id, dr.tenant_id, dr.prescription_id, dr.warehouse_id,
-                      dr.dispensed_at, dr.dispensed_by, dr.status, dr.note, dr.total_amount
+                      dr.dispensed_at, dr.dispensed_by, u.full_name AS dispensed_by_name, dr.status, dr.note, dr.total_amount
                FROM diab_his_pha_dispense_records dr
+               LEFT JOIN diab_his_sec_users u ON u.id = dr.dispensed_by AND u.tenant_id = dr.tenant_id
                WHERE {wc} ORDER BY dr.dispensed_at DESC LIMIT @limit OFFSET @offset", prm);
 
         var items = rows.Select(r => new DispenseRecordResponse(
             (string)r.id, (int)r.tenant_id, (string)r.prescription_id, (string)r.warehouse_id,
-            (DateTime)r.dispensed_at, (int?)r.dispensed_by, null, (string)r.status, (string?)r.note, [], (decimal)r.total_amount)).ToList();
+            (DateTime)r.dispensed_at, (string?)r.dispensed_by, (string?)r.dispensed_by_name, (string)r.status, (string?)r.note, [], (decimal)r.total_amount)).ToList();
 
         return Result<PagedResult<DispenseRecordResponse>>.Success(new PagedResult<DispenseRecordResponse>(items, q.Page, q.PageSize, total));
     }

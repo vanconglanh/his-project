@@ -28,7 +28,7 @@ public record DispenseRecordResponse(
     string PrescriptionId,
     string WarehouseId,
     DateTime DispensedAt,
-    int? DispensedBy,
+    string? DispensedBy,
     string? DispensedByName,
     string Status,
     string? Note,
