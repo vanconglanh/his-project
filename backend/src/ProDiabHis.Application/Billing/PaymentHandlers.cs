@@ -148,6 +148,38 @@ public class CreatePaymentHandler : IRequestHandler<CreatePaymentCommand, Result
 
         await _db.SaveChangesAsync(ct);
 
+        // BUG-F10: khi hoa don chuyen PAID, cap nhat NGUOC moi cls_round cung tenant + cung
+        // encounter sang PAID va gan billing_id, tranh 2 co che (thanh toan hoa don vs
+        // POST /cls-rounds/{id}/pay) chay song song khong noi chuyen nhau (KTV bi chan
+        // CLS_ORDER_UNPAID du hoa don da thu du). Dung Dapper (IDapperConnectionFactory da
+        // co san trong handler nay) vi ClsOrderRound chua duoc khai bao DbSet trong
+        // IApplicationDbContext (file dung chung, ngoai pham vi duoc sua cua domain Billing/CLS).
+        if (billing.Status == BillingStatus.Paid && billing.EncounterId.HasValue)
+        {
+            using var conn2 = (IDbConnection)_dapper.CreateConnection();
+            conn2.Open();
+            await conn2.ExecuteAsync(@"
+                UPDATE diab_his_cls_order_rounds
+                   SET payment_status = 'PAID',
+                       billing_id = @BillingId,
+                       paid_at = COALESCE(paid_at, @Now),
+                       paid_by = COALESCE(paid_by, @Uid),
+                       updated_at = @Now,
+                       updated_by = @Uid
+                 WHERE tenant_id = @TenantId
+                   AND encounter_id = @EncounterId
+                   AND payment_status <> 'PAID'
+                   AND deleted_at IS NULL",
+                new
+                {
+                    BillingId = billing.Id.ToString(),
+                    Now = DateTime.UtcNow,
+                    Uid = _user.UserId?.ToString(),
+                    TenantId = _tenant.TenantId,
+                    EncounterId = billing.EncounterId.Value.ToString()
+                });
+        }
+
         // BR-85: thu ho hoa don chi nhanh khac -> sinh but toan cong no noi bo (debtor=chi nhanh dang
         // thu tien, creditor=chi nhanh phat sinh hoa don). Cung chi nhanh hoac billing chua gan chi
         // nhanh -> khong sinh (xem InterBranchDebtCalculator - pure logic, co unit test rieng).

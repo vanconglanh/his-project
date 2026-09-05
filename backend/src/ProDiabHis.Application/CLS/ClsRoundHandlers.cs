@@ -147,7 +147,27 @@ public class CreateClsRoundCommandHandler : IRequestHandler<CreateClsRoundComman
             VALUES (@Id, @TId, @EId, @No, 'OPEN', 'UNPAID', 0, @Note, @Now, @Uid, @Now, @Uid)",
             new { Id = roundId, TId = tid, EId = encId, No = roundNo, Note = cmd.Request.Note, Now = now, Uid = userId });
 
+        // BUG-F02: validate truoc khi insert bat ky dong nao - ma XN/CDHA khong co trong danh
+        // muc thi tra VALIDATION_ERROR, khong lang le tao chi dinh gia 0d.
         var labTests = cmd.Request.LabTests ?? new List<ClsRoundLabItemRequest>();
+        var radOrdersPre = cmd.Request.RadOrders ?? new List<ClsRoundRadItemRequest>();
+        foreach (var t in labTests)
+        {
+            var exists = await conn.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM diab_his_dict_lab_tests WHERE code=@Code", new { Code = t.TestCode });
+            if (exists == 0)
+                return Result<ClsRoundResponse>.Failure("VALIDATION_ERROR",
+                    $"Mã dịch vụ '{t.TestCode}' không tồn tại trong danh mục");
+        }
+        foreach (var o in radOrdersPre)
+        {
+            var exists = await conn.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM diab_his_dict_rad_procedures WHERE code=@Code", new { Code = o.ProcedureCode });
+            if (exists == 0)
+                return Result<ClsRoundResponse>.Failure("VALIDATION_ERROR",
+                    $"Mã dịch vụ '{o.ProcedureCode}' không tồn tại trong danh mục");
+        }
+
         foreach (var t in labTests)
         {
             var catalog = await conn.QueryFirstOrDefaultAsync<dynamic>(
@@ -325,18 +345,26 @@ public class PayClsRoundCommandHandler : IRequestHandler<PayClsRoundCommand, Res
             return Result<ClsRoundResponse>.Failure("CLS_ROUND_NOT_FOUND", "Không tìm thấy đợt chỉ định");
 
         var pay = (string)row.payment_status;
+        // BUG-F10: idempotent - da PAID (vi du da duoc thanh toan tu POST /payments cua hoa don
+        // gom, xem CreatePaymentHandler) thi tra ve 200 nguyen trang thay vi loi, tranh chan
+        // caller cu va tranh thu trung.
         if (pay == ClsRoundPaymentStatus.Paid)
-            return Result<ClsRoundResponse>.Failure("CLS_ROUND_ALREADY_PAID", "Đợt chỉ định đã thanh toán");
+        {
+            var already = await ClsRoundSql.LoadRoundAsync(conn, tid, rid);
+            return Result<ClsRoundResponse>.Success(already!);
+        }
         if (!ClsRoundPaymentStatus.CanTransition(pay, ClsRoundPaymentStatus.Paid))
             return Result<ClsRoundResponse>.Failure("CLS_ROUND_INVALID_TRANSITION",
                 $"Không thể chuyển trạng thái thanh toán từ {pay} sang {ClsRoundPaymentStatus.Paid}");
 
         var total = Convert.ToDecimal(row.total_amount);
+        // BUG-F10: nguoc lai chi chan khi so tien thu THIEU so voi tong dot CLS (thu trung/thu
+        // du cho hoa don gom nhieu dong hon la binh thuong - vd hoa don gom ca CLS + thuoc).
         if (cmd.Request?.Amount is decimal requestedAmount)
         {
-            if (requestedAmount != total)
+            if (requestedAmount < total)
                 return Result<ClsRoundResponse>.Failure("BILLING_AMOUNT_MISMATCH",
-                    "Số tiền thanh toán không khớp tổng tiền đợt chỉ định",
+                    "Số tiền thanh toán nhỏ hơn tổng tiền đợt chỉ định",
                     new { expected = total, actual = requestedAmount });
         }
 
