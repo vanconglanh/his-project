@@ -19,7 +19,20 @@ import { useSetup2FA, useEnable2FA } from "@/lib/hooks/use-users";
 import { verify2fa } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/utils/errors";
 import type { AxiosError } from "axios";
+import type { LoginResponse } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+
+// BM-02 (Lark Bug-Feedback): role Lễ tân/CC vào thẳng "Tổng quan" (dashboard doanh thu/BI)
+// sau đăng nhập không phù hợp nghiệp vụ chính (tiếp đón bệnh nhân) -> đổi thành vào thẳng
+// "/reception". Nhận diện qua role code "le_tan" (BE seed tại 9007_seed_master_data.sql),
+// gộp cả roles lẫn roleCodes để không phụ thuộc BE trả field nào.
+function resolveLandingRoute(user: LoginResponse["user"]): string {
+  const roles = [...(user?.roles ?? []), ...(user?.roleCodes ?? [])].map((r) =>
+    r.toLowerCase()
+  );
+  const isReceptionist = roles.some((r) => r === "le_tan" || r.includes("letan"));
+  return isReceptionist ? "/reception" : "/";
+}
 
 const loginSchema = z.object({
   email: z
@@ -122,8 +135,8 @@ export function LoginForm() {
         return;
       }
 
-      // Trạng thái 1: đăng nhập bình thường → vào dashboard.
-      router.push("/");
+      // Trạng thái 1: đăng nhập bình thường → vào màn mặc định theo role (BM-02).
+      router.push(resolveLandingRoute(res.user));
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 401) {
@@ -143,7 +156,7 @@ export function LoginForm() {
       const res = await verify2fa({ mfaPendingToken, code });
       // Thành công → response là LoginResponse đầy đủ, thiết lập phiên như login thường.
       await establishSession(res);
-      router.push("/");
+      router.push(resolveLandingRoute(res.user));
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<{ error?: { code?: string } }>;
       const errCode = axiosErr?.response?.data?.error?.code;
