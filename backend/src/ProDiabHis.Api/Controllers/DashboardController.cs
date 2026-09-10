@@ -112,9 +112,14 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>US-6.1 - Bang xep hang chi nhanh (BR-90..96). Pham vi tu dong theo S1/S2/S3
-    /// (IBranchProvider), KHONG duoc client truyen branch tuy y.</summary>
+    /// (IBranchProvider), KHONG duoc client truyen branch tuy y.
+    /// BM-10 (Lark Bug-Feedback): truoc day dung chung "dashboard.read" voi cac widget
+    /// tong quan trang chu (overview/charts/alerts) - permission nay duoc cap rong cho
+    /// MOI role (ke ca ky_thuat_vien) nen KTV vao duoc trang xep hang doanh thu chi nhanh
+    /// du khong thuoc pham vi cong viec. Doi sang "report.read" (dung nhu cac endpoint
+    /// bao cao khac trong ReportsController) - ky_thuat_vien khong duoc cap quyen nay.</summary>
     [HttpGet("branch-ranking")]
-    [RequirePermission("dashboard.read")]
+    [RequirePermission("report.read")]
     public async Task<IActionResult> GetBranchRanking(
         [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct = default)
     {
@@ -123,9 +128,10 @@ public class DashboardController : ControllerBase
         return Ok(new { data = result.Value!.Items, meta = result.Value!.Meta });
     }
 
-    /// <summary>AC-6.1.2 - drill-down xep hang chi nhanh xuong danh sach bac si cua 1 chi nhanh.</summary>
+    /// <summary>AC-6.1.2 - drill-down xep hang chi nhanh xuong danh sach bac si cua 1 chi nhanh.
+    /// BM-10: cung nhom voi branch-ranking, doi sang "report.read" (xem ghi chu tren).</summary>
     [HttpGet("branch/{branchId:int}/detail")]
-    [RequirePermission("dashboard.read")]
+    [RequirePermission("report.read")]
     public async Task<IActionResult> GetBranchDetail(
         int branchId, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct = default)
     {

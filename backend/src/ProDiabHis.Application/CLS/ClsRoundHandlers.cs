@@ -463,6 +463,16 @@ public class CancelClsRoundCommandHandler : IRequestHandler<CancelClsRoundComman
             return Result<ClsRoundResponse>.Failure("CLS_ROUND_INVALID_TRANSITION",
                 $"Không thể chuyển trạng thái đợt từ {current} sang {ClsRoundStatus.Cancelled}");
 
+        // BM-15 fix: ClsRoundStatus.CanTransition chi xet trang thai DOT (OPEN/SUBMITTED/
+        // IN_PROGRESS), khong xet payment_status - nen truoc day van co the huy 1 dot da
+        // PAID (vd dot dang IN_PROGRESS nhung da thu tien qua billing) ma khong hoan tien,
+        // gay lech so lieu thu ngan. Chan rieng truong hop nay, doi ve quy trinh hoan tien
+        // (billing refund) thay vi huy thang.
+        var payStatus = (string)row.payment_status;
+        if (payStatus == ClsRoundPaymentStatus.Paid)
+            return Result<ClsRoundResponse>.Failure("CLS_ROUND_ALREADY_PAID",
+                "Đợt chỉ định đã thanh toán, không thể hủy trực tiếp. Cần thực hiện hoàn tiền qua Thu ngân trước.");
+
         var now = DateTime.UtcNow;
         var uid = _user.UserId?.ToString();
 

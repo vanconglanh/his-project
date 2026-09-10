@@ -185,4 +185,24 @@ public class DashboardOpsIntegrationTests
         res.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
         res.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
     }
+
+    // BM-10 (Lark Bug-Feedback) - "dashboard.read" (quyen KTV cung co) khong con du de
+    // xem xep hang doanh thu chi nhanh; endpoint nay gio doi hoi "report.read" rieng.
+    [ApiFact]
+    public async Task ChiCoDashboardRead_XepHangChiNhanh_Van403()
+    {
+        var res = await _fx.ClientWith("dashboard.read").GetAsync("/api/v1/dashboard/branch-ranking");
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
+    }
+
+    // BM-10: co "report.read" thi truy cap duoc xep hang doanh thu chi nhanh.
+    [ApiFact]
+    public async Task DungQuyenReportRead_XepHangChiNhanh_KhongLoiHeThong()
+    {
+        var res = await _fx.ClientWith("report.read").GetAsync("/api/v1/dashboard/branch-ranking");
+        ((int)res.StatusCode).Should().BeLessThan(500);
+        res.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+        res.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+    }
 }
