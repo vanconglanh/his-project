@@ -256,6 +256,9 @@ export function ClsRoundCreateDialog({
             {(isLoadingTemplates || (templates && templates.length > 0)) && (
               <div className="flex items-center gap-2">
                 <Select
+                  items={Object.fromEntries(
+                    (templates ?? []).map((tpl) => [tpl.id, `${tpl.name} (${tpl.items.length} dịch vụ)`])
+                  )}
                   value={templateId}
                   onValueChange={(v) => { if (v) applyTemplate(v); }}
                   disabled={isLoadingTemplates}
