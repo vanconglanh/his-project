@@ -114,14 +114,22 @@ internal static class ClsRoundSql
 // ────────────────────────────────────────────────
 public class CreateClsRoundCommandHandler : IRequestHandler<CreateClsRoundCommand, Result<ClsRoundResponse>>
 {
+    // BM-18 (Lark Bug-Feedback): dich vu "chi dinh chua gom dot" (tao truoc khi co dot,
+    // round_id IS NULL) - PO chot (2026-09-10): ho tro CA 2 che do, chon qua setting man
+    // hinh /admin/settings (key "cls.legacy_auto_merge", xem migration 9208):
+    //   - true  = TU DONG gom moi chi dinh chua gom dot cua luot kham vao dot MOI vua tao.
+    //   - false (mac dinh) = Bac si TU CHON gom (xem endpoint rieng gan vao dot da co).
+    private const string AutoMergeSettingKey = "cls.legacy_auto_merge";
+
     private readonly IDapperConnectionFactory _db;
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly ISettingsProvider _settings;
 
     public CreateClsRoundCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
-    { _db = db; _tenant = tenant; _user = user; _audit = audit; }
+        ICurrentUser user, IAuditService audit, ISettingsProvider settings)
+    { _db = db; _tenant = tenant; _user = user; _audit = audit; _settings = settings; }
 
     public async Task<Result<ClsRoundResponse>> Handle(CreateClsRoundCommand cmd, CancellationToken ct)
     {
@@ -214,8 +222,96 @@ public class CreateClsRoundCommandHandler : IRequestHandler<CreateClsRoundComman
                 });
         }
 
+        // BM-18: che do TU DONG - gom moi chi dinh "chua gom dot" con lai cua luot kham
+        // (round_id IS NULL, chua huy) vao dot MOI vua tao. Mac dinh (setting=false) khong
+        // lam gi o day - Bac si tu chon gom qua endpoint AssignLegacyOrdersToRound rieng.
+        var autoMerge = await _settings.GetBoolAsync(AutoMergeSettingKey, false, ct);
+        if (autoMerge)
+        {
+            var mergedLab = await conn.ExecuteAsync(
+                $@"UPDATE {ClsRoundSql.LabTable}
+                   SET round_id=@RId, updated_at=@Now
+                 WHERE tenant_id=@TId AND encounter_id=@EId AND round_id IS NULL
+                   AND status <> 'cancelled' AND deleted_at IS NULL",
+                new { RId = roundId, Now = now, TId = tid, EId = encId });
+            var mergedRad = await conn.ExecuteAsync(
+                $@"UPDATE {ClsRoundSql.RadTable}
+                   SET round_id=@RId, updated_at=@Now
+                 WHERE tenant_id=@TId AND encounter_id=@EId AND round_id IS NULL
+                   AND status <> 'cancelled' AND deleted_at IS NULL",
+                new { RId = roundId, Now = now, TId = tid, EId = encId });
+            if (mergedLab + mergedRad > 0)
+                await _audit.LogAsync("AUTO_MERGE_LEGACY", "ClsOrderRound", roundId,
+                    new { mergedLab, mergedRad }, ct);
+        }
+
         await ClsRoundSql.RecalcTotalAsync(conn, tid, roundId);
         await _audit.LogAsync("CREATE", "ClsOrderRound", roundId, new { encounterId = encId, roundNo }, ct);
+
+        var dto = await ClsRoundSql.LoadRoundAsync(conn, tid, roundId);
+        return Result<ClsRoundResponse>.Success(dto!);
+    }
+}
+
+// ────────────────────────────────────────────────
+// ASSIGN LEGACY ORDERS (BM-18 - che do THU CONG, mac dinh)
+// ────────────────────────────────────────────────
+public record AssignLegacyOrdersToRoundCommand(
+    Guid RoundId, IReadOnlyList<Guid> LabOrderIds, IReadOnlyList<Guid> RadOrderIds)
+    : IRequest<Result<ClsRoundResponse>>;
+
+/// <summary>Gan cac chi dinh XN/CDHA "chua gom dot" (round_id IS NULL) da co san vao 1 dot
+/// dang mo, theo lua chon THU CONG cua Bac si (BM-18). Chi cho gan dung nhung dong hien
+/// dang round_id IS NULL, cung tenant/encounter voi dot dich, tranh "cuop" chi dinh cua
+/// dot khac qua truyen ID tuy y.</summary>
+public class AssignLegacyOrdersToRoundCommandHandler
+    : IRequestHandler<AssignLegacyOrdersToRoundCommand, Result<ClsRoundResponse>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+    private readonly IAuditService _audit;
+
+    public AssignLegacyOrdersToRoundCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
+        IAuditService audit)
+    { _db = db; _tenant = tenant; _audit = audit; }
+
+    public async Task<Result<ClsRoundResponse>> Handle(AssignLegacyOrdersToRoundCommand cmd, CancellationToken ct)
+    {
+        using var conn = _db.CreateConnection();
+        var tid = _tenant.TenantId;
+        var roundId = cmd.RoundId.ToString();
+
+        var round = await conn.QueryFirstOrDefaultAsync<dynamic>(ClsRoundSql.SelectRound, new { Id = roundId, TId = tid });
+        if (round is null)
+            return Result<ClsRoundResponse>.Failure("CLS_ROUND_NOT_FOUND", "Không tìm thấy đợt chỉ định");
+        if ((string)round.status != ClsRoundStatus.Open)
+            return Result<ClsRoundResponse>.Failure("CLS_ROUND_LOCKED", "Đợt đã chốt/huỷ, không thể gộp thêm dịch vụ");
+
+        var encId = (string)round.encounter_id;
+        var now = DateTime.UtcNow;
+
+        if (cmd.LabOrderIds.Count > 0)
+        {
+            await conn.ExecuteAsync(
+                $@"UPDATE {ClsRoundSql.LabTable}
+                   SET round_id=@RId, updated_at=@Now
+                 WHERE tenant_id=@TId AND encounter_id=@EId AND round_id IS NULL
+                   AND id IN @Ids AND deleted_at IS NULL",
+                new { RId = roundId, Now = now, TId = tid, EId = encId, Ids = cmd.LabOrderIds.Select(x => x.ToString()) });
+        }
+        if (cmd.RadOrderIds.Count > 0)
+        {
+            await conn.ExecuteAsync(
+                $@"UPDATE {ClsRoundSql.RadTable}
+                   SET round_id=@RId, updated_at=@Now
+                 WHERE tenant_id=@TId AND encounter_id=@EId AND round_id IS NULL
+                   AND id IN @Ids AND deleted_at IS NULL",
+                new { RId = roundId, Now = now, TId = tid, EId = encId, Ids = cmd.RadOrderIds.Select(x => x.ToString()) });
+        }
+
+        await ClsRoundSql.RecalcTotalAsync(conn, tid, roundId);
+        await _audit.LogAsync("ASSIGN_LEGACY", "ClsOrderRound", roundId,
+            new { labCount = cmd.LabOrderIds.Count, radCount = cmd.RadOrderIds.Count }, ct);
 
         var dto = await ClsRoundSql.LoadRoundAsync(conn, tid, roundId);
         return Result<ClsRoundResponse>.Success(dto!);

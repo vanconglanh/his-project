@@ -10,10 +10,15 @@ import type {
   RadOrderStatus,
 } from "./types";
 
-export async function createLabOrders(encounterId: string, tests: LabOrderRequest[]) {
+export async function createLabOrders(
+  encounterId: string,
+  tests: LabOrderRequest[],
+  // BM-14: cho phep them dich vu vao 1 dot da ton tai (dieu chinh), khong chi tao dot moi.
+  roundId?: string
+) {
   const res = await apiClient.post<ApiResponse<LabOrderResponse[]>>(
     `/encounters/${encounterId}/lab-orders`,
-    { tests }
+    { tests, round_id: roundId }
   );
   return res.data.data;
 }
@@ -33,10 +38,14 @@ export async function deleteLabOrder(id: string) {
   await apiClient.delete(`/lab-orders/${id}`);
 }
 
-export async function createRadOrders(encounterId: string, orders: RadOrderRequest[]) {
+export async function createRadOrders(
+  encounterId: string,
+  orders: RadOrderRequest[],
+  roundId?: string
+) {
   const res = await apiClient.post<ApiResponse<RadOrderResponse[]>>(
     `/encounters/${encounterId}/rad-orders`,
-    { orders }
+    { orders, round_id: roundId }
   );
   return res.data.data;
 }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -54,8 +55,17 @@ export function ClsRoundCreateDialog({
     [cart, freeCodes]
   );
 
+  // BM-13: dich vu vua chon chen len DAU danh sach "Dich vu da chon" (bac si thay ngay
+  // khong can cuon); bam lai dich vu da co trong gio thi bao "Chi dinh da duoc chon"
+  // thay vi im lang khong lam gi (de bac si biet la he thong DA ghi nhan, khong phai loi).
   function addItem(item: ClsCatalogItem) {
-    setCart((prev) => (prev.some((x) => x.code === item.code) ? prev : [...prev, item]));
+    setCart((prev) => {
+      if (prev.some((x) => x.code === item.code)) {
+        toast.info(`"${item.name}" - Chỉ định đã được chọn`);
+        return prev;
+      }
+      return [item, ...prev];
+    });
   }
 
   function removeItem(code: string) {

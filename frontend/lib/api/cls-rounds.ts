@@ -134,3 +134,17 @@ export async function cancelClsRound(roundId: string, reason?: string) {
   const res = await apiClient.post<ApiResponse<ClsRound>>(`/cls-rounds/${roundId}/cancel`, { reason });
   return res.data.data;
 }
+
+// BM-18: gan cac chi dinh "chua gom dot" (tao truoc khi co dot) vao 1 dot dang mo -
+// che do THU CONG (mac dinh), doc lap voi setting cls.legacy_auto_merge o BE.
+export async function assignLegacyOrdersToRound(
+  roundId: string,
+  labOrderIds: string[],
+  radOrderIds: string[]
+) {
+  const res = await apiClient.post<ApiResponse<ClsRound>>(`/cls-rounds/${roundId}/assign-legacy-orders`, {
+    lab_order_ids: labOrderIds,
+    rad_order_ids: radOrderIds,
+  });
+  return res.data.data;
+}
