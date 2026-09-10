@@ -36,7 +36,7 @@ internal static class ClsRoundSql
         var roundId = (string)r.id;
 
         var labRows = await conn.QueryAsync<dynamic>($@"
-            SELECT o.id, o.test_code AS code, o.test_name AS name, o.status,
+            SELECT o.id, o.test_code AS code, o.test_name AS name, o.status, o.is_free,
                    COALESCE(d.default_price, 0) AS unit_price
             FROM {LabTable} o
             LEFT JOIN diab_his_dict_lab_tests d ON d.code = o.test_code
@@ -45,11 +45,11 @@ internal static class ClsRoundSql
 
         var labs = labRows.Select(o => new ClsRoundOrderItemResponse(
                 Guid.Parse((string)o.id), ClsOrderKind.Lab, (string)o.code, (string)o.name,
-                (string)o.status, Convert.ToDecimal(o.unit_price)))
+                (string)o.status, Convert.ToDecimal(o.unit_price), Convert.ToBoolean(o.is_free)))
             .ToList();
 
         var radRows = await conn.QueryAsync<dynamic>($@"
-            SELECT o.id, o.procedure_code AS code, o.procedure_name AS name, o.status,
+            SELECT o.id, o.procedure_code AS code, o.procedure_name AS name, o.status, o.is_free,
                    COALESCE(d.default_price, 0) AS unit_price
             FROM {RadTable} o
             LEFT JOIN diab_his_dict_rad_procedures d ON d.code = o.procedure_code
@@ -58,7 +58,7 @@ internal static class ClsRoundSql
 
         var rads = radRows.Select(o => new ClsRoundOrderItemResponse(
                 Guid.Parse((string)o.id), ClsOrderKind.Rad, (string)o.code, (string)o.name,
-                (string)o.status, Convert.ToDecimal(o.unit_price)))
+                (string)o.status, Convert.ToDecimal(o.unit_price), Convert.ToBoolean(o.is_free)))
             .ToList();
 
         var all  = labs.Concat(rads).ToList();
@@ -82,19 +82,23 @@ internal static class ClsRoundSql
             labs, rads, progress);
     }
 
-    /// <summary>Tinh lai tong tien cua dot theo bang gia dich vu</summary>
+    /// <summary>Tinh lai tong tien cua dot theo bang gia dich vu.
+    /// BM-16: dich vu danh dau is_free=1 (khong thu phi rieng dich vu do) khong duoc
+    /// cong vao tong - doc lap voi "Mien phi ca dot" (payment_status=WAIVED) o buoc Chot.</summary>
     public static async Task<decimal> RecalcTotalAsync(IDbConnection conn, int tenantId, string roundId)
     {
         var labSum = await conn.ExecuteScalarAsync<decimal?>($@"
             SELECT COALESCE(SUM(COALESCE(d.default_price,0)),0) FROM {LabTable} o
             LEFT JOIN diab_his_dict_lab_tests d ON d.code = o.test_code
-            WHERE o.tenant_id=@TId AND o.round_id=@RId AND o.deleted_at IS NULL AND o.status <> 'cancelled'",
+            WHERE o.tenant_id=@TId AND o.round_id=@RId AND o.deleted_at IS NULL AND o.status <> 'cancelled'
+              AND o.is_free = 0",
             new { TId = tenantId, RId = roundId }) ?? 0m;
 
         var radSum = await conn.ExecuteScalarAsync<decimal?>($@"
             SELECT COALESCE(SUM(COALESCE(d.default_price,0)),0) FROM {RadTable} o
             LEFT JOIN diab_his_dict_rad_procedures d ON d.code = o.procedure_code
-            WHERE o.tenant_id=@TId AND o.round_id=@RId AND o.deleted_at IS NULL AND o.status <> 'cancelled'",
+            WHERE o.tenant_id=@TId AND o.round_id=@RId AND o.deleted_at IS NULL AND o.status <> 'cancelled'
+              AND o.is_free = 0",
             new { TId = tenantId, RId = roundId }) ?? 0m;
 
         var total = labSum + radSum;
@@ -175,15 +179,16 @@ public class CreateClsRoundCommandHandler : IRequestHandler<CreateClsRoundComman
             await conn.ExecuteAsync($@"
                 INSERT INTO {ClsRoundSql.LabTable}
                     (id, tenant_id, encounter_id, round_id, test_code, test_name, sample_type,
-                     priority, status, ordered_at, ordered_by, note, created_at, created_by, updated_at)
+                     priority, status, ordered_at, ordered_by, note, is_free, created_at, created_by, updated_at)
                 VALUES (@Id, @TId, @EId, @RId, @Code, @Name, @Sample,
-                     @Priority, 'ordered', @Now, @Uid, @Note, @Now, @Uid, @Now)",
+                     @Priority, 'ordered', @Now, @Uid, @Note, @IsFree, @Now, @Uid, @Now)",
                 new
                 {
                     Id = Guid.NewGuid().ToString(), TId = tid, EId = encId, RId = roundId,
                     Code = t.TestCode, Name = t.TestName ?? (string?)catalog?.name ?? t.TestCode,
                     Sample = t.SampleType ?? (string?)catalog?.sample_type,
-                    Priority = t.Priority ?? ClsPriority.Normal, Now = now, Uid = userId, Note = t.Note
+                    Priority = t.Priority ?? ClsPriority.Normal, Now = now, Uid = userId, Note = t.Note,
+                    IsFree = t.IsFree ? 1 : 0
                 });
         }
 
@@ -196,15 +201,16 @@ public class CreateClsRoundCommandHandler : IRequestHandler<CreateClsRoundComman
                 INSERT INTO {ClsRoundSql.RadTable}
                     (id, tenant_id, encounter_id, round_id, modality, body_part, contrast,
                      procedure_code, procedure_name, priority, status, ordered_at, ordered_by, note,
-                     created_at, created_by, updated_at)
+                     is_free, created_at, created_by, updated_at)
                 VALUES (@Id, @TId, @EId, @RId, @Mod, @Body, @Contrast,
-                     @Code, @Name, @Priority, 'ordered', @Now, @Uid, @Note, @Now, @Uid, @Now)",
+                     @Code, @Name, @Priority, 'ordered', @Now, @Uid, @Note, @IsFree, @Now, @Uid, @Now)",
                 new
                 {
                     Id = Guid.NewGuid().ToString(), TId = tid, EId = encId, RId = roundId,
                     Mod = o.Modality, Body = o.BodyPart, Contrast = o.Contrast ? 1 : 0,
                     Code = o.ProcedureCode, Name = o.ProcedureName ?? (string?)catalog?.name ?? o.ProcedureCode,
-                    Priority = o.Priority ?? ClsPriority.Normal, Now = now, Uid = userId, Note = o.Note
+                    Priority = o.Priority ?? ClsPriority.Normal, Now = now, Uid = userId, Note = o.Note,
+                    IsFree = o.IsFree ? 1 : 0
                 });
         }
 

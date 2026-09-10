@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Printer, Send, Trash2, Wallet, BadgePercent } from "lucide-react";
+import { ChevronDown, ChevronRight, Printer, Send, Trash2, BadgePercent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
@@ -101,19 +101,11 @@ export function ClsRoundCard({
             </Button>
           )}
 
-          {canPay && onPay && (
-            <Button
-              variant="default"
-              size="sm"
-              className="min-h-[44px] gap-1"
-              onClick={onPay}
-              disabled={isPending}
-            >
-              <Wallet className="h-4 w-4" aria-hidden="true" />
-              Thu tiền
-            </Button>
-          )}
-
+          {/* BM-16: bo nut "Thu tien" khoi man Kham benh (role Bac si) - day la nghiep vu
+              cua Thu ngan. Sau khi Bac si "Chot dot", dot chuyen sang man Thu ngan de xu
+              ly thanh toan (khong con thu tien tai day nua). Giu nguyen nut "Mien phi" -
+              PO xac nhan van giu ca 2 co che (mien phi ca dot + khong thu phi tung dich
+              vu luc tao dot) song song. */}
           {canPay && onWaive && (
             <Button
               variant="outline"

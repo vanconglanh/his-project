@@ -18,6 +18,8 @@ export interface ClsOrderItemRow {
   name: string;
   status: string;
   unit_price?: number | null;
+  // BM-16: dich vu nay khong thu phi (khac voi "Mien phi" ap dung ca dot).
+  is_free?: boolean;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: HisStatusVariant }> = {
@@ -67,7 +69,13 @@ export function ClsOrderItemTable({ items, roundLabel, showPrice = true }: ClsOr
                 </TableCell>
                 {showPrice && (
                   <TableCell className="text-right text-sm font-mono tabular-nums">
-                    {item.unit_price != null ? `${formatVnd(item.unit_price)} ₫` : "—"}
+                    {item.is_free ? (
+                      <span className="text-muted-foreground">Không thu phí</span>
+                    ) : item.unit_price != null ? (
+                      `${formatVnd(item.unit_price)} ₫`
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                 )}
               </TableRow>

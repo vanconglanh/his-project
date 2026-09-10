@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClsCatalog } from "@/lib/hooks/use-cls-orders";
@@ -37,13 +38,20 @@ export function ClsRoundCreateDialog({
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
   const [cart, setCart] = useState<ClsCatalogItem[]>([]);
+  // BM-16: dich vu nao duoc tick "Khong thu phi" ngay luc tao dot (theo ma dich vu).
+  // Doc lap voi nut "Mien phi" ap dung ca dot o buoc Chot (giu nguyen, khong doi).
+  const [freeCodes, setFreeCodes] = useState<Set<string>>(new Set());
   const [note, setNote] = useState("");
 
   const { data: catalog, isLoading } = useClsCatalog({ q: debouncedQuery, limit: 20 });
 
   const total = useMemo(
-    () => cart.reduce((sum, item) => sum + (item.default_price ?? 0), 0),
-    [cart]
+    () =>
+      cart.reduce(
+        (sum, item) => sum + (freeCodes.has(item.code) ? 0 : item.default_price ?? 0),
+        0
+      ),
+    [cart, freeCodes]
   );
 
   function addItem(item: ClsCatalogItem) {
@@ -52,11 +60,27 @@ export function ClsRoundCreateDialog({
 
   function removeItem(code: string) {
     setCart((prev) => prev.filter((x) => x.code !== code));
+    setFreeCodes((prev) => {
+      if (!prev.has(code)) return prev;
+      const next = new Set(prev);
+      next.delete(code);
+      return next;
+    });
+  }
+
+  function toggleFree(code: string, checked: boolean) {
+    setFreeCodes((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(code);
+      else next.delete(code);
+      return next;
+    });
   }
 
   function reset() {
     setQuery("");
     setCart([]);
+    setFreeCodes(new Set());
     setNote("");
   }
 
@@ -70,6 +94,7 @@ export function ClsRoundCreateDialog({
           test_name: x.name,
           sample_type: x.sample_type ?? undefined,
           priority: "NORMAL",
+          is_free: freeCodes.has(x.code),
         })),
       rad_orders: cart
         .filter((x) => x.kind === "RAD")
@@ -79,6 +104,7 @@ export function ClsRoundCreateDialog({
           procedure_code: x.code,
           procedure_name: x.name,
           priority: "NORMAL",
+          is_free: freeCodes.has(x.code),
         })),
     };
     onSubmit(body);
@@ -158,24 +184,40 @@ export function ClsRoundCreateDialog({
               {cart.length === 0 ? (
                 <p className="p-3 text-sm text-muted-foreground">Chưa chọn dịch vụ nào.</p>
               ) : (
-                cart.map((item) => (
-                  <div key={item.code} className="flex items-center gap-2 rounded-md px-2 py-1">
-                    <span className="font-mono text-xs tabular-nums text-primary">{item.code}</span>
-                    <span className="flex-1 line-clamp-2 text-sm">{item.name}</span>
-                    <span className="font-mono text-xs tabular-nums">
-                      {formatVnd(item.default_price)} ₫
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive"
-                      onClick={() => removeItem(item.code)}
-                      aria-label={`Bỏ dịch vụ ${item.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </div>
-                ))
+                cart.map((item) => {
+                  const isFree = freeCodes.has(item.code);
+                  return (
+                    <div key={item.code} className="flex items-center gap-2 rounded-md px-2 py-1">
+                      <span className="font-mono text-xs tabular-nums text-primary">{item.code}</span>
+                      <span className="flex-1 line-clamp-2 text-sm">{item.name}</span>
+                      <span
+                        className={
+                          "font-mono text-xs tabular-nums" +
+                          (isFree ? " text-muted-foreground line-through" : "")
+                        }
+                      >
+                        {formatVnd(item.default_price)} ₫
+                      </span>
+                      <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                        <Checkbox
+                          checked={isFree}
+                          onCheckedChange={(v) => toggleFree(item.code, v === true)}
+                          aria-label={`Không thu phí dịch vụ ${item.name}`}
+                        />
+                        Không thu phí
+                      </label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => removeItem(item.code)}
+                        aria-label={`Bỏ dịch vụ ${item.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  );
+                })
               )}
             </div>
             <div className="flex items-center justify-between text-sm font-semibold">
