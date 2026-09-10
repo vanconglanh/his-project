@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as roundsApi from "@/lib/api/cls-rounds";
 import type { CreateClsRoundRequest } from "@/lib/api/cls-rounds";
+import * as clsOrdersApi from "@/lib/api/cls-orders";
+import type { LabOrderRequest, RadOrderRequest } from "@/lib/api/types";
 import { clsKeys } from "./use-cls-orders";
 
 export const clsRoundKeys = {
@@ -94,6 +96,69 @@ export function useWaiveClsRound(encounterId: string) {
       toast.success("Đã miễn phí đợt chỉ định");
     },
     onError: (err) => toast.error(extractErrorMessage(err, "Miễn phí đợt chỉ định thất bại")),
+  });
+}
+
+// BM-14: "Dieu chinh" dot (them/bot dich vu) - dung lai chinh API tao/xoa chi dinh da co
+// (ClsOrdersController), chi khac la co truyen round_id + phai invalidate CA round query
+// (total_amount thay doi) chu khong chi lab/rad-orders query nhu useCreateLabOrder thuong.
+export function useAddLabOrderToRound(encounterId: string) {
+  const invalidate = useRoundMutationInvalidate(encounterId);
+  return useMutation({
+    mutationFn: ({ tests, roundId }: { tests: LabOrderRequest[]; roundId: string }) =>
+      clsOrdersApi.createLabOrders(encounterId, tests, roundId),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Đã thêm dịch vụ vào đợt");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, "Thêm dịch vụ thất bại")),
+  });
+}
+
+export function useAddRadOrderToRound(encounterId: string) {
+  const invalidate = useRoundMutationInvalidate(encounterId);
+  return useMutation({
+    mutationFn: ({ orders, roundId }: { orders: RadOrderRequest[]; roundId: string }) =>
+      clsOrdersApi.createRadOrders(encounterId, orders, roundId),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Đã thêm dịch vụ vào đợt");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, "Thêm dịch vụ thất bại")),
+  });
+}
+
+export function useRemoveOrderFromRound(encounterId: string) {
+  const invalidate = useRoundMutationInvalidate(encounterId);
+  return useMutation({
+    mutationFn: ({ id, kind }: { id: string; kind: "LAB" | "RAD" }) =>
+      kind === "LAB" ? clsOrdersApi.deleteLabOrder(id) : clsOrdersApi.deleteRadOrder(id),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Đã bỏ dịch vụ khỏi đợt");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, "Bỏ dịch vụ thất bại")),
+  });
+}
+
+// BM-18: gop thu cong danh sach chi dinh "chua gom dot" vao 1 dot dang mo.
+export function useAssignLegacyOrdersToRound(encounterId: string) {
+  const invalidate = useRoundMutationInvalidate(encounterId);
+  return useMutation({
+    mutationFn: ({
+      roundId,
+      labOrderIds,
+      radOrderIds,
+    }: {
+      roundId: string;
+      labOrderIds: string[];
+      radOrderIds: string[];
+    }) => roundsApi.assignLegacyOrdersToRound(roundId, labOrderIds, radOrderIds),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Đã gộp dịch vụ vào đợt chỉ định");
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, "Gộp dịch vụ vào đợt thất bại")),
   });
 }
 

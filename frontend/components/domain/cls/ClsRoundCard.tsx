@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Printer, Send, Trash2, BadgePercent } from "lucide-react";
+import { ChevronDown, ChevronRight, Printer, Send, Pencil, BadgePercent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { ClsRoundPaymentBadge } from "./ClsRoundPaymentBadge";
 import { ClsOrderItemTable, type ClsOrderItemRow } from "./ClsOrderItemTable";
+import { ClsRoundEditDialog } from "./ClsRoundEditDialog";
 import { formatVnd, formatVnDateTime } from "@/lib/utils/encounter-format";
 import type { ClsRound } from "@/lib/api/cls-rounds";
+import type { LabOrderRequest, RadOrderRequest } from "@/lib/api/types";
 
 export interface ClsRoundCardProps {
   round: ClsRound;
@@ -20,6 +22,12 @@ export interface ClsRoundCardProps {
   onCancel?: () => void;
   onPay?: () => void;
   onWaive?: (reason: string) => void;
+  // BM-14: "Dieu chinh" dot - them/bot tung dich vu, chi kha dung khi dot chua thanh toan.
+  onAddLab?: (tests: LabOrderRequest[]) => void;
+  onAddRad?: (orders: RadOrderRequest[]) => void;
+  onRemoveItem?: (id: string, kind: "LAB" | "RAD") => void;
+  isAddingItem?: boolean;
+  isRemovingItem?: boolean;
 }
 
 export function ClsRoundCard({
@@ -32,9 +40,14 @@ export function ClsRoundCard({
   onCancel,
   onPay,
   onWaive,
+  onAddLab,
+  onAddRad,
+  onRemoveItem,
+  isAddingItem,
+  isRemovingItem,
 }: ClsRoundCardProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [confirmWaive, setConfirmWaive] = useState(false);
 
   const items: ClsOrderItemRow[] = [
@@ -119,16 +132,22 @@ export function ClsRoundCard({
             </Button>
           )}
 
-          {canMutate && onCancel && (
+          {/* BM-14: doi nut "Xoa" (huy ca dot) -> "Dieu chinh" (them/bot tung dich vu).
+              Huy ca dot (BM-15) van con nhung chuyen thanh hanh dong phu ben trong dialog
+              Dieu chinh, khong con la nut chinh o toolbar. An hoan toan khi da thanh toan/
+              huy (khong con canMutate) de dam bao toan ven du lieu - bac si van xem lai
+              duoc thong tin dot (dich vu, gia, trang thai) qua bang ben duoi, chi khong
+              thao tac chinh sua duoc nua. */}
+          {canMutate && (
             <Button
               variant="ghost"
               size="sm"
-              className="min-h-[44px] text-destructive"
-              onClick={() => setConfirmCancel(true)}
+              className="min-h-[44px] gap-1"
+              onClick={() => setEditOpen(true)}
               disabled={isPending}
-              aria-label={`Huỷ ${roundLabel}`}
             >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              Điều chỉnh
             </Button>
           )}
         </div>
@@ -144,20 +163,20 @@ export function ClsRoundCard({
         )}
       </CardContent>
 
-      <ConfirmDialog
-        open={confirmCancel}
-        onOpenChange={setConfirmCancel}
-        title={`Huỷ đợt chỉ định #${round.round_no}?`}
-        description={`Toàn bộ ${items.length} dịch vụ trong đợt này sẽ bị huỷ. Không thể hoàn tác.`}
-        variant="destructive"
-        confirmLabel="Huỷ đợt"
-        cancelLabel="Giữ lại"
-        isLoading={isPending}
-        onConfirm={() => {
-          setConfirmCancel(false);
-          onCancel?.();
-        }}
-      />
+      {editOpen && (
+        <ClsRoundEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          round={round}
+          isAdding={isAddingItem}
+          isRemoving={isRemovingItem}
+          isCancelling={isPending}
+          onAddLab={(tests) => onAddLab?.(tests)}
+          onAddRad={(orders) => onAddRad?.(orders)}
+          onRemove={(id, kind) => onRemoveItem?.(id, kind)}
+          onCancelRound={onCancel ? () => onCancel() : undefined}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmWaive}

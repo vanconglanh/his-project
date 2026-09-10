@@ -110,4 +110,21 @@ public class ClsRoundsController : ControllerBase
         if (!result.IsSuccess) return Fail(result);
         return Ok(new { data = result.Value });
     }
+
+    /// <summary>BM-18: gan cac chi dinh "chua gom dot" (round_id NULL) da co san vao 1 dot
+    /// dang mo, theo lua chon THU CONG cua Bac si (setting cls.legacy_auto_merge=false, mac
+    /// dinh). Khi setting=true he thong da tu dong gom luc tao dot moi, endpoint nay van
+    /// dung duoc de gom bo sung neu can.</summary>
+    [HttpPost("cls-rounds/{id:guid}/assign-legacy-orders")]
+    [RequirePermission("cls_round.create")]
+    public async Task<IActionResult> AssignLegacyOrders(
+        Guid id, [FromBody] AssignLegacyOrdersRequest request, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new AssignLegacyOrdersToRoundCommand(id, request.LabOrderIds ?? [], request.RadOrderIds ?? []), ct);
+        if (!result.IsSuccess) return Fail(result);
+        return Ok(new { data = result.Value });
+    }
 }
+
+public record AssignLegacyOrdersRequest(IReadOnlyList<Guid>? LabOrderIds, IReadOnlyList<Guid>? RadOrderIds);

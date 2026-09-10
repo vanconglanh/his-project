@@ -15,6 +15,9 @@ public record WaiveClsRoundCommand(Guid RoundId, WaiveClsRoundRequest Request) :
 
 public record CancelClsRoundCommand(Guid RoundId, string? Reason) : IRequest<Result<ClsRoundResponse>>;
 
+// BM-18: dinh nghia dat trong ClsRoundHandlers.cs (canh handler cua no) - tham chieu o day
+// de nguoi doc file nay thay day du danh sach command cua module cls-round.
+
 // ── Queries ──
 public record ListClsRoundsQuery(Guid EncounterId, string? Status) : IRequest<Result<ClsRoundListResponse>>;
 
