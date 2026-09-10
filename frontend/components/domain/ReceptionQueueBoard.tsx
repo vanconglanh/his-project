@@ -19,7 +19,7 @@ import {
 import { useRooms } from "@/lib/hooks/use-reception";
 import { useCreateVitalSigns } from "@/lib/hooks/use-vital-signs";
 import { usePermissions } from "@/lib/hooks/use-permissions";
-import { isNursingRole } from "@/lib/utils/roles";
+import { isNursingRole, isReceptionistRole } from "@/lib/utils/roles";
 import type { ReceptionTicketResponse, VitalSignsRequest } from "@/lib/api/types";
 import { Input } from "@/components/ui/input";
 
@@ -41,6 +41,9 @@ export function ReceptionQueueBoard() {
   const router = useRouter();
   const { roles } = usePermissions();
   const isNursing = isNursingRole(roles);
+  // BM-08: Le tan khong duoc chuyen sang man Kham benh duoi bat ky hinh thuc nao ->
+  // an han nut "Dua vao kham" (khong truyen onAdmit xuong TicketCard).
+  const isReceptionist = isReceptionistRole(roles);
 
   const { data: tickets, isLoading, refetch, isFetching } = useReceptionQueue();
   const { data: rooms } = useRooms();
@@ -148,7 +151,7 @@ export function ReceptionQueueBoard() {
                       onCall={(id) => callMutation.mutate(id)}
                       onSkip={(id) => skipMutation.mutate(id)}
                       onCancel={(id) => setCancelState({ ticketId: id, reason: "" })}
-                      onAdmit={() => handleAdmit(ticket)}
+                      onAdmit={isReceptionist ? undefined : () => handleAdmit(ticket)}
                       isCallLoading={callMutation.isPending}
                       isSkipLoading={skipMutation.isPending}
                       isAdmitLoading={admitMutation.isPending}

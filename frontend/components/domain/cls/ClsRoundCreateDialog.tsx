@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { BookmarkPlus, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -17,7 +17,20 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { useClsCatalog } from "@/lib/hooks/use-cls-orders";
+import {
+  useClsOrderTemplates,
+  useCreateClsOrderTemplate,
+  useDeleteClsOrderTemplate,
+} from "@/lib/hooks/use-cls-order-templates";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { formatVnd } from "@/lib/utils/encounter-format";
 import type { ClsCatalogItem } from "@/lib/api/types";
@@ -43,8 +56,17 @@ export function ClsRoundCreateDialog({
   // Doc lap voi nut "Mien phi" ap dung ca dot o buoc Chot (giu nguyen, khong doi).
   const [freeCodes, setFreeCodes] = useState<Set<string>>(new Set());
   const [note, setNote] = useState("");
+  // BM-12: bo chi dinh mau (rieng tung bac si) - chon 1 mau co san de nap nhanh vao gio,
+  // hoac luu gio hien tai thanh mau moi de dung lai lan sau (khong lien quan freeCodes cua
+  // "Mien phi ca dot" o Chot, van luu "Khong thu phi" tung dich vu neu co tick).
+  const [templateId, setTemplateId] = useState("");
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
 
   const { data: catalog, isLoading } = useClsCatalog({ q: debouncedQuery, limit: 20 });
+  const { data: templates, isLoading: isLoadingTemplates } = useClsOrderTemplates();
+  const createTemplate = useCreateClsOrderTemplate();
+  const deleteTemplate = useDeleteClsOrderTemplate();
 
   const total = useMemo(
     () =>
@@ -92,6 +114,47 @@ export function ClsRoundCreateDialog({
     setCart([]);
     setFreeCodes(new Set());
     setNote("");
+    setTemplateId("");
+  }
+
+  // BM-12: nap mot bo mau da luu vao gio hien tai - CONG DON vao gio (khong thay the) de
+  // bac si co the ghep nhieu mau/dich vu le trong 1 dot, tru trung ma da co san.
+  function applyTemplate(id: string) {
+    const tpl = templates?.find((t) => t.id === id);
+    if (!tpl) return;
+    setTemplateId(id);
+    let addedCount = 0;
+    setCart((prev) => {
+      const existingCodes = new Set(prev.map((x) => x.code));
+      const toAdd = tpl.items.filter((x) => !existingCodes.has(x.code));
+      addedCount = toAdd.length;
+      return [...toAdd, ...prev];
+    });
+    setFreeCodes((prev) => {
+      const next = new Set(prev);
+      tpl.items.forEach((x) => { if (x.is_free) next.add(x.code); });
+      return next;
+    });
+    if (addedCount < tpl.items.length) {
+      toast.info(`Đã bỏ qua ${tpl.items.length - addedCount} dịch vụ trùng đã có trong giỏ`);
+    }
+  }
+
+  function handleSaveTemplate() {
+    const name = templateName.trim();
+    if (!name || cart.length === 0) return;
+    createTemplate.mutate(
+      {
+        name,
+        items: cart.map((x) => ({ ...x, is_free: freeCodes.has(x.code) })),
+      },
+      {
+        onSuccess: () => {
+          setSaveTemplateOpen(false);
+          setTemplateName("");
+        },
+      }
+    );
   }
 
   function handleSubmit() {
@@ -189,7 +252,54 @@ export function ClsRoundCreateDialog({
 
           {/* Phải — giỏ dịch vụ */}
           <div className="space-y-2">
-            <Label>Dịch vụ đã chọn ({cart.length})</Label>
+            {/* BM-12: chon nhanh bo chi dinh mau da luu (rieng cua bac si dang dang nhap) */}
+            {(isLoadingTemplates || (templates && templates.length > 0)) && (
+              <div className="flex items-center gap-2">
+                <Select
+                  value={templateId}
+                  onValueChange={(v) => { if (v) applyTemplate(v); }}
+                  disabled={isLoadingTemplates}
+                >
+                  <SelectTrigger className="h-9 flex-1 text-xs">
+                    <SelectValue placeholder="Nạp từ bộ chỉ định mẫu..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates?.map((tpl) => (
+                      <SelectItem key={tpl.id} value={tpl.id}>
+                        {tpl.name} ({tpl.items.length} dịch vụ)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {templateId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 text-destructive"
+                    disabled={deleteTemplate.isPending}
+                    onClick={() => {
+                      deleteTemplate.mutate(templateId);
+                      setTemplateId("");
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <Label>Dịch vụ đã chọn ({cart.length})</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                disabled={cart.length === 0}
+                onClick={() => setSaveTemplateOpen(true)}
+              >
+                <BookmarkPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                Lưu bộ mẫu
+              </Button>
+            </div>
             <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-border p-1">
               {cart.length === 0 ? (
                 <p className="p-3 text-sm text-muted-foreground">Chưa chọn dịch vụ nào.</p>
@@ -259,6 +369,27 @@ export function ClsRoundCreateDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* BM-12: luu gio hien tai thanh bo chi dinh mau (rieng cua bac si dang dang nhap) */}
+      <ConfirmDialog
+        open={saveTemplateOpen}
+        onOpenChange={setSaveTemplateOpen}
+        title="Lưu bộ chỉ định mẫu"
+        description={
+          <div className="space-y-2">
+            <p>Đặt tên cho bộ mẫu gồm {cart.length} dịch vụ hiện tại:</p>
+            <Input
+              autoFocus
+              placeholder="Ví dụ: Xét nghiệm tiền phẫu..."
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+            />
+          </div>
+        }
+        confirmLabel="Lưu"
+        isLoading={createTemplate.isPending}
+        onConfirm={handleSaveTemplate}
+      />
     </Dialog>
   );
 }
