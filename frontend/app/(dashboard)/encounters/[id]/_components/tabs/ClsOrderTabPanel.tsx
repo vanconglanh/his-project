@@ -27,7 +27,8 @@ import {
   useAssignLegacyOrdersToRound,
 } from "@/lib/hooks/use-cls-rounds";
 import { useLabOrders, useRadOrders } from "@/lib/hooks/use-cls-orders";
-import { printLabOrdersPdf } from "@/lib/api/cls-orders";
+import { printLabOrdersPdf, printRadOrdersPdf } from "@/lib/api/cls-orders";
+import type { ClsRound } from "@/lib/api/cls-rounds";
 
 interface Props {
   encounterId: string;
@@ -50,6 +51,16 @@ export function ClsOrderTabPanel({ encounterId, canEdit }: Props) {
   const assignLegacy = useAssignLegacyOrdersToRound(encounterId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // BM-17: "In phieu" phai in DUNG dot dang xem (truyen round.id cho BE loc theo
+  // round_id), khong gop tat ca cac dot cua luot kham + khong trung dich vu giua cac dot.
+  // Mot dot co the gom ca XN lan CDHA nen in ca 2 loai NEU dot co chi dinh loai do
+  // (kiem tra qua round.lab_orders/rad_orders da co san, tranh goi API roi nhan loi
+  // LAB_ORDER_EMPTY/RAD_ORDER_EMPTY - printPdfBlob se fallback mo tab loi neu goi thua).
+  function printRound(round: ClsRound) {
+    if (round.lab_orders.length > 0) void printLabOrdersPdf(encounterId, round.id);
+    if (round.rad_orders.length > 0) void printRadOrdersPdf(encounterId, round.id);
+  }
 
   const rounds = useMemo(
     () => [...(data?.rounds ?? [])].sort((a, b) => b.round_no - a.round_no),
@@ -154,7 +165,7 @@ export function ClsOrderTabPanel({ encounterId, canEdit }: Props) {
                 payRound.isPending ||
                 waiveRound.isPending
               }
-              onPrint={() => void printLabOrdersPdf(encounterId)}
+              onPrint={() => printRound(round)}
               onSubmit={() => submitRound.mutate(round.id)}
               onCancel={() => cancelRound.mutate({ roundId: round.id })}
               onPay={() => payRound.mutate({ roundId: round.id })}

@@ -32,6 +32,7 @@ import { formatDate } from "@/lib/utils/format";
 import { PackageCheck } from "lucide-react";
 import { CccdQrScanner } from "@/components/domain/CccdQrScanner";
 import { CccdMismatchDialog, type CccdFieldUpdateSelection } from "@/components/domain/CccdMismatchDialog";
+import { QuickAddPatientDialog } from "@/components/domain/QuickAddPatientDialog";
 import {
   Dialog,
   DialogContent,
@@ -73,6 +74,8 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
   const [debouncedQ, setDebouncedQ] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<PatientResponse | null>(null);
   const [showSearchList, setShowSearchList] = useState(false);
+  // BM-03: dang ky nhanh benh nhan moi ngay tai panel, khong dieu huong sang /patients/new nua.
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   const { data: rooms } = useRooms();
   const checkInMutation = useCheckIn();
@@ -297,10 +300,13 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
                 variant="ghost"
                 size="sm"
                 className="w-full gap-1.5 text-xs"
-                onClick={saveDraftAndCreatePatient}
+                onClick={() => {
+                  setShowSearchList(false);
+                  setQuickAddOpen(true);
+                }}
               >
                 <UserPlus className="h-3.5 w-3.5" />
-                Tạo bệnh nhân mới
+                Đăng ký nhanh bệnh nhân mới
               </Button>
             </div>
           </div>
@@ -489,6 +495,18 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
         onSave={handleSaveMismatch}
       />
     )}
+
+    {/* BM-03: dang ky nhanh benh nhan moi ngay tai panel Tiep don - da tu tao ticket
+        (neu chon "hom nay") hoac lich hen (neu chon ngay tuong lai) ben trong dialog,
+        khong can dieu huong sang /patients/new nua. */}
+    <QuickAddPatientDialog
+      open={quickAddOpen}
+      onOpenChange={setQuickAddOpen}
+      onCheckedIn={() => {
+        setSearchQ("");
+        setSelectedPatient(null);
+      }}
+    />
     </>
   );
 }

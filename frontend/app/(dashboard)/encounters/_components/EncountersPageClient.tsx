@@ -47,7 +47,11 @@ export function EncountersPageClient() {
   const params = {
     ...(statusFilter !== "all" && { status: statusFilter }),
     ...(quickFilter === "today" && { date_from: today, date_to: today }),
-    ...(quickFilter === "waiting" && { status: "WAITING", date_from: today, date_to: today }),
+    // BM-07: "Cho kham" phai hien THAT CA luot dang cho (status=WAITING), khong gioi han
+    // theo ngay tao - truoc day gan them date_from/date_to=today nen benh nhan check-in tu
+    // hom truoc (van dang WAITING, va co the da "Qua 12h") bi loc mat khoi tab nay du van
+    // dang thuc su cho kham, gay lech du lieu voi tab "Qua 12h" (khong gioi han ngay).
+    ...(quickFilter === "waiting" && { status: "WAITING" }),
     ...(dateFrom && !quickFilter && { date_from: dateFrom }),
     ...(dateTo && !quickFilter && { date_to: dateTo }),
     page,

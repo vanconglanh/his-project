@@ -6,8 +6,11 @@ using ProDiabHis.Application.Reports;
 namespace ProDiabHis.Application.CLS;
 
 // ────────────── Queries ──────────────
-public record GetLabOrdersPdfQuery(Guid EncounterId) : IRequest<Result<byte[]>>;
-public record GetRadOrdersPdfQuery(Guid EncounterId) : IRequest<Result<byte[]>>;
+// BM-17: RoundId optional (null = hanh vi cu, giu tuong thich nguoc cho noi con goi khong
+// truyen dot) - khi co RoundId, PHIEU CHI IN DUNG cac chi dinh cua dot do, tranh gop tat
+// ca cac dot (ke ca da thanh toan/mien phi) va bi trung dich vu giua cac dot.
+public record GetLabOrdersPdfQuery(Guid EncounterId, Guid? RoundId = null) : IRequest<Result<byte[]>>;
+public record GetRadOrdersPdfQuery(Guid EncounterId, Guid? RoundId = null) : IRequest<Result<byte[]>>;
 
 internal class ClsSlipEncounterRow
 {
@@ -80,11 +83,14 @@ public class GetLabOrdersPdfQueryHandler : IRequestHandler<GetLabOrdersPdfQuery,
         if (enc == null)
             return Result<byte[]>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
+        // BM-17: co RoundId thi CHI lay dung cac chi dinh cua dot do (khong gop cac dot khac).
+        var roundId = q.RoundId?.ToString();
         var rows = await conn.QueryAsync<(string test_name, string? sample_type, string priority, string? note)>(
             @"SELECT test_name, sample_type, priority, note FROM diab_his_cli_lab_orders
               WHERE encounter_id = @encId AND tenant_id = @tenantId AND deleted_at IS NULL
+                AND (@roundId IS NULL OR round_id = @roundId)
               ORDER BY created_at",
-            new { encId, tenantId });
+            new { encId, tenantId, roundId });
 
         var items = rows.Select((r, i) => new ClsOrderSlipItemDto(
             i + 1, r.test_name,
@@ -129,11 +135,14 @@ public class GetRadOrdersPdfQueryHandler : IRequestHandler<GetRadOrdersPdfQuery,
         if (enc == null)
             return Result<byte[]>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
+        // BM-17: co RoundId thi CHI lay dung cac chi dinh cua dot do (khong gop cac dot khac).
+        var roundId = q.RoundId?.ToString();
         var rows = await conn.QueryAsync<(string procedure_name, string modality, string? body_part, bool contrast, string priority, string? note)>(
             @"SELECT procedure_name, modality, body_part, contrast, priority, note FROM diab_his_cli_rad_orders
               WHERE encounter_id = @encId AND tenant_id = @tenantId AND deleted_at IS NULL
+                AND (@roundId IS NULL OR round_id = @roundId)
               ORDER BY created_at",
-            new { encId, tenantId });
+            new { encId, tenantId, roundId });
 
         var items = rows.Select((r, i) =>
         {

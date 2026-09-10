@@ -72,20 +72,24 @@ export async function searchClsCatalog(params: { q?: string; kind?: "LAB" | "RAD
 
 // ─── PDF chỉ định (letterhead branded, QuestPDF server-side) ─────────────────
 
-export function getLabOrdersPdfUrl(encounterId: string): string {
-  return `${apiClient.defaults.baseURL}/encounters/${encounterId}/lab-orders/pdf`;
+// BM-17: roundId optional - truyen vao de phieu CHI in dung 1 dot (khong gop tat ca cac
+// dot cua luot kham + tranh trung dich vu giua cac dot). Khong truyen = giu hanh vi cu.
+export function getLabOrdersPdfUrl(encounterId: string, roundId?: string): string {
+  const base = `${apiClient.defaults.baseURL}/encounters/${encounterId}/lab-orders/pdf`;
+  return roundId ? `${base}?roundId=${roundId}` : base;
 }
 
-export function getRadOrdersPdfUrl(encounterId: string): string {
-  return `${apiClient.defaults.baseURL}/encounters/${encounterId}/rad-orders/pdf`;
+export function getRadOrdersPdfUrl(encounterId: string, roundId?: string): string {
+  const base = `${apiClient.defaults.baseURL}/encounters/${encounterId}/rad-orders/pdf`;
+  return roundId ? `${base}?roundId=${roundId}` : base;
 }
 
-export async function printLabOrdersPdf(encounterId: string): Promise<void> {
+export async function printLabOrdersPdf(encounterId: string, roundId?: string): Promise<void> {
   const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
-  await printPdfBlob(getLabOrdersPdfUrl(encounterId));
+  await printPdfBlob(getLabOrdersPdfUrl(encounterId, roundId));
 }
 
-export async function printRadOrdersPdf(encounterId: string): Promise<void> {
+export async function printRadOrdersPdf(encounterId: string, roundId?: string): Promise<void> {
   const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
-  await printPdfBlob(getRadOrdersPdfUrl(encounterId));
+  await printPdfBlob(getRadOrdersPdfUrl(encounterId, roundId));
 }
