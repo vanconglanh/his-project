@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/lib/hooks/use-permissions";
+import { isNursingRole } from "@/lib/utils/roles";
 import { EmrTabPanel } from "./tabs/EmrTabPanel";
 import { HistoryTabPanel } from "./tabs/HistoryTabPanel";
 import { ClsOrderTabPanel } from "./tabs/ClsOrderTabPanel";
@@ -38,6 +40,11 @@ export type EncounterTabValue = (typeof ENCOUNTER_TAB_VALUES)[number];
 export function isEncounterTabValue(v: string | null): v is EncounterTabValue {
   return !!v && (ENCOUNTER_TAB_VALUES as readonly string[]).includes(v);
 }
+
+// BM-05 (Lark Bug-Feedback): role Dieu duong/KTV tren man "Kham benh" CHI duoc thay 3 tab
+// nghiep vu cua ho (tao/xem chi dinh CLS + tep tin) - cac tab con lai (Benh an, Tien su,
+// Chan doan, Don thuoc, Tai kham) thuoc pham vi Bac si nen an hoan toan.
+export const NURSING_VISIBLE_TABS: readonly EncounterTabValue[] = ["cls-orders", "cls-results", "files"];
 
 const TAB_META: Record<
   EncounterTabValue,
@@ -81,6 +88,10 @@ export function EncounterTabs({
   onAddDiagnosis,
   onDeleteDiagnosis,
 }: EncounterTabsProps) {
+  const { roles } = usePermissions();
+  const isNursing = isNursingRole(roles);
+  const visibleTabValues = isNursing ? NURSING_VISIBLE_TABS : ENCOUNTER_TAB_VALUES;
+
   return (
     <Tabs value={value} onValueChange={(v) => onValueChange(v as EncounterTabValue)}>
       <TabsList
@@ -90,7 +101,7 @@ export function EncounterTabs({
         )}
         data-tour="enc-tabs"
       >
-        {ENCOUNTER_TAB_VALUES.map((tab) => {
+        {visibleTabValues.map((tab) => {
           const meta = TAB_META[tab];
           const Icon = meta.icon;
           const count = counters?.[tab];
