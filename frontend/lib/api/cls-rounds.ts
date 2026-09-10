@@ -20,6 +20,8 @@ export interface ClsRoundOrderItem {
   name: string;
   status: string;
   unit_price: number;
+  // BM-16: dich vu nay khong thu phi (rieng dich vu, khac voi "Mien phi" ca dot).
+  is_free?: boolean;
 }
 
 export interface ClsRoundProgress {
@@ -62,6 +64,8 @@ export interface ClsRoundLabItemRequest {
   sample_type?: string | null;
   priority?: string;
   note?: string;
+  // BM-16: bac si tick "Khong thu phi" cho rieng dich vu nay ngay luc tao dot.
+  is_free?: boolean;
 }
 
 export interface ClsRoundRadItemRequest {
@@ -72,6 +76,7 @@ export interface ClsRoundRadItemRequest {
   procedure_name?: string;
   priority?: string;
   note?: string;
+  is_free?: boolean;
 }
 
 export interface CreateClsRoundRequest {

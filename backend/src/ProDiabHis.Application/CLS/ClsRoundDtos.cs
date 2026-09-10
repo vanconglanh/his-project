@@ -6,7 +6,10 @@ public record ClsRoundLabItemRequest(
     string? TestName,
     string? SampleType,
     string? Priority,
-    string? Note);
+    string? Note,
+    // BM-16: bac si tick "Khong thu phi" cho RIENG dich vu nay ngay luc tao dot -
+    // khac voi "Mien phi" ap dung ca dot o buoc Chot (WaiveClsRoundCommand, giu nguyen).
+    bool IsFree = false);
 
 /// <summary>Dich vu CDHA trong 1 dot chi dinh</summary>
 public record ClsRoundRadItemRequest(
@@ -16,7 +19,8 @@ public record ClsRoundRadItemRequest(
     string ProcedureCode,
     string? ProcedureName,
     string? Priority,
-    string? Note);
+    string? Note,
+    bool IsFree = false);
 
 public record CreateClsRoundRequest(
     string? Note,
@@ -35,7 +39,8 @@ public record ClsRoundOrderItemResponse(
     string Code,
     string Name,
     string Status,
-    decimal UnitPrice);
+    decimal UnitPrice,
+    bool IsFree = false); // BM-16: dich vu nay khong thu phi (khong tinh vao total_amount)
 
 public record ClsRoundProgressResponse(int Total, int Done, int Pending);
 
