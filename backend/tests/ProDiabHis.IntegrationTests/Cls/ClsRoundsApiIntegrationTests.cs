@@ -170,4 +170,16 @@ public class ClsRoundsApiIntegrationTests
         res.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
         res.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
     }
+
+    // BM-15 (Lark Bug-Feedback) - co quyen cls_round.cancel (vd role bac_si sau migration
+    // 9205) thi khong con bi 403 PERMISSION_DENIED khi huy dot (404 CLS_ROUND_NOT_FOUND vi
+    // Id la Guid ngau nhien la ket qua dung cho case nay - diem can kiem la KHONG phai 403).
+    [ApiFact]
+    public async Task HuyDotChiDinh_DungQuyenCancel_KhongBi403()
+    {
+        var res = await _fx.ClientWith("cls_round.cancel")
+            .PostAsJsonAsync($"/api/v1/cls-rounds/{Id}/cancel", new { });
+        res.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+        res.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+    }
 }

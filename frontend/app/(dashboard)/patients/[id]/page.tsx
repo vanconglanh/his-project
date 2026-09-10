@@ -25,6 +25,7 @@ import { InBodyHistoryList } from "@/components/domain/InBodyHistoryList";
 import { LegacyDocsList } from "@/components/domain/LegacyDocsList";
 import { SmartUploadDialog } from "@/components/domain/SmartUploadDialog";
 import { formatDate, formatDateTime } from "@/lib/utils/format";
+import { usePermissions } from "@/lib/hooks/use-permissions";
 import type { Gender } from "@/lib/api/types";
 
 const GENDER_LABELS: Record<Gender, string> = {
@@ -45,6 +46,16 @@ const TABS = [
   { id: "legacy-docs", label: "Tài liệu cũ đã số hoá" },
 ];
 
+// BM-09 (Lark Bug-Feedback): role KTV chi can thong tin phuc vu do sinh hieu/CLS
+// (ho ten, ma BN, ngay sinh, gioi tinh...), khong thuoc pham vi cong viec de xem
+// SDT / thong tin BHYT cua benh nhan -> an tab "BHYT" + dong SDT/email tren dau trang.
+function isKtvRole(roles: string[]): boolean {
+  return roles.some((r) => {
+    const v = r.toLowerCase();
+    return v === "ky_thuat_vien" || v === "kỹ thuật viên";
+  });
+}
+
 export default function PatientDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -58,6 +69,9 @@ export default function PatientDetailPage() {
   const updateNoteMutation = useUpdateReceptionNote(id);
   const { data: packageSummary } = usePatientPackageSummary(id);
   const { data: encountersData } = usePatientEncounters(id);
+  const { roles } = usePermissions();
+  const hideSensitivePii = isKtvRole(roles);
+  const visibleTabs = hideSensitivePii ? TABS.filter((t) => t.id !== "bhyt") : TABS;
 
   // [Lối tắt phụ] Danh sách lượt khám cho dialog "Tải tài liệu lên (tự nhận diện)"
   const encounterOptions = (encountersData?.data ?? []).map(
@@ -248,11 +262,13 @@ export default function PatientDetailPage() {
             {patient.age ? ` • ${patient.age} tuổi` : ""}
             {patient.date_of_birth ? ` (${formatDate(patient.date_of_birth)})` : ""}
           </p>
-          <p className="text-sm text-muted-foreground">
-            {patient.phone}
-            {patient.phone && patient.email ? " • " : ""}
-            {patient.email}
-          </p>
+          {!hideSensitivePii && (
+            <p className="text-sm text-muted-foreground">
+              {patient.phone}
+              {patient.phone && patient.email ? " • " : ""}
+              {patient.email}
+            </p>
+          )}
           {patient.allergies_summary && (
             <p className="text-xs text-destructive font-medium">
               Dị ứng: {patient.allergies_summary}
@@ -265,7 +281,7 @@ export default function PatientDetailPage() {
 
       {/* Tab nav */}
       <div className="flex border-b overflow-x-auto gap-1 -mb-px">
-        {TABS.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -343,7 +359,7 @@ export default function PatientDetailPage() {
           </div>
         )}
 
-        {activeTab === "bhyt" && <BhytForm patientId={id} />}
+        {activeTab === "bhyt" && !hideSensitivePii && <BhytForm patientId={id} />}
         {activeTab === "allergy" && <AllergyList patientId={id} />}
         {activeTab === "emergency" && <EmergencyContactList patientId={id} />}
         {activeTab === "consent" && <ConsentList patientId={id} />}

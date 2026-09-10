@@ -45,7 +45,10 @@ const TAB_META: Record<
 > = {
   emr: { icon: FileText, long: "Bệnh án", short: "Bệnh án" },
   history: { icon: HeartPulse, long: "Tiền sử", short: "Tiền sử" },
-  "cls-orders": { icon: FlaskConical, long: "Cận lâm sàng", short: "CLS" },
+  // BM-11 (Lark Bug-Feedback): doi ten tab "Can lam sang" -> "Chi dinh" de phan
+  // anh dung pham vi (tab nay dung de tao/quan ly dot CHI DINH XN/CDHA, khong
+  // phai xem ket qua lam sang) - tab "Ket qua CLS" ben canh moi la noi xem KQ.
+  "cls-orders": { icon: FlaskConical, long: "Chỉ định", short: "Chỉ định" },
   "cls-results": { icon: ClipboardCheck, long: "Kết quả CLS", short: "Kết quả" },
   diagnosis: { icon: Stethoscope, long: "Chẩn đoán", short: "Chẩn đoán" },
   prescription: { icon: Pill, long: "Đơn thuốc", short: "Đơn thuốc" },

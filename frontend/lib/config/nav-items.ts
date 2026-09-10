@@ -241,7 +241,10 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         href: "/reports/chain-dashboard",
         labelKey: "chainDashboard",
         icon: Building2,
-        permissions: ["dashboard.read"],
+        // BM-10: doi tu "dashboard.read" (cap rong cho moi role, ke ca ky_thuat_vien)
+        // sang "report.read" - khop voi permission BE that su enforce (xem
+        // DashboardController.GetBranchRanking/GetBranchDetail).
+        permissions: ["report.read"],
       },
       {
         href: "/reports/schedules",

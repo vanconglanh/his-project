@@ -95,7 +95,8 @@ export function ClsRoundCreateDialog({
     >
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Tạo đợt chỉ định cận lâm sàng</DialogTitle>
+          {/* BM-11: bo "cận lâm sàng" thua - dot chi dinh gom ca XN lan CDHA, khong rieng CLS */}
+          <DialogTitle>Tạo đợt chỉ định</DialogTitle>
           <DialogDescription>
             Chọn dịch vụ xét nghiệm / chẩn đoán hình ảnh cho đợt chỉ định này.
           </DialogDescription>
