@@ -19,7 +19,17 @@ import { useSetup2FA, useEnable2FA } from "@/lib/hooks/use-users";
 import { verify2fa } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/utils/errors";
 import type { AxiosError } from "axios";
+import type { LoginResponse } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+
+// BM-05 (Lark Bug-Feedback): role Dieu duong vao thang "Tong quan" sau dang nhap khong
+// phu hop nghiep vu chinh (theo doi hang doi tiep don + ghi sinh hieu) -> vao thang
+// "/reception". Ky thuat vien giu nguyen "/" (chua duoc cap reception.read theo BM-05).
+function resolveLandingRoute(user: LoginResponse["user"]): string {
+  const roles = [...(user?.roles ?? []), ...(user?.roleCodes ?? [])];
+  const isDieuDuong = roles.some((r) => r.toLowerCase() === "dieu_duong" || r.toLowerCase() === "điều dưỡng");
+  return isDieuDuong ? "/reception" : "/";
+}
 
 const loginSchema = z.object({
   email: z
@@ -122,8 +132,8 @@ export function LoginForm() {
         return;
       }
 
-      // Trạng thái 1: đăng nhập bình thường → vào dashboard.
-      router.push("/");
+      // Trạng thái 1: đăng nhập bình thường → vào màn mặc định theo role (BM-05).
+      router.push(resolveLandingRoute(res.user));
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 401) {
@@ -143,7 +153,7 @@ export function LoginForm() {
       const res = await verify2fa({ mfaPendingToken, code });
       // Thành công → response là LoginResponse đầy đủ, thiết lập phiên như login thường.
       await establishSession(res);
-      router.push("/");
+      router.push(resolveLandingRoute(res.user));
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<{ error?: { code?: string } }>;
       const errCode = axiosErr?.response?.data?.error?.code;

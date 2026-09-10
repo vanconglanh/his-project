@@ -27,8 +27,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   EncounterTabs,
   isEncounterTabValue,
+  NURSING_VISIBLE_TABS,
   type EncounterTabValue,
 } from "./EncounterTabs";
+import { isNursingRole } from "@/lib/utils/roles";
 import {
   useAddDiagnosis,
   useCloseEncounter,
@@ -62,7 +64,10 @@ export function EncounterDetailClient({ encounterId }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { has } = usePermissions();
+  const { has, roles } = usePermissions();
+  // BM-05: Dieu duong/KTV chi duoc vao 3 tab nghiep vu cua ho tren man Kham benh -
+  // mac dinh vao thang "Chi dinh" (cls-orders) thay vi "Benh an" (emr, thuoc pham vi Bac si).
+  const isNursing = isNursingRole(roles);
 
   const { data: encounter, isLoading } = useEncounter(encounterId);
   const { data: lockState } = useEncounterLockState(encounterId);
@@ -102,7 +107,13 @@ export function EncounterDetailClient({ encounterId }: Props) {
   const [amendDialogOpen, setAmendDialogOpen] = useState(false);
 
   const tabParam = searchParams.get("tab");
-  const activeTab: EncounterTabValue = isEncounterTabValue(tabParam) ? tabParam : "emr";
+  const requestedTab: EncounterTabValue = isEncounterTabValue(tabParam) ? tabParam : "emr";
+  // BM-05: neu Dieu duong/KTV co ?tab= tro toi tab khong thuoc pham vi (vd go tay URL),
+  // ep ve tab dau tien duoc phep thay vi de lot vao tab an.
+  const activeTab: EncounterTabValue =
+    isNursing && !(NURSING_VISIBLE_TABS as readonly string[]).includes(requestedTab)
+      ? NURSING_VISIBLE_TABS[0]
+      : requestedTab;
 
   // Deep-link tab: dùng replace để KHÔNG tạo history entry rác
   const handleTabChange = useCallback(

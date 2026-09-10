@@ -12,6 +12,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ReceptionCheckInForm } from "@/components/domain/ReceptionCheckInForm";
 import { ReceptionQueueBoard } from "@/components/domain/ReceptionQueueBoard";
 import { useReceptionStats } from "@/lib/hooks/use-reception";
+import { usePermissions } from "@/lib/hooks/use-permissions";
+import { isNursingRole } from "@/lib/utils/roles";
 
 /** Đọc `?selectPatient=` (quay về từ /patients/new) rồi strip khỏi URL sau khi truyền xuống form. */
 function ReceptionCheckInPanel() {
@@ -31,9 +33,15 @@ function ReceptionCheckInPanel() {
 export default function ReceptionPage() {
   const router = useRouter();
   const { data: stats, isLoading: statsLoading } = useReceptionStats();
+  const { roles } = usePermissions();
+  // BM-05: Dieu duong/KTV chi theo doi + goi benh nhan trong "Bang hang doi", KHONG lam
+  // nghiep vu tiep don (dang ky kham/tao benh nhan moi) - an han panel ben trai.
+  const isNursing = isNursingRole(roles);
 
-  // Keyboard shortcut F2 → navigate to /patients/new
+  // Keyboard shortcut F2 → navigate to /patients/new (khong ap dung cho Dieu duong/KTV,
+  // dang ky benh nhan moi khong thuoc nghiep vu cua ho - BM-05).
   useEffect(() => {
+    if (isNursing) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "F2") {
         e.preventDefault();
@@ -42,7 +50,7 @@ export default function ReceptionPage() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [router]);
+  }, [router, isNursing]);
 
   const statsCards = [
     {
@@ -74,18 +82,24 @@ export default function ReceptionPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tiếp đón bệnh nhân"
-        description="Quản lý danh sách bệnh nhân chờ khám"
+        title={isNursing ? "Hàng đợi tiếp đón" : "Tiếp đón bệnh nhân"}
+        description={
+          isNursing
+            ? "Theo dõi bệnh nhân đang chờ và đưa vào khám"
+            : "Quản lý danh sách bệnh nhân chờ khám"
+        }
         actions={
-          <Link
-            href="/patients/new?returnTo=/reception"
-            className={cn(buttonVariants({ variant: "default" }), "gap-2")}
-            data-tour="reception-add-patient"
-          >
-            <UserPlus className="h-4 w-4" />
-            Thêm bệnh nhân
-            <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
-          </Link>
+          !isNursing && (
+            <Link
+              href="/patients/new?returnTo=/reception"
+              className={cn(buttonVariants({ variant: "default" }), "gap-2")}
+              data-tour="reception-add-patient"
+            >
+              <UserPlus className="h-4 w-4" />
+              Thêm bệnh nhân
+              <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
+            </Link>
+          )
         }
       />
 
@@ -108,14 +122,17 @@ export default function ReceptionPage() {
         ))}
       </div>
 
-      {/* Main split layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
+      {/* Main split layout - BM-05: Dieu duong/KTV chi thay "Bang hang doi", khong thay
+          panel Tiep don (nghiep vu cua Le tan) nen dung 1 cot toan chieu rong. */}
+      <div className={cn("grid grid-cols-1 gap-6", !isNursing && "lg:grid-cols-[360px_1fr]")}>
         {/* Left: Check-in form */}
-        <div className="border rounded-lg p-4 bg-card" data-tour="reception-checkin-form">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <ReceptionCheckInPanel />
-          </Suspense>
-        </div>
+        {!isNursing && (
+          <div className="border rounded-lg p-4 bg-card" data-tour="reception-checkin-form">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <ReceptionCheckInPanel />
+            </Suspense>
+          </div>
+        )}
 
         {/* Right: Queue board */}
         <div className="border rounded-lg p-4 bg-card" data-tour="reception-queue">

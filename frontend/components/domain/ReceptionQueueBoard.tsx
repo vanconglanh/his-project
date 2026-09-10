@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TicketCard } from "@/components/domain/TicketCard";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
+import { VitalSignsForm } from "@/components/domain/VitalSignsForm";
 import {
   useReceptionQueue,
   useCallTicket,
@@ -15,7 +17,10 @@ import {
   useAdmitTicket,
 } from "@/lib/hooks/use-reception";
 import { useRooms } from "@/lib/hooks/use-reception";
-import type { ReceptionTicketResponse } from "@/lib/api/types";
+import { useCreateVitalSigns } from "@/lib/hooks/use-vital-signs";
+import { usePermissions } from "@/lib/hooks/use-permissions";
+import { isNursingRole } from "@/lib/utils/roles";
+import type { ReceptionTicketResponse, VitalSignsRequest } from "@/lib/api/types";
 import { Input } from "@/components/ui/input";
 
 interface CancelState {
@@ -23,9 +28,19 @@ interface CancelState {
   reason: string;
 }
 
+interface VitalSignsStepState {
+  encounterId: string;
+  patientName?: string;
+}
+
 export function ReceptionQueueBoard() {
   const [cancelState, setCancelState] = useState<CancelState | null>(null);
+  // BM-05: Dieu duong/KTV sau khi "Dua vao kham" phai ghi sinh hieu ngay tai cho truoc
+  // khi sang man "Kham benh", thay vi dieu huong thang nhu Le tan/Bac si.
+  const [vitalStep, setVitalStep] = useState<VitalSignsStepState | null>(null);
   const router = useRouter();
+  const { roles } = usePermissions();
+  const isNursing = isNursingRole(roles);
 
   const { data: tickets, isLoading, refetch, isFetching } = useReceptionQueue();
   const { data: rooms } = useRooms();
@@ -33,12 +48,28 @@ export function ReceptionQueueBoard() {
   const skipMutation = useSkipTicket();
   const cancelMutation = useCancelTicket();
   const admitMutation = useAdmitTicket();
+  const createVital = useCreateVitalSigns(vitalStep?.encounterId ?? "");
 
-  // Đưa bệnh nhân vào khám: tạo/lấy lượt khám rồi điều hướng sang màn khám.
-  const handleAdmit = (ticketId: string) =>
-    admitMutation.mutate(ticketId, {
-      onSuccess: (res) => router.push(`/encounters/${res.encounter_id}`),
+  // Đưa bệnh nhân vào khám: tạo/lấy lượt khám. Dieu duong/KTV -> mo panel "Ghi sinh hieu"
+  // ngay tai cho; cac role khac dieu huong thang sang man Kham benh nhu truoc.
+  const handleAdmit = (ticket: ReceptionTicketResponse) =>
+    admitMutation.mutate(ticket.id, {
+      onSuccess: (res) => {
+        if (isNursing) {
+          setVitalStep({ encounterId: res.encounter_id, patientName: ticket.patient_summary?.full_name });
+        } else {
+          router.push(`/encounters/${res.encounter_id}`);
+        }
+      },
     });
+
+  async function handleVitalSubmit(data: VitalSignsRequest) {
+    if (!vitalStep) return;
+    await createVital.mutateAsync(data);
+    const encounterId = vitalStep.encounterId;
+    setVitalStep(null);
+    router.push(`/encounters/${encounterId}`);
+  }
 
   const activeTickets = (tickets ?? []).filter(
     (t) => !["DONE", "CANCELLED"].includes(t.status)
@@ -117,7 +148,7 @@ export function ReceptionQueueBoard() {
                       onCall={(id) => callMutation.mutate(id)}
                       onSkip={(id) => skipMutation.mutate(id)}
                       onCancel={(id) => setCancelState({ ticketId: id, reason: "" })}
-                      onAdmit={handleAdmit}
+                      onAdmit={() => handleAdmit(ticket)}
                       isCallLoading={callMutation.isPending}
                       isSkipLoading={skipMutation.isPending}
                       isAdmitLoading={admitMutation.isPending}
@@ -139,7 +170,7 @@ export function ReceptionQueueBoard() {
                 onCall={(id) => callMutation.mutate(id)}
                 onSkip={(id) => skipMutation.mutate(id)}
                 onCancel={(id) => setCancelState({ ticketId: id, reason: "" })}
-                onAdmit={handleAdmit}
+                onAdmit={() => handleAdmit(ticket)}
                 isCallLoading={callMutation.isPending}
                 isSkipLoading={skipMutation.isPending}
                 isAdmitLoading={admitMutation.isPending}
@@ -175,6 +206,34 @@ export function ReceptionQueueBoard() {
           }
         }}
       />
+
+      {/* BM-05: Dieu duong/KTV ghi sinh hieu ngay sau khi dua benh nhan vao kham,
+          truoc khi sang man "Kham benh". */}
+      <Sheet open={!!vitalStep} onOpenChange={(open) => { if (!open) setVitalStep(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto px-6 pb-6">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Ghi sinh hiệu
+              {vitalStep?.patientName && (
+                <span className="text-base font-normal text-muted-foreground">
+                  — {vitalStep.patientName}
+                </span>
+              )}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {vitalStep && (
+              <VitalSignsForm
+                key={vitalStep.encounterId}
+                isLoading={createVital.isPending}
+                onSubmit={handleVitalSubmit}
+                onSubmitAndNext={handleVitalSubmit}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
