@@ -16,6 +16,7 @@ namespace ProDiabHis.Api.Controllers;
 [Route("api/v1/reports")]
 [Authorize]
 [Produces("application/json")]
+[ReportDateRangeGuard] // BM-01: le_tan chi duoc xem bao cao trong 1 ngay (khong thang/quy)
 public class ReportsController : ControllerBase
 {
     private readonly IMediator _mediator;

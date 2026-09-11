@@ -85,8 +85,15 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
         // cung sinh ra blind-index hash khac null, khien guard cross-branch bi vo hieu hoa hoan toan.
         // Chi coi la "tim chinh xac theo giay to" khi chuoi nhap la THUAN CHU SO va dung do dai:
         // SDT = 10 so, CCCD = 12 so (khong tinh CMND 9 so theo dung spec UTC-H02-06).
-        var isExactMatch = digitsOnly.Length == trimmed.Length
-            && (digitsOnly.Length == 10 || digitsOnly.Length == 12);
+        // BUG BM-04 fix (2026-09-07): tim theo Ma BN (vd "BNT02000001" = prefix BNT + 2 so tenant +
+        // 6 so seq, xem PatientCommandHandler.GenerateCode) truoc day KHONG duoc coi la dinh danh
+        // chinh xac (chi toan chu, khong phai "thuan chu so") -> bi guard cross-branch loc mat neu
+        // benh nhan chua tung co Encounter tai chi nhanh hien tai, dan den "tim khong ra benh nhan
+        // da ton tai" du go dung Ma BN. Bo sung nhan dien Ma BN dung dinh dang BNT + 8 chu so.
+        var isPatientCodeFormat = System.Text.RegularExpressions.Regex.IsMatch(
+            trimmed, "^BNT\\d{8}$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var isExactMatch = isPatientCodeFormat
+            || (digitsOnly.Length == trimmed.Length && (digitsOnly.Length == 10 || digitsOnly.Length == 12));
 
         if (!hasCrossBranchSearch && !isExactMatch)
         {

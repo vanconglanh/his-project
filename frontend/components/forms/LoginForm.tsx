@@ -22,13 +22,17 @@ import type { AxiosError } from "axios";
 import type { LoginResponse } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-// BM-05 (Lark Bug-Feedback): role Dieu duong vao thang "Tong quan" sau dang nhap khong
-// phu hop nghiep vu chinh (theo doi hang doi tiep don + ghi sinh hieu) -> vao thang
-// "/reception". Ky thuat vien giu nguyen "/" (chua duoc cap reception.read theo BM-05).
+// BM-02/BM-05 (Lark Bug-Feedback): cac role co nghiep vu chinh la Tiep don (Le tan,
+// Dieu duong) vao thang "Tong quan" (dashboard doanh thu/BI) sau dang nhap khong phu
+// hop -> doi thanh vao thang "/reception". Gop ca roles lan roleCodes de khong phu
+// thuoc BE tra field nao. Ky thuat vien giu nguyen "/" (chua duoc cap theo BM-05).
 function resolveLandingRoute(user: LoginResponse["user"]): string {
-  const roles = [...(user?.roles ?? []), ...(user?.roleCodes ?? [])];
-  const isDieuDuong = roles.some((r) => r.toLowerCase() === "dieu_duong" || r.toLowerCase() === "điều dưỡng");
-  return isDieuDuong ? "/reception" : "/";
+  const roles = [...(user?.roles ?? []), ...(user?.roleCodes ?? [])].map((r) =>
+    r.toLowerCase()
+  );
+  const isReceptionist = roles.some((r) => r === "le_tan" || r.includes("letan"));
+  const isDieuDuong = roles.some((r) => r === "dieu_duong" || r === "điều dưỡng");
+  return isReceptionist || isDieuDuong ? "/reception" : "/";
 }
 
 const loginSchema = z.object({
@@ -132,7 +136,7 @@ export function LoginForm() {
         return;
       }
 
-      // Trạng thái 1: đăng nhập bình thường → vào màn mặc định theo role (BM-05).
+      // Trạng thái 1: đăng nhập bình thường → vào màn mặc định theo role (BM-02/BM-05).
       router.push(resolveLandingRoute(res.user));
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;

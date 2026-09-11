@@ -97,6 +97,24 @@ public class CrossBranchPatientSearchGuardTests
         result.Items[0].FullName.Should().Be(PatientChuaKham);
     }
 
+    // BM-04 (Lark Bug-Feedback) — tim chinh xac bang Ma BN (vd "BNT01000002") phai mo khoa
+    // cross-branch nhu SDT/CCCD, du benh nhan CHUA TUNG co Encounter tai chi nhanh hien tai.
+    // Truoc fix: isExactMatch chi nhan dien thuan chu so (10/12 chu so) nen Ma BN (co prefix chu
+    // "BNT") khong duoc coi la dinh danh chinh xac -> bi guard loc mat -> "tim khong ra benh nhan
+    // da ton tai" (dung bao cao trong ticket BM-04).
+    [Fact]
+    public async Task Search_TimChinhXacMaBenhNhan_MoKhoaCrossBranch_DuKhongCoQuyen()
+    {
+        _branch.IgnoreBranchFilter.Returns(false);
+        _perm.HasPermission(Arg.Any<string>()).Returns(false);
+        using var db = SeedDb();
+
+        var result = await Handler(db).Handle(new SearchPatientsQuery("BNT01000002", 1, 20), CancellationToken.None);
+
+        result.Total.Should().Be(1);
+        result.Items[0].FullName.Should().Be(PatientChuaKham);
+    }
+
     // UTC-H02-06 — bien: 9 so (thieu 1 chu so) KHONG duoc coi la tim chinh xac -> van bi han che
     [Fact]
     public async Task Search_ChuoiSo9ChuSo_KhongDuocCoiLaTimChinhXac()
