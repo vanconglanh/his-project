@@ -117,9 +117,15 @@ public class DashboardController : ControllerBase
     /// tong quan trang chu (overview/charts/alerts) - permission nay duoc cap rong cho
     /// MOI role (ke ca ky_thuat_vien) nen KTV vao duoc trang xep hang doanh thu chi nhanh
     /// du khong thuoc pham vi cong viec. Doi sang "report.read" (dung nhu cac endpoint
-    /// bao cao khac trong ReportsController) - ky_thuat_vien khong duoc cap quyen nay.</summary>
+    /// bao cao khac trong ReportsController) - ky_thuat_vien khong duoc cap quyen nay.
+    /// BM-01 (tiep, Lark 2026-09-16): "report.read" van la CHUA du - role le_tan cung
+    /// duoc cap report.read (de xem BAO CAO DOANH THU NGAY theo dung pham vi BM-01) nen
+    /// vo tinh lai vao duoc trang xep hang chi nhanh (du lieu XUYEN CHI NHANH, ngoai pham
+    /// vi 1 le tan tai 1 chi nhanh). Doi tiep sang "branch.group_view" - permission co san
+    /// danh rieng cho nhu cau "xem du lieu xuyen chi nhanh trong cung nhom/khu vuc"
+    /// (migration 9150), hien chi cap cho admin + ke_toan, KHONG cap le_tan/ky_thuat_vien.</summary>
     [HttpGet("branch-ranking")]
-    [RequirePermission("report.read")]
+    [RequirePermission("branch.group_view")]
     public async Task<IActionResult> GetBranchRanking(
         [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct = default)
     {
@@ -129,9 +135,10 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>AC-6.1.2 - drill-down xep hang chi nhanh xuong danh sach bac si cua 1 chi nhanh.
-    /// BM-10: cung nhom voi branch-ranking, doi sang "report.read" (xem ghi chu tren).</summary>
+    /// BM-10/BM-01 (tiep): cung nhom voi branch-ranking, doi sang "branch.group_view"
+    /// (xem ghi chu tren) - "report.read" van bi le_tan giu chung nen chua du chan.</summary>
     [HttpGet("branch/{branchId:int}/detail")]
-    [RequirePermission("report.read")]
+    [RequirePermission("branch.group_view")]
     public async Task<IActionResult> GetBranchDetail(
         int branchId, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct = default)
     {

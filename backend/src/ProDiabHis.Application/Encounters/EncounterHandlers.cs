@@ -678,6 +678,14 @@ public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetail
 // ────────────────────────────────────────────────
 public class ListEncountersQueryHandler : IRequestHandler<ListEncountersQuery, Result<PagedResult<EncounterResponse>>>
 {
+    // BM-07 (tiep, Lark 2026-09-16): DateFrom/DateTo la ngay lich theo gio VN (FE gui
+    // format(new Date(), "yyyy-MM-dd") tu gio dia phuong nguoi dung khi bam "Dang kham
+    // hom nay"), nhung CreatedAt luu DateTime.UtcNow (UTC). So sanh truc tiep se lech 7h:
+    // benh nhan check-in sau 17:00 UTC (tuc sau 00:00 hom sau theo VN) van con la "hom
+    // nay" theo VN nhung CreatedAt (UTC) da la ngay hom truoc -> bi loc mat. Quy doi bien
+    // ngay VN sang UTC truoc khi so sanh (giong pattern VnOffset trong DoctorDutyChecker).
+    private static readonly TimeSpan VnOffset = TimeSpan.FromHours(7);
+
     private readonly IApplicationDbContext _db;
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
@@ -707,12 +715,12 @@ public class ListEncountersQueryHandler : IRequestHandler<ListEncountersQuery, R
         if (!string.IsNullOrEmpty(q.EncounterType)) query = query.Where(e => e.EncounterType == q.EncounterType);
         if (q.DateFrom.HasValue)
         {
-            var from = q.DateFrom.Value.ToDateTime(TimeOnly.MinValue);
+            var from = q.DateFrom.Value.ToDateTime(TimeOnly.MinValue) - VnOffset;
             query = query.Where(e => e.CreatedAt >= from);
         }
         if (q.DateTo.HasValue)
         {
-            var to = q.DateTo.Value.ToDateTime(TimeOnly.MaxValue);
+            var to = q.DateTo.Value.ToDateTime(TimeOnly.MaxValue) - VnOffset;
             query = query.Where(e => e.CreatedAt <= to);
         }
 

@@ -25,9 +25,10 @@ public class IdNumberBidxBackfillRegressionTests
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
     private readonly IBranchProvider _branch = Substitute.For<IBranchProvider>();
     private readonly IPermissionChecker _perm = Substitute.For<IPermissionChecker>();
+    private readonly ITenantProvider _tenant = new FakeTenantProvider(1);
 
     private SearchPatientsQueryHandler Handler(ProDiabHis.Infrastructure.Persistence.AppDbContext db)
-        => new(db, _pii, _branch, _perm, _audit);
+        => new(db, _pii, _branch, _perm, _audit, _tenant);
 
     // Truoc backfill: enc co, bidx = null -> tim theo CCCD KHONG ra (tai hien loi P0)
     [Fact]

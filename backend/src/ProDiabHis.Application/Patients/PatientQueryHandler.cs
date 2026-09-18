@@ -45,12 +45,14 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
     private readonly IBranchProvider _branchProvider;
     private readonly IPermissionChecker _permissionChecker;
     private readonly IAuditService _audit;
+    private readonly ITenantProvider _tenant;
 
     public SearchPatientsQueryHandler(
         IApplicationDbContext db, IPiiProtector pii, IBranchProvider branchProvider,
-        IPermissionChecker permissionChecker, IAuditService audit)
+        IPermissionChecker permissionChecker, IAuditService audit, ITenantProvider tenant)
     {
         _db = db; _pii = pii; _branchProvider = branchProvider; _permissionChecker = permissionChecker; _audit = audit;
+        _tenant = tenant;
     }
 
     public async Task<PagedResult<PatientResponse>> Handle(SearchPatientsQuery request, CancellationToken cancellationToken)
@@ -100,7 +102,20 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
             // Encounters da co Global Query Filter theo branch hien tai (xem AppDbContext) nen chi can
             // lay danh sach PatientId tu Encounters (tuong duong "da tung kham tai branch hien tai").
             var seenPatientIds = _db.Encounters.AsNoTracking().Select(e => e.PatientId);
-            query = query.Where(p => seenPatientIds.Contains(p.Id.ToString()));
+
+            // BM-04 (tiep, Lark 2026-09-16): guard tren vo tinh an luon benh nhan VUA DANG KY
+            // (tai /patients), vi ho CHUA TUNG co Encounter o BAT KY branch nao nen khong nam
+            // trong seenPatientIds cua branch nao ca -> Le tan tao xong khong tim lai duoc o
+            // man Tiep don (chi tim thay khi go dung dinh danh chinh xac). Patient chua co
+            // Encounter o toan tenant (bat ke branch) chua "thuoc ve" branch nao ca nen khong
+            // coi la cross-branch - van cho hien binh thuong theo ten/danh sach.
+            var patientIdsWithAnyEncounter = _db.Encounters.IgnoreQueryFilters().AsNoTracking()
+                .Where(e => e.DeletedAt == null && e.TenantId == _tenant.TenantId)
+                .Select(e => e.PatientId);
+
+            query = query.Where(p =>
+                seenPatientIds.Contains(p.Id.ToString()) ||
+                !patientIdsWithAnyEncounter.Contains(p.Id.ToString()));
         }
 
         var total = await query.CountAsync(cancellationToken);

@@ -338,7 +338,7 @@ public class PatientHandlersTests
         db.Patients.Add(new Patient { TenantId = 1, Code = "BNT01000002", FullName = "Tran Thi Beta" });
         await db.SaveChangesAsync();
 
-        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit);
+        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit, _tenant);
         var result = await handler.Handle(new SearchPatientsQuery("alpha", 1, 20), CancellationToken.None);
 
         result.Items.Should().HaveCount(1);
@@ -363,7 +363,7 @@ public class PatientHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit);
+        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit, _tenant);
 
         // Nhap SDT chua chuan hoa van tim thay (blind index chuan hoa truoc khi bam)
         var result = await handler.Handle(new SearchPatientsQuery("+84 912 345 678", 1, 20), CancellationToken.None);
@@ -384,7 +384,7 @@ public class PatientHandlersTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit);
+        var handler = new SearchPatientsQueryHandler(db, _pii, _branchProvider, _permissionChecker, _audit, _tenant);
 
         // "345678" la MOT PHAN so dien thoai -> sau khi ma hoa khong the LIKE '%...%' nua
         var result = await handler.Handle(new SearchPatientsQuery("345678", 1, 20), CancellationToken.None);

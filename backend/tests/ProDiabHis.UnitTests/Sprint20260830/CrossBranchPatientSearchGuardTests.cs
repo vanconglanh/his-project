@@ -1,3 +1,4 @@
+using System.Linq;
 using FluentAssertions;
 using NSubstitute;
 using ProDiabHis.Application.Common;
@@ -10,7 +11,9 @@ namespace ProDiabHis.UnitTests.Sprint20260830;
 /// <summary>
 /// UTC-H02-xx — H-2 (FR-203) / E-Dot2 (BR-25, BR-33): guard tim kiem benh nhan xuyen chi nhanh.
 /// Quy tac: khong co quyen cross-branch va khong phai tim chinh xac (SDT/CCCD) thi CHI thay
-/// benh nhan da tung co luot kham. Co quyen (patient.cross_branch_search / branch.group_view /
+/// benh nhan da tung co luot kham O BRANCH HIEN TAI, HOAC benh nhan CHUA TUNG co luot kham
+/// o BAT KY branch nao (benh nhan moi dang ky, chua "thuoc ve" branch nao - BM-04 tiep,
+/// Lark 2026-09-16). Co quyen (patient.cross_branch_search / branch.group_view /
 /// cross_branch_view / IgnoreBranchFilter) hoac tim chinh xac thi thay toan bo + ghi audit.
 /// </summary>
 public class CrossBranchPatientSearchGuardTests
@@ -19,6 +22,7 @@ public class CrossBranchPatientSearchGuardTests
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
     private readonly IBranchProvider _branch = Substitute.For<IBranchProvider>();
     private readonly IPermissionChecker _perm = Substitute.For<IPermissionChecker>();
+    private readonly ITenantProvider _tenant = new FakeTenantProvider(1);
 
     private const string PatientDaKham = "Nguyễn Văn Đức";
     private const string PatientChuaKham = "Nguyễn Thị Hoa";
@@ -44,7 +48,7 @@ public class CrossBranchPatientSearchGuardTests
     }
 
     private SearchPatientsQueryHandler Handler(ProDiabHis.Infrastructure.Persistence.AppDbContext db)
-        => new(db, _pii, _branch, _perm, _audit);
+        => new(db, _pii, _branch, _perm, _audit, _tenant);
 
     // UTC-H02-01 — khong quyen + tim mo (theo ten) -> chi thay benh nhan da tung kham
     // BUG-01 (High) — DA FIX 2026-08-30: SearchPatientsQueryHandler truoc day tinh
@@ -62,9 +66,14 @@ public class CrossBranchPatientSearchGuardTests
 
         var result = await Handler(db).Handle(new SearchPatientsQuery("Nguyễn", 1, 20), CancellationToken.None);
 
-        result.Items.Should().HaveCount(1);
-        result.Items[0].FullName.Should().Be(PatientDaKham);
-        result.Total.Should().Be(1);
+        // BM-04 (tiep, Lark 2026-09-16): PatientChuaKham (chua tung co Encounter o BAT KY
+        // branch nao - benh nhan MOI DANG KY) gio cung duoc thay, vi ho chua "thuoc ve"
+        // branch nao ca nen khong bi coi la cross-branch. Guard chi con chan benh nhan DA
+        // TUNG kham o branch KHAC (ngoai pham vi test nay - FakeBranchProvider mac dinh
+        // IgnoreBranchFilter=true nen khong mo phong duoc branch khac trong 1 DbContext).
+        result.Items.Should().HaveCount(2);
+        result.Items.Select(p => p.FullName).Should().Contain(new[] { PatientDaKham, PatientChuaKham });
+        result.Total.Should().Be(2);
     }
 
     // UTC-H02-02..04 — co bat ky 1 trong 3 quyen cross-branch -> thay ca 2 benh nhan

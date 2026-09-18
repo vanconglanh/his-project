@@ -244,7 +244,11 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         // BM-10: doi tu "dashboard.read" (cap rong cho moi role, ke ca ky_thuat_vien)
         // sang "report.read" - khop voi permission BE that su enforce (xem
         // DashboardController.GetBranchRanking/GetBranchDetail).
-        permissions: ["report.read"],
+        // BM-01 (tiep, Lark 2026-09-16): "report.read" van chua du - le_tan cung co
+        // report.read (de xem bao cao doanh thu ngay) nen lai lot vao duoc trang nay
+        // (du lieu xuyen chi nhanh, ngoai pham vi le tan). Doi tiep sang
+        // "branch.group_view" - khop voi permission BE that su enforce sau khi sua.
+        permissions: ["branch.group_view"],
       },
       {
         href: "/reports/schedules",
@@ -279,7 +283,16 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         href: "/admin/users",
         labelKey: "users",
         icon: Users,
-        permissions: ["user.read"],
+        // BM-01 (tiep, Lark 2026-09-16): "user.read" duoc cap rong cho ca le_tan/bac_si
+        // (BE can permission nay cho GET /users de lam dropdown chon bac_si khi dat
+        // lich/tao luot kham - xem ghi chu B5 trong migration 9141) nen menu quan tri
+        // "Nguoi dung" bi lo ra ngay ca voi Le tan du khong thuoc pham vi cong viec.
+        // Doi gate cua MENU (khong dong voi API GET /users) sang "user.write" - chi
+        // admin moi co, dung dung y "vao duoc man quan tri nguoi dung" thay vi "goi
+        // duoc API doc danh sach". KHONG thu hoi user.read cua le_tan/bac_si vi se
+        // hong dropdown chon bac_si (can lam endpoint /doctors/lookup rieng truoc,
+        // xem 9141 B5 - chua lam trong task nay).
+        permissions: ["user.write"],
       },
       {
         href: "/admin/roles",

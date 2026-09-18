@@ -187,7 +187,7 @@ public class DashboardOpsIntegrationTests
     }
 
     // BM-10 (Lark Bug-Feedback) - "dashboard.read" (quyen KTV cung co) khong con du de
-    // xem xep hang doanh thu chi nhanh; endpoint nay gio doi hoi "report.read" rieng.
+    // xem xep hang doanh thu chi nhanh; endpoint nay gio doi hoi "branch.group_view" rieng.
     [ApiFact]
     public async Task ChiCoDashboardRead_XepHangChiNhanh_Van403()
     {
@@ -196,11 +196,22 @@ public class DashboardOpsIntegrationTests
         (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
     }
 
-    // BM-10: co "report.read" thi truy cap duoc xep hang doanh thu chi nhanh.
+    // BM-01 (tiep, Lark 2026-09-16): "report.read" (role le_tan cung co, de xem bao cao
+    // doanh thu ngay) van khong du de xem xep hang doanh thu XUYEN CHI NHANH - endpoint
+    // nay gio doi hoi "branch.group_view" rieng (chi cap cho admin/ke_toan, xem 9150).
     [ApiFact]
-    public async Task DungQuyenReportRead_XepHangChiNhanh_KhongLoiHeThong()
+    public async Task ChiCoReportRead_XepHangChiNhanh_Van403()
     {
         var res = await _fx.ClientWith("report.read").GetAsync("/api/v1/dashboard/branch-ranking");
+        res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await res.Content.ReadAsStringAsync()).Should().Contain("PERMISSION_DENIED");
+    }
+
+    // BM-10/BM-01: co "branch.group_view" thi truy cap duoc xep hang doanh thu chi nhanh.
+    [ApiFact]
+    public async Task DungQuyenBranchGroupView_XepHangChiNhanh_KhongLoiHeThong()
+    {
+        var res = await _fx.ClientWith("branch.group_view").GetAsync("/api/v1/dashboard/branch-ranking");
         ((int)res.StatusCode).Should().BeLessThan(500);
         res.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
         res.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
