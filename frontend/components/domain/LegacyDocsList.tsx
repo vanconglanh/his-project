@@ -6,12 +6,66 @@ import { FileScan, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listClsUploads } from "@/lib/api/cls-uploads";
+import { useClsUploadContentUrl } from "@/lib/hooks/use-cls-uploads";
 import { formatDateTime } from "@/lib/utils/format";
+import type { ClsUploadResponse } from "@/lib/api/types";
 
 const LEGACY_DOC_TYPE = "HO_SO_CU_SCAN";
 
 interface LegacyDocsListProps {
   patientId: string;
+}
+
+// BM-26/LegacyDocsList (Lark Bug-Feedback): cung loi signed_url MinIO noi bo nhu ClsUploadList -
+// tai su dung useClsUploadContentUrl (blob URL qua API proxy) thay vi item.signed_url.
+function LegacyDocCard({
+  patientId,
+  item,
+  isImage,
+  onView,
+}: {
+  patientId: string;
+  item: ClsUploadResponse;
+  isImage: boolean;
+  onView: (url: string) => void;
+}) {
+  const { url } = useClsUploadContentUrl(patientId, item.id);
+
+  return (
+    <div className="border rounded-lg overflow-hidden group relative">
+      {isImage && url ? (
+        <button
+          className="w-full"
+          onClick={() => onView(url)}
+          aria-label={`Xem ảnh ${item.file_name}`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={item.file_name} className="w-full h-28 object-cover" />
+        </button>
+      ) : (
+        <div className="h-28 flex items-center justify-center bg-muted">
+          <FileScan className="h-10 w-10 text-muted-foreground" />
+        </div>
+      )}
+      <div className="p-2">
+        <p className="text-xs font-medium line-clamp-1" title={item.file_name}>
+          {item.file_name}
+        </p>
+        <p className="text-xs text-muted-foreground">{formatDateTime(item.uploaded_at)}</p>
+      </div>
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-1 right-1 bg-background/80 rounded p-1 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="Mở file"
+        >
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      )}
+    </div>
+  );
 }
 
 export function LegacyDocsList({ patientId }: LegacyDocsListProps) {
@@ -53,39 +107,13 @@ export function LegacyDocsList({ patientId }: LegacyDocsListProps) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {docs.map((item) => (
-          <div key={item.id} className="border rounded-lg overflow-hidden group relative">
-            {isImage(item.mime_type) && item.signed_url ? (
-              <button
-                className="w-full"
-                onClick={() => setLightboxUrl(item.signed_url!)}
-                aria-label={`Xem ảnh ${item.file_name}`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.signed_url} alt={item.file_name} className="w-full h-28 object-cover" />
-              </button>
-            ) : (
-              <div className="h-28 flex items-center justify-center bg-muted">
-                <FileScan className="h-10 w-10 text-muted-foreground" />
-              </div>
-            )}
-            <div className="p-2">
-              <p className="text-xs font-medium line-clamp-1" title={item.file_name}>
-                {item.file_name}
-              </p>
-              <p className="text-xs text-muted-foreground">{formatDateTime(item.uploaded_at)}</p>
-            </div>
-            {item.signed_url && (
-              <a
-                href={item.signed_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute top-1 right-1 bg-background/80 rounded p-1 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label="Mở file"
-              >
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-          </div>
+          <LegacyDocCard
+            key={item.id}
+            patientId={patientId}
+            item={item}
+            isImage={isImage(item.mime_type)}
+            onView={setLightboxUrl}
+          />
         ))}
       </div>
 
