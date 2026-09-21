@@ -140,7 +140,15 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         href: "/pharmacy/dispense",
         labelKey: "dispense",
         icon: Package,
-        permissions: ["dispense.read"],
+        // BM-29 (Lark Bug-Feedback): "dispense.read" la permission CHET - khong
+        // controller nao enforce (PharmacyDispensingController dung
+        // "dispense.queue" cho GET queue/history, "dispense.perform/reject/
+        // return" cho cac hanh dong). Duoc si duoc migration 9139 cap du
+        // dispense.perform/queue/reject/return nhung KHONG co dispense.read nen
+        // menu "Phat thuoc" khong hien du co the thao tac binh thuong qua API.
+        // Doi gate sang "dispense.queue" - dung permission BE that su enforce
+        // cho man hinh hang cho phat thuoc.
+        permissions: ["dispense.queue"],
       },
       {
         href: "/drugs",

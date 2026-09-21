@@ -245,6 +245,55 @@ public class EncounterHandlersTests
         result.Value.Items.Should().AllSatisfy(e => e.Status.Should().Be("DONE"));
     }
 
+    // BM-07 (tiep, Lark 2026-09-16): DateFrom/DateTo la ngay lich VN (FE gui theo gio dia
+    // phuong khi bam "Dang kham hom nay") nhung CreatedAt luu UTC. Benh nhan check-in luc
+    // 21h VN (= 14h UTC cung ngay) van phai duoc tinh la "hom nay" theo VN. Truoc fix,
+    // so sanh truc tiep se dung dung boundary UTC nen van PASS o gio nay trong ngay -
+    // case that su bi loi la sau 17h00 UTC (tuc sau 00h00 VN hom sau): benh nhan check-in
+    // luc 23h VN (=16h UTC cung ngay) van la "hom nay" theo VN nhung neu server so sanh
+    // CreatedAt (UTC) voi bien [DateFrom 00:00, DateTo 23:59:59] theo UTC thi van dung boundary
+    // sai vi CreatedAt (16h UTC) < DateTo 23:59:59 UTC nen van qua - that ra bug chi lo khi
+    // check-in SAU 17h00 UTC (tuc sau 00h00 VN NGAY HOM SAU): CreatedAt roi sang ngay UTC ke
+    // tiep trong khi FE (VN) van con dang gui date_from/date_to la ngay HOM QUA (VN). Mo phong
+    // dung case nay: CreatedAt = 2026-09-19 17:30:00 UTC (= 2026-09-20 00:30 VN, tuc DA SANG
+    // ngay 20 theo VN) nhung FE (dang o VN 2026-09-20 sau 00h) se gui date_from=date_to=
+    // 2026-09-20. Truoc fix: so sanh CreatedAt >= 2026-09-20 00:00 (UTC) se FAIL vi CreatedAt
+    // (2026-09-19 17:30 UTC) < 2026-09-20 00:00 UTC -> bi loc mat oan du dung la "hom nay" theo
+    // VN. Sau fix (tru VnOffset +7h khoi bien truoc khi so sanh): from = 2026-09-20 00:00 VN -
+    // 7h = 2026-09-19 17:00 UTC -> CreatedAt (17:30 UTC) >= 17:00 UTC -> PASS dung.
+    [Fact]
+    public async Task ListEncounters_FilterTheoNgayVn_KhongLocMatEncounterSauNuaDemUtc()
+    {
+        using var db = TestDbContextFactory.Create(tenantId: 1);
+        var patientId = Guid.NewGuid().ToString();
+        // "Hom nay" theo VN la 2026-09-20, nhung check-in luc 00:30 VN (= 17:30 UTC ngay 19)
+        // nen CreatedAt (UTC) van con ghi ngay 19.
+        var createdAtUtc = new DateTime(2026, 9, 19, 17, 30, 0, DateTimeKind.Utc);
+        db.Encounters.Add(new Encounter
+        {
+            TenantId = 1, PatientId = patientId, EncounterType = "FIRST_VISIT",
+            Status = "IN_PROGRESS", CreatedAt = createdAtUtc,
+        });
+        // Doi chung: benh nhan kham "hom qua" that su (VN) - phai bi loai.
+        db.Encounters.Add(new Encounter
+        {
+            TenantId = 1, PatientId = patientId, EncounterType = "FIRST_VISIT",
+            Status = "IN_PROGRESS", CreatedAt = new DateTime(2026, 9, 18, 10, 0, 0, DateTimeKind.Utc),
+        });
+        // Dung SaveChanges() (KHONG phai SaveChangesAsync) - AppDbContext.SaveChangesAsync co
+        // override tu dong ghi de CreatedAt = DateTime.UtcNow cho entity moi (IAuditTimestamps),
+        // se lam mat gia tri CreatedAt gia lap o tren. SaveChanges() dong bo khong bi override nay.
+        db.SaveChanges();
+
+        var handler = new ListEncountersQueryHandler(db, _tenant, _user, _audit);
+        var today = new DateOnly(2026, 9, 20);
+        var query = new ListEncountersQuery(null, null, null, null, null, today, today, 1, 20);
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Total.Should().Be(1, "encounter check-in 00:30 VN ngay 20/09 (du la 17:30 UTC ngay 19/09) van phai tinh la 'hom nay' theo VN");
+    }
+
     // ──────────────────────────────────────────
     // Close encounter — missing chief complaint
     // ──────────────────────────────────────────

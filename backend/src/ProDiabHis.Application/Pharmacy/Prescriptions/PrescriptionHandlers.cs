@@ -373,9 +373,15 @@ public class PrescriptionCreateRequestValidator : AbstractValidator<Prescription
     {
         RuleFor(x => x.PatientId).NotEmpty().WithMessage("Bệnh nhân là bắt buộc");
         RuleFor(x => x.EncounterId).NotEmpty().WithMessage("Lượt khám là bắt buộc");
-        RuleFor(x => x.Items).NotNull().WithMessage("Danh sách thuốc là bắt buộc")
-            .Must(items => items != null && items.Count > 0)
-            .WithMessage("Đơn thuốc phải có ít nhất một loại thuốc");
+        // BM-28 (Lark Bug-Feedback): rule "Items bat buoc >=1" (them boi NEW-BUG-02) lam gay
+        // luong tao don thuoc that su cua FE - PrescriptionForm.tsx tao don RONG truoc
+        // (ensurePrescription, KHONG kem items) roi moi goi rieng useAddPrescriptionItems khi
+        // bac si chon tung thuoc. Voi rule nay, POST /prescriptions dau tien (luc chua co
+        // thuoc nao) luon 500 "Danh sach thuoc la bat buoc" - bac si khong the tao duoc don
+        // thuoc nao ca. Fix: bo yeu cau "phai co >=1 item" luc TAO don (Items duoc phep rong/
+        // null - don thuoc DRAFT chua co dong nao la hop le), items neu co gui kem thi van
+        // validate tung dong nhu cu (khong lien quan gi NEW-BUG-02 - loi goc cua ticket do la
+        // thieu patient_id/encounter_id, van con nguyen 2 rule ben tren).
         RuleForEach(x => x.Items).SetValidator(new PrescriptionItemRequestValidator())
             .When(x => x.Items != null);
     }
