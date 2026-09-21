@@ -89,6 +89,42 @@ public class GetSignedUrlQueryHandler : IRequestHandler<GetSignedUrlQuery, Resul
     }
 }
 
+public class GetFileContentQueryHandler : IRequestHandler<GetFileContentQuery, Result<GenericFileContent>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+    private readonly IFileStorage _storage;
+
+    public GetFileContentQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IFileStorage storage)
+    {
+        _db = db;
+        _tenant = tenant;
+        _storage = storage;
+    }
+
+    public async Task<Result<GenericFileContent>> Handle(GetFileContentQuery request, CancellationToken cancellationToken)
+    {
+        using var conn = _db.CreateConnection();
+        var row = await conn.QueryFirstOrDefaultAsync(
+            "SELECT bucket, object_key, file_name, mime_type FROM fil_files WHERE id=@Id AND tenant_id=@TenantId AND deleted_at IS NULL",
+            new { Id = request.FileId.ToString(), TenantId = _tenant.TenantId });
+
+        if (row is null)
+            return Result<GenericFileContent>.Failure("FILE_NOT_FOUND", "Không tìm thấy tệp");
+
+        try
+        {
+            var stream = await _storage.DownloadAsync((string)row.bucket, (string)row.object_key, cancellationToken);
+            return Result<GenericFileContent>.Success(new GenericFileContent(
+                stream, (string?)row.mime_type ?? "application/octet-stream", (string)row.file_name));
+        }
+        catch (Exception)
+        {
+            return Result<GenericFileContent>.Failure("FILE_STORAGE_ERROR", "Không tải được file từ kho lưu trữ");
+        }
+    }
+}
+
 public class DeleteFileCommandHandler : IRequestHandler<DeleteFileCommand, Result<bool>>
 {
     private readonly IDapperConnectionFactory _db;

@@ -52,6 +52,21 @@ public class FilesController : ControllerBase
         return Ok(new { data = result.Value });
     }
 
+    // GET /api/v1/files/{id}/content
+    // BM-25 (Lark Bug-Feedback): proxy noi dung file that qua API thay vi tra signed-url MinIO
+    // noi bo (xem ghi chu o GetFileContentQuery) - dung cho split-view file goc trong man OCR XN.
+    [HttpGet("{id:guid}/content")]
+    [Authorize]
+    public async Task<IActionResult> GetContent(Guid id, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetFileContentQuery(id), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+
+        var content = result.Value!;
+        return File(content.Content, content.ContentType);
+    }
+
     // DELETE /api/v1/files/{id}
     [HttpDelete("{id:guid}")]
     [RequirePermission("file.delete")]

@@ -253,3 +253,15 @@ export async function ocrConfirmLabResult(body: LabOcrConfirmRequest): Promise<L
   const res = await apiClient.post<ApiResponse<LabOcrConfirmResult>>("/lab-results/ocr-confirm", body);
   return res.data.data;
 }
+
+// BM-25 (Lark Bug-Feedback): fil_files.signed_url tro thang MinIO noi bo, trinh duyet khong mo
+// duoc (cung root cause voi BM-26 ClsUploadList). Fetch noi dung qua API content-proxy chung
+// (/api/v1/files/{id}/content) roi tao Blob URL cuc bo - dung cho split-view file goc canh form
+// nhap tay khi OCR khong doc duoc chi so nao.
+export async function getFileContentBlobUrl(fileId: string): Promise<{ url: string; contentType: string }> {
+  const { data, headers } = await apiClient.get(`/files/${fileId}/content`, {
+    responseType: "blob",
+  });
+  const contentType = String(headers["content-type"] ?? "");
+  return { url: URL.createObjectURL(data as Blob), contentType };
+}

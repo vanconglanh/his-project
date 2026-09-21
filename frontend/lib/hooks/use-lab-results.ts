@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 import {
   listLabResults,
   createLabResult,
@@ -14,6 +15,7 @@ import {
   batchVerifyLabResults,
   ocrExtractLabResult,
   ocrConfirmLabResult,
+  getFileContentBlobUrl,
   type LabResultListParams,
   type LabResultCreateRequest,
   type LabResultUpdateRequest,
@@ -144,4 +146,42 @@ export function useOcrConfirmLabResult() {
     },
     onError: (e) => toast.error(getErrorMessage(e, "Lưu kết quả từ file thất bại")),
   });
+}
+
+// BM-25 (Lark Bug-Feedback): blob URL cho file goc (split-view) - dung useState/useEffect nhu
+// useClsUploadContentUrl vi can revoke object URL dung luc unmount/doi file.
+export function useFileContentUrl(fileId: string | null | undefined) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [contentType, setContentType] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!fileId) return;
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    setIsLoading(true);
+    getFileContentBlobUrl(fileId)
+      .then((res) => {
+        if (cancelled) {
+          URL.revokeObjectURL(res.url);
+          return;
+        }
+        objectUrl = res.url;
+        setUrl(res.url);
+        setContentType(res.contentType);
+      })
+      .catch(() => {
+        if (!cancelled) setUrl(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [fileId]);
+
+  return { url, contentType, isLoading };
 }

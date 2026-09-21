@@ -15,6 +15,15 @@ public record UploadFileCommand(
 public record GetSignedUrlQuery(Guid FileId)
     : IRequest<Result<FileUploadResponse>>;
 
+// BM-25 (Lark Bug-Feedback): fil_files (dung chung cho lab-ocr-sources, rad-ocr-sources...) dinh
+// cung loi signed_url MinIO noi bo nhu BM-26 (xem ghi chu chi tiet o GetClsUploadContentQuery ben
+// duoi). Proxy noi dung qua API thay vi tra presigned URL - dung cho split-view file goc canh
+// form nhap tay khi OCR khong doc duoc.
+public record GetFileContentQuery(Guid FileId)
+    : IRequest<Result<GenericFileContent>>;
+
+public record GenericFileContent(Stream Content, string ContentType, string FileName);
+
 public record DeleteFileCommand(Guid FileId)
     : IRequest<Result<bool>>;
 
