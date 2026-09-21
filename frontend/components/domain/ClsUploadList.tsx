@@ -15,7 +15,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { ImageAnnotationDialog } from "@/components/domain/ImageAnnotationDialog";
-import { useClsUploads, useUploadCls, useDeleteClsUpload } from "@/lib/hooks/use-cls-uploads";
+import {
+  useClsUploads,
+  useUploadCls,
+  useDeleteClsUpload,
+  useClsUploadContentUrl,
+} from "@/lib/hooks/use-cls-uploads";
 import { formatDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { ClsUploadResponse } from "@/lib/api/types";
@@ -53,7 +58,7 @@ export function ClsUploadList({ patientId, encounterId }: ClsUploadListProps) {
   const [docName, setDocName] = useState("");
   const [note, setNote] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxItem, setLightboxItem] = useState<ClsUploadResponse | null>(null);
   const [annotatingItem, setAnnotatingItem] = useState<ClsUploadResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -221,100 +226,30 @@ export function ClsUploadList({ patientId, encounterId }: ClsUploadListProps) {
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {uploads.map((item) => (
-            <div key={item.id} className="border rounded-lg overflow-hidden group relative">
-              {isImage(item.mime_type) && item.signed_url ? (
-                <button
-                  className="w-full"
-                  onClick={() => setLightboxUrl(item.signed_url!)}
-                  aria-label={`Xem ảnh ${item.file_name}`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.signed_url}
-                    alt={item.doc_type}
-                    className="w-full h-28 object-cover"
-                  />
-                </button>
-              ) : (
-                <div className="h-28 flex items-center justify-center bg-muted">
-                  <FileText className="h-10 w-10 text-muted-foreground" />
-                </div>
-              )}
-              <div className="p-2">
-                <p className="text-xs font-medium line-clamp-1" title={item.doc_type}>{item.doc_type}</p>
-                <p className="text-xs text-muted-foreground">{formatBytes(item.file_size_bytes)}</p>
-                <p className="text-xs text-muted-foreground">{formatDateTime(item.uploaded_at)}</p>
-              </div>
-              {/* Actions overlay */}
-              <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {isImage(item.mime_type) && item.signed_url && (
-                  <button
-                    className="bg-background/80 rounded p-1 hover:bg-background"
-                    onClick={() => setAnnotatingItem(item)}
-                    aria-label={`Chú thích ảnh ${item.file_name}`}
-                    title="Chú thích ảnh"
-                  >
-                    <PenLine className="h-3 w-3" />
-                  </button>
-                )}
-                {item.signed_url && (
-                  <a
-                    href={item.signed_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-background/80 rounded p-1 hover:bg-background"
-                    aria-label="Mở file"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-                <button
-                  className="bg-background/80 rounded p-1 hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => setDeleteId(item.id)}
-                  aria-label="Xoá"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
+            <ClsUploadCard
+              key={item.id}
+              patientId={patientId}
+              item={item}
+              isImage={isImage(item.mime_type)}
+              onView={() => setLightboxItem(item)}
+              onAnnotate={() => setAnnotatingItem(item)}
+              onDelete={() => setDeleteId(item.id)}
+            />
           ))}
         </div>
       )}
 
       {/* Lightbox */}
-      {lightboxUrl && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
-          onClick={() => setLightboxUrl(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Xem ảnh"
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 text-white hover:bg-white/20"
-            onClick={() => setLightboxUrl(null)}
-          >
-            <X className="h-6 w-6" />
-          </Button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={lightboxUrl}
-            alt="Kết quả CLS"
-            className="max-w-[90vw] max-h-[90vh] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+      {lightboxItem && (
+        <ClsUploadLightbox item={lightboxItem} patientId={patientId} onClose={() => setLightboxItem(null)} />
       )}
 
-      {annotatingItem?.signed_url && (
-        <ImageAnnotationDialog
-          open={!!annotatingItem}
-          onOpenChange={(open) => { if (!open) setAnnotatingItem(null); }}
-          imageUrl={annotatingItem.signed_url}
-          fileName={annotatingItem.file_name}
+      {annotatingItem && (
+        <ClsUploadAnnotationDialog
+          patientId={patientId}
+          item={annotatingItem}
           isSaving={uploadMutation.isPending}
+          onClose={() => setAnnotatingItem(null)}
           onSave={handleSaveAnnotation}
         />
       )}
@@ -329,5 +264,149 @@ export function ClsUploadList({ patientId, encounterId }: ClsUploadListProps) {
         variant="destructive"
       />
     </div>
+  );
+}
+
+// BM-26 (Lark Bug-Feedback): tach thanh component rieng vi useClsUploadContentUrl (Hook) phai
+// goi o dinh 1 component - khong the goi ben trong .map() cua ClsUploadList. Moi the fetch
+// blob URL rieng (qua API co JWT) thay vi dung chung item.signed_url (tro toi MinIO noi bo,
+// trinh duyet khong truy cap duoc - xem ghi chu chi tiet o getClsUploadContentBlobUrl).
+function ClsUploadCard({
+  patientId,
+  item,
+  isImage,
+  onView,
+  onAnnotate,
+  onDelete,
+}: {
+  patientId: string;
+  item: ClsUploadResponse;
+  isImage: boolean;
+  onView: () => void;
+  onAnnotate: () => void;
+  onDelete: () => void;
+}) {
+  const { url, isLoading } = useClsUploadContentUrl(patientId, item.id);
+
+  return (
+    <div className="border rounded-lg overflow-hidden group relative">
+      {isImage && url ? (
+        <button className="w-full" onClick={onView} aria-label={`Xem ảnh ${item.file_name}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={item.doc_type} className="w-full h-28 object-cover" />
+        </button>
+      ) : (
+        <div className="h-28 flex items-center justify-center bg-muted">
+          {isImage && isLoading ? (
+            <Skeleton className="h-full w-full" />
+          ) : (
+            <FileText className="h-10 w-10 text-muted-foreground" />
+          )}
+        </div>
+      )}
+      <div className="p-2">
+        <p className="text-xs font-medium line-clamp-1" title={item.doc_type}>{item.doc_type}</p>
+        <p className="text-xs text-muted-foreground">{formatBytes(item.file_size_bytes)}</p>
+        <p className="text-xs text-muted-foreground">{formatDateTime(item.uploaded_at)}</p>
+      </div>
+      {/* Actions overlay */}
+      <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {isImage && url && (
+          <button
+            className="bg-background/80 rounded p-1 hover:bg-background"
+            onClick={onAnnotate}
+            aria-label={`Chú thích ảnh ${item.file_name}`}
+            title="Chú thích ảnh"
+          >
+            <PenLine className="h-3 w-3" />
+          </button>
+        )}
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-background/80 rounded p-1 hover:bg-background"
+            aria-label="Mở file"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+        <button
+          className="bg-background/80 rounded p-1 hover:bg-destructive hover:text-destructive-foreground"
+          onClick={onDelete}
+          aria-label="Xoá"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ClsUploadLightbox({
+  patientId,
+  item,
+  onClose,
+}: {
+  patientId: string;
+  item: ClsUploadResponse;
+  onClose: () => void;
+}) {
+  const { url } = useClsUploadContentUrl(patientId, item.id);
+  if (!url) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Xem ảnh"
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-4 text-white hover:bg-white/20"
+        onClick={onClose}
+      >
+        <X className="h-6 w-6" />
+      </Button>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt="Kết quả CLS"
+        className="max-w-[90vw] max-h-[90vh] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+function ClsUploadAnnotationDialog({
+  patientId,
+  item,
+  isSaving,
+  onClose,
+  onSave,
+}: {
+  patientId: string;
+  item: ClsUploadResponse;
+  isSaving: boolean;
+  onClose: () => void;
+  onSave: (blob: Blob) => void | Promise<void>;
+}) {
+  const { url } = useClsUploadContentUrl(patientId, item.id);
+  if (!url) return null;
+
+  return (
+    <ImageAnnotationDialog
+      open
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      imageUrl={url}
+      fileName={item.file_name}
+      isSaving={isSaving}
+      onSave={onSave}
+    />
   );
 }

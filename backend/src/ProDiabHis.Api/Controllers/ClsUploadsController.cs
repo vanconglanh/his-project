@@ -79,6 +79,26 @@ public class ClsUploadsController : ControllerBase
         return Ok(new { data = result.Value });
     }
 
+    // GET /api/v1/patients/{patientId}/cls-uploads/{id}/content
+    // BM-26 (Lark Bug-Feedback): proxy noi dung file THAT SU qua API thay vi tra presigned URL
+    // MinIO noi bo cho FE (xem ghi chu chi tiet o GetClsUploadContentQuery). Frontend fetch endpoint
+    // nay qua axios (co san JWT header) roi tao blob URL de mo, thay vi <a href> thang toi MinIO.
+    [HttpGet("api/v1/patients/{patientId:guid}/cls-uploads/{id:guid}/content")]
+    [RequirePermission("cls_upload.read")]
+    public async Task<IActionResult> GetContent(Guid patientId, Guid id, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetClsUploadContentQuery(patientId, id), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+
+        var content = result.Value!;
+        // Khong truyen fileDownloadName: overload 3 tham so cua File() se ep tai ve
+        // (Content-Disposition: attachment). Muc tieu BM-26 la MO xem (giong hanh vi
+        // target="_blank" cu voi signed_url) - de trinh duyet tu quyet dinh hien inline
+        // (anh/PDF) theo Content-Type, khop dung UX truoc day.
+        return File(content.Content, content.ContentType);
+    }
+
     // DELETE /api/v1/patients/{patientId}/cls-uploads/{id}
     [HttpDelete("api/v1/patients/{patientId:guid}/cls-uploads/{id:guid}")]
     [RequirePermission("cls_upload.delete")]

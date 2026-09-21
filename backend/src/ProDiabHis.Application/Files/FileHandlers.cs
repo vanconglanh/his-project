@@ -337,6 +337,56 @@ public class GetClsUploadQueryHandler : IRequestHandler<GetClsUploadQuery, Resul
     }
 }
 
+// BM-26 (Lark Bug-Feedback): xem ghi chu chi tiet o GetClsUploadContentQuery (FileCommands.cs).
+// Tai file THAT SU (khong phai signed_url) qua chinh backend - server dang o trong docker
+// network noi bo nen goi IFileStorage.DownloadAsync (dung "Minio:Endpoint" = "minio:9000")
+// binh thuong, khong gap van de resolve hostname nhu trinh duyet nguoi dung.
+public class GetClsUploadContentQueryHandler : IRequestHandler<GetClsUploadContentQuery, Result<ClsUploadFileContent>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+    private readonly IFileStorage _storage;
+
+    public GetClsUploadContentQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant, IFileStorage storage)
+    {
+        _db = db;
+        _tenant = tenant;
+        _storage = storage;
+    }
+
+    public async Task<Result<ClsUploadFileContent>> Handle(GetClsUploadContentQuery request, CancellationToken cancellationToken)
+    {
+        using var conn = _db.CreateConnection();
+        var sql = @"
+            SELECT c.file_name, c.mime_type, c.file_path
+            FROM diab_his_fil_cls_uploads c
+            WHERE c.id=@Id AND c.patient_id=@PatientId AND c.tenant_id=@TenantId AND c.deleted_at IS NULL";
+
+        var row = await conn.QueryFirstOrDefaultAsync(sql, new
+        {
+            Id = request.Id.ToString(),
+            PatientId = request.PatientId.ToString(),
+            TenantId = _tenant.TenantId
+        });
+        if (row is null)
+            return Result<ClsUploadFileContent>.Failure("CLS_UPLOAD_NOT_FOUND", "Không tìm thấy tài liệu CLS");
+
+        Stream stream;
+        try
+        {
+            stream = await _storage.DownloadAsync(FileBuckets.ClsUploads, (string)row.file_path, cancellationToken);
+        }
+        catch (Exception)
+        {
+            return Result<ClsUploadFileContent>.Failure("CLS_UPLOAD_STORAGE_ERROR", "Không tải được file từ kho lưu trữ");
+        }
+
+        var contentType = (string?)row.mime_type ?? "application/octet-stream";
+        var fileName = (string)row.file_name;
+        return Result<ClsUploadFileContent>.Success(new ClsUploadFileContent(stream, contentType, fileName));
+    }
+}
+
 public class DeleteClsUploadCommandHandler : IRequestHandler<DeleteClsUploadCommand, Result<bool>>
 {
     private readonly IDapperConnectionFactory _db;
