@@ -36,6 +36,11 @@ export interface EncounterToolbarProps {
   hasTicket: boolean;
   isEmrSigned: boolean;
   diagnosisCount: number;
+  /** BM-27: dieu kien khac backend cung chan Ket thuc kham nhung dialog xac nhan truoc day
+   * khong canh bao - tester ky so xong van fail ma khong ro ly do (thieu ly do kham chinh hoac
+   * thieu/thua chan doan chinh). */
+  hasChiefComplaint: boolean;
+  primaryDiagnosisCount: number;
   canEdit: boolean;
   isPending?: boolean;
   onStart: () => void;
@@ -64,6 +69,8 @@ export function EncounterToolbar({
   hasTicket,
   isEmrSigned,
   diagnosisCount,
+  hasChiefComplaint,
+  primaryDiagnosisCount,
   canEdit,
   isPending,
   onStart,
@@ -218,14 +225,28 @@ export function EncounterToolbar({
             <p>
               Sau khi kết thúc, bệnh án sẽ bị khoá và chỉ có thể sửa bằng bản đính chính.
             </p>
+            {!hasChiefComplaint && (
+              <p className="text-destructive">
+                Chưa nhập lý do khám chính — hệ thống sẽ từ chối kết thúc khám cho tới khi bổ sung.
+              </p>
+            )}
             {diagnosisCount === 0 && (
-              <p className="text-[color:var(--status-warning)]">
-                Chưa có chẩn đoán ICD-10. Bệnh án thiếu chẩn đoán sẽ không xuất được XML giám định
-                BHYT.
+              <p className="text-destructive">
+                Chưa có chẩn đoán ICD-10 — hệ thống sẽ từ chối kết thúc khám cho tới khi thêm ít
+                nhất 1 chẩn đoán.
+              </p>
+            )}
+            {diagnosisCount > 0 && primaryDiagnosisCount !== 1 && (
+              <p className="text-destructive">
+                {primaryDiagnosisCount === 0
+                  ? "Chưa có chẩn đoán chính (PRIMARY) — cần đánh dấu đúng 1 chẩn đoán là chính."
+                  : `Đang có ${primaryDiagnosisCount} chẩn đoán chính — chỉ được chọn đúng 1.`}
               </p>
             )}
             {!isEmrSigned && (
-              <p className="text-[color:var(--status-warning)]">Bệnh án chưa được ký số.</p>
+              <p className="text-destructive">
+                Bệnh án chưa được ký số — cần ký số trước khi kết thúc khám.
+              </p>
             )}
           </div>
         }

@@ -6,6 +6,19 @@ using System.Text.Json;
 
 namespace ProDiabHis.Application.Reception;
 
+// BM-07 (tiep, Lark - "van lech gio giua Dang ky va Kham benh"): server chay UTC (khong phai gio
+// VN). Truoc day module Reception dung DateTime.Today (= ngay UTC) va DATE(created_at) (so truc
+// tiep tren cot UTC) de xac dinh "hom nay", trong khi module Encounters da duoc fix quy doi sang
+// gio VN (xem VnOffset trong ListEncountersQueryHandler/DoctorDutyChecker). Hau qua: benh nhan
+// check-in sau 17:00 UTC (tuc sau 00:00 hom sau theo VN) bi tinh "hom nay" khac nhau giua 2 man
+// hinh Dang ky va Kham benh. Dung chung 1 dinh nghia "hom nay theo VN" cho toan bo Reception.
+internal static class VnDate
+{
+    private static readonly TimeSpan Offset = TimeSpan.FromHours(7);
+
+    public static DateOnly Today => DateOnly.FromDateTime(DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc) + Offset);
+}
+
 public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<ReceptionTicketResponse>>
 {
     private readonly IDapperConnectionFactory _db;
@@ -48,7 +61,7 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
         if (room is null)
             return Result<ReceptionTicketResponse>.Failure("ROOM_NOT_FOUND", "Không tìm thấy phòng khám");
 
-        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var today = VnDate.Today.ToString("yyyy-MM-dd");
         var patId = ((object)patient.id).ToString()!;
 
         // Check duplicate check-in today (gioi han theo chi nhanh dang lam viec)
@@ -276,7 +289,7 @@ public class ListQueueQueryHandler : IRequestHandler<ListQueueQuery, List<Recept
     public async Task<List<ReceptionTicketResponse>> Handle(ListQueueQuery request, CancellationToken cancellationToken)
     {
         using var conn = _db.CreateConnection();
-        var date = (request.Date ?? DateOnly.FromDateTime(DateTime.Today)).ToString("yyyy-MM-dd");
+        var date = (request.Date ?? VnDate.Today).ToString("yyyy-MM-dd");
 
         // diab_his_rcp_queue_tickets: id, tenant_id, branch_id, patient_id, ticket_no, ticket_date, room_id, status, note, created_at
         var where = "WHERE t.tenant_id=@TenantId AND t.ticket_date=@Date AND t.deleted_at IS NULL AND " + BranchSql.Condition("t");
@@ -360,14 +373,14 @@ public class ListRoomsQueryHandler : IRequestHandler<ListRoomsQuery, List<RoomRe
     public async Task<List<RoomResponse>> Handle(ListRoomsQuery request, CancellationToken cancellationToken)
     {
         using var conn = _db.CreateConnection();
-        var today = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+        var today = VnDate.Today.ToString("yyyy-MM-dd");
 
         var sql = $@"
             SELECT r.id, r.name, r.code AS room_code, r.capacity AS max_per_day,
                    NULL AS doctor_id, NULL AS doctor_name,
                    COUNT(CASE WHEN t.status='WAITING' THEN 1 END) as waiting_count
             FROM diab_his_sys_rooms r
-            LEFT JOIN diab_his_rcp_queue_tickets t ON t.room_id=r.id AND DATE(t.created_at)=@Today AND t.deleted_at IS NULL
+            LEFT JOIN diab_his_rcp_queue_tickets t ON t.room_id=r.id AND DATE(DATE_ADD(t.created_at, INTERVAL 7 HOUR))=@Today AND t.deleted_at IS NULL
             WHERE (r.tenant_id=@TenantId OR r.tenant_id IS NULL) AND r.deleted_at IS NULL AND r.is_active=1
               AND {BranchSql.Condition("r")}
             GROUP BY r.id, r.name, r.code, r.capacity";
@@ -406,7 +419,7 @@ public class GetReceptionStatsQueryHandler : IRequestHandler<GetReceptionStatsQu
     public async Task<ReceptionStatsDto> Handle(GetReceptionStatsQuery request, CancellationToken cancellationToken)
     {
         using var conn = _db.CreateConnection();
-        var date = (request.Date ?? DateOnly.FromDateTime(DateTime.Today)).ToString("yyyy-MM-dd");
+        var date = (request.Date ?? VnDate.Today).ToString("yyyy-MM-dd");
 
         var sql = $@"
             SELECT
@@ -418,14 +431,14 @@ public class GetReceptionStatsQueryHandler : IRequestHandler<GetReceptionStatsQu
                 SUM(CASE WHEN status='CANCELLED' THEN 1 ELSE 0 END) as cancelled,
                 0 as avg_wait
             FROM diab_his_rcp_queue_tickets
-            WHERE tenant_id=@TenantId AND DATE(created_at)=@Date AND deleted_at IS NULL AND {BranchSql.Condition("")}";
+            WHERE tenant_id=@TenantId AND DATE(DATE_ADD(created_at, INTERVAL 7 HOUR))=@Date AND deleted_at IS NULL AND {BranchSql.Condition("")}";
 
         var row = await conn.QueryFirstAsync(sql, new
         {
             TenantId = _tenant.TenantId, Date = date,
             branchId = _branch.BranchId, ignoreBranch = _branch.IgnoreBranchFilter
         });
-        var targetDate = request.Date ?? DateOnly.FromDateTime(DateTime.Today);
+        var targetDate = request.Date ?? VnDate.Today;
 
         return new ReceptionStatsDto(
             targetDate,

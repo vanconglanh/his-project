@@ -99,14 +99,36 @@ export function useCloseEncounter(id: string) {
       qc.invalidateQueries({ queryKey: encounterKeys.all });
       toast.success("Đã đóng lượt khám");
     },
+    // BM-27 (Lark Bug-Feedback): cac ma loi o day KHONG khop voi ma that su tra ve tu
+    // CloseEncounterCommandHandler (DIAGNOSIS_REQUIRED, DIAGNOSIS_PRIMARY_REQUIRED,
+    // ENCOUNTER_MISSING_CHIEF_COMPLAINT...) nen luon roi vao nhanh "That bai" chung chung -
+    // tester ky so xong van khong Ket thuc kham duoc ma khong biet ly do that. Map dung tung
+    // ma loi backend sang thong bao cu the, huong dan ro buoc can lam tiep theo.
     onError: (err: unknown) => {
-      const msg =
+      const code =
         (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
-      if (msg === "ENCOUNTER_MISSING_DIAGNOSIS")
-        toast.error("Cần có ít nhất 1 chẩn đoán chính (PRIMARY)");
-      else if (msg === "EMR_NOT_SIGNED")
-        toast.error("Bệnh án chưa được ký số");
-      else toast.error("Đóng lượt khám thất bại");
+      switch (code) {
+        case "ENCOUNTER_MISSING_CHIEF_COMPLAINT":
+          toast.error("Vui lòng nhập lý do khám chính trước khi kết thúc khám");
+          break;
+        case "DIAGNOSIS_REQUIRED":
+          toast.error("Vui lòng thêm ít nhất 1 chẩn đoán trước khi kết thúc khám");
+          break;
+        case "DIAGNOSIS_PRIMARY_REQUIRED":
+          toast.error("Vui lòng chọn đúng 1 chẩn đoán chính (không được nhiều hơn hoặc ít hơn 1)");
+          break;
+        case "EMR_NOT_SIGNED":
+          toast.error("Vui lòng ký số bệnh án trước khi kết thúc khám");
+          break;
+        case "ENCOUNTER_INVALID_TRANSITION":
+          toast.error("Lượt khám đang ở trạng thái không cho phép kết thúc khám");
+          break;
+        case "ENCOUNTER_NOT_FOUND":
+          toast.error("Không tìm thấy lượt khám");
+          break;
+        default:
+          toast.error("Kết thúc khám thất bại, vui lòng thử lại hoặc liên hệ kỹ thuật");
+      }
     },
   });
 }

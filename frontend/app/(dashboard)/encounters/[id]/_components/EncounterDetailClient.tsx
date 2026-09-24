@@ -214,6 +214,8 @@ export function EncounterDetailClient({ encounterId }: Props) {
         hasTicket={!!ticket}
         isEmrSigned={encounter.has_emr_signed}
         diagnosisCount={encounter.diagnoses.length}
+        hasChiefComplaint={!!encounter.chief_complaint?.trim()}
+        primaryDiagnosisCount={encounter.diagnoses.filter((d) => d.type === "PRIMARY").length}
         canEdit={!!canEdit}
         isPending={
           startEncounter.isPending ||
