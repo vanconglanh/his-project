@@ -12,11 +12,15 @@ namespace ProDiabHis.Application.Reception;
 // gio VN (xem VnOffset trong ListEncountersQueryHandler/DoctorDutyChecker). Hau qua: benh nhan
 // check-in sau 17:00 UTC (tuc sau 00:00 hom sau theo VN) bi tinh "hom nay" khac nhau giua 2 man
 // hinh Dang ky va Kham benh. Dung chung 1 dinh nghia "hom nay theo VN" cho toan bo Reception.
-internal static class VnDate
+public static class VnDate
 {
     private static readonly TimeSpan Offset = TimeSpan.FromHours(7);
 
-    public static DateOnly Today => DateOnly.FromDateTime(DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc) + Offset);
+    public static DateOnly Today => FromUtc(DateTime.UtcNow);
+
+    /// <summary>Tach rieng khoi DateTime.UtcNow de unit-test duoc voi moc thoi gian co dinh.</summary>
+    public static DateOnly FromUtc(DateTime utcNow) =>
+        DateOnly.FromDateTime(DateTime.SpecifyKind(utcNow, DateTimeKind.Utc) + Offset);
 }
 
 public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<ReceptionTicketResponse>>
