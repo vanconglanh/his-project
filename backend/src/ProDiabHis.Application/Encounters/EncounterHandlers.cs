@@ -23,9 +23,9 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
     private readonly IBranchProvider? _branch;
 
     public CreateEncounterCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit, IBranchProvider? branch = null, IDapperConnectionFactory? dapperDb = null)
+        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapperDb, IBranchProvider? branch = null)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit; _branch = branch; _dapperDb = dapperDb!;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _branch = branch; _dapperDb = dapperDb;
     }
 
     public async Task<Result<EncounterResponse>> Handle(CreateEncounterCommand command, CancellationToken ct)
@@ -102,6 +102,20 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
                 .FirstOrDefaultAsync(ct);
         }
 
+        // BM-39 (Lark Bug-Feedback): resolve ten phong tuong tu doctorName o tren - truoc day
+        // EncounterResponse khong co RoomName nen man Khu vuc benh nhan luon hien "Chua phan
+        // phong" du encounter da co RoomId that (trong khi toolbar chuyen phong tu resolve dung
+        // ten tu danh sach phong rieng - RoomTransferSelect/useRooms - nen 2 noi hien khac nhau).
+        // Phong (diab_his_sys_rooms) chi quan ly qua Dapper, khong co EF entity nen dung Dapper.
+        string? roomName = null;
+        if (!string.IsNullOrEmpty(enc.RoomId))
+        {
+            using var conn = _dapperDb.CreateConnection();
+            roomName = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT name FROM diab_his_sys_rooms WHERE id=@RoomId AND deleted_at IS NULL",
+                new { RoomId = enc.RoomId });
+        }
+
         var emrSignedCnt = await _db.EmrContents.AsNoTracking()
             .CountAsync(e => e.EncounterId == enc.Id.ToString() && e.SignedAt != null, ct);
 
@@ -112,7 +126,7 @@ public class CreateEncounterCommandHandler : IRequestHandler<CreateEncounterComm
 
         return new EncounterResponse(
             enc.Id, enc.TenantId, enc.PatientId, patSummary,
-            enc.RoomId, enc.DoctorId, doctorName,
+            enc.RoomId, roomName, enc.DoctorId, doctorName,
             enc.EncounterType, enc.ReasonForVisit, enc.ChiefComplaint,
             enc.Status, enc.StartedAt, enc.FinishedAt, alertOver12h,
             Array.Empty<DiagnosisResponse>(), null,
@@ -130,11 +144,12 @@ public class UpdateEncounterCommandHandler : IRequestHandler<UpdateEncounterComm
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
     private readonly IBranchProvider _branch;
+    private readonly IDapperConnectionFactory _dapperDb;
 
     public UpdateEncounterCommandHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit, IBranchProvider branch)
+        ICurrentUser user, IAuditService audit, IBranchProvider branch, IDapperConnectionFactory dapperDb)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit; _branch = branch;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _branch = branch; _dapperDb = dapperDb;
     }
 
     public async Task<Result<EncounterResponse>> Handle(UpdateEncounterCommand cmd, CancellationToken ct)
@@ -154,7 +169,7 @@ public class UpdateEncounterCommandHandler : IRequestHandler<UpdateEncounterComm
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync("UPDATE", "Encounter", enc.Id.ToString(), null, ct);
 
-        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit, _branch);
+        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit, _dapperDb, _branch);
         return Result<EncounterResponse>.Success(await helper.BuildEncounterResponse(enc, ct));
     }
 }
@@ -298,7 +313,7 @@ public class StartEncounterCommandHandler : IRequestHandler<StartEncounterComman
         await QueueTicketSync.SyncStatusAsync(
             _dapper, enc.TenantId, enc.PatientId, enc.RoomId, TicketStatus.InProgress, ct);
 
-        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit);
+        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit, _dapper);
         return Result<EncounterResponse>.Success(await helper.BuildEncounterResponse(enc, ct));
     }
 
@@ -622,11 +637,12 @@ public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetail
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IDapperConnectionFactory _dapperDb;
 
     public GetEncounterDetailQueryHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
+        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapperDb)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _dapperDb = dapperDb;
     }
 
     public async Task<Result<EncounterDetailResponse>> Handle(GetEncounterDetailQuery query, CancellationToken ct)
@@ -640,7 +656,7 @@ public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetail
         // P0-01: ghi nhat ky truy cap (doc) benh an - yeu cau tuan thu TT 13/2025/TT-BYT
         await _audit.LogAsync(AuditAction.View, "Encounter", enc.Id.ToString(), null, ct);
 
-        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit);
+        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit, _dapperDb);
         var base_ = await helper.BuildEncounterResponse(enc, ct);
 
         var encIdStr = enc.Id.ToString();
@@ -664,7 +680,7 @@ public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetail
 
         return Result<EncounterDetailResponse>.Success(new EncounterDetailResponse(
             base_.Id, base_.TenantId, base_.PatientId, base_.PatientSummary,
-            base_.RoomId, base_.DoctorId, base_.DoctorName,
+            base_.RoomId, base_.RoomName, base_.DoctorId, base_.DoctorName,
             base_.EncounterType, base_.ReasonForVisit, base_.ChiefComplaint,
             base_.Status, base_.StartedAt, base_.FinishedAt, base_.AlertOver12h,
             diags.AsReadOnly(), latestVital, base_.HasEmrSigned, base_.HasPrescription, base_.CreatedAt,
@@ -690,11 +706,12 @@ public class ListEncountersQueryHandler : IRequestHandler<ListEncountersQuery, R
     private readonly ITenantProvider _tenant;
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
+    private readonly IDapperConnectionFactory _dapperDb;
 
     public ListEncountersQueryHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit)
+        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapperDb)
     {
-        _db = db; _tenant = tenant; _user = user; _audit = audit;
+        _db = db; _tenant = tenant; _user = user; _audit = audit; _dapperDb = dapperDb;
     }
 
     public async Task<Result<PagedResult<EncounterResponse>>> Handle(ListEncountersQuery q, CancellationToken ct)
@@ -729,7 +746,7 @@ public class ListEncountersQueryHandler : IRequestHandler<ListEncountersQuery, R
         var encounters = await query.OrderByDescending(e => e.CreatedAt)
             .Skip(offset).Take(q.PageSize).ToListAsync(ct);
 
-        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit);
+        var helper = new CreateEncounterCommandHandler(_db, _tenant, _user, _audit, _dapperDb);
         var items = new List<EncounterResponse>();
         foreach (var enc in encounters)
             items.Add(await helper.BuildEncounterResponse(enc, ct));

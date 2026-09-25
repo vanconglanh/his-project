@@ -929,6 +929,19 @@ export interface RadOrderResponse extends RadOrderRequest {
   ordered_by: string;
 }
 
+/** BM-40 (Lark Bug-Feedback): man hinh "hang cho" cho KTV cap nhat trang thai chi dinh CLS. */
+export interface PendingClsOrderResponse {
+  id: string;
+  kind: "LAB" | "RAD";
+  encounter_id: string;
+  patient_name: string;
+  item_code: string;
+  item_name: string;
+  priority: ClsPriority;
+  status: LabOrderStatus | RadOrderStatus;
+  ordered_at: string;
+}
+
 export interface ClsCatalogItem {
   code: string;
   name: string;

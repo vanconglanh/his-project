@@ -14,6 +14,17 @@ public class ClsOrdersController : ControllerBase
 
     public ClsOrdersController(IMediator mediator) => _mediator = mediator;
 
+    // GET /api/v1/cls-orders/pending
+    // BM-40 (Lark Bug-Feedback): man hinh "hang cho" cho KTV, gop chi dinh XN+CDHA cua moi
+    // luot kham chua hoan tat (khac done/cancelled) de cap nhat trang thai xu ly.
+    [HttpGet("api/v1/cls-orders/pending")]
+    [RequirePermission("lab_order.read")]
+    public async Task<IActionResult> ListPending([FromQuery] string? kind, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ListPendingClsOrdersQuery(kind), ct);
+        return Ok(new { data = result.Value });
+    }
+
     // POST /api/v1/encounters/{encounterId}/lab-orders
     [HttpPost("api/v1/encounters/{encounterId:guid}/lab-orders")]
     [RequirePermission("lab_order.create")]

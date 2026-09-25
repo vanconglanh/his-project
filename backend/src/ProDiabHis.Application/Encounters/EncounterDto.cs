@@ -22,6 +22,12 @@ public record EncounterResponse(
     string PatientId,
     PatientSummaryDto? PatientSummary,
     string? RoomId,
+    // BM-39 (Lark Bug-Feedback): truoc day EncounterResponse KHONG co RoomName - man Khu vuc benh
+    // nhan (PatientIdentityCard) luon hien "Chua phan phong" du encounter da co RoomId that, trong
+    // khi toolbar chuyen phong (RoomTransferSelect) lai tu resolve dung ten tu danh sach phong rieng
+    // (useRooms) -> 2 noi hien 2 thong tin khac nhau cho cung 1 du lieu. Them RoomName de ca 2 noi
+    // dung chung 1 nguon that tu BE.
+    string? RoomName,
     string? DoctorId,
     string? DoctorName,
     string EncounterType,
@@ -45,6 +51,7 @@ public record EncounterDetailResponse(
     string PatientId,
     PatientSummaryDto? PatientSummary,
     string? RoomId,
+    string? RoomName,
     string? DoctorId,
     string? DoctorName,
     string EncounterType,

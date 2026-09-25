@@ -5,6 +5,7 @@ import { LabResultsTab } from "./LabResultsTab";
 import { RadResultsTab } from "./RadResultsTab";
 import { LabPartnersTab } from "./LabPartnersTab";
 import { LabIntegrationTab } from "./LabIntegrationTab";
+import { ClsOrderQueueTab } from "./ClsOrderQueueTab";
 
 export function LabRadPageClient() {
   return (
@@ -18,11 +19,18 @@ export function LabRadPageClient() {
 
       <Tabs defaultValue="lab-results">
         <TabsList className="flex-wrap h-auto gap-1" data-tour="labrad-tabs">
+          {/* BM-40 (Lark Bug-Feedback): tab moi cho KTV cap nhat trang thai chi dinh CLS
+              (truoc day chua co man hinh nao lam viec nay). */}
+          <TabsTrigger value="queue">Hàng chờ chỉ định</TabsTrigger>
           <TabsTrigger value="lab-results">Kết quả xét nghiệm</TabsTrigger>
           <TabsTrigger value="rad-results">Kết quả CĐHA</TabsTrigger>
           <TabsTrigger value="partners">Đối tác lab</TabsTrigger>
           <TabsTrigger value="integration">Tích hợp lab</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="queue" className="pt-4">
+          <ClsOrderQueueTab />
+        </TabsContent>
 
         <TabsContent value="lab-results" className="pt-4">
           <LabResultsTab />

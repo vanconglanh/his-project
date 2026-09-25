@@ -132,9 +132,16 @@ public class BillingsController : ControllerBase
         var result = await _mediator.Send(new FinalizeBillingCommand(id), ct);
         if (!result.IsSuccess)
         {
+            // BM-37 (Lark Bug-Feedback): FE truoc day catch loi finalize khong doc result.ErrorCode
+            // nen luon hien toast chung "Khong the xac nhan hoa don" du BE tra ve 3 ly do khac nhau
+            // (khong tim thay/da finalize/da huy). BILLING_NOT_FOUND truoc day dung Problem() -
+            // response khong co field "error.code" nhu quy uoc chung cua API nen FE khong the doc
+            // duoc ly do that su. Doi sang envelope chuan { error: { code, message } } cho ca 3 case.
+            if (result.ErrorCode == "BILLING_NOT_FOUND")
+                return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
             if (result.ErrorCode is "BILLING_ALREADY_FINALIZED" or "BILLING_VOID")
                 return Conflict(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
-            return Problem(result.ErrorMessage, statusCode: 400);
+            return BadRequest(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
         }
         return Ok(new { data = result.Value });
     }

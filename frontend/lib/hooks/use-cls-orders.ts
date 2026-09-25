@@ -9,7 +9,17 @@ export const clsKeys = {
   labOrders: (encounterId: string) => ["cls", "lab", encounterId] as const,
   radOrders: (encounterId: string) => ["cls", "rad", encounterId] as const,
   catalog: (params?: object) => ["cls", "catalog", params] as const,
+  pending: (kind?: "LAB" | "RAD") => ["cls", "pending", kind] as const,
 };
+
+/** BM-40 (Lark Bug-Feedback): danh sach chi dinh CLS chua hoan tat cho man hinh hang cho KTV. */
+export function usePendingClsOrders(kind?: "LAB" | "RAD") {
+  return useQuery({
+    queryKey: clsKeys.pending(kind),
+    queryFn: () => clsApi.listPendingClsOrders(kind),
+    staleTime: 15_000,
+  });
+}
 
 export function useLabOrders(encounterId: string) {
   return useQuery({
@@ -69,6 +79,34 @@ export function useUpdateLabOrderStatus(encounterId: string) {
       clsApi.updateLabOrderStatus(id, status, note),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: clsKeys.labOrders(encounterId) });
+      toast.success("Cập nhật trạng thái thành công");
+    },
+    onError: () => toast.error("Cập nhật trạng thái thất bại"),
+  });
+}
+
+/** BM-40 (Lark Bug-Feedback): cap nhat trang thai tu man hinh hang cho (khong gan voi 1
+ * encounter cu the tren UI) - invalidate query "pending" thay vi query theo encounterId. */
+export function useUpdateLabOrderStatusInQueue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, note }: { id: string; status: LabOrderStatus; note?: string }) =>
+      clsApi.updateLabOrderStatus(id, status, note),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: clsKeys.pending() });
+      toast.success("Cập nhật trạng thái thành công");
+    },
+    onError: () => toast.error("Cập nhật trạng thái thất bại"),
+  });
+}
+
+export function useUpdateRadOrderStatusInQueue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, note }: { id: string; status: RadOrderStatus; note?: string }) =>
+      clsApi.updateRadOrderStatus(id, status, note),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: clsKeys.pending() });
       toast.success("Cập nhật trạng thái thành công");
     },
     onError: () => toast.error("Cập nhật trạng thái thất bại"),

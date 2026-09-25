@@ -587,3 +587,85 @@ public class SearchClsCatalogQueryHandler : IRequestHandler<SearchClsCatalogQuer
         return Result<IReadOnlyList<ClsCatalogItem>>.Success(results.AsReadOnly());
     }
 }
+
+// ────────────────────────────────────────────────
+// BM-40 (Lark Bug-Feedback): KTV chua co man hinh nao liet ke cac chi dinh XN/CDHA dang cho
+// xu ly xuyen suot cac luot kham de cap nhat trang thai - truoc day chi co the xem/sua trang
+// thai tung chi dinh RIENG LE trong man Kham benh cua tung luot kham (ClsOrderTabPanel, gate
+// canEdit cho bac si), API UpdateLabOrderStatus/UpdateRadOrderStatus da san (KTV da co san
+// quyen lab_order.update/rad_order.update) nhung khong co man hinh "hang cho" tong hop nao
+// goi toi. Them 1 query gop (Dapper, UNION lab+rad) tra ve danh sach chi dinh CHUA hoan tat
+// (khac done/cancelled) kem ten benh nhan, de FE dung lam man hinh hang cho rieng cho KTV.
+// ────────────────────────────────────────────────
+public record PendingClsOrderResponse(
+    Guid Id,
+    string Kind, // "LAB" | "RAD"
+    Guid EncounterId,
+    string PatientName,
+    string ItemCode,
+    string ItemName,
+    string Priority,
+    string Status,
+    DateTime OrderedAt);
+
+public record ListPendingClsOrdersQuery(string? Kind) : IRequest<Result<IReadOnlyList<PendingClsOrderResponse>>>;
+
+public class ListPendingClsOrdersQueryHandler
+    : IRequestHandler<ListPendingClsOrdersQuery, Result<IReadOnlyList<PendingClsOrderResponse>>>
+{
+    private readonly IDapperConnectionFactory _db;
+    private readonly ITenantProvider _tenant;
+
+    public ListPendingClsOrdersQueryHandler(IDapperConnectionFactory db, ITenantProvider tenant)
+    { _db = db; _tenant = tenant; }
+
+    public async Task<Result<IReadOnlyList<PendingClsOrderResponse>>> Handle(
+        ListPendingClsOrdersQuery q, CancellationToken ct)
+    {
+        using var conn = _db.CreateConnection();
+        var results = new List<PendingClsOrderResponse>();
+
+        if (string.IsNullOrEmpty(q.Kind) || q.Kind == "LAB")
+        {
+            var labs = await conn.QueryAsync<dynamic>(@"
+                SELECT lo.id, lo.encounter_id, p.full_name AS patient_name,
+                       lo.test_code AS item_code, lo.test_name AS item_name,
+                       lo.priority, lo.status, lo.ordered_at
+                FROM diab_his_cli_lab_orders lo
+                JOIN diab_his_enc_encounters e ON e.id = lo.encounter_id
+                LEFT JOIN pat_patients p ON p.id = e.patient_id
+                WHERE lo.tenant_id=@TId AND lo.deleted_at IS NULL
+                  AND lo.status NOT IN ('done','cancelled')
+                ORDER BY lo.ordered_at",
+                new { TId = _tenant.TenantId });
+
+            results.AddRange(labs.Select(r => new PendingClsOrderResponse(
+                Guid.Parse((string)r.id), "LAB", Guid.Parse((string)r.encounter_id),
+                (string?)r.patient_name ?? "(chưa rõ)", (string)r.item_code, (string)r.item_name,
+                (string)r.priority, (string)r.status, (DateTime)r.ordered_at)));
+        }
+
+        if (string.IsNullOrEmpty(q.Kind) || q.Kind == "RAD")
+        {
+            var rads = await conn.QueryAsync<dynamic>(@"
+                SELECT ro.id, ro.encounter_id, p.full_name AS patient_name,
+                       ro.procedure_code AS item_code, ro.procedure_name AS item_name,
+                       ro.priority, ro.status, ro.ordered_at
+                FROM diab_his_cli_rad_orders ro
+                JOIN diab_his_enc_encounters e ON e.id = ro.encounter_id
+                LEFT JOIN pat_patients p ON p.id = e.patient_id
+                WHERE ro.tenant_id=@TId AND ro.deleted_at IS NULL
+                  AND ro.status NOT IN ('done','cancelled')
+                ORDER BY ro.ordered_at",
+                new { TId = _tenant.TenantId });
+
+            results.AddRange(rads.Select(r => new PendingClsOrderResponse(
+                Guid.Parse((string)r.id), "RAD", Guid.Parse((string)r.encounter_id),
+                (string?)r.patient_name ?? "(chưa rõ)", (string)r.item_code, (string)r.item_name,
+                (string)r.priority, (string)r.status, (DateTime)r.ordered_at)));
+        }
+
+        return Result<IReadOnlyList<PendingClsOrderResponse>>.Success(
+            results.OrderBy(r => r.OrderedAt).ToList().AsReadOnly());
+    }
+}

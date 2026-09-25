@@ -46,7 +46,7 @@ public class EncounterHandlersTests
         db.Patients.Add(new Patient { Id = patientId, TenantId = 1, Code = "BNT01000001", FullName = "Nguyen Van A" });
         await db.SaveChangesAsync();
 
-        var handler = new CreateEncounterCommandHandler(db, _tenant, _user, _audit);
+        var handler = new CreateEncounterCommandHandler(db, _tenant, _user, _audit, _dapper);
         var req = new CreateEncounterRequest(
             PatientId: patientId.ToString(),
             RoomId: null, DoctorId: null,
@@ -73,7 +73,7 @@ public class EncounterHandlersTests
     public async Task CreateEncounter_PatientNotFound_ReturnsFailure()
     {
         using var db = TestDbContextFactory.Create(tenantId: 1);
-        var handler = new CreateEncounterCommandHandler(db, _tenant, _user, _audit);
+        var handler = new CreateEncounterCommandHandler(db, _tenant, _user, _audit, _dapper);
         var req = new CreateEncounterRequest(
             PatientId: Guid.NewGuid().ToString(),
             RoomId: null, DoctorId: null,
@@ -98,7 +98,7 @@ public class EncounterHandlersTests
         db.Patients.Add(new Patient { Id = otherPatientId, TenantId = 2, Code = "BNT02000001", FullName = "Other" });
         await db.SaveChangesAsync();
 
-        var handler = new CreateEncounterCommandHandler(db, _tenant, _user, _audit);
+        var handler = new CreateEncounterCommandHandler(db, _tenant, _user, _audit, _dapper);
         var req = new CreateEncounterRequest(
             PatientId: otherPatientId.ToString(),
             RoomId: null, DoctorId: null,
@@ -236,7 +236,7 @@ public class EncounterHandlersTests
         db.Encounters.Add(new Encounter { TenantId = 1, PatientId = patientId, EncounterType = "FIRST_VISIT", Status = "DONE" });
         await db.SaveChangesAsync();
 
-        var handler = new ListEncountersQueryHandler(db, _tenant, _user, _audit);
+        var handler = new ListEncountersQueryHandler(db, _tenant, _user, _audit, _dapper);
         var query = new ListEncountersQuery(null, null, null, "DONE", null, null, null, 1, 20);
         var result = await handler.Handle(query, CancellationToken.None);
 
@@ -285,7 +285,7 @@ public class EncounterHandlersTests
         // se lam mat gia tri CreatedAt gia lap o tren. SaveChanges() dong bo khong bi override nay.
         db.SaveChanges();
 
-        var handler = new ListEncountersQueryHandler(db, _tenant, _user, _audit);
+        var handler = new ListEncountersQueryHandler(db, _tenant, _user, _audit, _dapper);
         var today = new DateOnly(2026, 9, 20);
         var query = new ListEncountersQuery(null, null, null, null, null, today, today, 1, 20);
         var result = await handler.Handle(query, CancellationToken.None);

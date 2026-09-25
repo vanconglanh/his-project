@@ -8,7 +8,16 @@ import type {
   ClsCatalogItem,
   LabOrderStatus,
   RadOrderStatus,
+  PendingClsOrderResponse,
 } from "./types";
+
+// BM-40 (Lark Bug-Feedback): man hinh hang cho cua KTV, gop chi dinh XN+CDHA chua hoan tat.
+export async function listPendingClsOrders(kind?: "LAB" | "RAD") {
+  const res = await apiClient.get<ApiResponse<PendingClsOrderResponse[]>>("/cls-orders/pending", {
+    params: kind ? { kind } : undefined,
+  });
+  return res.data.data;
+}
 
 export async function createLabOrders(
   encounterId: string,

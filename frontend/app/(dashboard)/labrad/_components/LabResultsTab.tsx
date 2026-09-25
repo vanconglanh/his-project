@@ -155,7 +155,15 @@ export function LabResultsTab() {
 
       {/* Drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
+        <SheetContent
+          side="right"
+          // BM-38 (Lark Bug-Feedback): man "Nhap ket qua XN" co max-w co dinh (sm:max-w-lg),
+          // KTV khong the keo rong ra de xem/nhap du lieu thoai mai hon. Them resize-x de cho
+          // phep keo canh trai cua drawer (drawer gan ben phai man hinh nen keo trai = mo rong),
+          // gioi han min/max qua inline style de tranh keo qua nho hoac tran man hinh.
+          className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6 resize-x"
+          style={{ minWidth: 380, maxWidth: "95vw" }}
+        >
           <SheetHeader>
             <SheetTitle>{editing ? "Cập nhật kết quả XN" : "Nhập kết quả XN"}</SheetTitle>
             {editing && (

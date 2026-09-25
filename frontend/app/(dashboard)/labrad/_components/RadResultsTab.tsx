@@ -153,7 +153,13 @@ export function RadResultsTab() {
 
       {/* Drawer */}
       <Sheet open={!!drawerMode} onOpenChange={(open) => !open && setDrawerMode(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
+        <SheetContent
+          side="right"
+          // BM-38 (Lark Bug-Feedback): man "Tra ket qua CLS" (nhap ket qua CDHA) co max-w co dinh,
+          // KTV khong the keo rong ra. Them resize-x de cho phep keo canh trai cua drawer.
+          className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6 resize-x"
+          style={{ minWidth: 380, maxWidth: "95vw" }}
+        >
           {drawerMode === "form" && (
             <>
               <SheetHeader>

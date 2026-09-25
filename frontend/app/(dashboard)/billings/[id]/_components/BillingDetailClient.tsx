@@ -67,8 +67,25 @@ export function BillingDetailClient({ id }: Props) {
     try {
       await finalize.mutateAsync(id);
       toast.success("Đã xác nhận hoá đơn");
-    } catch {
-      toast.error("Không thể xác nhận hoá đơn");
+    } catch (err: unknown) {
+      // BM-37 (Lark Bug-Feedback): truoc day catch khong doc ma loi tra ve tu BE, luon hien
+      // toast chung "Khong the xac nhan hoa don" du that su la 1 trong 3 ly do khac nhau, khien
+      // Le tan khong biet phai lam gi tiep theo. Map dung ma loi + goi y hanh dong can lam.
+      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data
+        ?.error?.code;
+      switch (code) {
+        case "BILLING_ALREADY_FINALIZED":
+          toast.error("Hoá đơn này đã được xác nhận trước đó");
+          break;
+        case "BILLING_VOID":
+          toast.error("Hoá đơn đã bị huỷ, không thể xác nhận. Vui lòng tạo hoá đơn mới nếu cần");
+          break;
+        case "BILLING_NOT_FOUND":
+          toast.error("Không tìm thấy hoá đơn, vui lòng tải lại trang");
+          break;
+        default:
+          toast.error("Xác nhận hoá đơn thất bại, vui lòng thử lại hoặc liên hệ kỹ thuật");
+      }
     }
   }
 
