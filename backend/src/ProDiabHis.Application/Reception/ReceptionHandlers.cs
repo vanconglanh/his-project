@@ -386,6 +386,10 @@ public class ListRoomsQueryHandler : IRequestHandler<ListRoomsQuery, List<RoomRe
             FROM diab_his_sys_rooms r
             LEFT JOIN diab_his_rcp_queue_tickets t ON t.room_id=r.id AND DATE(DATE_ADD(t.created_at, INTERVAL 7 HOUR))=@Today AND t.deleted_at IS NULL
             WHERE (r.tenant_id=@TenantId OR r.tenant_id IS NULL) AND r.deleted_at IS NULL AND r.is_active=1
+              -- BM-34 (Lark Bug-Feedback): man Tiep don danh sach Phong kham phai chi liet ke phong
+              -- kham benh (EXAM), truoc day lay het moi room_type (bao gom ca Quay thu ngan - CASHIER)
+              -- khien Le tan chon nham phong khi tiep don benh nhan.
+              AND r.room_type='EXAM'
               AND {BranchSql.Condition("r")}
             GROUP BY r.id, r.name, r.code, r.capacity";
 
