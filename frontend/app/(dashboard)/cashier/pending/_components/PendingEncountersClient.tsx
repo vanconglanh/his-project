@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
-import { Receipt, FlaskConical, ScanLine, Pill } from "lucide-react";
+import { Receipt, FlaskConical, ScanLine, Pill, Stethoscope } from "lucide-react";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils/format";
 import { usePendingEncounters, useCreateBilling } from "@/lib/hooks/use-billing";
@@ -62,7 +62,7 @@ export function PendingEncountersClient() {
               <TableHead>Dịch vụ</TableHead>
               <TableHead className="text-right">Tạm tính</TableHead>
               <TableHead>Thời gian</TableHead>
-              <TableHead className="w-40" />
+              <TableHead className="w-56" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -123,15 +123,33 @@ export function PendingEncountersClient() {
                     {row.created_at ? format(new Date(row.created_at), "dd/MM/yyyy HH:mm") : "—"}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="sm"
-                      className="min-h-[44px] w-full"
-                      disabled={createBilling.isPending}
-                      onClick={() => handleCreateBilling(row)}
-                    >
-                      <Receipt className="mr-2 h-4 w-4" />
-                      Lập hoá đơn
-                    </Button>
+                    {/* BM-36 (Lark Bug-Feedback): truoc day moi record chi co dung 1 thao tac
+                        "Lap hoa don" - Le tan khong co cach xem lai chi tiet lượt khám (vd de
+                        kiem tra dich vu/thuoc truoc khi lap hoa don) ma khong roi khoi man hang
+                        cho. Them nut "Xem lượt khám" mo tab moi toi man Kham benh cua encounter
+                        do (khong dieu huong roi trang hang cho). Chinh sua thong tin thanh toan/
+                        giam gia van thuc hien o man Hoa don sau khi da lap (BillingDetailClient
+                        da ho tro discount_amount qua useUpdateBilling) - khong lap lai o day. */}
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="min-h-[44px]"
+                        title="Xem chi tiết lượt khám"
+                        onClick={() => window.open(`/encounters/${row.encounter_id}`, "_blank")}
+                      >
+                        <Stethoscope className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="min-h-[44px]"
+                        disabled={createBilling.isPending}
+                        onClick={() => handleCreateBilling(row)}
+                      >
+                        <Receipt className="mr-2 h-4 w-4" />
+                        Lập hoá đơn
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
