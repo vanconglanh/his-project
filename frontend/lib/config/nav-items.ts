@@ -54,10 +54,14 @@ export const NAV_GROUPS: NavGroupConfig[] = [
     labelVi: "Khám bệnh",
     items: [
       {
+        // BM-01 (Lark Bug-Feedback): "reception.read" la permission chet, khong controller nao
+        // enforce (xem ReceptionController.cs - dung reception.checkin/queue.manage/rooms.read/
+        // stats.read/ticket.reassign). Le Tan da co san reception.checkin nhung khong thay nav
+        // "Tiep don" vi sai permission gate - cung pattern voi BM-24/BM-29.
         href: "/reception",
         labelKey: "reception",
         icon: UserPlus,
-        permissions: ["reception.read"],
+        permissions: ["reception.checkin"],
       },
       {
         href: "/appointments",
@@ -174,10 +178,15 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         permissions: ["cashier.read"],
       },
       {
+        // BM-24 (Lark Bug-Feedback): "cashier.read" la permission chet, khong co controller nao
+        // enforce. Endpoint that su GET /api/v1/billings/pending-encounters dung "billing.read"
+        // (BillingsController.PendingEncounters) - Le Tan/Ke Toan da co san quyen nay nhung
+        // khong thay nav vi sai permission gate, dan den khong biet man hinh "Hang cho thu ngan"
+        // ton tai (noi chua danh sach BN da duoc chi dinh dich vu, cho lap hoa don).
         href: "/cashier/pending",
         labelKey: "cashierPending",
         icon: ClipboardList,
-        permissions: ["cashier.read"],
+        permissions: ["billing.read"],
       },
       {
         href: "/billings",
