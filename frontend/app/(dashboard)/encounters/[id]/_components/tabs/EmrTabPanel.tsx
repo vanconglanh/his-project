@@ -110,7 +110,14 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
 
       <EmrEditor
         encounterId={encounterId}
-        initialContent={templateContent ?? emr?.content_json}
+        // BM-35 (Lark Bug-Feedback): khi da co form co cau truc (activeSchema), truoc day
+        // EmrEditor van nap templateContent - la ban rich-text cua CUNG mau, lap lai y het cac
+        // tieu de (Ly do kham/Tien su/Kham lam sang/Can lam sang/Chan doan/Huong xu tri) da co
+        // trong DynamicFormRenderer o tren, chi khac la luon rong -> nhin nhu thua thong tin o
+        // cuoi man hinh. Khi co activeSchema, khoi tao EmrEditor RONG (chi con la khu vuc ghi
+        // chu them tu do, khong lap tieu de) - van giu duoc autosave/nut "Luu nhap" gui kem
+        // structured_values vi day la co che luu duy nhat cho DynamicFormRenderer.
+        initialContent={activeSchema && activeSchema.length > 0 ? emr?.content_json : (templateContent ?? emr?.content_json)}
         isSigned={isSigned || !canEdit}
         onSaved={setLastSaved}
         templateId={selectedTemplateId}
