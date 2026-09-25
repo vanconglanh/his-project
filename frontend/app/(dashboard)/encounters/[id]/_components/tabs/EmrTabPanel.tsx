@@ -6,9 +6,9 @@ import { EmrEditor } from "@/components/domain/EmrEditor";
 import { EmrTemplateSelector } from "@/components/domain/EmrTemplateSelector";
 import { DynamicFormRenderer } from "@/components/emr/DynamicFormRenderer";
 import { HisStatusBadge } from "@/components/ui/status-badge";
-import { useEmr, useEmrTemplate } from "@/lib/hooks/use-emr";
+import { useEmr } from "@/lib/hooks/use-emr";
 import { formatVnTime } from "@/lib/utils/encounter-format";
-import type { EmrTemplateResponse } from "@/lib/api/types";
+import type { EmrFormSchema, EmrTemplateResponse } from "@/lib/api/types";
 
 interface Props {
   encounterId: string;
@@ -24,11 +24,17 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
   // Bác sĩ chọn mẫu mới trong phiên khám này -> nạp structured_json của
   // chính mẫu đó (KHÔNG dùng schema_snapshot cũ). Nếu chưa chọn mẫu nào
   // trong phiên này thì dùng schema_snapshot đã lưu trên bệnh án hiện hành.
+  // BM-35 (tiep, Lark Bug-Feedback): truoc day schema cua mau MOI chon lay tu 1 API fetch rieng
+  // (useEmrTemplate) chay bat dong bo - co 1 khoang thoi gian ngan sau khi chon mau nhung TRUOC
+  // khi fetch xong, activeSchema con null nen EmrEditor tam thoi nap templateContent (rich-text
+  // lap tieu de) lam initialContent; sau khi schema ve, initialContent doi thanh undefined nhung
+  // useEffect cua EmrEditor chi goi setContent khi initialContent truthy nen noi dung lap khong
+  // bao gio duoc xoa - roi bi autosave luu de vao content_json. Object tra ve tu danh sach mau
+  // (EmrTemplateSelector) da co san structured_json, KHONG can fetch lai - dung truc tiep de
+  // loai bo hoan toan khoang ho dong bo nay.
   const [pickedTemplateThisSession, setPickedTemplateThisSession] = useState(false);
+  const [selectedTemplateSchema, setSelectedTemplateSchema] = useState<EmrFormSchema | null>(null);
   const [structuredValues, setStructuredValues] = useState<Record<string, unknown>>({});
-  const { data: selectedTemplateDetail } = useEmrTemplate(
-    pickedTemplateThisSession ? selectedTemplateId : undefined
-  );
 
   const isSigned = !!emr?.signed_at;
 
@@ -43,6 +49,7 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
   const handleTemplateSelect = useCallback((template: EmrTemplateResponse) => {
     setTemplateContent(template.content_json);
     setSelectedTemplateId(template.id);
+    setSelectedTemplateSchema(template.structured_json ?? null);
     setPickedTemplateThisSession(true);
     setStructuredValues({});
   }, []);
@@ -56,10 +63,10 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
   // (§5.8.2 — nguyên tắc bắt buộc, tránh sai lệch nội dung sau khi ký).
   const activeSchema = useMemo(() => {
     if (pickedTemplateThisSession && !isSigned) {
-      return selectedTemplateDetail?.structured_json ?? null;
+      return selectedTemplateSchema;
     }
     return emr?.schema_snapshot ?? null;
-  }, [pickedTemplateThisSession, isSigned, selectedTemplateDetail, emr?.schema_snapshot]);
+  }, [pickedTemplateThisSession, isSigned, selectedTemplateSchema, emr?.schema_snapshot]);
 
   const showLegacyNotice = isSigned && !emr?.schema_snapshot;
 
