@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { isAxiosError } from "axios";
+import { getErrorMessage } from "@/lib/utils/errors";
 import {
   listPrescriptions,
   getPrescription,
@@ -61,12 +63,20 @@ export function useCreatePrescription() {
 export function useUpdatePrescription(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { note?: string }) => updatePrescription(id, body),
+    mutationFn: (body: { note?: string; row_version: number }) => updatePrescription(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: prescriptionKeys.detail(id) });
       toast.success("Đã cập nhật đơn thuốc");
     },
-    onError: () => toast.error("Cập nhật thất bại"),
+    onError: (error) => {
+      const code = isAxiosError(error) ? error.response?.data?.error?.code : undefined;
+      if (code === "PRESCRIPTION_CONFLICT") {
+        toast.error("Đơn thuốc đã bị thay đổi ở nơi khác, vui lòng tải lại");
+        qc.invalidateQueries({ queryKey: prescriptionKeys.detail(id) });
+        return;
+      }
+      toast.error(getErrorMessage(error, "Cập nhật thất bại"));
+    },
   });
 }
 
@@ -117,7 +127,19 @@ export function useSignPrescription(prescriptionId: string) {
       qc.invalidateQueries({ queryKey: prescriptionKeys.all });
       toast.success("Ký số đơn thuốc thành công");
     },
-    onError: () => toast.error("Ký số thất bại"),
+    onError: (error) => {
+      const code = isAxiosError(error) ? error.response?.data?.error?.code : undefined;
+      if (code === "PRESCRIPTION_ALREADY_SIGNED") {
+        toast.error("Đơn thuốc đã được ký trước đó, vui lòng tải lại");
+        qc.invalidateQueries({ queryKey: prescriptionKeys.detail(prescriptionId) });
+        return;
+      }
+      if (code === "VALIDATION_ERROR") {
+        toast.error(getErrorMessage(error, "Đơn thuốc chưa hợp lệ để ký số"));
+        return;
+      }
+      toast.error(getErrorMessage(error, "Ký số thất bại"));
+    },
   });
 }
 

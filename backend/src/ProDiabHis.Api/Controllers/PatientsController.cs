@@ -216,6 +216,19 @@ public class PatientsController : ControllerBase
         return Ok(new { data = result });
     }
 
+    // GET /api/v1/patients/{id}/active-medications
+    // BM-32: tab Don thuoc man Kham benh - hien thi thuoc benh nhan dang dung tu cac
+    // don thuoc DA KY khac (moi encounter) de bac si tham khao truoc khi ke them.
+    [HttpGet("{id:guid}/active-medications")]
+    [RequirePermission("patient.read")]
+    public async Task<IActionResult> GetActiveMedications(Guid id, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetActiveMedicationsQuery(id), ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        return Ok(new { data = result.Value });
+    }
+
     // POST /api/v1/patients/{id}/allergies
     // P2-06: du lieu LAM SANG (di ung thuoc - dau vao canh bao DDI khi ke don) -> tach
     // khoi patient.write (hanh chinh). Chi bac_si/ky_thuat_vien co patient.clinical.write.

@@ -109,6 +109,19 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
 
         await _audit.LogAsync("CHECKIN", "ReceptionTicket", newId, new { ticketNo, roomId = req.RoomId }, cancellationToken);
 
+        // BM-33 (Lark): tiep don tu 1 lich hen (AppointmentId != null) -> dong bo trang thai
+        // lich hen sang CHECKED_IN de 2 man Lich hen / Tiep don khong bi lech nhau. Chi cap nhat
+        // neu lich hen dang o CONFIRMED (guard bang UPDATE co dieu kien, tranh de lai lich hen da
+        // CANCELLED/NO_SHOW/CHECKED_IN boi thao tac khac).
+        if (req.AppointmentId.HasValue)
+        {
+            await conn.ExecuteAsync(
+                @"UPDATE diab_his_sch_appointments
+                     SET status='CHECKED_IN', updated_at=@Now
+                   WHERE id=@Id AND tenant_id=@TenantId AND status='CONFIRMED' AND deleted_at IS NULL",
+                new { Id = req.AppointmentId.Value, TenantId = _tenant.TenantId, Now = now });
+        }
+
         return Result<ReceptionTicketResponse>.Success(new ReceptionTicketResponse(
             Guid.Parse(newId),
             _tenant.TenantId,

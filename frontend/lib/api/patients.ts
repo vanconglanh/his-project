@@ -121,6 +121,25 @@ export async function deleteAllergy(patientId: string, allergyId: string): Promi
   await apiClient.delete(`/patients/${patientId}/allergies/${allergyId}`);
 }
 
+// ─── Thuốc đang dùng khác (BM-32) ───────────────────────────────────────────────
+
+export interface ActiveMedicationResponse {
+  prescription_id: string;
+  prescription_item_id: string;
+  drug_name: string;
+  strength?: string | null;
+  dosage_summary: string;
+  prescribed_at: string;
+  active_until?: string | null;
+}
+
+export async function getActiveMedications(patientId: string): Promise<ActiveMedicationResponse[]> {
+  const { data } = await apiClient.get<ApiResponse<ActiveMedicationResponse[]>>(
+    `/patients/${patientId}/active-medications`
+  );
+  return data.data;
+}
+
 // ─── Insurance ────────────────────────────────────────────────────────────────
 
 export async function listInsurance(patientId: string): Promise<InsuranceResponse[]> {

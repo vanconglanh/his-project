@@ -21,5 +21,12 @@ public class PrescriptionItem : BaseEntity, ITenantScoped
     public bool BhytApplicable { get; set; }
     public string? Note { get; set; }
 
+    // BM-32: lieu dung theo tung buoi trong ngay (migration 9212)
+    public decimal? MorningDose { get; set; }
+    public decimal? NoonDose { get; set; }
+    public decimal? AfternoonDose { get; set; }
+    public decimal? EveningDose { get; set; }
+    public string? CachDung { get; set; }
+
     public Prescription? Prescription { get; set; }
 }

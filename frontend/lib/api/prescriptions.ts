@@ -35,6 +35,13 @@ export interface PrescriptionItemRequest {
   duration_days: number;
   quantity: number;
   instructions?: string;
+  // BM-32: liều dùng theo từng buổi (sáng/trưa/chiều/tối) + cách dùng riêng.
+  // Optional để tương thích ngược, nhưng UI mới luôn gửi kèm các trường này.
+  morning_dose?: number | null;
+  noon_dose?: number | null;
+  afternoon_dose?: number | null;
+  evening_dose?: number | null;
+  cach_dung?: string | null;
 }
 
 export interface PrescriptionItemResponse extends PrescriptionItemRequest {
@@ -70,6 +77,7 @@ export interface PrescriptionResponse {
   note?: string;
   created_at: string;
   updated_at: string;
+  row_version: number;
 }
 
 export interface PrescriptionDiagnosis {
@@ -121,7 +129,10 @@ export async function createPrescription(body: PrescriptionCreateRequest): Promi
   return data.data;
 }
 
-export async function updatePrescription(id: string, body: { note?: string }): Promise<PrescriptionResponse> {
+export async function updatePrescription(
+  id: string,
+  body: { note?: string; row_version: number }
+): Promise<PrescriptionResponse> {
   const { data } = await apiClient.put<ApiResponse<PrescriptionResponse>>(`/prescriptions/${id}`, body);
   return data.data;
 }

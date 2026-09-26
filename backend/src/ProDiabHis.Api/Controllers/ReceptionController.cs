@@ -50,6 +50,16 @@ public class ReceptionController : ControllerBase
         return StatusCode(201, new { data = result.Value });
     }
 
+    // GET /api/v1/reception/appointments/today
+    // BM-33 (Lark): lich hen CONFIRMED hom nay (gio VN) de le tan tiep don tu lich hen co san
+    [HttpGet("appointments/today")]
+    [RequirePermission("reception.queue.manage")]
+    public async Task<IActionResult> GetTodayConfirmedAppointments(CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new ListTodayConfirmedAppointmentsQuery(), ct);
+        return Ok(new { data = result });
+    }
+
     // POST /api/v1/reception/patients/{id}/portal-activation
     // Le tan cap ma kich hoat portal cho benh nhan (in kem phieu kham). Tra ma plaintext 1 lan.
     [HttpPost("patients/{id:guid}/portal-activation")]

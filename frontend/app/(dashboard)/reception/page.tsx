@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { UserPlus, Users, Activity, CheckCircle, XCircle } from "lucide-react";
@@ -9,14 +9,22 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
-import { ReceptionCheckInForm } from "@/components/domain/ReceptionCheckInForm";
+import { ReceptionCheckInForm, type PrefillAppointment } from "@/components/domain/ReceptionCheckInForm";
 import { ReceptionQueueBoard } from "@/components/domain/ReceptionQueueBoard";
+import { ReceptionTodayAppointments } from "@/components/domain/ReceptionTodayAppointments";
 import { useReceptionStats } from "@/lib/hooks/use-reception";
 import { usePermissions } from "@/lib/hooks/use-permissions";
 import { isNursingRole } from "@/lib/utils/roles";
+import type { AppointmentTodayResponse } from "@/lib/api/types";
 
 /** Đọc `?selectPatient=` (quay về từ /patients/new) rồi strip khỏi URL sau khi truyền xuống form. */
-function ReceptionCheckInPanel() {
+function ReceptionCheckInPanel({
+  prefillAppointment,
+  onPrefillAppointmentConsumed,
+}: {
+  prefillAppointment: PrefillAppointment | null;
+  onPrefillAppointmentConsumed: () => void;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectPatientId = searchParams.get("selectPatient") ?? undefined;
@@ -27,13 +35,26 @@ function ReceptionCheckInPanel() {
     }
   }, [preselectPatientId, router]);
 
-  return <ReceptionCheckInForm preselectPatientId={preselectPatientId} />;
+  return (
+    <ReceptionCheckInForm
+      preselectPatientId={preselectPatientId}
+      prefillAppointment={prefillAppointment}
+      onPrefillAppointmentConsumed={onPrefillAppointmentConsumed}
+    />
+  );
 }
 
 export default function ReceptionPage() {
   const router = useRouter();
   const { data: stats, isLoading: statsLoading } = useReceptionStats();
   const { roles } = usePermissions();
+  // BM-33: lich hen CONFIRMED duoc chon "Check-in" tu danh sach -> prefill vao form tiep don ben trai.
+  const [prefillAppointment, setPrefillAppointment] = useState<PrefillAppointment | null>(null);
+
+  const handleCheckInFromAppointment = (appt: AppointmentTodayResponse) => {
+    if (!appt.patient_ref) return;
+    setPrefillAppointment({ appointmentId: appt.appointment_id, patientId: appt.patient_ref });
+  };
   // BM-05: Dieu duong/KTV chi theo doi + goi benh nhan trong "Bang hang doi", KHONG lam
   // nghiep vu tiep don (dang ky kham/tao benh nhan moi) - an han panel ben trai.
   const isNursing = isNursingRole(roles);
@@ -122,6 +143,14 @@ export default function ReceptionPage() {
         ))}
       </div>
 
+      {/* Lịch hẹn hôm nay (BM-33) - chỉ le tan moi tiep don, Dieu duong/KTV khong can thay */}
+      {!isNursing && (
+        <div className="border rounded-lg p-4 bg-card" data-tour="reception-today-appointments">
+          <h3 className="font-semibold mb-4">Lịch hẹn hôm nay</h3>
+          <ReceptionTodayAppointments onCheckIn={handleCheckInFromAppointment} />
+        </div>
+      )}
+
       {/* Main split layout - BM-05: Dieu duong/KTV chi thay "Bang hang doi", khong thay
           panel Tiep don (nghiep vu cua Le tan) nen dung 1 cot toan chieu rong. */}
       <div className={cn("grid grid-cols-1 gap-6", !isNursing && "lg:grid-cols-[360px_1fr]")}>
@@ -129,7 +158,10 @@ export default function ReceptionPage() {
         {!isNursing && (
           <div className="border rounded-lg p-4 bg-card" data-tour="reception-checkin-form">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <ReceptionCheckInPanel />
+              <ReceptionCheckInPanel
+                prefillAppointment={prefillAppointment}
+                onPrefillAppointmentConsumed={() => setPrefillAppointment(null)}
+              />
             </Suspense>
           </div>
         )}

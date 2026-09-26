@@ -14,6 +14,7 @@ import {
   listAllergies,
   addAllergy,
   deleteAllergy,
+  getActiveMedications,
   listInsurance,
   addInsurance,
   updateInsurance,
@@ -53,6 +54,7 @@ export const patientKeys = {
   detail: (id: string) => [...patientKeys.all, "detail", id] as const,
   encounters: (id: string) => [...patientKeys.all, "encounters", id] as const,
   allergies: (id: string) => [...patientKeys.all, "allergies", id] as const,
+  activeMedications: (id: string) => [...patientKeys.all, "active-medications", id] as const,
   insurance: (id: string) => [...patientKeys.all, "insurance", id] as const,
   emergencyContacts: (id: string) => [...patientKeys.all, "emergency-contacts", id] as const,
   consents: (id: string) => [...patientKeys.all, "consents", id] as const,
@@ -96,6 +98,14 @@ export function useAllergies(patientId: string) {
   return useQuery({
     queryKey: patientKeys.allergies(patientId),
     queryFn: () => listAllergies(patientId),
+    enabled: !!patientId,
+  });
+}
+
+export function useActiveMedications(patientId: string) {
+  return useQuery({
+    queryKey: patientKeys.activeMedications(patientId),
+    queryFn: () => getActiveMedications(patientId),
     enabled: !!patientId,
   });
 }

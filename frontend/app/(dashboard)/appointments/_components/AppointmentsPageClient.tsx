@@ -10,9 +10,7 @@ import {
   Pencil,
   Printer,
   CalendarCheck,
-  LogIn,
   Ban,
-  UserX,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -237,16 +235,7 @@ export function AppointmentsPageClient() {
                   <CalendarCheck className="mr-2 h-4 w-4" /> Xác nhận
                 </DropdownMenuItem>
               )}
-              {row.status !== "CHECKED_IN" && (
-                <DropdownMenuItem onClick={() => requestStatusChange(row, "CHECKED_IN")}>
-                  <LogIn className="mr-2 h-4 w-4" /> Check-in
-                </DropdownMenuItem>
-              )}
-              {row.status !== "NO_SHOW" && (
-                <DropdownMenuItem onClick={() => requestStatusChange(row, "NO_SHOW")}>
-                  <UserX className="mr-2 h-4 w-4" /> Không đến
-                </DropdownMenuItem>
-              )}
+              {/* BM-33: Check-in / Khong den chi thuc hien tu man Tiep don, khong con o day */}
               {row.status !== "CANCELLED" && (
                 <DropdownMenuItem
                   className="text-destructive"
@@ -394,11 +383,6 @@ export function AppointmentsPageClient() {
           isLoading={isLoading}
           meta={data?.meta}
           onPageChange={setPage}
-          onRowDoubleClick={(row) => {
-            if (row.status !== "CHECKED_IN" && row.status !== "CANCELLED" && row.status !== "NO_SHOW") {
-              requestStatusChange(row, "CHECKED_IN");
-            }
-          }}
           emptyState={
             <EmptyState
               variant="generic"

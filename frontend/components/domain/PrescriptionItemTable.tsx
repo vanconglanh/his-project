@@ -50,12 +50,15 @@ export function PrescriptionItemTable({ items, canEdit, onRemove, removingId }: 
           <TableRow>
             <TableHead className="w-8">#</TableHead>
             <TableHead>Tên thuốc</TableHead>
-            <TableHead>Liều</TableHead>
-            <TableHead>Tần suất</TableHead>
+            <TableHead className="text-center">Sáng</TableHead>
+            <TableHead className="text-center">Trưa</TableHead>
+            <TableHead className="text-center">Chiều</TableHead>
+            <TableHead className="text-center">Tối</TableHead>
+            <TableHead>Cách dùng</TableHead>
             <TableHead>Đường</TableHead>
             <TableHead className="text-center">Ngày</TableHead>
             <TableHead className="text-center">SL</TableHead>
-            <TableHead>Hướng dẫn</TableHead>
+            <TableHead>Ghi chú</TableHead>
             {canEdit && <TableHead className="w-10" />}
           </TableRow>
         </TableHeader>
@@ -71,8 +74,11 @@ export function PrescriptionItemTable({ items, canEdit, onRemove, removingId }: 
                   )}
                 </div>
               </TableCell>
-              <TableCell className="text-sm">{item.dosage}</TableCell>
-              <TableCell className="text-sm">{item.frequency}</TableCell>
+              <TableCell className="text-center text-sm">{item.morning_dose ?? "-"}</TableCell>
+              <TableCell className="text-center text-sm">{item.noon_dose ?? "-"}</TableCell>
+              <TableCell className="text-center text-sm">{item.afternoon_dose ?? "-"}</TableCell>
+              <TableCell className="text-center text-sm">{item.evening_dose ?? "-"}</TableCell>
+              <TableCell className="text-sm">{item.cach_dung || "-"}</TableCell>
               <TableCell>
                 <Badge variant="outline" className="text-xs">
                   {routeLabel[item.route] ?? item.route}

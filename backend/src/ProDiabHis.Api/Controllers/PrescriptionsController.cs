@@ -114,7 +114,13 @@ public class PrescriptionsController : ControllerBase
     {
         var result = await _mediator.Send(new SignPrescriptionCommand(id, request), ct);
         if (!result.IsSuccess)
+        {
+            if (result.ErrorCode == "VALIDATION_ERROR")
+                return BadRequest(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+            if (result.ErrorCode == "PRESCRIPTION_NOT_FOUND")
+                return NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
             return Conflict(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
         return Ok(new { data = result.Value });
     }
 

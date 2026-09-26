@@ -19,6 +19,8 @@ public class Prescription : BaseEntity, ITenantScoped, IBranchScoped
     public DateTime? SignedAt { get; set; }
     public DateTime? DispensedAt { get; set; }
     public string? Note { get; set; }
+    /// <summary>Optimistic locking - tang moi lan UPDATE (migration 9212, BM-32)</summary>
+    public int RowVersion { get; set; }
 
     public ICollection<PrescriptionItem> Items { get; set; } = new List<PrescriptionItem>();
 }

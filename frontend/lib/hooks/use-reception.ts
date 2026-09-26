@@ -14,6 +14,7 @@ import {
   reassignTicket,
   waitClsTicket,
   resumeTicket,
+  getTodayConfirmedAppointments,
 } from "@/lib/api/reception";
 import type { QueueParams, ReassignTicketRequest } from "@/lib/api/reception";
 import type { CheckInRequest } from "@/lib/api/types";
@@ -24,6 +25,7 @@ export const receptionKeys = {
   queue: (params?: QueueParams) => [...receptionKeys.all, "queue", params] as const,
   rooms: () => [...receptionKeys.all, "rooms"] as const,
   stats: () => [...receptionKeys.all, "stats"] as const,
+  todayAppointments: () => [...receptionKeys.all, "today-appointments"] as const,
 };
 
 export function useReceptionQueue(params?: QueueParams) {
@@ -49,6 +51,16 @@ export function useReceptionStats() {
     queryFn: getReceptionStats,
     refetchInterval: 10_000,
     staleTime: 0,
+  });
+}
+
+/** BM-33: lich hen CONFIRMED hom nay - hien thi tren man Tiep don de le tan tiep don tu lich hen */
+export function useTodayConfirmedAppointments() {
+  return useQuery({
+    queryKey: receptionKeys.todayAppointments(),
+    queryFn: getTodayConfirmedAppointments,
+    refetchInterval: 30_000,
+    staleTime: 10_000,
   });
 }
 

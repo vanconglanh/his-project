@@ -13,7 +13,12 @@ public record PrescriptionCreateRequest(
     IReadOnlyList<PrescriptionItemRequest>? Items,
     bool IsTelehealthContext = false);
 
-public record PrescriptionUpdateRequest(string? Note);
+/// <param name="RowVersion">
+/// BM-32: bat buoc gui kem gia tri row_version dang co o client (lay tu GET truoc do) de
+/// enforce optimistic locking - neu don da bi nguoi khac sua truoc (row_version lech),
+/// server tra 409 PRESCRIPTION_CONFLICT thay vi ghi de am tham.
+/// </param>
+public record PrescriptionUpdateRequest(string? Note, int RowVersion);
 
 public record PrescriptionItemRequest(
     string DrugId,
@@ -22,7 +27,14 @@ public record PrescriptionItemRequest(
     string Route,
     int DurationDays,
     decimal Quantity,
-    string? Instructions);
+    string? Instructions,
+    // BM-32: lieu dung theo tung buoi (sang/trua/chieu/toi) + cach dung rieng.
+    // Optional de tuong thich nguoc voi client cu chi gui Dosage/Frequency dang chuoi.
+    decimal? MorningDose = null,
+    decimal? NoonDose = null,
+    decimal? AfternoonDose = null,
+    decimal? EveningDose = null,
+    string? CachDung = null);
 
 public record AddPrescriptionItemsRequest(IReadOnlyList<PrescriptionItemRequest> Items);
 
@@ -56,7 +68,8 @@ public record PrescriptionResponse(
     decimal TotalAmount,
     string? Note,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    int RowVersion = 0);
 
 public record PatientSummary(string FullName, string? Gender, DateOnly? Dob, string? BhytNo);
 
@@ -72,7 +85,12 @@ public record PrescriptionItemResponse(
     int DurationDays,
     decimal Quantity,
     string? Instructions,
-    IReadOnlyList<BatchDispensed>? BatchDispensed);
+    IReadOnlyList<BatchDispensed>? BatchDispensed,
+    decimal? MorningDose = null,
+    decimal? NoonDose = null,
+    decimal? AfternoonDose = null,
+    decimal? EveningDose = null,
+    string? CachDung = null);
 
 public record BatchDispensed(string BatchNo, decimal Quantity);
 

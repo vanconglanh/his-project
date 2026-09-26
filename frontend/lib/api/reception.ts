@@ -5,6 +5,7 @@ import type {
   ReceptionTicketResponse,
   RoomResponse,
   ReceptionStats,
+  AppointmentTodayResponse,
 } from "./types";
 
 export interface QueueParams {
@@ -75,6 +76,14 @@ export async function getRooms(): Promise<RoomResponse[]> {
 
 export async function getReceptionStats(): Promise<ReceptionStats> {
   const { data } = await apiClient.get<ApiResponse<ReceptionStats>>("/reception/stats");
+  return data.data;
+}
+
+/** BM-33: danh sach lich hen CONFIRMED hom nay, phuc vu tiep don tu lich hen co san */
+export async function getTodayConfirmedAppointments(): Promise<AppointmentTodayResponse[]> {
+  const { data } = await apiClient.get<ApiResponse<AppointmentTodayResponse[]>>(
+    "/reception/appointments/today"
+  );
   return data.data;
 }
 

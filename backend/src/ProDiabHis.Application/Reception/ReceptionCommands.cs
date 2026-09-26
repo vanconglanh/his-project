@@ -9,7 +9,11 @@ public record CheckInRequest(
     List<string>? ServicePackageIds,
     string? ReasonForVisit,
     string? Note,
-    string? Priority);
+    string? Priority,
+    // BM-33 (Lark): khi tiep don tu 1 lich hen CONFIRMED (xem ListTodayConfirmedAppointmentsQuery),
+    // FE truyen kem AppointmentId de dong bo trang thai lich hen -> CHECKED_IN, tranh 2 model
+    // Lich hen / Tiep don bi lech nhau. Null = tiep don thuong (khong tu lich hen), giu nguyen hanh vi cu.
+    int? AppointmentId = null);
 
 public record CheckInCommand(CheckInRequest Request)
     : IRequest<Result<ReceptionTicketResponse>>;

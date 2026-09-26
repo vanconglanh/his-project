@@ -54,6 +54,8 @@ const checkInSchema = z.object({
   reason_for_visit: z.string().optional(),
   note: z.string().optional(),
   priority: z.enum(["NORMAL", "PRIORITY", "EMERGENCY"]),
+  // BM-33: tiep don tu lich hen CONFIRMED co san - backend dong bo trang thai lich hen -> CHECKED_IN
+  appointment_id: z.number().optional(),
 });
 
 type CheckInFormValues = z.infer<typeof checkInSchema>;
@@ -63,12 +65,26 @@ const CHECKIN_DRAFT_KEY = "reception-checkin-draft";
 
 type CheckInDraft = Pick<CheckInFormValues, "room_id" | "reason_for_visit" | "note" | "priority">;
 
+/** BM-33: thông tin lịch hẹn CONFIRMED được chọn "Check-in" từ danh sách "Lịch hẹn hôm nay". */
+export interface PrefillAppointment {
+  appointmentId: number;
+  patientId: string;
+}
+
 interface ReceptionCheckInFormProps {
   /** id bệnh nhân vừa tạo ở `/patients/new`, cần tự chọn lại khi quay về tiếp đón. */
   preselectPatientId?: string;
+  /** BM-33: lịch hẹn được chọn để tiếp đón — tự chọn bệnh nhân + gửi kèm appointment_id khi submit. */
+  prefillAppointment?: PrefillAppointment | null;
+  /** BM-33: gọi sau khi đã tiêu thụ prefillAppointment (chọn xong bệnh nhân) để cha xoá state. */
+  onPrefillAppointmentConsumed?: () => void;
 }
 
-export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFormProps) {
+export function ReceptionCheckInForm({
+  preselectPatientId,
+  prefillAppointment,
+  onPrefillAppointmentConsumed,
+}: ReceptionCheckInFormProps) {
   const router = useRouter();
   const [searchQ, setSearchQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -80,6 +96,7 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
   const { data: rooms } = useRooms();
   const checkInMutation = useCheckIn();
   const { data: preselectedPatient } = usePatient(preselectPatientId ?? "");
+  const { data: prefillAppointmentPatient } = usePatient(prefillAppointment?.patientId ?? "");
   const { data: packageSummary, isLoading: isPackageLoading } = usePatientPackageSummary(
     selectedPatient?.id
   );
@@ -115,6 +132,16 @@ export function ReceptionCheckInForm({ preselectPatientId }: ReceptionCheckInFor
     setSelectedPatient(null);
     setSearchQ("");
   };
+
+  // BM-33: chọn "Check-in" từ lịch hẹn hôm nay -> tự chọn bệnh nhân + gắn appointment_id ẩn
+  useEffect(() => {
+    if (prefillAppointment && prefillAppointmentPatient) {
+      selectPatient(prefillAppointmentPatient);
+      setValue("appointment_id", prefillAppointment.appointmentId);
+      onPrefillAppointmentConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillAppointment, prefillAppointmentPatient]);
 
   const selectPatient = useCallback(
     (patient: PatientResponse) => {

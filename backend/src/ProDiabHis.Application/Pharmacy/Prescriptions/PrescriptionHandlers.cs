@@ -121,7 +121,7 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
                    p.dtqg_code as DtqgCode, NULL as DtqgStatus,
                    (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
                      WHERE i.prescription_id = p.id AND i.deleted_at IS NULL) as TotalAmount, p.note as Note,
-                   p.created_at as CreatedAt, p.updated_at as UpdatedAt
+                   p.created_at as CreatedAt, p.updated_at as UpdatedAt, p.row_version as RowVersion
             FROM diab_his_pha_prescriptions p
             WHERE {whereClause}
             ORDER BY p.created_at DESC
@@ -192,7 +192,10 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
                          d.strength as Strength, d.unit as Unit,
                          i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
                          i.duration_days as DurationDays, i.quantity as Quantity,
-                         i.note as Instructions, NULL as BatchDispensedJson
+                         i.note as Instructions, NULL as BatchDispensedJson,
+                     i.morning_dose as MorningDose, i.noon_dose as NoonDose,
+                     i.afternoon_dose as AfternoonDose, i.evening_dose as EveningDose,
+                     i.cach_dung as CachDung
                   FROM diab_his_pha_prescription_items i
                   JOIN diab_his_pha_drugs d ON d.id = i.drug_id
                   WHERE i.prescription_id IN @presIds AND i.tenant_id = @tenantId AND i.deleted_at IS NULL",
@@ -235,7 +238,7 @@ public class ListPrescriptionsHandler : IRequestHandler<ListPrescriptionsQuery, 
             doctorName,
             r.Status ?? "DRAFT", r.PrescribedAt,
             r.SignedAt, r.SignedBy, r.DtqgCode, r.DtqgStatus ?? "NONE",
-            items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt);
+            items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt, r.RowVersion);
 }
 
 public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Result<PrescriptionResponse>>
@@ -264,7 +267,7 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
                      p.dtqg_code as DtqgCode, NULL as DtqgStatus,
                      (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
                      WHERE i.prescription_id = p.id AND i.deleted_at IS NULL) as TotalAmount, p.note as Note,
-                     p.created_at as CreatedAt, p.updated_at as UpdatedAt
+                     p.created_at as CreatedAt, p.updated_at as UpdatedAt, p.row_version as RowVersion
               FROM diab_his_pha_prescriptions p
               WHERE p.id = @id AND p.tenant_id = @tenantId AND p.deleted_at IS NULL",
             new { id = q.Id.ToString(), tenantId });
@@ -309,7 +312,10 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
                      d.strength as Strength, d.unit as Unit,
                      i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
                      i.duration_days as DurationDays, i.quantity as Quantity,
-                     i.note as Instructions, NULL as BatchDispensedJson
+                     i.note as Instructions, NULL as BatchDispensedJson,
+                     i.morning_dose as MorningDose, i.noon_dose as NoonDose,
+                     i.afternoon_dose as AfternoonDose, i.evening_dose as EveningDose,
+                     i.cach_dung as CachDung
               FROM diab_his_pha_prescription_items i
               JOIN diab_his_pha_drugs d ON d.id = i.drug_id
               WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL",
@@ -329,7 +335,8 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
         new(Guid.TryParse(r.Id, out var g) ? g : Guid.Empty,
             r.DrugId, r.DrugName ?? "", r.Strength, r.Unit,
             r.Dosage, r.Frequency, r.Route, r.DurationDays, r.Quantity,
-            r.Instructions, null);
+            r.Instructions, null,
+            r.MorningDose, r.NoonDose, r.AfternoonDose, r.EveningDose, r.CachDung);
 
     private static PrescriptionResponse MapPresRow(PrescriptionRow r, PatientSummary? patient,
         string? doctorName, IReadOnlyList<PrescriptionItemResponse> items, IReadOnlyList<DdiWarning> warnings) =>
@@ -342,7 +349,7 @@ public class GetPrescriptionHandler : IRequestHandler<GetPrescriptionQuery, Resu
             doctorName,
             r.Status ?? "DRAFT", r.PrescribedAt,
             r.SignedAt, r.SignedBy, r.DtqgCode, r.DtqgStatus ?? "NONE",
-            items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt);
+            items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt, r.RowVersion);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -490,13 +497,18 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
                 var itemId = Guid.NewGuid();
                 await conn.ExecuteAsync(
                     @"INSERT INTO diab_his_pha_prescription_items
-                      (id, tenant_id, prescription_id, drug_id, drug_name, drug_strength, unit, dosage, frequency, route, duration_days, quantity, unit_price, line_total, note)
-                      VALUES (@itemId, @tenantId, @presId, @drugId, @drugName, @drugStrength, @unit, @dosage, @frequency, @route, @durationDays, @quantity, @unitPrice, @lineTotal, @instructions)",
+                      (id, tenant_id, prescription_id, drug_id, drug_name, drug_strength, unit, dosage, frequency, route, duration_days, quantity, unit_price, line_total, note,
+                       morning_dose, noon_dose, afternoon_dose, evening_dose, cach_dung)
+                      VALUES (@itemId, @tenantId, @presId, @drugId, @drugName, @drugStrength, @unit, @dosage, @frequency, @route, @durationDays, @quantity, @unitPrice, @lineTotal, @instructions,
+                              @morningDose, @noonDose, @afternoonDose, @eveningDose, @cachDung)",
                     new { itemId = itemId.ToString(), tenantId, presId, drugId = item.DrugId,
                           drugName, drugStrength, unit = drugUnit,
                           dosage = item.Dosage, frequency = item.Frequency, route = item.Route,
                           durationDays = item.DurationDays, quantity = item.Quantity,
-                          unitPrice, lineTotal = unitPrice * item.Quantity, instructions = item.Instructions });
+                          unitPrice, lineTotal = unitPrice * item.Quantity, instructions = item.Instructions,
+                          morningDose = item.MorningDose, noonDose = item.NoonDose,
+                          afternoonDose = item.AfternoonDose, eveningDose = item.EveningDose,
+                          cachDung = item.CachDung });
 
                 if (Guid.TryParse(item.DrugId, out var drugGuid))
                 {
@@ -544,7 +556,7 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
                      (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
                        WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
-                     created_at as CreatedAt, updated_at as UpdatedAt
+                     created_at as CreatedAt, updated_at as UpdatedAt, row_version as RowVersion
               FROM diab_his_pha_prescriptions WHERE id = @presId AND tenant_id = @tenantId",
             new { presId, tenantId });
 
@@ -556,7 +568,10 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
                      d.strength as Strength, d.unit as Unit,
                      i.dosage as Dosage, i.frequency as Frequency, i.route as Route,
                      i.duration_days as DurationDays, i.quantity as Quantity,
-                     i.note as Instructions, NULL as BatchDispensedJson
+                     i.note as Instructions, NULL as BatchDispensedJson,
+                     i.morning_dose as MorningDose, i.noon_dose as NoonDose,
+                     i.afternoon_dose as AfternoonDose, i.evening_dose as EveningDose,
+                     i.cach_dung as CachDung
               FROM diab_his_pha_prescription_items i
               JOIN diab_his_pha_drugs d ON d.id = i.drug_id
               WHERE i.prescription_id = @presId AND i.tenant_id = @tenantId AND i.deleted_at IS NULL",
@@ -572,7 +587,7 @@ public class CreatePrescriptionHandler : IRequestHandler<CreatePrescriptionComma
             null, null, null,
             pres.Status ?? "DRAFT", pres.PrescribedAt,
             pres.SignedAt, pres.SignedBy, pres.DtqgCode, pres.DtqgStatus ?? "NONE",
-            itemResponses, [], pres.TotalAmount, pres.Note, pres.CreatedAt, pres.UpdatedAt);
+            itemResponses, [], pres.TotalAmount, pres.Note, pres.CreatedAt, pres.UpdatedAt, pres.RowVersion);
     }
 }
 
@@ -598,12 +613,24 @@ public class UpdatePrescriptionHandler : IRequestHandler<UpdatePrescriptionComma
 
         if (status == null)
             return Result<PrescriptionResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
+        // BM-32: don da ky la bat bien (immutable) - phan biet ro voi cac trang thai
+        // DRAFT-khac (VD: da huy) bang ma loi rieng PRESCRIPTION_ALREADY_SIGNED.
+        if (status == "SIGNED" || status == "DISPENSED")
+            return Result<PrescriptionResponse>.Failure("PRESCRIPTION_ALREADY_SIGNED", "Don thuoc da duoc ky, khong the chinh sua.");
         if (status != "DRAFT")
             return Result<PrescriptionResponse>.Failure("PRESCRIPTION_INVALID_STATE", "Chi co the cap nhat don thuoc o trang thai DRAFT.");
 
-        await conn.ExecuteAsync(
-            "UPDATE diab_his_pha_prescriptions SET note = @note, updated_at = NOW() WHERE id = @id AND tenant_id = @tenantId",
-            new { note = cmd.Request.Note, id = cmd.Id.ToString(), tenantId });
+        // BM-32: optimistic locking - client phai gui dung row_version dang co, neu khong
+        // (0 dong bi anh huong do WHERE ... AND row_version=@expected khong khop) coi nhu
+        // don da bi nguoi khac sua truoc -> tra 409 PRESCRIPTION_CONFLICT thay vi ghi de am tham.
+        var affected = await conn.ExecuteAsync(
+            @"UPDATE diab_his_pha_prescriptions
+              SET note = @note, updated_at = NOW(), row_version = row_version + 1
+              WHERE id = @id AND tenant_id = @tenantId AND row_version = @expectedVersion",
+            new { note = cmd.Request.Note, id = cmd.Id.ToString(), tenantId, expectedVersion = cmd.Request.RowVersion });
+
+        if (affected == 0)
+            return Result<PrescriptionResponse>.Failure("PRESCRIPTION_CONFLICT", "Don thuoc da bi thay doi o noi khac, vui long tai lai truoc khi luu.");
 
         var pres = await conn.QueryFirstAsync<PrescriptionRow>(
             @"SELECT id as Id, tenant_id as TenantId, encounter_id as EncounterId,
@@ -613,7 +640,7 @@ public class UpdatePrescriptionHandler : IRequestHandler<UpdatePrescriptionComma
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
                      (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
                        WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
-                     created_at as CreatedAt, updated_at as UpdatedAt
+                     created_at as CreatedAt, updated_at as UpdatedAt, row_version as RowVersion
               FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId",
             new { id = cmd.Id.ToString(), tenantId });
 
@@ -625,7 +652,7 @@ public class UpdatePrescriptionHandler : IRequestHandler<UpdatePrescriptionComma
             null, null, null,
             pres.Status ?? "DRAFT", pres.PrescribedAt, pres.SignedAt, pres.SignedBy,
             pres.DtqgCode, pres.DtqgStatus ?? "NONE", [], [], pres.TotalAmount, pres.Note,
-            pres.CreatedAt, pres.UpdatedAt));
+            pres.CreatedAt, pres.UpdatedAt, pres.RowVersion));
     }
 }
 
@@ -705,17 +732,23 @@ public class AddPrescriptionItemsHandler : IRequestHandler<AddPrescriptionItemsC
             decimal unitPrice = drug?.price == null ? 0m : (decimal)drug.price;
             await conn.ExecuteAsync(
                 @"INSERT INTO diab_his_pha_prescription_items
-                  (id, tenant_id, prescription_id, drug_id, drug_name, drug_strength, unit, dosage, frequency, route, duration_days, quantity, unit_price, line_total, note)
-                  VALUES (@id, @tenantId, @presId, @drugId, @drugName, @drugStrength, @unit, @dosage, @frequency, @route, @durationDays, @quantity, @unitPrice, @lineTotal, @instructions)",
+                  (id, tenant_id, prescription_id, drug_id, drug_name, drug_strength, unit, dosage, frequency, route, duration_days, quantity, unit_price, line_total, note,
+                   morning_dose, noon_dose, afternoon_dose, evening_dose, cach_dung)
+                  VALUES (@id, @tenantId, @presId, @drugId, @drugName, @drugStrength, @unit, @dosage, @frequency, @route, @durationDays, @quantity, @unitPrice, @lineTotal, @instructions,
+                          @morningDose, @noonDose, @afternoonDose, @eveningDose, @cachDung)",
                 new { id = itemId, tenantId, presId, drugId = item.DrugId,
                       drugName, drugStrength, unit = drugUnit,
                       dosage = item.Dosage, frequency = item.Frequency, route = item.Route,
                       durationDays = item.DurationDays, quantity = item.Quantity,
-                      unitPrice, lineTotal = unitPrice * item.Quantity, instructions = item.Instructions });
+                      unitPrice, lineTotal = unitPrice * item.Quantity, instructions = item.Instructions,
+                      morningDose = item.MorningDose, noonDose = item.NoonDose,
+                      afternoonDose = item.AfternoonDose, eveningDose = item.EveningDose,
+                      cachDung = item.CachDung });
 
             addedItems.Add(new PrescriptionItemResponse(
                 Guid.Parse(itemId), item.DrugId, drugName, drugStrength, drugUnit,
-                item.Dosage, item.Frequency, item.Route, item.DurationDays, item.Quantity, item.Instructions, null));
+                item.Dosage, item.Frequency, item.Route, item.DurationDays, item.Quantity, item.Instructions, null,
+                item.MorningDose, item.NoonDose, item.AfternoonDose, item.EveningDose, item.CachDung));
         }
 
         return Result<IReadOnlyList<PrescriptionItemResponse>>.Success(addedItems);
@@ -789,7 +822,7 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
                      (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
                        WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
-                     created_at as CreatedAt, updated_at as UpdatedAt
+                     created_at as CreatedAt, updated_at as UpdatedAt, row_version as RowVersion
               FROM diab_his_pha_prescriptions
               WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
             new { id = cmd.Id.ToString(), tenantId });
@@ -798,6 +831,34 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
             return Result<PrescriptionResponse>.Failure("PRESCRIPTION_NOT_FOUND", "Khong tim thay don thuoc.");
         if (pres.Status != "DRAFT")
             return Result<PrescriptionResponse>.Failure("PRESCRIPTION_ALREADY_SIGNED", "Don thuoc da duoc ky, khong the ky lai.");
+
+        // BM-32: validate toan bo don o SERVER truoc khi ky - KHONG tin validation phia FE.
+        // >=1 dong thuoc; moi dong phai co so ngay dung > 0, tong so luong > 0, va it nhat
+        // 1 trong 4 buoi (sang/trua/chieu/toi) > 0 HOAC van con chuoi Dosage cu (tuong thich
+        // nguoc voi don tao truoc migration 9212 chua nhap theo buoi).
+        var presIdForValidation = pres.Id?.ToString() ?? cmd.Id.ToString();
+        var validationItems = (await conn.QueryAsync<PrescriptionSignValidationRow>(
+            @"SELECT id AS Id, duration_days AS DurationDays, quantity AS Quantity, dosage AS Dosage,
+                     morning_dose AS MorningDose, noon_dose AS NoonDose,
+                     afternoon_dose AS AfternoonDose, evening_dose AS EveningDose
+              FROM diab_his_pha_prescription_items
+              WHERE prescription_id = @presId AND tenant_id = @tenantId AND deleted_at IS NULL",
+            new { presId = presIdForValidation, tenantId })).ToList();
+
+        if (validationItems.Count == 0)
+            return Result<PrescriptionResponse>.Failure("VALIDATION_ERROR", "Don thuoc phai co it nhat 1 loai thuoc truoc khi ky.");
+
+        foreach (var vi in validationItems)
+        {
+            if (vi.DurationDays <= 0)
+                return Result<PrescriptionResponse>.Failure("VALIDATION_ERROR", "So ngay dung phai lon hon 0.");
+            if (vi.Quantity <= 0)
+                return Result<PrescriptionResponse>.Failure("VALIDATION_ERROR", "Tong so luong cap phat phai lon hon 0.");
+            var hasDoseSlot = (vi.MorningDose ?? 0) > 0 || (vi.NoonDose ?? 0) > 0
+                || (vi.AfternoonDose ?? 0) > 0 || (vi.EveningDose ?? 0) > 0;
+            if (!hasDoseSlot && string.IsNullOrWhiteSpace(vi.Dosage))
+                return Result<PrescriptionResponse>.Failure("VALIDATION_ERROR", "Moi loai thuoc phai co lieu dung o it nhat 1 buoi trong ngay.");
+        }
 
         // Verify signature
         var verifyResult = await _signer.VerifyAsync(cmd.Request.SignatureData, cmd.Request.CertificateThumbprint, ct);
@@ -840,11 +901,27 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
         var signedAt = cmd.Request.SigningTime ?? DateTime.UtcNow;
         var userId = _currentUser.UserId;
 
-        await conn.ExecuteAsync(
-            @"UPDATE diab_his_pha_prescriptions
-              SET status = 'SIGNED', signed_at = @signedAt, updated_at = NOW()
-              WHERE id = @id AND tenant_id = @tenantId",
-            new { signedAt, id = pres.Id, tenantId });
+        // BM-32: goi UPDATE (chot trang thai SIGNED) trong 1 transaction rieng de dam bao
+        // atomicity - khong the ket thuc o trang thai "nua chung nua" neu sau nay them buoc
+        // ghi khac (VD: tru kho) vao cung luong ky. Hien tai chi co 1 cau UPDATE nen ban than
+        // no da atomic, nhung wrap transaction tuong minh giup an toan khi mo rong sau nay.
+        if (conn.State != System.Data.ConnectionState.Open) conn.Open();
+        using (var tx = conn.BeginTransaction())
+        {
+            var signedRows = await conn.ExecuteAsync(
+                @"UPDATE diab_his_pha_prescriptions
+                  SET status = 'SIGNED', signed_at = @signedAt, updated_at = NOW(), row_version = row_version + 1
+                  WHERE id = @id AND tenant_id = @tenantId AND status = 'DRAFT'",
+                new { signedAt, id = pres.Id, tenantId }, tx);
+
+            if (signedRows == 0)
+            {
+                tx.Rollback();
+                return Result<PrescriptionResponse>.Failure("PRESCRIPTION_ALREADY_SIGNED", "Don thuoc da duoc ky, khong the ky lai.");
+            }
+
+            tx.Commit();
+        }
 
         await _audit.LogAsync("SIGN", "diab_his_pha_prescriptions", pres.Id?.ToString() ?? "", new { status = "SIGNED" }, ct);
 
@@ -856,7 +933,7 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
                      (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
                        WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
-                     created_at as CreatedAt, updated_at as UpdatedAt
+                     created_at as CreatedAt, updated_at as UpdatedAt, row_version as RowVersion
               FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId",
             new { id = pres.Id, tenantId });
 
@@ -870,7 +947,7 @@ public class SignPrescriptionHandler : IRequestHandler<SignPrescriptionCommand, 
             Guid.TryParse(r.PatientId?.ToString(), out var pg) ? pg : Guid.Empty,
             null, null, null,
             r.Status ?? "DRAFT", r.PrescribedAt, r.SignedAt, r.SignedBy,
-            r.DtqgCode, r.DtqgStatus ?? "NONE", items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt);
+            r.DtqgCode, r.DtqgStatus ?? "NONE", items, warnings, r.TotalAmount, r.Note, r.CreatedAt, r.UpdatedAt, r.RowVersion);
 }
 
 public class CancelPrescriptionHandler : IRequestHandler<CancelPrescriptionCommand, Result<PrescriptionResponse>>
@@ -898,7 +975,7 @@ public class CancelPrescriptionHandler : IRequestHandler<CancelPrescriptionComma
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
                      (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
                        WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
-                     created_at as CreatedAt, updated_at as UpdatedAt
+                     created_at as CreatedAt, updated_at as UpdatedAt, row_version as RowVersion
               FROM diab_his_pha_prescriptions
               WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
             new { id = cmd.Id.ToString(), tenantId });
@@ -926,7 +1003,7 @@ public class CancelPrescriptionHandler : IRequestHandler<CancelPrescriptionComma
                      dtqg_code as DtqgCode, NULL as DtqgStatus,
                      (SELECT COALESCE(SUM(i.line_total),0) FROM diab_his_pha_prescription_items i
                        WHERE i.prescription_id = diab_his_pha_prescriptions.id AND i.deleted_at IS NULL) as TotalAmount, note as Note,
-                     created_at as CreatedAt, updated_at as UpdatedAt
+                     created_at as CreatedAt, updated_at as UpdatedAt, row_version as RowVersion
               FROM diab_his_pha_prescriptions WHERE id = @id AND tenant_id = @tenantId",
             new { id = pres.Id, tenantId });
 
@@ -938,7 +1015,7 @@ public class CancelPrescriptionHandler : IRequestHandler<CancelPrescriptionComma
             null, null, null,
             updated.Status ?? "CANCELLED", updated.PrescribedAt, updated.SignedAt, updated.SignedBy,
             updated.DtqgCode, updated.DtqgStatus ?? "NONE", [], [], updated.TotalAmount, updated.Note,
-            updated.CreatedAt, updated.UpdatedAt));
+            updated.CreatedAt, updated.UpdatedAt, updated.RowVersion));
     }
 }
 
@@ -1328,6 +1405,20 @@ internal class PrescriptionRow
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int RowVersion { get; set; }
+}
+
+// BM-32: row toi gian phuc vu validate truoc khi ky (SignPrescriptionHandler).
+internal class PrescriptionSignValidationRow
+{
+    public string Id { get; set; } = string.Empty;
+    public int DurationDays { get; set; }
+    public decimal Quantity { get; set; }
+    public string? Dosage { get; set; }
+    public decimal? MorningDose { get; set; }
+    public decimal? NoonDose { get; set; }
+    public decimal? AfternoonDose { get; set; }
+    public decimal? EveningDose { get; set; }
 }
 
 internal class PrescriptionItemRow
@@ -1345,4 +1436,9 @@ internal class PrescriptionItemRow
     public decimal Quantity { get; set; }
     public string? Instructions { get; set; }
     public string? BatchDispensedJson { get; set; }
+    public decimal? MorningDose { get; set; }
+    public decimal? NoonDose { get; set; }
+    public decimal? AfternoonDose { get; set; }
+    public decimal? EveningDose { get; set; }
+    public string? CachDung { get; set; }
 }

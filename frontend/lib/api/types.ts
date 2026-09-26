@@ -524,6 +524,20 @@ export interface CheckInRequest {
   reason_for_visit?: string;
   note?: string;
   priority?: TicketPriority;
+  /** BM-33: lich hen goc khi tiep don tu man "Lich hen hom nay", backend dong bo trang thai lich hen -> CHECKED_IN */
+  appointment_id?: number;
+}
+
+/** BM-33: lich hen CONFIRMED hom nay - phuc vu man Tiep don */
+export interface AppointmentTodayResponse {
+  appointment_id: number;
+  patient_ref: string | null;
+  patient_name: string | null;
+  patient_phone: string | null;
+  doctor_ref: string | null;
+  doctor_name: string | null;
+  appointment_at: string;
+  note: string | null;
 }
 
 export interface ServicePackage {
