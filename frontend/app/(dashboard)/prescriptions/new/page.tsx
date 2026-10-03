@@ -49,6 +49,12 @@ type PrescriptionFormValues = z.infer<typeof prescriptionSchema>;
 
 const FORM_ID = "prescription-form";
 
+// encounter_no tu API luon rong -> nhan lượt khám dung ngay + bac si + ly do kham.
+function encounterLabel(e: { encounter_date: string; doctor_name?: string; chief_complaint?: string }) {
+  const date = new Date(e.encounter_date).toLocaleDateString("vi-VN");
+  return [date, e.doctor_name, e.chief_complaint].filter(Boolean).join(" - ");
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function NewPrescriptionPage() {
@@ -236,12 +242,7 @@ export default function NewPrescriptionPage() {
                 name="encounter_id"
                 render={({ field }) => (
                   <Select
-                    items={Object.fromEntries(
-                      encounters.map((e) => [
-                        e.id,
-                        `${e.encounter_no} - ${new Date(e.encounter_date).toLocaleDateString("vi-VN")}`,
-                      ])
-                    )}
+                    items={Object.fromEntries(encounters.map((e) => [e.id, encounterLabel(e)]))}
                     value={field.value}
                     onValueChange={(v) => field.onChange(v)}
                     disabled={!selectedPatientId}
@@ -262,7 +263,7 @@ export default function NewPrescriptionPage() {
                       ) : (
                         encounters.map((e) => (
                           <SelectItem key={e.id} value={e.id}>
-                            {e.encounter_no} - {new Date(e.encounter_date).toLocaleDateString("vi-VN")}
+                            {encounterLabel(e)}
                           </SelectItem>
                         ))
                       )}
