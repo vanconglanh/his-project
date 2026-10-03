@@ -20,11 +20,21 @@ const ERROR_CODE_MAP: Record<string, string> = {
 };
 
 export function getErrorMessage(error: unknown, fallback?: string): string {
-  const axiosErr = error as AxiosError<{ error: { code: string; message: string } }>;
+  const axiosErr = error as AxiosError<{
+    error: { code: string; message: string; details?: Record<string, string[] | string> };
+  }>;
 
   if (axiosErr?.response?.data?.error) {
-    const { code, message } = axiosErr.response.data.error;
-    return ERROR_CODE_MAP[code] ?? message ?? fallback ?? "Đã xảy ra lỗi";
+    const { code, message, details } = axiosErr.response.data.error;
+    if (ERROR_CODE_MAP[code]) return ERROR_CODE_MAP[code];
+    // BM-45: loi validate tra ve "Du lieu dau vao khong hop le" + details -> hien ly do cu the.
+    if (code === "VALIDATION_ERROR" && details && typeof details === "object") {
+      const reasons = Object.values(details)
+        .flat()
+        .filter((m): m is string => typeof m === "string" && m.length > 0);
+      if (reasons.length > 0) return reasons.join("; ");
+    }
+    return message ?? fallback ?? "Đã xảy ra lỗi";
   }
 
   if (error instanceof Error) {

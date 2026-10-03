@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Search, X } from "lucide-react";
-import { usePatientSearch } from "@/lib/hooks/use-patients";
+import { usePatientSearch, usePatientEncounters } from "@/lib/hooks/use-patients";
 import { useUsers } from "@/lib/hooks/use-users";
 import { useIcd10Search } from "@/lib/hooks/use-icd10";
 import { useCreatePrescription } from "@/lib/hooks/use-prescriptions";
@@ -31,6 +31,7 @@ import type { PrescriptionDiagnosis } from "@/lib/api/prescriptions";
 
 const prescriptionSchema = z.object({
   patient_id: z.string().min(1, "Vui lòng chọn bệnh nhân"),
+  encounter_id: z.string().min(1, "Vui lòng chọn lượt khám"),
   doctor_id: z.string().min(1, "Vui lòng chọn bác sĩ kê đơn"),
   diagnoses: z
     .array(
@@ -98,6 +99,7 @@ export default function NewPrescriptionPage() {
     resolver: zodResolver(prescriptionSchema),
     defaultValues: {
       patient_id: "",
+      encounter_id: "",
       doctor_id: "",
       diagnoses: [],
       note: "",
@@ -108,8 +110,14 @@ export default function NewPrescriptionPage() {
     useFieldArray({ control, name: "diagnoses" });
 
   const diagnoses = watch("diagnoses");
+  const selectedPatientId = watch("patient_id");
+
+  // BM-45: backend bat buoc encounter_id; don thuoc phai gan voi 1 luot kham cua benh nhan.
+  const { data: encountersData } = usePatientEncounters(selectedPatientId);
+  const encounters = (encountersData?.data ?? []).filter((e) => e.status !== "CANCELLED");
 
   function handleSelectPatient(id: string, name: string) {
+    setValue("encounter_id", "");
     setValue("patient_id", id, { shouldValidate: true });
     setPatientLabel(name);
     setPatientSearch(name);
@@ -129,6 +137,7 @@ export default function NewPrescriptionPage() {
     createPrescription.mutate(
       {
         patient_id: values.patient_id,
+        encounter_id: values.encounter_id,
         doctor_id: values.doctor_id,
         diagnoses: values.diagnoses as PrescriptionDiagnosis[],
         note: values.note || undefined,
@@ -214,6 +223,54 @@ export default function NewPrescriptionPage() {
               )}
               <input type="hidden" {...register("patient_id")} />
             </div>
+
+            {/* Lượt khám */}
+            <FieldGroup
+              label="Lượt khám"
+              required
+              htmlFor="encounter-select"
+              error={errors.encounter_id?.message}
+            >
+              <Controller
+                control={control}
+                name="encounter_id"
+                render={({ field }) => (
+                  <Select
+                    items={Object.fromEntries(
+                      encounters.map((e) => [
+                        e.id,
+                        `${e.encounter_no} - ${new Date(e.encounter_date).toLocaleDateString("vi-VN")}`,
+                      ])
+                    )}
+                    value={field.value}
+                    onValueChange={(v) => field.onChange(v)}
+                    disabled={!selectedPatientId}
+                  >
+                    <SelectTrigger
+                      id="encounter-select"
+                      className={cn(errors.encounter_id && "border-destructive")}
+                    >
+                      <SelectValue
+                        placeholder={selectedPatientId ? "Chọn lượt khám..." : "Chọn bệnh nhân trước"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {encounters.length === 0 ? (
+                        <SelectItem value="_empty" disabled>
+                          Bệnh nhân chưa có lượt khám
+                        </SelectItem>
+                      ) : (
+                        encounters.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.encounter_no} - {new Date(e.encounter_date).toLocaleDateString("vi-VN")}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FieldGroup>
 
             {/* Bác sĩ */}
             <FieldGroup

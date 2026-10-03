@@ -56,7 +56,8 @@ export function useCreatePrescription() {
       qc.invalidateQueries({ queryKey: prescriptionKeys.all });
       toast.success("Đã tạo đơn thuốc nháp");
     },
-    onError: () => toast.error("Tạo đơn thuốc thất bại"),
+    // BM-45: truoc day toast chung "Tao don thuoc that bai" -> nguoi dung khong biet ly do.
+    onError: (error) => toast.error(getErrorMessage(error, "Tạo đơn thuốc thất bại, vui lòng thử lại")),
   });
 }
 
