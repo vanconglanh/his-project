@@ -107,7 +107,11 @@ public class PatientRiskStratificationJob
             var overdueVisit = lastVisitAt.HasValue && (DateTime.UtcNow - lastVisitAt.Value).TotalDays > visitIntervalDays;
 
             var score = DiabetesTrendCalculator.ComputeRiskScore(latestHba1c, latestEgfr, latestBpSys, risingTrend, overdueVisit);
-            var riskLevel = DiabetesTrendCalculator.ClassifyRisk(score);
+            // BM-67: khi không có chỉ số nào (HbA1c, eGFR, HA) → xếp INSUFFICIENT_DATA thay vì LOW
+            var hasAnyMeasurement = latestHba1c.HasValue || latestEgfr.HasValue || latestBpSys.HasValue;
+            var riskLevel = hasAnyMeasurement
+                ? DiabetesTrendCalculator.ClassifyRisk(score)
+                : "INSUFFICIENT_DATA";
 
             var reasons = flags.Select(f => f.Message).ToList();
             if (overdueVisit) reasons.Add("Quá hạn tái khám theo phác đồ");

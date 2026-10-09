@@ -22,6 +22,8 @@ const RISK_LABELS: Record<RiskLevel, string> = {
   HIGH: "Cao",
   MEDIUM: "Trung bình",
   LOW: "Thấp",
+  // BM-67: BN chưa đủ chỉ số xét nghiệm để xếp nguy cơ
+  INSUFFICIENT_DATA: "Chưa đủ dữ liệu",
 };
 
 const RISK_BADGE_CLASS: Record<RiskLevel, string> = {
@@ -29,6 +31,8 @@ const RISK_BADGE_CLASS: Record<RiskLevel, string> = {
   MEDIUM:
     "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
   LOW: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800",
+  // BM-67: màu xám trung tính cho "chưa đủ dữ liệu"
+  INSUFFICIENT_DATA: "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800/40 dark:text-gray-400 dark:border-gray-700",
 };
 
 function TrendIcon({ trend }: { trend?: string | null }) {
@@ -140,6 +144,8 @@ function RiskListContent() {
             <SelectItem value="HIGH">Cao</SelectItem>
             <SelectItem value="MEDIUM">Trung bình</SelectItem>
             <SelectItem value="LOW">Thấp</SelectItem>
+            {/* BM-67: lọc BN chưa đủ dữ liệu */}
+            <SelectItem value="INSUFFICIENT_DATA">Chưa đủ dữ liệu</SelectItem>
           </SelectContent>
         </Select>
       </div>

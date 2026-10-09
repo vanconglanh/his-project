@@ -1105,7 +1105,8 @@ export interface DeteriorationFlagsResponse {
   flags: DeteriorationFlag[];
 }
 
-export type RiskLevel = "HIGH" | "MEDIUM" | "LOW";
+// BM-67: thêm INSUFFICIENT_DATA khi BN chưa đủ chỉ số để xếp nguy cơ
+export type RiskLevel = "HIGH" | "MEDIUM" | "LOW" | "INSUFFICIENT_DATA";
 
 export interface RiskListItem {
   patient_id: string;
