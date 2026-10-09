@@ -394,11 +394,12 @@ public class CloseEncounterCommandHandler : IRequestHandler<CloseEncounterComman
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
     private readonly IDapperConnectionFactory _dapper;
+    private readonly IFeatureFlagService _featureFlags;
 
     public CloseEncounterCommandHandler(IApplicationDbContext db, ICurrentUser user, IAuditService audit,
-        IDapperConnectionFactory dapper)
+        IDapperConnectionFactory dapper, IFeatureFlagService featureFlags)
     {
-        _db = db; _user = user; _audit = audit; _dapper = dapper;
+        _db = db; _user = user; _audit = audit; _dapper = dapper; _featureFlags = featureFlags;
     }
 
     public async Task<Result<bool>> Handle(CloseEncounterCommand cmd, CancellationToken ct)
@@ -434,10 +435,19 @@ public class CloseEncounterCommandHandler : IRequestHandler<CloseEncounterComman
         if (primaryCount != 1)
             return Result<bool>.Failure("DIAGNOSIS_PRIMARY_REQUIRED", "Phải chọn đúng 1 chẩn đoán chính");
 
-        var emrSigned = await _db.EmrContents
-            .CountAsync(e => e.EncounterId == encIdStr && e.SignedAt != null, ct);
-        if (emrSigned == 0)
-            return Result<bool>.Failure("EMR_NOT_SIGNED", "Bệnh án cần được ký số trước khi đóng lượt khám");
+        // BM-27: yeu cau ky so benh an truoc khi dong luot kham (G03/TT 32-2023).
+        // Feature flag "emr.skip_sign_before_close" (mac dinh: false = bat buoc ky so) cho phep
+        // tat check nay trong moi truong test/staging khi chua co thiet bi ky so vat ly
+        // (USB token / SmartCA). Dat flag = true bang config hoac DB de bo qua ky so.
+        // KHONG bat (keep false) o production.
+        var skipEmrSign = await _featureFlags.IsEnabledAsync("emr.skip_sign_before_close", ct);
+        if (!skipEmrSign)
+        {
+            var emrSigned = await _db.EmrContents
+                .CountAsync(e => e.EncounterId == encIdStr && e.SignedAt != null, ct);
+            if (emrSigned == 0)
+                return Result<bool>.Failure("EMR_NOT_SIGNED", "Bệnh án cần được ký số trước khi đóng lượt khám");
+        }
 
         var closedAt = DateTime.UtcNow;
         enc.Status = EncounterStatus.Done;
