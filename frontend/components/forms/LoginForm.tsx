@@ -320,10 +320,8 @@ export function LoginForm() {
                 </code>
               </div>
             </div>
-            <div className="flex justify-between gap-2">
-              <Button variant="outline" onClick={backToCredentials}>
-                Huỷ
-              </Button>
+            {/* BM-75: Không cho phép huỷ bước thiết lập 2FA bắt buộc vì admin có thể bypass bằng cách quay lại nhập credentials rồi không bao giờ hoàn tất setup */}
+            <div className="flex justify-end gap-2">
               <Button onClick={() => setSetupSub("verify")}>Tiếp theo</Button>
             </div>
           </div>
