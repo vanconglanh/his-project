@@ -111,13 +111,16 @@ export function EmrEditor({
     );
   }, [editor, isSigned, saveDraft, templateId, structuredValues, onSaved]);
 
+  // BM-65: Trước đây gọi triggerAutoSave() + mutateAsync() đồng thời → double submit
+  // → request đầu tạo record, request sau conflict → báo "thất bại" dù đã lưu được.
+  // Fix: chỉ gọi 1 mutateAsync duy nhất, hủy auto-save timer trước.
   function handleManualSave() {
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    triggerAutoSave();
+    if (!editor || isSigned) return;
     toast.promise(
       saveDraft.mutateAsync({
-        content_json: editor?.getJSON() as Record<string, unknown>,
-        content_html: editor?.getHTML(),
+        content_json: editor.getJSON() as Record<string, unknown>,
+        content_html: editor.getHTML(),
         template_id: templateId,
         structured_values: structuredValues,
       }),
