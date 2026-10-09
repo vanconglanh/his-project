@@ -47,9 +47,10 @@ public class CreateDiabetesAssessmentCommandHandler
 
         using var conn = _db.CreateConnection();
 
-        // Validate encounter
+        // BM-47: cli_visits dung id INT (legacy), encounters dung diab_his_enc_encounters voi id CHAR(36).
+        // Query dung bang moi de tranh MySQL coerce UUID string -> 0 -> null -> 500.
         var enc = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, patient_id FROM cli_visits WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
+            "SELECT id, patient_id FROM diab_his_enc_encounters WHERE id=@Id AND tenant_id=@TId AND deleted_at IS NULL",
             new { Id = cmd.EncounterId.ToString(), TId = _tenant.TenantId });
         if (enc is null) return Result<DiabetesAssessmentResponse>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
@@ -125,7 +126,7 @@ public class GetDiabetesAssessmentQueryHandler
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
             SELECT da.*, u.full_name AS assessed_by_name
             FROM diab_his_cli_diabetes_assessments da
-            LEFT JOIN sec_users u ON u.id COLLATE utf8mb4_unicode_ci=da.assessed_by
+            LEFT JOIN diab_his_sec_users u ON u.id COLLATE utf8mb4_unicode_ci=da.assessed_by
             WHERE da.encounter_id=@EId AND da.tenant_id=@TId AND da.deleted_at IS NULL",
             new { EId = q.EncounterId.ToString(), TId = _tenant.TenantId });
 
@@ -229,7 +230,7 @@ public class GetDiabetesHistoryQueryHandler
         var rows = await conn.QueryAsync<dynamic>($@"
             SELECT da.*, u.full_name AS assessed_by_name
             FROM diab_his_cli_diabetes_assessments da
-            LEFT JOIN sec_users u ON u.id COLLATE utf8mb4_unicode_ci=da.assessed_by
+            LEFT JOIN diab_his_sec_users u ON u.id COLLATE utf8mb4_unicode_ci=da.assessed_by
             {where} ORDER BY da.assessed_at DESC", p);
 
         return Result<IReadOnlyList<DiabetesAssessmentResponse>>.Success(
