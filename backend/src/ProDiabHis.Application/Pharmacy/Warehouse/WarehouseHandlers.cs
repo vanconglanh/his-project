@@ -351,13 +351,18 @@ public class ListStocksHandler : IRequestHandler<ListStocksQuery, Result<PagedRe
         decimal qa = (decimal)(r.quantity_available ?? 0);
         decimal rl = (decimal)(r.reorder_level ?? 10m);
         string drugIdStr = r.drug_id?.ToString() ?? "";
+        // BM-59: phan biet "Het han" (dte < 0) va "Sap het han" (0 <= dte <= 30).
+        // Truoc day: dte <= 90 -> ca lo het han lan sap het han deu IsNearExpiry=true
+        // -> FE hien thi "Sap het han" cho lo da het han.
+        bool isExpired   = dte < 0;
+        bool isNearExpiry = !isExpired && dte <= 30;
         return new StockResponse(
             r.id.ToString(), (int)r.tenant_id, 0, drugIdStr,
             (string?)r.drug_name, (string?)r.batch_no ?? "",
             r.manufacture_date != null ? DateOnly.FromDateTime((DateTime)r.manufacture_date) : (DateOnly?)null,
             DateOnly.FromDateTime((DateTime)r.expiry_date),
             qa, (decimal)(r.quantity_reserved ?? 0), (decimal)(r.unit_cost ?? 0),
-            dte, dte <= 90, qa < rl);
+            dte, isNearExpiry, qa < rl, isExpired);
     }
 }
 

@@ -73,7 +73,9 @@ public record StockResponse(
     decimal UnitCost,
     int DaysToExpiry,
     bool IsNearExpiry,
-    bool IsLowStock);
+    bool IsLowStock,
+    // BM-59: tach IsExpired khoi IsNearExpiry de FE hien thi dung "Het han" vs "Sap het han"
+    bool IsExpired = false);
 
 public record StockMovementResponse(
     string Id,
