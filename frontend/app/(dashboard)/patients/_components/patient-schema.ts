@@ -21,7 +21,17 @@ export const patientSchema = z.object({
     .optional()
     .refine((v) => !v || new Date(v) < new Date(), {
       message: "Ngày sinh phải trước hôm nay",
-    }),
+    })
+    .refine(
+      (v) => {
+        if (!v) return true;
+        // BM-81: ngày sinh không được quá 150 năm trong quá khứ
+        const minDate = new Date();
+        minDate.setFullYear(minDate.getFullYear() - 150);
+        return new Date(v) >= minDate;
+      },
+      { message: "Ngày sinh không hợp lệ (tối đa 150 tuổi)" }
+    ),
   id_number: z
     .string()
     .optional()
