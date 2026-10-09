@@ -158,6 +158,18 @@ public class UpdateEncounterCommandHandler : IRequestHandler<UpdateEncounterComm
         if (enc is null)
             return Result<EncounterResponse>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
+        // BM-57: bac si chi duoc sua benh an cua chinh minh; admin co the sua cua bat ky ai.
+        var isAdmin = _user.Roles.Any(r => r.Contains("admin", StringComparison.OrdinalIgnoreCase)
+                                        || r.Contains("Quản trị", StringComparison.Ordinal));
+        if (!isAdmin
+            && !string.IsNullOrEmpty(enc.DoctorId)
+            && _user.UserId.HasValue
+            && !string.Equals(enc.DoctorId, _user.UserId.Value.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<EncounterResponse>.Failure("FORBIDDEN",
+                "Bạn không có quyền chỉnh sửa bệnh án của bác sĩ khác");
+        }
+
         var req = cmd.Request;
         if (!string.IsNullOrEmpty(req.RoomId)) enc.RoomId = req.RoomId;
         if (!string.IsNullOrEmpty(req.DoctorId)) enc.DoctorId = req.DoctorId;
