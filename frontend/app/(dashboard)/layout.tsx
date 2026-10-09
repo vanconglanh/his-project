@@ -16,7 +16,8 @@ export default function DashboardLayout({
       <AppSidebar />
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <AppTopbar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
+        {/* BM-79: overflow-x-hidden tránh layout vỡ ngang ở cửa sổ hẹp */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">{children}</main>
       </div>
       {/* Global UI overlays */}
       <CommandPalette />

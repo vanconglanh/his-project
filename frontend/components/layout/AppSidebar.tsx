@@ -23,6 +23,7 @@ function useTabletCollapse() {
 
   useEffect(() => {
     function check() {
+      // BM-79: collapse ở <1024px, ẩn hoàn toàn ở <640px (mobile)
       if (window.innerWidth < 1024) {
         setSidebarCollapsed(true);
       }
@@ -53,7 +54,9 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
+        // BM-79: ẩn sidebar hoàn toàn ở màn hình rất hẹp (<640px) để tránh vỡ layout
         "flex flex-col border-r bg-card transition-all duration-300 shrink-0",
+        "hidden sm:flex",
         sidebarCollapsed ? "w-16" : "w-60"
       )}
     >
