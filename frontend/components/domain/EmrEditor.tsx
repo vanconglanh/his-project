@@ -90,6 +90,16 @@ export function EmrEditor({
     }
   }, [initialContent, editor]);
 
+  // BM-66: editable chỉ được đặt 1 lần khi khởi tạo useEditor; nếu isSigned
+  // thay đổi sau khi emr data load về (ví dụ ban đầu undefined -> false -> true)
+  // editor vẫn giữ editable cũ -> vùng soạn bị khoá dù chưa ký (hoặc vẫn cho
+  // sửa dù đã ký). setEditable() đồng bộ trạng thái mỗi khi isSigned thay đổi.
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      editor.setEditable(!isSigned);
+    }
+  }, [editor, isSigned]);
+
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
