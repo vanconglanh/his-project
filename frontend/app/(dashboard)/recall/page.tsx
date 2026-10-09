@@ -35,11 +35,21 @@ const STATUS_BADGE_CLASS: Record<RecallStatus, string> = {
   DISMISSED: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800/40 dark:text-gray-300",
 };
 
+// BM-72: Map đầy đủ các recall_type từ backend sang tiếng Việt
 const RECALL_TYPE_LABELS: Record<string, string> = {
+  // Các loại từ ChronicCareRecallJob
+  OVERDUE_VISIT: "Tái khám quá hạn",
+  OVERDUE_HBA1C: "Xét nghiệm HbA1c quá hạn",
+  // Các loại khác
   HBA1C_DUE: "Định kỳ HbA1c",
   FOLLOW_UP: "Tái khám",
-  EYE_EXAM: "Khám mắt",
-  FOOT_EXAM: "Khám chân",
+  EYE_EXAM: "Khám mắt định kỳ",
+  FOOT_EXAM: "Khám chân định kỳ",
+  BLOOD_PRESSURE: "Đo huyết áp",
+  KIDNEY_CHECK: "Kiểm tra thận",
+  WEIGHT_CHECK: "Kiểm tra cân nặng",
+  MEDICATION_REFILL: "Lấy thuốc định kỳ",
+  GENERAL_CHECKUP: "Khám tổng quát",
 };
 
 function RecallContent() {
