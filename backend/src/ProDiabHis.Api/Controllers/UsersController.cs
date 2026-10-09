@@ -19,7 +19,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Danh sach user trong tenant</summary>
     [HttpGet]
-    [RequirePermission("user.read")]
+    [RequirePermission("user.write")] // BM-55: chi admin (user.write) moi duoc xem danh sach user
     public async Task<IActionResult> ListUsers(
         [FromQuery] int page = 1,
         [FromQuery] int page_size = 20,
