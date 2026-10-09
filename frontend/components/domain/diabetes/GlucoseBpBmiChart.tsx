@@ -58,7 +58,8 @@ export function GlucoseBpBmiChart({ data, isLoading }: Props) {
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium">Đường huyết đói, huyết áp &amp; BMI</h4>
+      {/* BM-69: ghi ro don vi mmol/L de thong nhat voi form nhap lieu */}
+      <h4 className="text-sm font-medium">Đường huyết đói (mmol/L), huyết áp &amp; BMI</h4>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid {...defaultGridProps} />

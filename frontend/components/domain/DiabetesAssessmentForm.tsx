@@ -99,14 +99,15 @@ export function DiabetesAssessmentForm({ defaultValues, onSubmit, isLoading }: P
           <FormField label="HbA1c (%)" error={errors.hba1c?.message}>
             <Input type="number" step="0.1" placeholder="7.0" {...register("hba1c", { valueAsNumber: true })} />
           </FormField>
-          <FormField label="Đường huyết đói (mg/dL)" error={errors.fasting_glucose?.message}>
-            <Input type="number" step="0.1" placeholder="126" {...register("fasting_glucose", { valueAsNumber: true })} />
+          {/* BM-69: DB luu mmol/L (migration 0015) — label phai thong nhat mmol/L, placeholder doi sang gia tri mmol/L */}
+          <FormField label="Đường huyết đói (mmol/L)" error={errors.fasting_glucose?.message}>
+            <Input type="number" step="0.1" placeholder="7.0" {...register("fasting_glucose", { valueAsNumber: true })} />
           </FormField>
-          <FormField label="Đường huyết sau ăn (mg/dL)" error={errors.postprandial_glucose?.message}>
-            <Input type="number" step="0.1" placeholder="180" {...register("postprandial_glucose", { valueAsNumber: true })} />
+          <FormField label="Đường huyết sau ăn (mmol/L)" error={errors.postprandial_glucose?.message}>
+            <Input type="number" step="0.1" placeholder="10.0" {...register("postprandial_glucose", { valueAsNumber: true })} />
           </FormField>
-          <FormField label="Đường huyết ngẫu nhiên (mg/dL)" error={errors.random_glucose?.message}>
-            <Input type="number" step="0.1" placeholder="200" {...register("random_glucose", { valueAsNumber: true })} />
+          <FormField label="Đường huyết ngẫu nhiên (mmol/L)" error={errors.random_glucose?.message}>
+            <Input type="number" step="0.1" placeholder="11.1" {...register("random_glucose", { valueAsNumber: true })} />
           </FormField>
         </CardContent>
       </Card>
