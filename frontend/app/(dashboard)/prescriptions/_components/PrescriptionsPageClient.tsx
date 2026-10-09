@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import Link from "next/link";
+import { Can } from "@/components/auth/Can";
 import type { PrescriptionResponse, PrescriptionStatus } from "@/lib/api/prescriptions";
 import { Search, Filter, Plus, MoreHorizontal, Pill, Send, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -172,12 +173,15 @@ export function PrescriptionsPageClient() {
         title="Kê đơn thuốc"
         description="Quản lý đơn thuốc bệnh nhân"
         actions={
-          <Link href="/prescriptions/new">
-            <Button size="sm" className="gap-2 min-h-[44px]">
-              <Plus className="h-4 w-4" />
-              Tạo đơn mới
-            </Button>
-          </Link>
+          // BM-63: chỉ role có permission prescription.write mới thấy nút Tạo đơn mới
+          <Can permission="prescription.write">
+            <Link href="/prescriptions/new">
+              <Button size="sm" className="gap-2 min-h-[44px]">
+                <Plus className="h-4 w-4" />
+                Tạo đơn mới
+              </Button>
+            </Link>
+          </Can>
         }
       />
 
