@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import {
   Select,
   SelectContent,
@@ -56,6 +57,8 @@ function RecallContent() {
   const router = useRouter();
   const [status, setStatus] = useState<string>("PENDING");
   const [page, setPage] = useState(1);
+  // BM-85: confirm trước khi đổi trạng thái "Bỏ qua"
+  const [dismissTarget, setDismissTarget] = useState<string | null>(null);
   const pageSize = 20;
 
   const { data, isLoading } = useRecallList({
@@ -156,12 +159,13 @@ function RecallContent() {
               <CalendarCheck className="h-3.5 w-3.5" />
               Đã hẹn
             </Button>
+            {/* BM-85: confirm trước khi bỏ qua */}
             <Button
               size="sm"
               variant="ghost"
               className="h-8 gap-1 text-destructive hover:text-destructive"
               disabled={updateStatus.isPending}
-              onClick={() => updateStatus.mutate({ id: row.id, body: { status: "DISMISSED" } })}
+              onClick={() => setDismissTarget(row.id)}
             >
               <XCircle className="h-3.5 w-3.5" />
               Bỏ qua
@@ -238,6 +242,22 @@ function RecallContent() {
             </div>
           </div>
         }
+      />
+
+      {/* BM-85: Dialog xác nhận trước khi bỏ qua nhắc tái khám */}
+      <ConfirmDialog
+        open={!!dismissTarget}
+        onOpenChange={(open) => { if (!open) setDismissTarget(null); }}
+        title="Xác nhận bỏ qua nhắc tái khám"
+        description="Bạn có chắc muốn đánh dấu nhắc tái khám này là đã bỏ qua? Hành động này không thể hoàn tác."
+        confirmLabel="Bỏ qua"
+        variant="destructive"
+        onConfirm={() => {
+          if (dismissTarget) {
+            updateStatus.mutate({ id: dismissTarget, body: { status: "DISMISSED" } });
+            setDismissTarget(null);
+          }
+        }}
       />
     </div>
   );
