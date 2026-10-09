@@ -7,6 +7,7 @@ import { AllergyAlertCard } from "@/components/domain/AllergyAlertCard";
 import { MedicalHistoryCard } from "@/components/domain/MedicalHistoryCard";
 import { PatientVisitHistoryCard } from "@/components/domain/PatientVisitHistoryCard";
 import { usePatient, useAllergies } from "@/lib/hooks/use-patients";
+import { usePermissions } from "@/lib/hooks/use-permissions";
 import type { EncounterDetailResponse } from "@/lib/api/types";
 
 export interface EncounterPatientSidebarProps {
@@ -31,6 +32,10 @@ export function EncounterPatientSidebar({
   const patientId = encounter.patient_id;
   const { data: patient } = usePatient(patientId);
   const { data: allergies, isLoading: allergiesLoading } = useAllergies(patientId);
+  // BM-61: Lễ tân (le_tan) không được xem sinh hiệu và chẩn đoán lâm sàng
+  const { has, roles } = usePermissions();
+  const isLeTan = roles.some((r) => r === "le_tan" || r.toLowerCase().includes("letan") || r.toLowerCase().includes("le tan"));
+  const canViewClinical = !isLeTan || has("encounter.clinical_view");
 
   const latestVital = (encounter.vital_signs_latest ?? null) as Record<string, unknown> | null;
   const measuredAt =
@@ -55,12 +60,15 @@ export function EncounterPatientSidebar({
         reasonForVisit={encounter.reason_for_visit}
       />
 
-      <VitalSignsSummaryCard
-        vital={latestVital}
-        measuredAt={measuredAt}
-        onViewAll={onOpenVitalDrawer}
-        onAddNew={canEdit ? onOpenVitalForm : undefined}
-      />
+      {/* BM-61: ẩn sinh hiệu với lễ tân không có quyền xem lâm sàng */}
+      {canViewClinical && (
+        <VitalSignsSummaryCard
+          vital={latestVital}
+          measuredAt={measuredAt}
+          onViewAll={onOpenVitalDrawer}
+          onAddNew={canEdit ? onOpenVitalForm : undefined}
+        />
+      )}
 
       <AllergyAlertCard
         allergies={allergies}
