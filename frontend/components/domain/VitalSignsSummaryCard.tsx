@@ -67,13 +67,28 @@ export function VitalSignsSummaryCard({
       </CardHeader>
       <CardContent className="px-4 pb-3 space-y-3">
         {items.length === 0 ? (
-          <EmptyState
-            variant="generic"
-            title="Chưa có sinh hiệu"
-            description="Ghi sinh hiệu để theo dõi trong suốt ca khám."
-            className="py-6"
-            action={onAddNew ? { label: "Ghi sinh hiệu", onClick: onAddNew } : undefined}
-          />
+          // BM-78: EmptyState action button không có data-tour → tour không bắt được;
+          // tách action ra ngoài để gắn data-tour="enc-vital" cho cả 2 trạng thái (có/chưa có sinh hiệu)
+          <div>
+            <EmptyState
+              variant="generic"
+              title="Chưa có sinh hiệu"
+              description="Ghi sinh hiệu để theo dõi trong suốt ca khám."
+              className="py-6"
+            />
+            {onAddNew && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-1 min-h-[44px]"
+                onClick={onAddNew}
+                data-tour="enc-vital"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Ghi sinh hiệu
+              </Button>
+            )}
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2">
