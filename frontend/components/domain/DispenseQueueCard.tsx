@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Clock, ShieldCheck, Package } from "lucide-react";
+import { User, Clock, ShieldCheck, Package, Stethoscope } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import type { DispenseQueueItem } from "@/lib/api/pharmacy-dispensing";
@@ -21,7 +21,14 @@ export function DispenseQueueCard({ item, onDispense, onReject }: Props) {
         <div className="flex items-start justify-between">
           <div>
             <p className="font-semibold">{item.patient_name}</p>
-            <p className="text-sm text-muted-foreground">BS: {item.doctor_name}</p>
+            {/* BM-82: hiển thị mã bệnh nhân */}
+            {item.patient_code && (
+              <p className="text-xs text-muted-foreground font-mono">{item.patient_code}</p>
+            )}
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <Stethoscope className="h-3 w-3" />
+              {item.doctor_name}
+            </p>
           </div>
           <div className="flex gap-1">
             {item.is_bhyt && (
@@ -38,9 +45,12 @@ export function DispenseQueueCard({ item, onDispense, onReject }: Props) {
             <Package className="h-3.5 w-3.5" />
             {item.items_count} thuốc
           </span>
+          {/* BM-82: hiển thị đầy đủ ngày giờ kê đơn */}
           <span className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
-            {item.signed_at ? format(parseISO(item.signed_at), "HH:mm", { locale: vi }) : "—"}
+            {item.signed_at
+              ? format(parseISO(item.signed_at), "dd/MM HH:mm", { locale: vi })
+              : "—"}
           </span>
           <span className="font-medium text-foreground">
             {(item.total_amount ?? 0).toLocaleString("vi-VN")}đ

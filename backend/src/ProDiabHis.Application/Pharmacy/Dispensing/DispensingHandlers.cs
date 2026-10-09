@@ -49,16 +49,33 @@ public class GetDispenseQueueHandler : IRequestHandler<GetDispenseQueueQuery, Re
         var wc = string.Join(" AND ", where);
         var total = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM diab_his_pha_prescriptions p LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id WHERE {wc}", prm);
 
+        // BM-82: bổ sung patient_code, doctor_name, prescription_code, is_bhyt vào hàng chờ phát thuốc
         var rows = await conn.QueryAsync<dynamic>(
-            $@"SELECT p.id as pres_id, pat.full_name as patient_name, p.signed_at, 0 as total_amount,
-                      (SELECT COUNT(*) FROM diab_his_pha_prescription_items pi WHERE pi.prescription_id = p.id) as items_count
+            $@"SELECT p.id AS pres_id, p.prescription_no AS pres_code,
+                      pat.id AS patient_id, pat.full_name AS patient_name, pat.code AS patient_code,
+                      doc.full_name AS doctor_name,
+                      p.signed_at, p.is_bhyt,
+                      COALESCE(SUM(pi.unit_price * pi.quantity), 0) AS total_amount,
+                      COUNT(pi.id) AS items_count
                FROM diab_his_pha_prescriptions p
-               LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id
-               WHERE {wc} ORDER BY p.signed_at ASC LIMIT @limit OFFSET @offset", prm);
+               LEFT JOIN diab_his_pat_patients pat ON pat.id = p.patient_id AND pat.tenant_id = p.tenant_id
+               LEFT JOIN diab_his_sec_users doc ON doc.id = p.doctor_id
+               LEFT JOIN diab_his_pha_prescription_items pi ON pi.prescription_id = p.id
+               WHERE {wc}
+               GROUP BY p.id, p.prescription_no, pat.id, pat.full_name, pat.code, doc.full_name, p.signed_at, p.is_bhyt
+               ORDER BY p.signed_at ASC LIMIT @limit OFFSET @offset", prm);
 
         var items = rows.Select(r => new DispenseQueueItem(
-            (string)r.pres_id, null, null, (string?)r.patient_name, null,
-            (DateTime?)r.signed_at, (int)(r.items_count ?? 0L), (decimal)(r.total_amount ?? 0m), false)).ToList();
+            PrescriptionId: (string)r.pres_id,
+            PrescriptionCode: (string?)r.pres_code,
+            PatientId: (string?)r.patient_id,
+            PatientName: (string?)r.patient_name,
+            DoctorName: (string?)r.doctor_name,
+            SignedAt: (DateTime?)r.signed_at,
+            ItemsCount: (int)(r.items_count ?? 0L),
+            TotalAmount: (decimal)(r.total_amount ?? 0m),
+            IsBhyt: r.is_bhyt == 1,
+            PatientCode: (string?)r.patient_code)).ToList();
 
         return Result<PagedResult<DispenseQueueItem>>.Success(new PagedResult<DispenseQueueItem>(items, q.Page, q.PageSize, total));
     }

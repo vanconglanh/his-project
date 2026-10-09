@@ -9,7 +9,9 @@ public record DispenseQueueItem(
     DateTime? SignedAt,
     int ItemsCount,
     decimal TotalAmount,
-    bool IsBhyt);
+    bool IsBhyt,
+    /// <summary>BM-82: Mã bệnh nhân (BN00001) — hiển thị trên thẻ hàng chờ phát thuốc.</summary>
+    string? PatientCode = null);
 
 public record DispenseRequest(
     string WarehouseId,

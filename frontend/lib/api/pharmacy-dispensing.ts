@@ -8,6 +8,8 @@ export interface DispenseQueueItem {
   prescription_code: string;
   patient_id: string;
   patient_name: string;
+  /** BM-82: Mã bệnh nhân (BN00001) — hiển thị trên thẻ hàng chờ */
+  patient_code?: string;
   doctor_name: string;
   signed_at: string;
   items_count: number;
