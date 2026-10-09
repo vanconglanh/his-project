@@ -4,6 +4,7 @@ import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ShortcutsModal } from "@/components/layout/ShortcutsModal";
 import { GlobalKeyHandler } from "@/components/layout/GlobalKeyHandler";
 import { OnboardingTour } from "@/components/domain/OnboardingTour";
+import { TokenRefreshGuard } from "@/components/layout/TokenRefreshGuard";
 
 export default function DashboardLayout({
   children,
@@ -22,6 +23,8 @@ export default function DashboardLayout({
       <ShortcutsModal />
       <GlobalKeyHandler />
       <OnboardingTour />
+      {/* BM-86: Proactive JWT refresh để tránh logout đột ngột khi đang hoạt động */}
+      <TokenRefreshGuard />
     </div>
   );
 }
