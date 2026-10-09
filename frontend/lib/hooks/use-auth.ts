@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { login as apiLogin, logout as apiLogout } from "@/lib/api/auth";
 import type { LoginRequest, LoginResponse } from "@/lib/api/types";
 
 export function useAuth() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, isAuthenticated, accessToken, setAuth, clearAuth } =
     useAuthStore();
   const setMfaSetupToken = useAuthStore((s) => s.setMfaSetupToken);
@@ -56,6 +58,8 @@ export function useAuth() {
       // ignore logout API errors
     } finally {
       clearAuth();
+      // Xóa toàn bộ TanStack Query cache để tránh data của tài khoản trước bị lộ (BM-87)
+      queryClient.clear();
       // Xóa httpOnly cookie qua Route Handler (NEW-001)
       await fetch("/session/clear-cookie", { method: "POST" });
       router.push("/login");
