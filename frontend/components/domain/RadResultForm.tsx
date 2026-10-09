@@ -42,8 +42,8 @@ export function RadResultForm({ existing, radOrderId, onSubmit, onCancel, isSubm
       conclusion: existing?.conclusion ?? "",
       recommendations: existing?.recommendations ?? "",
       performed_at: existing?.performed_at
-        ? new Date(existing.performed_at).toISOString().slice(0, 16)
-        : new Date().toISOString().slice(0, 16),
+        ? (() => { const d = new Date(existing.performed_at); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })()
+        : (() => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })(),
       amend_reason: "",
     },
   });

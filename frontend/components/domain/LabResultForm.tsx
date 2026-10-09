@@ -54,8 +54,8 @@ export function LabResultForm({ existing, labOrderItemId, onSubmit, onCancel, is
       unit: existing?.unit ?? "",
       method: existing?.method ?? "",
       performed_at: existing?.performed_at
-        ? new Date(existing.performed_at).toISOString().slice(0, 16)
-        : new Date().toISOString().slice(0, 16),
+        ? (() => { const d = new Date(existing.performed_at); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })()
+        : (() => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })(),
       note: existing?.note ?? "",
       amend_reason: "",
     },
