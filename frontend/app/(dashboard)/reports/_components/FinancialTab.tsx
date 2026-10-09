@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { format, subDays } from "date-fns";
-import { Printer } from "lucide-react";
+import { Printer, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +39,16 @@ export function FinancialTab() {
             onExport={() => setExportOpen(true)}
           />
         </div>
+        {/* BM-71: Link tới báo cáo doanh thu ngày chi tiết (số phiếu, mã BN, tên BN) */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 shrink-0 min-h-[44px]"
+          render={<Link href={`/reports?report=revenue-daily`} />}
+        >
+          <FileText className="h-4 w-4" />
+          Chi tiết phiếu
+        </Button>
         <Button
           variant="outline"
           size="sm"
