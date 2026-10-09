@@ -85,12 +85,18 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
     }
   }, [open, balance, reset]);
 
-  // Keyboard shortcuts 1-7 to pick method
+  // BM-74: Keyboard shortcuts 1-7 chọn phương thức; F4 xác nhận thu tiền
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       const m = METHODS.find((x) => x.key === e.key);
-      if (m) setMethod(m.id);
+      if (m) { setMethod(m.id); return; }
+      if (e.key === "F4") {
+        e.preventDefault();
+        // Tìm nút submit và click để trigger handleSubmit
+        const submitBtn = document.querySelector<HTMLButtonElement>("[data-payment-submit]");
+        submitBtn?.click();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -188,7 +194,11 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
             <SheetTitle>Thu tiền</SheetTitle>
           </SheetHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
+          {/* BM-74: onInvalid toast giup nguoi dung biet form bi loi khi click Xac nhan nhung khong thay error */}
+          <form
+            onSubmit={handleSubmit(onSubmit, () => toast.error("Vui lòng kiểm tra lại thông tin thanh toán"))}
+            className="space-y-4 mt-4"
+          >
             {/* Method picker */}
             <div>
               <Label className="mb-2 block text-sm font-medium">
@@ -302,7 +312,7 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
                   {generateQr.isPending ? "Đang tạo..." : "Tạo mã QR"}
                 </Button>
               ) : (
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending} data-payment-submit>
                   {isPending ? "Đang xử lý..." : "Xác nhận thu tiền (F4)"}
                 </Button>
               )}
