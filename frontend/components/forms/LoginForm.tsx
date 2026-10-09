@@ -8,6 +8,7 @@ import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, ShieldCheck, ArrowLeft, Copy, Download } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -492,6 +493,7 @@ export function LoginForm() {
           type="button"
           variant="link"
           className="h-auto p-0 text-sm"
+          render={<Link href="/forgot-password" />}
         >
           {t("forgotPassword")}
         </Button>
