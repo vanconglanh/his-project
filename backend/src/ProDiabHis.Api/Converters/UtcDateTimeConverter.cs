@@ -13,9 +13,10 @@ public class UtcDateTimeConverter : JsonConverter<DateTime>
     public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var dt = reader.GetDateTime();
-        return dt.Kind == DateTimeKind.Unspecified
-            ? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-            : dt.ToUniversalTime();
+        // BM-50: FE da gui UTC (sau fix BM-49), KHONG convert them lan nua.
+        // Chi dam bao Kind=Utc de EF Core / Dapper luu dung, khong goi ToUniversalTime()
+        // (goi ToUniversalTime() tren gia tri Kind=Local se tru them offset 7h).
+        return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
     }
 
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
