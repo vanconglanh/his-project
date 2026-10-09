@@ -29,9 +29,10 @@ interface DynamicFormRendererProps {
 /**
  * BM-64: Kiểm tra xem tất cả trường required đã được điền chưa.
  * Chỉ validate trường có required=true — trường không có dấu * không bắt buộc.
+ * BM-70: cũng kiểm tra trường số có min/max vượt ngưỡng y tế.
  */
 export function validateRequiredFields(schema: EmrFormSchema, values: EmrFormValues): string[] {
-  return schema
+  const missing = schema
     .filter((f) => f.required)
     .filter((f) => {
       const v = values?.[f.key];
@@ -40,6 +41,19 @@ export function validateRequiredFields(schema: EmrFormSchema, values: EmrFormVal
       return false;
     })
     .map((f) => f.label || f.key);
+
+  const outOfRange = schema
+    .filter((f) => f.type === "number" && (f.min !== undefined || f.max !== undefined))
+    .filter((f) => {
+      const v = values?.[f.key];
+      if (typeof v !== "number") return false;
+      if (f.min !== undefined && v < f.min) return true;
+      if (f.max !== undefined && v > f.max) return true;
+      return false;
+    })
+    .map((f) => `${f.label || f.key} (ngoài khoảng hợp lý)`);
+
+  return [...missing, ...outOfRange];
 }
 
 interface NormalizedOption {
@@ -156,18 +170,31 @@ function FieldRenderer({
       )}
 
       {field.type === "number" && (
-        <div className="flex items-center gap-2">
-          <Input
-            id={inputId}
-            type="number"
-            value={typeof value === "number" || typeof value === "string" ? value : ""}
-            onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-            readOnly={readOnly}
-            disabled={readOnly}
-            aria-required={field.required}
-            className="flex-1"
-          />
-          {field.unit && <span className="shrink-0 text-sm text-muted-foreground">{field.unit}</span>}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Input
+              id={inputId}
+              type="number"
+              value={typeof value === "number" || typeof value === "string" ? value : ""}
+              onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+              readOnly={readOnly}
+              disabled={readOnly}
+              aria-required={field.required}
+              min={field.min}
+              max={field.max}
+              className="flex-1"
+            />
+            {field.unit && <span className="shrink-0 text-sm text-muted-foreground">{field.unit}</span>}
+          </div>
+          {/* BM-70: cảnh báo khi giá trị ngoài khoảng hợp lý về y tế */}
+          {!readOnly && typeof value === "number" && (
+            (field.min !== undefined && value < field.min) ||
+            (field.max !== undefined && value > field.max)
+          ) && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              {field.plausibleHint ?? `Giá trị ngoài khoảng hợp lý${field.min !== undefined ? ` (${field.min}` : ""}${field.max !== undefined ? `–${field.max}` : ""}${field.unit ? ` ${field.unit}` : ""})`}
+            </p>
+          )}
         </div>
       )}
 

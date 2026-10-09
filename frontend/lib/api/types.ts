@@ -778,6 +778,11 @@ export interface EmrFormField {
   group?: string;
   colSpan?: 1 | 2;
   options?: EmrFormFieldOption[] | string[];
+  /** BM-70: giới hạn giá trị hợp lý cho trường số (ví dụ HbA1c: min=3, max=20) */
+  min?: number;
+  max?: number;
+  /** BM-70: hint hiển thị khi giá trị ngoài khoảng hợp lý */
+  plausibleHint?: string;
 }
 
 export type EmrFormSchema = EmrFormField[];
