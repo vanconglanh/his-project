@@ -22,6 +22,24 @@ interface DynamicFormRendererProps {
   onChange: (key: string, value: unknown) => void;
   readOnly?: boolean;
   className?: string;
+  /** BM-64: khi true, highlight các trường required còn trống bằng viền đỏ */
+  showRequiredErrors?: boolean;
+}
+
+/**
+ * BM-64: Kiểm tra xem tất cả trường required đã được điền chưa.
+ * Chỉ validate trường có required=true — trường không có dấu * không bắt buộc.
+ */
+export function validateRequiredFields(schema: EmrFormSchema, values: EmrFormValues): string[] {
+  return schema
+    .filter((f) => f.required)
+    .filter((f) => {
+      const v = values?.[f.key];
+      if (v === undefined || v === null || v === "") return true;
+      if (Array.isArray(v) && v.length === 0) return true;
+      return false;
+    })
+    .map((f) => f.label || f.key);
 }
 
 interface NormalizedOption {
@@ -53,6 +71,7 @@ export function DynamicFormRenderer({
   onChange,
   readOnly = false,
   className,
+  showRequiredErrors = false,
 }: DynamicFormRendererProps) {
   const groups = useMemo(() => {
     const order: string[] = [];
@@ -85,6 +104,11 @@ export function DynamicFormRenderer({
                 value={values?.[field.key]}
                 onChange={(value) => onChange(field.key, value)}
                 readOnly={readOnly}
+                showError={showRequiredErrors && !!field.required && (
+                  values?.[field.key] === undefined || values?.[field.key] === null ||
+                  values?.[field.key] === "" ||
+                  (Array.isArray(values?.[field.key]) && (values[field.key] as unknown[]).length === 0)
+                )}
               />
             ))}
           </div>
@@ -99,11 +123,14 @@ function FieldRenderer({
   value,
   onChange,
   readOnly,
+  showError = false,
 }: {
   field: EmrFormField;
   value: unknown;
   onChange: (value: unknown) => void;
   readOnly: boolean;
+  // BM-64: highlight viền đỏ khi trường required chưa điền và đã cố save
+  showError?: boolean;
 }) {
   const colSpan = field.colSpan ?? (field.type === "textarea" || field.type === "checklist" ? 2 : 1);
   const inputId = `emr-field-${field.key}`;
@@ -111,7 +138,7 @@ function FieldRenderer({
   return (
     <div className={cn("space-y-1.5", colSpan === 2 && "sm:col-span-2")}>
       {field.type !== "checkbox" && (
-        <Label htmlFor={inputId}>
+        <Label htmlFor={inputId} className={showError ? "text-destructive" : undefined}>
           {field.label}
           {field.required && <span className="ml-0.5 text-destructive">*</span>}
         </Label>
@@ -251,6 +278,11 @@ function FieldRenderer({
             );
           })}
         </div>
+      )}
+
+      {/* BM-64: chỉ hiện lỗi cho trường required chưa điền (dấu *) */}
+      {showError && (
+        <p className="text-xs text-destructive">Trường này là bắt buộc</p>
       )}
     </div>
   );

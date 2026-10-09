@@ -39,6 +39,11 @@ interface Props {
   templateId?: string;
   /** Giá trị form có cấu trúc (structured_json của template) — gửi kèm khi lưu nháp (§5.8.1) */
   structuredValues?: Record<string, unknown>;
+  /**
+   * BM-64: callback được gọi TRƯỚC khi lưu (manual hoặc auto).
+   * Trả về true → cho phép lưu; false → chặn và hiện lỗi.
+   */
+  onBeforeSave?: () => boolean;
 }
 
 export function EmrEditor({
@@ -48,6 +53,7 @@ export function EmrEditor({
   onSaved,
   templateId,
   structuredValues,
+  onBeforeSave,
 }: Props) {
   const saveDraft = useSaveEmrDraft(encounterId);
   const lastSavedRef = useRef<Date | null>(null);
@@ -127,6 +133,8 @@ export function EmrEditor({
   function handleManualSave() {
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     if (!editor || isSigned) return;
+    // BM-64: chặn lưu nếu có trường required chưa điền; onBeforeSave trả false → dừng
+    if (onBeforeSave && !onBeforeSave()) return;
     toast.promise(
       saveDraft.mutateAsync({
         content_json: editor.getJSON() as Record<string, unknown>,

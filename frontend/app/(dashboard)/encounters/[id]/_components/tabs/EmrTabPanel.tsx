@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { CheckCircle } from "lucide-react";
 import { EmrEditor } from "@/components/domain/EmrEditor";
 import { EmrTemplateSelector } from "@/components/domain/EmrTemplateSelector";
-import { DynamicFormRenderer } from "@/components/emr/DynamicFormRenderer";
+import { DynamicFormRenderer, validateRequiredFields } from "@/components/emr/DynamicFormRenderer";
 import { HisStatusBadge } from "@/components/ui/status-badge";
 import { useEmr } from "@/lib/hooks/use-emr";
 import { formatVnTime } from "@/lib/utils/encounter-format";
@@ -33,6 +33,8 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
   // (EmrTemplateSelector) da co san structured_json, KHONG can fetch lai - dung truc tiep de
   // loai bo hoan toan khoang ho dong bo nay.
   const [pickedTemplateThisSession, setPickedTemplateThisSession] = useState(false);
+  // BM-64: chỉ hiện lỗi required sau khi bác sĩ cố save/sign lần đầu
+  const [showRequiredErrors, setShowRequiredErrors] = useState(false);
   const [selectedTemplateSchema, setSelectedTemplateSchema] = useState<EmrFormSchema | null>(null);
   const [structuredValues, setStructuredValues] = useState<Record<string, unknown>>({});
 
@@ -52,11 +54,23 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
     setSelectedTemplateSchema(template.structured_json ?? null);
     setPickedTemplateThisSession(true);
     setStructuredValues({});
+    setShowRequiredErrors(false); // reset lỗi khi chọn mẫu mới
   }, []);
 
   const handleFieldChange = useCallback((key: string, value: unknown) => {
     setStructuredValues((prev) => ({ ...prev, [key]: value }));
   }, []);
+
+  // BM-64: validate trường required trước khi lưu; chỉ validate khi có schema
+  const handleBeforeSave = useCallback((): boolean => {
+    if (!activeSchema || activeSchema.length === 0) return true;
+    const missing = validateRequiredFields(activeSchema, structuredValues);
+    if (missing.length > 0) {
+      setShowRequiredErrors(true);
+      return false;
+    }
+    return true;
+  }, [activeSchema, structuredValues]);
 
   // Bệnh án đã ký / đã lưu trước đó: LUÔN render theo schema_snapshot của
   // chính bản ghi đó, không đọc lại structured_json hiện tại của template
@@ -111,6 +125,7 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
             values={structuredValues}
             onChange={handleFieldChange}
             readOnly={isSigned || !canEdit}
+            showRequiredErrors={showRequiredErrors}
           />
         </div>
       )}
@@ -127,6 +142,7 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
         initialContent={activeSchema && activeSchema.length > 0 ? emr?.content_json : (templateContent ?? emr?.content_json)}
         isSigned={isSigned || !canEdit}
         onSaved={setLastSaved}
+        onBeforeSave={handleBeforeSave}
         templateId={selectedTemplateId}
         structuredValues={activeSchema ? structuredValues : undefined}
       />
