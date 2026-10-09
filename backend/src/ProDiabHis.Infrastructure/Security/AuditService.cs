@@ -52,7 +52,10 @@ public class AuditService : IAuditService
         try
         {
             var ctx = _httpContextAccessor.HttpContext;
-            var ipAddress = ctx?.Connection?.RemoteIpAddress?.ToString();
+            // BM-83: ưu tiên X-Forwarded-For (IP thật từ client qua nginx/proxy),
+            // fallback về RemoteIpAddress khi không có proxy header.
+            var ipAddress = ctx?.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim()
+                ?? ctx?.Connection?.RemoteIpAddress?.ToString();
             var userAgent = ctx?.Request.Headers.UserAgent.ToString();
             var rid = requestId ?? ctx?.TraceIdentifier;
 
