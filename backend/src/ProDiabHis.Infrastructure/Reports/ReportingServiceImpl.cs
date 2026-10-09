@@ -314,7 +314,9 @@ public class ReportingServiceImpl : IReportingService
             SELECT
                 (SELECT COUNT(*) FROM diab_his_enc_encounters WHERE tenant_id = @tid AND DATE(started_at) = @today AND status != 'CANCELLED' AND deleted_at IS NULL) AS today_enc,
                 (SELECT COUNT(*) FROM diab_his_enc_encounters WHERE tenant_id = @tid AND status = 'WAITING' AND deleted_at IS NULL) AS waiting,
-                (SELECT COALESCE(SUM(patient_payable),0) FROM diab_his_bil_billing WHERE tenant_id = @tid AND DATE(created_at) = @today AND status = 'FINALIZED' AND deleted_at IS NULL) AS today_rev,
+                -- BM-53: sau khi thu tien status chuyen sang PAID/PARTIAL_PAID, khong phai FINALIZED
+                -- Dung paid_amount (so tien da thu thuc te) thay vi patient_payable
+                (SELECT COALESCE(SUM(paid_amount),0) FROM diab_his_bil_billing WHERE tenant_id = @tid AND DATE(created_at) = @today AND status IN ('PAID','PARTIAL_PAID') AND deleted_at IS NULL) AS today_rev,
                 (SELECT COUNT(*) FROM diab_his_pha_stock WHERE tenant_id = @tid AND quantity <= 0) AS low_stock,
                 (SELECT COUNT(*) FROM diab_his_pha_stock WHERE tenant_id = @tid AND exp_date BETWEEN @today AND DATE_ADD(@today, INTERVAL 30 DAY)) AS near_expiry,
                 (SELECT COUNT(*) FROM diab_his_int_bhyt_exports WHERE tenant_id = @tid AND status = 'SUBMITTED') AS bhyt_pending,
