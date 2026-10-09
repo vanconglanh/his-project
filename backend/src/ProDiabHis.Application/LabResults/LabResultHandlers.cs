@@ -241,7 +241,8 @@ public class CreateLabResultCommandHandler
         // Bug A fix: truoc day luon (null,null) -> flag LUON NORMAL. Lay khoang tham chieu tu
         // danh muc XN theo test_code roi tinh flag dung + luu vao entity.
         var (refLow, refHigh) = await LabRefRangeLookup.LoadAsync(_dapper, labOrder.TestCode, ct);
-        var flag = _flagCalc.Calculate(req.ValueNumeric, refLow, refHigh);
+        // BM-68: dung CalculateForTest de ap dung nguong phu hop theo test_code (HbA1c, TSH dung nguong rong hon)
+        var flag = _flagCalc.CalculateForTest(labOrder.TestCode, req.ValueNumeric, refLow, refHigh);
 
         var entity = new LabResult
         {
@@ -311,7 +312,8 @@ public class UpdateLabResultCommandHandler
         var req = cmd.Req;
         var newStatus = entity.Status == LabResultStatus.Verified ? LabResultStatus.Amended : entity.Status;
         var valNum = req.ValueNumeric ?? entity.ValueNumeric;
-        var flag   = _flagCalc.Calculate(valNum, entity.ReferenceRangeLow, entity.ReferenceRangeHigh);
+        // BM-68: dung CalculateForTest de ap dung nguong phu hop theo test_code
+        var flag   = _flagCalc.CalculateForTest(entity.TestCode, valNum, entity.ReferenceRangeLow, entity.ReferenceRangeHigh);
 
         if (req.Value is not null)    entity.Value         = req.Value;
         if (req.ValueNumeric.HasValue) entity.ValueNumeric = req.ValueNumeric;
@@ -483,7 +485,8 @@ public class ImportLabResultsCommandHandler
                     range = await LabRefRangeLookup.LoadAsync(_dapper, testCode, ct);
                     refRangeCache[testCode] = range;
                 }
-                var flag = _flagCalc.Calculate(valNum, range.Low, range.High);
+                // BM-68: dung CalculateForTest de ap dung nguong phu hop theo test_code
+                var flag = _flagCalc.CalculateForTest(testCode, valNum, range.Low, range.High);
 
                 // P1-03: import file thu cong (khong phai ket noi may XN da ky) -> PerformedBy
                 // luon la nguoi import (_user.UserId). Neu cho phep AutoVerify o day thi
