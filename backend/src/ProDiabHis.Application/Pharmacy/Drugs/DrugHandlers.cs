@@ -56,7 +56,9 @@ public class ListDrugsHandler : IRequestHandler<ListDrugsQuery, Result<PagedResu
                       d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                       d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
                       d.price as Price, d.category_id as CategoryId,
-                      d.requires_prescription as RequiresPrescription,
+                      -- BM-73: doc requires_rx (canonical, bo 9005) truoc, fallback sang requires_prescription (legacy)
+                      -- tranh phan loai sai khi chi co 1 trong 2 cot duoc ghi
+                      COALESCE(d.requires_rx, d.requires_prescription, 0) as RequiresPrescription,
                       d.is_psychotropic as IsPsychotropic, d.is_narcotic as IsNarcotic,
                       d.dtqg_drug_code as DtqgDrugCode, d.status as Status,
                       d.route as Route, d.bhyt_code as BhytCode,
@@ -95,7 +97,7 @@ public class GetDrugHandler : IRequestHandler<GetDrugQuery, Result<DrugMasterRes
                      d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                      d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
                      d.price as Price, d.category_id as CategoryId,
-                     d.requires_prescription as RequiresPrescription,
+                     COALESCE(d.requires_rx, d.requires_prescription, 0) as RequiresPrescription,
                      d.is_psychotropic as IsPsychotropic, d.is_narcotic as IsNarcotic,
                      d.dtqg_drug_code as DtqgDrugCode, d.status as Status,
                      d.route as Route, d.bhyt_code as BhytCode,
@@ -269,7 +271,7 @@ public class SearchDrugsHandler : IRequestHandler<SearchDrugsQuery, Result<IRead
                      d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                      d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
                      d.price as Price, d.category_id as CategoryId,
-                     d.requires_prescription as RequiresPrescription,
+                     COALESCE(d.requires_rx, d.requires_prescription, 0) as RequiresPrescription,
                      d.is_psychotropic as IsPsychotropic, d.is_narcotic as IsNarcotic,
                      d.dtqg_drug_code as DtqgDrugCode, d.status as Status,
                      d.created_at as CreatedAt, d.updated_at as UpdatedAt, 0 as InteractionsCount
@@ -314,7 +316,7 @@ public class GetEquivalentDrugsHandler : IRequestHandler<GetEquivalentDrugsQuery
                      d.atc_code as AtcCode, d.strength as Strength, d.unit as Unit,
                      d.form as Form, d.manufacturer as Manufacturer, d.country as Country,
                      d.price as Price, d.category_id as CategoryId,
-                     d.requires_prescription as RequiresPrescription,
+                     COALESCE(d.requires_rx, d.requires_prescription, 0) as RequiresPrescription,
                      d.is_psychotropic as IsPsychotropic, d.is_narcotic as IsNarcotic,
                      d.dtqg_drug_code as DtqgDrugCode, d.status as Status,
                      d.created_at as CreatedAt, d.updated_at as UpdatedAt, 0 as InteractionsCount
