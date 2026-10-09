@@ -32,7 +32,7 @@ public class DashboardController : ControllerBase
 
     /// <summary>Bieu do xu huong doanh thu</summary>
     [HttpGet("charts/revenue-trend")]
-    [RequirePermission("dashboard.read")]
+    [RequirePermission("report.read")] // BM-56: du lieu doanh thu - chi role co report.read (ke toan, admin)
     public async Task<IActionResult> GetRevenueTrend(
         [FromQuery] string range = "30d",
         CancellationToken ct = default)
@@ -54,7 +54,7 @@ public class DashboardController : ControllerBase
 
     /// <summary>Top bac si theo doanh thu</summary>
     [HttpGet("charts/top-doctors")]
-    [RequirePermission("dashboard.read")]
+    [RequirePermission("report.read")] // BM-56: du lieu doanh thu theo bac si - chi role co report.read
     public async Task<IActionResult> GetTopDoctors(
         [FromQuery] string range = "30d",
         [FromQuery] int top = 5,
