@@ -677,20 +677,10 @@ export async function getTopDiagnoses(from: string, to: string, top = 20): Promi
 }
 
 export async function getDiabetesCohort(as_of?: string): Promise<DiabetesCohort> {
-  try {
-    const { data } = await apiClient.get<{ data: DiabetesCohort }>("/reports/diabetes/cohort", {
-      params: { as_of, dm_type: "ALL" },
-    });
-    return data.data;
-  } catch {
-    return {
-      as_of: as_of ?? new Date().toISOString().slice(0, 10),
-      total_patients: 412,
-      by_type: { t1: 45, t2: 348, gdm: 19 },
-      hba1c_distribution: { lt_7: 120, between_7_8: 145, between_8_9: 98, gt_9: 49 },
-      complications: { retinopathy: 87, neuropathy: 134, nephropathy: 62, cad: 44, pad: 31 },
-    };
-  }
+  const { data } = await apiClient.get<{ data: DiabetesCohort }>("/reports/diabetes/cohort", {
+    params: { as_of, dm_type: "ALL" },
+  });
+  return data.data;
 }
 
 // ---- Pharmacy ----

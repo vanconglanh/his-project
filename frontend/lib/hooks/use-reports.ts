@@ -302,16 +302,8 @@ export function useDiabetesCohort() {
   return useQuery({
     queryKey: ["reports", "diabetes-cohort"],
     queryFn: () => getDiabetesCohort(),
-    retry: 1,
-    // Provide placeholder data so cohort card renders immediately before API resolves
-    placeholderData: {
-      as_of: new Date().toISOString().slice(0, 10),
-      total_patients: 412,
-      by_type: { t1: 45, t2: 348, gdm: 19 },
-      hba1c_distribution: { lt_7: 120, between_7_8: 145, between_8_9: 98, gt_9: 49 },
-      complications: { retinopathy: 87, neuropathy: 134, nephropathy: 62, cad: 44, pad: 31 },
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
