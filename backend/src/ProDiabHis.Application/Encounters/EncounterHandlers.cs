@@ -399,8 +399,15 @@ public class CloseEncounterCommandHandler : IRequestHandler<CloseEncounterComman
             return Result<bool>.Failure("ENCOUNTER_INVALID_TRANSITION",
                 $"Không thể đóng lượt khám từ trạng thái {enc.Status}");
 
+        // BM-46: ChiefComplaint co the null neu bac si chua cap nhat —
+        // fallback sang ReasonForVisit (nhap luc tiep don) truoc khi bao loi.
         if (string.IsNullOrWhiteSpace(enc.ChiefComplaint))
-            return Result<bool>.Failure("ENCOUNTER_MISSING_CHIEF_COMPLAINT", "Cần nhập lý do khám chính trước khi đóng");
+        {
+            if (!string.IsNullOrWhiteSpace(enc.ReasonForVisit))
+                enc.ChiefComplaint = enc.ReasonForVisit;
+            else
+                return Result<bool>.Failure("ENCOUNTER_MISSING_CHIEF_COMPLAINT", "Cần nhập lý do khám chính trước khi đóng");
+        }
 
         var encIdStr = enc.Id.ToString();
 
