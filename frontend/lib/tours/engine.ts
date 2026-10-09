@@ -65,6 +65,18 @@ export function markOnboardingSeen(userId: number | string): void {
 export type PermissionChecker = (code: string) => boolean;
 
 /**
+ * BM-80: Theo dõi driver.js instance đang chạy để tránh 2 tour chồng nhau.
+ * Khi onboarding và page tour đều muốn bắt đầu gần cùng lúc (lần đầu đăng nhập),
+ * instance thứ 2 sẽ bị huỷ nếu instance thứ 1 vẫn còn isActive().
+ */
+let _activeDriverInstance: { isActive: () => boolean; destroy: () => void } | null = null;
+
+/** Kiểm tra có đang có tour nào chạy không. */
+export function isTourActive(): boolean {
+  return _activeDriverInstance != null && _activeDriverInstance.isActive();
+}
+
+/**
  * Lọc bước theo quyền + giữ lại bước có element thực sự tồn tại trên DOM
  * (element intro/outro không có selector luôn được giữ).
  */
@@ -113,6 +125,11 @@ export function runTour(opts: RunTourOptions): boolean {
     return false;
   }
 
+  // BM-80: Tránh 2 tour chồng lên nhau — bỏ qua nếu đang có tour khác chạy.
+  if (isTourActive()) {
+    return false;
+  }
+
   // GHI CHÚ: khi có >1 lần gọi driver.js `driver()` trong cùng 1 phiên trang
   // (vd tour trang lẻ chạy nối ngay sau tour onboarding), sự kiện đóng bằng nút
   // "X" của instance THỨ 2 đôi khi không kích hoạt `onDestroyed` một cách đáng
@@ -141,10 +158,14 @@ export function runTour(opts: RunTourOptions): boolean {
       d.destroy();
     },
     onDestroyed: () => {
+      // BM-80: xoá instance khỏi global tracker khi tour kết thúc
+      if (_activeDriverInstance === d) _activeDriverInstance = null;
       finish();
     },
   });
 
+  // BM-80: đăng ký instance đang chạy để tránh tour khác bắt đầu đồng thời
+  _activeDriverInstance = d;
   d.drive();
   return true;
 }
@@ -165,6 +186,13 @@ export function runOnboardingTour(opts: RunOnboardingTourOptions): boolean {
   const { tour, can, userId, onDone } = opts;
   const steps = resolveSteps(tour.steps, can);
   if (steps.length === 0) {
+    markOnboardingSeen(userId);
+    onDone?.();
+    return false;
+  }
+
+  // BM-80: Tránh 2 tour chồng lên nhau — bỏ qua nếu đang có tour khác chạy.
+  if (isTourActive()) {
     markOnboardingSeen(userId);
     onDone?.();
     return false;
@@ -193,10 +221,14 @@ export function runOnboardingTour(opts: RunOnboardingTourOptions): boolean {
       d.destroy();
     },
     onDestroyed: () => {
+      // BM-80: xoá instance khỏi global tracker khi tour kết thúc
+      if (_activeDriverInstance === d) _activeDriverInstance = null;
       finish();
     },
   });
 
+  // BM-80: đăng ký instance đang chạy để tránh tour khác bắt đầu đồng thời
+  _activeDriverInstance = d;
   d.drive();
   return true;
 }
