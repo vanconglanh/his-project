@@ -97,11 +97,26 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
         var isExactMatch = isPatientCodeFormat
             || (digitsOnly.Length == trimmed.Length && (digitsOnly.Length == 10 || digitsOnly.Length == 12));
 
-        if (!hasCrossBranchSearch && !isExactMatch)
+        // BM-04 (fix lan 3, 2026-10-09): tim chinh xac theo ten day du (trimmed co dau cach,
+        // khong phai thuan chu so, khong phai ma BN) cung duoc coi la exact-match va bo qua
+        // cross-branch guard. Ly do: le tan nhan ten BN vua tao tu /patients -> go nguyen ten
+        // vao o tim kiem Tiep don -> dang la "tim theo ten chinh xac", nen phai tra ve BN du
+        // chua co Encounter tai bat ky branch nao.
+        var isFullNameLike = trimmed.Contains(' ') && !isPatientCodeFormat
+                             && !(digitsOnly.Length == trimmed.Length);
+        var isExactMatchExtended = isExactMatch || isFullNameLike;
+
+        if (!hasCrossBranchSearch && !isExactMatchExtended)
         {
             // Encounters da co Global Query Filter theo branch hien tai (xem AppDbContext) nen chi can
             // lay danh sach PatientId tu Encounters (tuong duong "da tung kham tai branch hien tai").
-            var seenPatientIds = _db.Encounters.AsNoTracking().Select(e => e.PatientId);
+            // BM-04 (fix lan 3): pre-materialize truoc khi dung trong Where de tranh loi EF Core
+            // translation khi so sanh Guid.ToString() voi string trong subquery tren MySQL/Pomelo
+            // (generate CONVERT(id, char) khong match CHAR(36) lowercase, khien NOT IN sai).
+            var seenPatientIdSet = (await _db.Encounters.AsNoTracking()
+                .Select(e => e.PatientId)
+                .ToListAsync(cancellationToken))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // BM-04 (tiep, Lark 2026-09-16): guard tren vo tinh an luon benh nhan VUA DANG KY
             // (tai /patients), vi ho CHUA TUNG co Encounter o BAT KY branch nao nen khong nam
@@ -109,13 +124,15 @@ public class SearchPatientsQueryHandler : IRequestHandler<SearchPatientsQuery, P
             // man Tiep don (chi tim thay khi go dung dinh danh chinh xac). Patient chua co
             // Encounter o toan tenant (bat ke branch) chua "thuoc ve" branch nao ca nen khong
             // coi la cross-branch - van cho hien binh thuong theo ten/danh sach.
-            var patientIdsWithAnyEncounter = _db.Encounters.IgnoreQueryFilters().AsNoTracking()
+            var allTenantEncounterPatientIdSet = (await _db.Encounters.IgnoreQueryFilters().AsNoTracking()
                 .Where(e => e.DeletedAt == null && e.TenantId == _tenant.TenantId)
-                .Select(e => e.PatientId);
+                .Select(e => e.PatientId)
+                .ToListAsync(cancellationToken))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             query = query.Where(p =>
-                seenPatientIds.Contains(p.Id.ToString()) ||
-                !patientIdsWithAnyEncounter.Contains(p.Id.ToString()));
+                seenPatientIdSet.Contains(p.Id.ToString()) ||
+                !allTenantEncounterPatientIdSet.Contains(p.Id.ToString()));
         }
 
         var total = await query.CountAsync(cancellationToken);
