@@ -61,7 +61,9 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         href: "/reception",
         labelKey: "reception",
         icon: UserPlus,
-        permissions: ["reception.checkin"],
+        // BM-58: bac_si co reception.queue.manage (goi BN vao kham) nhung khong co
+        // reception.checkin (tiep nhan) nen menu bi an. Dung hasAny = hien khi co bat ky quyen nao.
+        permissions: ["reception.checkin", "reception.queue.manage"],
       },
       {
         href: "/appointments",
@@ -85,7 +87,8 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         href: "/labrad",
         labelKey: "labrad",
         icon: FlaskConical,
-        permissions: ["lab.read", "rad.read"],
+        // BM-58: KTV co lab_result.read/rad_result.read nhung khong co lab.read/rad.read
+        permissions: ["lab.read", "rad.read", "lab_order.read", "lab_result.read", "rad_order.read", "rad_result.read"],
       },
       {
         href: "/labrad/results",
@@ -175,7 +178,8 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         href: "/cashier",
         labelKey: "cashier",
         icon: Receipt,
-        permissions: ["cashier.read"],
+        // BM-58: ke_toan co cashier.shift_open/payment.collect nhung khong co cashier.read
+        permissions: ["cashier.read", "cashier.shift_open", "payment.collect"],
       },
       {
         // BM-24 (Lark Bug-Feedback): "cashier.read" la permission chet, khong co controller nao
