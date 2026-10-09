@@ -286,18 +286,15 @@ export function ReceptionCheckInForm({
           {isSearching && (
             <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
           )}
-        </div>
-        {errors.patient_id && (
-          <p className="text-xs text-destructive">{errors.patient_id.message}</p>
-        )}
 
-        {/* Search dropdown */}
-        {showSearchList && debouncedQ.length >= 2 && (
+          {/* BM-48: dropdown phai nam trong cung div relative voi input
+              de absolute position tinh tu dung goc, z-50 de hien de len content khac */}
+          {showSearchList && debouncedQ.length >= 2 && (
           <div
             id="patient-search-listbox"
             role="listbox"
             aria-label="Kết quả tìm bệnh nhân"
-            className="border rounded-md shadow-lg bg-popover z-10 absolute w-full max-w-sm"
+            className="border rounded-md shadow-lg bg-popover z-50 absolute top-full left-0 w-full mt-1"
           >
             {searchResults?.data && searchResults.data.length > 0 ? (
               <ul className="max-h-52 overflow-y-auto divide-y">
@@ -337,6 +334,10 @@ export function ReceptionCheckInForm({
               </Button>
             </div>
           </div>
+          )}
+        </div>
+        {errors.patient_id && (
+          <p className="text-xs text-destructive">{errors.patient_id.message}</p>
         )}
 
         {selectedPatient && (
