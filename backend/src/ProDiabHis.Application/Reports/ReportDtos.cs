@@ -75,7 +75,8 @@ public record DiabetesCohortDetailedResponse(
 public record DashboardOverviewResponse(
     int TodayEncounters,
     int WaitingPatients,
-    decimal TodayRevenue,
+    // BM-56: null khi nguoi dung khong co quyen xem doanh thu (report.read) - controller se null-hoa.
+    decimal? TodayRevenue,
     int LowStockAlerts,
     int NearExpiryAlerts,
     int BhytPendingCount,

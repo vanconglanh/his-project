@@ -34,6 +34,7 @@ import {
   useDashboardAlerts,
 } from "@/lib/hooks/use-dashboard";
 import { useDiabetesCohort } from "@/lib/hooks/use-reports";
+import { usePermissions } from "@/lib/hooks/use-permissions";
 import { cn } from "@/lib/utils";
 
 function ChartCard({
@@ -80,10 +81,16 @@ export function DashboardOverview() {
     setLastRefresh(new Date());
   }, []);
 
+  // BM-56: chi role co quyen xem bao cao doanh thu (report.read, nhu trang /reports) moi thay
+  // cac widget doanh thu tren Tong quan. Vai tro khac (vd ky_thuat_vien) khong goi API va khong
+  // thay card doanh thu (Doanh thu hom nay, Xu huong doanh thu, Top bac si theo doanh thu).
+  const { has } = usePermissions();
+  const canViewRevenue = has("report.read");
+
   const { data: overview, isLoading: overviewLoading, isError: overviewError } = useDashboardOverview();
-  const { data: revenueTrend, isLoading: revLoading, isError: revError } = useRevenueTrend("30d");
+  const { data: revenueTrend, isLoading: revLoading, isError: revError } = useRevenueTrend("30d", canViewRevenue);
   const { data: encountersTrend, isLoading: encLoading, isError: encError } = useEncountersTrend("30d");
-  const { data: topDoctors, isLoading: docLoading, isError: docError } = useTopDoctors("30d");
+  const { data: topDoctors, isLoading: docLoading, isError: docError } = useTopDoctors("30d", canViewRevenue);
   const { data: topDrugs, isLoading: drugLoading, isError: drugError } = useTopDrugs("30d");
   const { data: hba1c, isLoading: hba1cLoading, isError: hba1cError } = useHba1cDistribution();
   const { data: alerts } = useDashboardAlerts();
@@ -144,16 +151,18 @@ export function DashboardOverview() {
 
       {/* KPI Cards — field names khớp DashboardOverviewResponse (flat, snake_case) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          title={t("kpi.revenue")}
-          value={
-            overviewLoading ? "—"
-            : overviewError || overview === undefined ? "—"
-            : formatRevenue(overview.today_revenue ?? 0)
-          }
-          icon={TrendingUp}
-          loading={overviewLoading}
-        />
+        {canViewRevenue && (
+          <KpiCard
+            title={t("kpi.revenue")}
+            value={
+              overviewLoading ? "—"
+              : overviewError || overview === undefined ? "—"
+              : formatRevenue(overview.today_revenue ?? 0)
+            }
+            icon={TrendingUp}
+            loading={overviewLoading}
+          />
+        )}
         <KpiCard
           title={t("kpi.encounters")}
           value={
@@ -188,21 +197,25 @@ export function DashboardOverview() {
 
       {/* Charts 2x2 */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title={t("chart.revenueTrend")} loading={revLoading} error={revError}>
-          <RevenueTrendChart data={revenueTrend?.series ?? []} />
-        </ChartCard>
+        {canViewRevenue && (
+          <ChartCard title={t("chart.revenueTrend")} loading={revLoading} error={revError}>
+            <RevenueTrendChart data={revenueTrend?.series ?? []} />
+          </ChartCard>
+        )}
 
         <ChartCard title={t("chart.encountersTrend")} loading={encLoading} error={encError}>
           <EncountersTrendChart data={encountersTrend?.series ?? []} />
         </ChartCard>
 
-        <ChartCard title={t("chart.topDoctors")} loading={docLoading} error={docError}>
-          <HorizontalBarChart
-            data={topDoctors?.series ?? []}
-            valueLabel="Doanh thu"
-            color="var(--primary)"
-          />
-        </ChartCard>
+        {canViewRevenue && (
+          <ChartCard title={t("chart.topDoctors")} loading={docLoading} error={docError}>
+            <HorizontalBarChart
+              data={topDoctors?.series ?? []}
+              valueLabel="Doanh thu"
+              color="var(--primary)"
+            />
+          </ChartCard>
+        )}
 
         <ChartCard title={t("chart.topDrugs")} loading={drugLoading} error={drugError}>
           <HorizontalBarChart

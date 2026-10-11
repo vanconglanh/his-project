@@ -27,7 +27,26 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> GetOverview(CancellationToken ct)
     {
         var result = await _mediator.Send(new GetDashboardOverviewQuery(), ct);
+
+        // BM-56: overview dung chung quyen "dashboard.read" (cap cho moi role) nhung mang ca
+        // "today_revenue". Chi role co "report.read" (nhu trang Bao cao /reports) moi duoc xem
+        // doanh thu -> null-hoa TodayRevenue voi role khac (vd ky_thuat_vien) de khong lo so lieu.
+        if (!CurrentUserHasPermission("report.read"))
+        {
+            result = result with { TodayRevenue = null };
+        }
+
         return Ok(new { data = result });
+    }
+
+    /// <summary>Kiem tra quyen trong JWT claim "permissions" (tuong thich RequirePermissionAttribute).</summary>
+    private bool CurrentUserHasPermission(string permission)
+    {
+        if (User.FindFirst("is_super_admin")?.Value == "true")
+        {
+            return true;
+        }
+        return User.FindAll("permissions").Any(c => c.Value == permission);
     }
 
     /// <summary>Bieu do xu huong doanh thu</summary>

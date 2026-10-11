@@ -20,12 +20,14 @@ export function useDashboardOverview() {
   });
 }
 
-export function useRevenueTrend(range: "7d" | "30d" | "90d" = "30d") {
+// BM-56: enabled=false (role khong co quyen doanh thu) -> khong goi API, khong nhan du lieu doanh thu.
+export function useRevenueTrend(range: "7d" | "30d" | "90d" = "30d", enabled = true) {
   return useQuery({
     queryKey: ["dashboard", "revenue-trend", range],
     queryFn: () => getRevenueTrend(range),
     refetchInterval: FIVE_MINUTES,
     retry: false,
+    enabled,
   });
 }
 
@@ -38,12 +40,14 @@ export function useEncountersTrend(range: "7d" | "30d" | "90d" = "30d") {
   });
 }
 
-export function useTopDoctors(range: "7d" | "30d" | "90d" = "30d") {
+// BM-56: enabled=false (role khong co quyen doanh thu) -> khong goi API top bac si theo doanh thu.
+export function useTopDoctors(range: "7d" | "30d" | "90d" = "30d", enabled = true) {
   return useQuery({
     queryKey: ["dashboard", "top-doctors", range],
     queryFn: () => getTopDoctors(range, 10),
     refetchInterval: FIVE_MINUTES,
     retry: false,
+    enabled,
   });
 }
 
