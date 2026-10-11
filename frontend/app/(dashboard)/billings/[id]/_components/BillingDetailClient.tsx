@@ -34,6 +34,7 @@ import { PaymentDialog } from "@/components/domain/PaymentDialog";
 import { EInvoiceIssueDialog } from "@/components/domain/EInvoiceIssueDialog";
 import { ConfirmDialog } from "@/components/domain/ConfirmDialog";
 import { DynamicQrPaymentDialog } from "@/components/domain/DynamicQrPaymentDialog";
+import { usePermissions } from "@/lib/hooks/use-permissions";
 import { formatCurrency } from "@/lib/utils/format";
 import { printBillingPdf } from "@/lib/api/billing";
 import { downloadEInvoiceXml as downloadXml } from "@/lib/api/einvoice";
@@ -59,6 +60,7 @@ export function BillingDetailClient({ id }: Props) {
   const finalize = useFinalizeBilling();
   const voidBilling = useVoidBilling();
   const applyBhyt = useApplyBhyt();
+  const { has } = usePermissions();
 
   const payments = paymentsData?.data ?? [];
   const einvoice = einvoiceData?.data?.[0];
@@ -121,9 +123,12 @@ export function BillingDetailClient({ id }: Props) {
     );
   }
 
-  const canPay = (billing.status === "FINALIZED" || billing.status === "PARTIAL_PAID") && billing.balance > 0;
-  const canFinalize = billing.status === "DRAFT";
-  const canVoid = billing.status !== "VOID" && billing.status !== "PAID";
+  // BM-63: an nut thao tac khi vai tro thieu quyen tuong ung (vd Le tan khong co billing.finalize /
+  // payment.collect / billing.void) -> tranh hien nut roi bam bi 403. Permission codes lay tu
+  // diab_his_sec_permissions + [RequirePermission] trong BillingsController/PaymentsController.
+  const canPay = (billing.status === "FINALIZED" || billing.status === "PARTIAL_PAID") && billing.balance > 0 && has("payment.collect");
+  const canFinalize = billing.status === "DRAFT" && has("billing.finalize");
+  const canVoid = billing.status !== "VOID" && billing.status !== "PAID" && has("billing.void");
   const einvoiceIssued = einvoice?.status === "ISSUED";
 
   return (
