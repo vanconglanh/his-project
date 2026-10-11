@@ -126,9 +126,13 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
+      // BM-86: backend nhan body snake_case (refresh_token). Truoc day gui { refreshToken }
+      // (camelCase) -> 400 VALIDATION_ERROR -> moi lan access token het han (~15') refresh THAT BAI
+      // -> redirectToLogin() -> nguoi dung bi dang xuat giua chung du dang thao tac. Gui dung ten field
+      // de phien tu gia han bang refresh token hop le (KHONG keo dai thoi han token).
       const { data } = await axios.post<RefreshTokenResponse>(
         `${API_BASE_URL}/api/v1/auth/refresh`,
-        { refreshToken }
+        { refresh_token: refreshToken }
       );
 
       const newToken = data.accessToken;
