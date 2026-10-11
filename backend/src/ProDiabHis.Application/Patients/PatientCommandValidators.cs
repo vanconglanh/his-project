@@ -26,6 +26,9 @@ public class CreatePatientRequestValidator : AbstractValidator<CreatePatientRequ
             .MinimumLength(2).WithMessage("Họ tên tối thiểu 2 ký tự")
             .MaximumLength(200).WithMessage("Họ tên tối đa 200 ký tự");
 
+        // BM-81: khi tao benh nhan moi bat buoc toi thieu ngay sinh.
+        RuleFor(x => x.DateOfBirth).NotNull().WithMessage("Vui lòng nhập ngày sinh");
+
         RuleFor(x => x.IdNumber).Matches(@"^\d{9}$|^\d{12}$")
             .WithMessage("Số CMND/CCCD phải gồm 9 hoặc 12 chữ số")
             .When(x => !string.IsNullOrEmpty(x.IdNumber));
