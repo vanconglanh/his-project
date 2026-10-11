@@ -8,7 +8,7 @@ import { ArrowLeft, Save, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { patientSchema, type PatientFormValues } from "./patient-schema";
+import { patientSchema, createPatientSchema, type PatientFormValues } from "./patient-schema";
 import { PatientGeneralTab } from "./PatientGeneralTab";
 import { PatientBhytTab } from "./PatientBhytTab";
 import { PatientEmergencyTab } from "./PatientEmergencyTab";
@@ -126,7 +126,8 @@ export function PatientEditorLayout({
     trigger,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<PatientFormValues, any, PatientFormValues>({
-    resolver: zodResolver(patientSchema) as any,
+    // BM-81: form Tao moi bat buoc ngay sinh (createPatientSchema), form Edit giu patientSchema.
+    resolver: zodResolver(mode === "create" ? createPatientSchema : patientSchema) as any,
     defaultValues: buildDefaultValues(defaultValues),
   });
 

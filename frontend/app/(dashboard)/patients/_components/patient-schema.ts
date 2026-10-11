@@ -69,3 +69,10 @@ export const patientSchema = z.object({
 });
 
 export type PatientFormValues = z.infer<typeof patientSchema>;
+
+// BM-81: khi TAO benh nhan moi bat buoc toi thieu ngay sinh. Form Edit van dung patientSchema
+// (date_of_birth optional) de khong lam vo viec sua benh nhan cu chua co ngay sinh.
+export const createPatientSchema = patientSchema.refine(
+  (v) => !!v.date_of_birth && v.date_of_birth.trim() !== "",
+  { message: "Vui lòng nhập ngày sinh", path: ["date_of_birth"] }
+);
