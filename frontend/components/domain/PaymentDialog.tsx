@@ -64,11 +64,13 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
     handleSubmit,
     watch,
     setValue,
+    setError,
     reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { amount: balance },
+    // BM-74: "Khach dua" (tien mat) mac dinh = so can thu theo Expectation.
+    defaultValues: { amount: balance, cash_received: balance },
   });
 
   const amount = watch("amount") ?? 0;
@@ -78,7 +80,7 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
   // Reset khi mở
   useEffect(() => {
     if (open) {
-      reset({ amount: balance });
+      reset({ amount: balance, cash_received: balance });
       setMethod("CASH");
       setQrData(null);
       setTimeout(() => amountRef.current?.focus(), 100);
@@ -137,6 +139,14 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
   }
 
   async function onSubmit(values: FormData) {
+    // BM-74: khong cho thu nhieu hon so can thu -> bao loi ngay duoi o "So tien".
+    if (values.amount > balance) {
+      setError("amount", {
+        type: "max",
+        message: "Số tiền thu không được lớn hơn số cần thu",
+      });
+      return;
+    }
     try {
       let paymentId: string | undefined;
       if (isCard) {
@@ -258,7 +268,14 @@ export function PaymentDialog({ open, onOpenChange, billingId, balance, onSucces
                   type="number"
                   min={0}
                   step={1000}
-                  {...register("cash_received", { valueAsNumber: true })}
+                  {...register("cash_received", {
+                    // BM-74: o rong -> undefined (khong phai NaN) de z.number().optional() khong chan submit.
+                    // Truoc day o rong tra NaN khien form invalid -> nut Xac nhan thu tien "khong phan hoi".
+                    setValueAs: (v) =>
+                      v === "" || v === null || v === undefined || Number.isNaN(Number(v))
+                        ? undefined
+                        : Number(v),
+                  })}
                   className="mt-1"
                 />
                 {cashReceived > 0 && (
