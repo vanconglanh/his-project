@@ -84,6 +84,8 @@ export interface StockResponse {
   unit_cost: number;
   days_to_expiry: number;
   is_near_expiry: boolean;
+  // BM-59: lo da qua han (days_to_expiry < 0) duoc backend danh dau rieng de UI hien "Het han".
+  is_expired: boolean;
   is_low_stock: boolean;
 }
 

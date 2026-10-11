@@ -14,8 +14,24 @@ export function AlertsTab() {
   const { data: expiryAlerts, isLoading: loadingExpiry } = useNearExpiryAlerts(days);
   const { data: lowStockAlerts, isLoading: loadingLow } = useLowStockAlerts();
 
+  // BM-59: tach lo DA het han (is_expired) khoi nhom "Sap het han".
+  const expiredAlerts = (expiryAlerts ?? []).filter((s) => s.is_expired);
+  const nearExpiryAlerts = (expiryAlerts ?? []).filter((s) => !s.is_expired);
+
   return (
     <div className="space-y-8">
+      {/* Expired (BM-59) */}
+      {expiredAlerts.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="font-semibold text-base text-red-700">Hết hạn</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {expiredAlerts.map((s) => (
+              <ExpiryAlertCard key={s.id} stock={s} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Near expiry */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -43,11 +59,11 @@ export function AlertsTab() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
           </div>
-        ) : !expiryAlerts || expiryAlerts.length === 0 ? (
+        ) : nearExpiryAlerts.length === 0 ? (
           <p className="text-sm text-muted-foreground">Không có lô thuốc sắp hết hạn</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {expiryAlerts.map((s) => (
+            {nearExpiryAlerts.map((s) => (
               <ExpiryAlertCard key={s.id} stock={s} />
             ))}
           </div>
