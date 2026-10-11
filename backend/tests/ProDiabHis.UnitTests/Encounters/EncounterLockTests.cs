@@ -336,7 +336,7 @@ public class EncounterLockTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new CloseEncounterCommandHandler(db, _user, _audit, _dapper);
+        var handler = new CloseEncounterCommandHandler(db, _user, _audit, _dapper, Substitute.For<IFeatureFlagService>());
         var result = await handler.Handle(new CloseEncounterCommand(encId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
