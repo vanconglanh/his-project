@@ -34,9 +34,11 @@ export async function verify2fa(payload: Verify2FARequest): Promise<LoginRespons
 export async function refreshToken(
   payload: RefreshTokenRequest
 ): Promise<RefreshTokenResponse> {
+  // BM-86: backend nhan body snake_case (refresh_token). Gui thang payload { refreshToken }
+  // (camelCase) -> 400 -> proactive refresh (useTokenRefresh) that bai -> dang xuat giua chung.
   const { data } = await apiClient.post<ApiResponse<RefreshTokenResponse>>(
     "/auth/refresh",
-    payload
+    { refresh_token: payload.refreshToken }
   );
   return data.data;
 }
