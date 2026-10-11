@@ -658,6 +658,21 @@ public class RemoveDiagnosisCommandHandler : IRequestHandler<RemoveDiagnosisComm
 }
 
 // ────────────────────────────────────────────────
+// BM-61: cong lam sang — vai tro thieu quyen (emr.read / vital_sign.read) khong duoc nhan
+// du lieu lam sang (chan doan / sinh hieu / EMR) trong chi tiet luot kham.
+// ────────────────────────────────────────────────
+public static class EncounterClinicalGate
+{
+    /// <summary>Tra ve danh sach goc neu co quyen, nguoc lai tra ve danh sach rong.</summary>
+    public static IReadOnlyList<T> GateList<T>(bool canRead, IReadOnlyList<T> value)
+        => canRead ? value : Array.Empty<T>();
+
+    /// <summary>Tra ve gia tri goc neu co quyen, nguoc lai tra ve null.</summary>
+    public static T? GateRef<T>(bool canRead, T? value) where T : class
+        => canRead ? value : null;
+}
+
+// ────────────────────────────────────────────────
 // Get Detail
 // ────────────────────────────────────────────────
 public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetailQuery, Result<EncounterDetailResponse>>
@@ -667,11 +682,14 @@ public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetail
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
     private readonly IDapperConnectionFactory _dapperDb;
+    private readonly IPermissionChecker _permissions;
 
     public GetEncounterDetailQueryHandler(IApplicationDbContext db, ITenantProvider tenant,
-        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapperDb)
+        ICurrentUser user, IAuditService audit, IDapperConnectionFactory dapperDb,
+        IPermissionChecker permissions)
     {
         _db = db; _tenant = tenant; _user = user; _audit = audit; _dapperDb = dapperDb;
+        _permissions = permissions;
     }
 
     public async Task<Result<EncounterDetailResponse>> Handle(GetEncounterDetailQuery query, CancellationToken ct)
@@ -707,14 +725,24 @@ public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetail
         EmrSummaryDto? emrSummary = emrRow is null ? null
             : new EmrSummaryDto(emrRow.Id, emrRow.SignedAt, emrRow.Version);
 
+        // BM-61: vai tro thieu quyen lam sang (vd Le tan chi co encounter.read, khong co emr.read/
+        // vital_sign.read) KHONG duoc nhan du lieu lam sang. May chu bo chan doan + sinh hieu + EMR
+        // khoi response cho cac vai tro nay (truoc day van tra ve -> lo du lieu lam sang).
+        var canReadEmr = _permissions.HasPermission("emr.read");
+        var canReadVital = _permissions.HasPermission("vital_sign.read");
+
+        var diagsOut = EncounterClinicalGate.GateList(canReadEmr, diags.AsReadOnly());
+        var vitalOut = EncounterClinicalGate.GateRef(canReadVital, latestVital);
+        var emrOut = EncounterClinicalGate.GateRef(canReadEmr, emrSummary);
+
         return Result<EncounterDetailResponse>.Success(new EncounterDetailResponse(
             base_.Id, base_.TenantId, base_.PatientId, base_.PatientSummary,
             base_.RoomId, base_.RoomName, base_.DoctorId, base_.DoctorName,
             base_.EncounterType, base_.ReasonForVisit, base_.ChiefComplaint,
             base_.Status, base_.StartedAt, base_.FinishedAt, base_.AlertOver12h,
-            diags.AsReadOnly(), latestVital, base_.HasEmrSigned, base_.HasPrescription, base_.CreatedAt,
+            diagsOut, vitalOut, base_.HasEmrSigned, base_.HasPrescription, base_.CreatedAt,
             Array.Empty<object>(), Array.Empty<object>(), Array.Empty<object>(), Array.Empty<object>(),
-            emrSummary));
+            emrOut));
     }
 }
 
