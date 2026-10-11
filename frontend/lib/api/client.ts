@@ -130,12 +130,16 @@ apiClient.interceptors.response.use(
       // (camelCase) -> 400 VALIDATION_ERROR -> moi lan access token het han (~15') refresh THAT BAI
       // -> redirectToLogin() -> nguoi dung bi dang xuat giua chung du dang thao tac. Gui dung ten field
       // de phien tu gia han bang refresh token hop le (KHONG keo dai thoi han token).
-      const { data } = await axios.post<RefreshTokenResponse>(
+      // BM-86: response bọc trong envelope { data: {...}, meta } (giống mọi API khác, xem lib/api/*.ts
+      // dùng data.data). Trước đây đọc thẳng data.accessToken -> undefined -> retry gửi "Bearer undefined"
+      // -> 401 -> vẫn bị đăng xuất dù refresh trả 200. Phải bóc envelope: data.data.accessToken.
+      const { data: envelope } = await axios.post<{ data: RefreshTokenResponse }>(
         `${API_BASE_URL}/api/v1/auth/refresh`,
         { refresh_token: refreshToken }
       );
 
-      const newToken = data.accessToken;
+      const payload = envelope.data;
+      const newToken = payload.accessToken;
 
       // Update store
       if (typeof window !== "undefined") {
@@ -144,7 +148,7 @@ apiClient.interceptors.response.use(
           try {
             const parsed = JSON.parse(raw);
             parsed.state.accessToken = newToken;
-            parsed.state.refreshToken = data.refreshToken;
+            parsed.state.refreshToken = payload.refreshToken;
             localStorage.setItem("auth-store", JSON.stringify(parsed));
           } catch {
             // ignore
