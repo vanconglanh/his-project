@@ -49,8 +49,8 @@ import type { CccdQrData } from "@/lib/utils/cccd-qr";
 const CCCD_PREFILL_KEY = "reception-cccd-prefill";
 
 const checkInSchema = z.object({
-  patient_id: z.string().min(1, "Chọn bệnh nhân"),
-  room_id: z.string().min(1, "Chọn phòng khám"),
+  patient_id: z.string().min(1, "Vui lòng chọn bệnh nhân"),
+  room_id: z.string().min(1, "Vui lòng chọn phòng khám"),
   reason_for_visit: z.string().optional(),
   note: z.string().optional(),
   priority: z.enum(["NORMAL", "PRIORITY", "EMERGENCY"]),
@@ -122,13 +122,15 @@ export function ReceptionCheckInForm({
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
     useForm<CheckInFormValues>({
       resolver: zodResolver(checkInSchema),
-      defaultValues: { priority: "NORMAL" },
+      // BM-48: khoi tao patient_id/room_id = "" de zod bao message tieng Viet (.min)
+      // thay vi loi type mac dinh tieng Anh khi field con undefined.
+      defaultValues: { priority: "NORMAL", patient_id: "", room_id: "" },
     });
 
   const onSubmit = async (values: CheckInFormValues) => {
     await checkInMutation.mutateAsync(values);
     sessionStorage.removeItem(CHECKIN_DRAFT_KEY);
-    reset({ priority: "NORMAL" });
+    reset({ priority: "NORMAL", patient_id: "", room_id: "" });
     setSelectedPatient(null);
     setSearchQ("");
   };
@@ -276,6 +278,16 @@ export function ReceptionCheckInForm({
               }
             }}
             onFocus={() => setShowSearchList(true)}
+            onKeyDown={(e) => {
+              // BM-48: Enter chon ket qua dau tien, KHONG submit form.
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const first = searchResults?.data?.[0];
+                if (showSearchList && debouncedQ.length >= 2 && first) {
+                  selectPatient(first);
+                }
+              }
+            }}
             className="pl-9"
             placeholder="Tìm tên, SĐT, CMND, BHYT..."
             role="combobox"
