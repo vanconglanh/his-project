@@ -23,8 +23,27 @@ public class GetReportDataHandler : IRequestHandler<GetReportDataQuery, ReportDa
 
     public GetReportDataHandler(IGenericReportDataService svc) => _svc = svc;
 
-    public Task<ReportDataResult> Handle(GetReportDataQuery request, CancellationToken ct)
-        => _svc.GetDataAsync(request.Code, request.From, request.To, request.Filters, request.Page, request.PageSize, ct);
+    public async Task<ReportDataResult> Handle(GetReportDataQuery request, CancellationToken ct)
+    {
+        var result = await _svc.GetDataAsync(
+            request.Code, request.From, request.To, request.Filters, request.Page, request.PageSize, ct);
+        // BM-71: column.Key la camelCase (tu SQL alias, vd "receiptNo"), nhung JSON output cau hinh
+        // DictionaryKeyPolicy = SnakeCaseLower nen MOI dict key (rows / subtotals / totals) bi doi sang
+        // snake_case khi serialize ("receiptNo" -> "receipt_no"). column.key la gia tri chuoi nen KHONG bi
+        // doi -> FE tra cuu row[col.key] voi key camelCase khong khop du lieu snake_case -> cot nhieu tu
+        // (So Phieu / Ma / Ho ten...) hien "-". Chuan hoa column.Key sang snake_case bang DUNG policy cua
+        // serializer de khop du lieu tren wire. Chi ap dung cho JSON grid; export dung handler rieng
+        // (server-side, khong serialize) nen khong anh huong.
+        return ToSnakeCaseColumns(result);
+    }
+
+    public static ReportDataResult ToSnakeCaseColumns(ReportDataResult result)
+    {
+        var snakeColumns = result.Columns
+            .Select(c => c with { Key = System.Text.Json.JsonNamingPolicy.SnakeCaseLower.ConvertName(c.Key) })
+            .ToList();
+        return result with { Columns = snakeColumns };
+    }
 }
 
 // ---- Export (PDF / Excel) ---- //
