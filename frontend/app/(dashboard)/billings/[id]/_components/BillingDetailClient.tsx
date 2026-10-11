@@ -83,6 +83,11 @@ export function BillingDetailClient({ id }: Props) {
         case "BILLING_NOT_FOUND":
           toast.error("Không tìm thấy hoá đơn, vui lòng tải lại trang");
           break;
+        case "PERMISSION_DENIED":
+          // BM-37: vai tro khong co quyen billing.finalize (vd Le tan) -> 403 PERMISSION_DENIED.
+          // Truoc day loi nay roi vao default im lang -> nguoi dung khong biet ly do.
+          toast.error("Bạn không có quyền xác nhận hoá đơn. Vui lòng chuyển cho Kế toán/Thu ngân.");
+          break;
         default:
           toast.error("Xác nhận hoá đơn thất bại, vui lòng thử lại hoặc liên hệ kỹ thuật");
       }
