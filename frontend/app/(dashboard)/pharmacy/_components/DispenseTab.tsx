@@ -19,6 +19,7 @@ export function DispenseTab() {
   const [activeTab, setActiveTab] = useState<"queue" | "history" | "return">("queue");
   const [q, setQ] = useState("");
   const [selectedItem, setSelectedItem] = useState<DispenseQueueItem | null>(null);
+  const [viewItem, setViewItem] = useState<DispenseQueueItem | null>(null); // BM-82: xem chi tiet
   const [rejectItem, setRejectItem] = useState<DispenseQueueItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -97,6 +98,7 @@ export function DispenseTab() {
                 item={item}
                 onDispense={setSelectedItem}
                 onReject={setRejectItem}
+                onView={setViewItem}
               />
             ))}
           </div>
@@ -223,6 +225,16 @@ export function DispenseTab() {
           open={!!selectedItem}
           onClose={() => setSelectedItem(null)}
           item={selectedItem}
+        />
+      )}
+
+      {/* BM-82: xem chi tiet don (read-only) khi bam vao the */}
+      {viewItem && (
+        <DispenseConfirmDialog
+          open={!!viewItem}
+          onClose={() => setViewItem(null)}
+          item={viewItem}
+          viewOnly
         />
       )}
 

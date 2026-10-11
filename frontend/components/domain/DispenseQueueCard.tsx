@@ -12,11 +12,25 @@ interface Props {
   item: DispenseQueueItem;
   onDispense: (item: DispenseQueueItem) => void;
   onReject: (item: DispenseQueueItem) => void;
+  /** BM-82: bam vao the mo chi tiet don o che do xem. */
+  onView?: (item: DispenseQueueItem) => void;
 }
 
-export function DispenseQueueCard({ item, onDispense, onReject }: Props) {
+export function DispenseQueueCard({ item, onDispense, onReject, onView }: Props) {
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card
+      className="hover:shadow-md transition-shadow cursor-pointer"
+      role={onView ? "button" : undefined}
+      tabIndex={onView ? 0 : undefined}
+      aria-label={onView ? `Xem chi tiết đơn của ${item.patient_name}` : undefined}
+      onClick={() => onView?.(item)}
+      onKeyDown={(e) => {
+        if (onView && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onView(item);
+        }
+      }}
+    >
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between">
           <div>
@@ -61,7 +75,7 @@ export function DispenseQueueCard({ item, onDispense, onReject }: Props) {
           <Button
             size="sm"
             className="flex-1"
-            onClick={() => onDispense(item)}
+            onClick={(e) => { e.stopPropagation(); onDispense(item); }}
           >
             Phát thuốc
           </Button>
@@ -69,7 +83,7 @@ export function DispenseQueueCard({ item, onDispense, onReject }: Props) {
             size="sm"
             variant="ghost"
             className="text-destructive hover:text-destructive"
-            onClick={() => onReject(item)}
+            onClick={(e) => { e.stopPropagation(); onReject(item); }}
           >
             Từ chối
           </Button>

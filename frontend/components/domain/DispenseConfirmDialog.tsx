@@ -19,9 +19,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   item: DispenseQueueItem;
+  /** BM-82: che do xem chi tiet don (read-only) khi bam vao the o hang cho. */
+  viewOnly?: boolean;
 }
 
-export function DispenseConfirmDialog({ open, onClose, item }: Props) {
+export function DispenseConfirmDialog({ open, onClose, item, viewOnly = false }: Props) {
   const { data: prescription } = usePrescription(item.prescription_id);
   const { data: warehouses } = useWarehouses();
   const dispense = useDispensePrescription();
@@ -57,10 +59,51 @@ export function DispenseConfirmDialog({ open, onClose, item }: Props) {
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6 pb-6">
         <SheetHeader className="px-0">
-          <SheetTitle>Phát thuốc — {item.patient_name}</SheetTitle>
+          <SheetTitle>
+            {viewOnly ? "Chi tiết đơn thuốc" : "Phát thuốc"} — {item.patient_name}
+          </SheetTitle>
         </SheetHeader>
 
-        {lastDispenseId ? (
+        {/* BM-82: che do xem - hien thong tin don + danh sach thuoc, khong co thao tac phat */}
+        {viewOnly ? (
+          <div className="space-y-4">
+            <div className="rounded-md border divide-y text-sm">
+              <div className="flex justify-between px-3 py-2">
+                <span className="text-muted-foreground">Mã bệnh nhân</span>
+                <span className="font-mono">{item.patient_code || "—"}</span>
+              </div>
+              <div className="flex justify-between px-3 py-2">
+                <span className="text-muted-foreground">Bác sĩ kê đơn</span>
+                <span>{item.doctor_name || "—"}</span>
+              </div>
+              <div className="flex justify-between px-3 py-2">
+                <span className="text-muted-foreground">Số thuốc</span>
+                <span>{item.items_count}</span>
+              </div>
+            </div>
+            {prescription?.items && prescription.items.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Danh sách thuốc:</p>
+                <div className="rounded-md border divide-y">
+                  {prescription.items.map((it) => (
+                    <div key={it.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                      <div>
+                        <span className="font-medium">{it.drug_name}</span>
+                        <span className="text-muted-foreground ml-2">{it.dosage} · {it.frequency}</span>
+                      </div>
+                      <Badge variant="outline">{it.quantity} {it.unit}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Đang tải danh sách thuốc...</p>
+            )}
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleClose}>Đóng</Button>
+            </div>
+          </div>
+        ) : lastDispenseId ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-status-done bg-status-done/10 rounded-md p-3 border border-status-done/20">
               <p className="text-sm font-medium">Phát thuốc thành công!</p>
@@ -129,7 +172,7 @@ export function DispenseConfirmDialog({ open, onClose, item }: Props) {
 
           </div>
         )}
-        {!lastDispenseId && (
+        {!viewOnly && !lastDispenseId && (
           <SheetFooter className="flex-row justify-end gap-2 p-0 -mx-6 -mb-6 mt-4 px-6 pb-6 pt-4 border-t bg-muted/50">
             <Button variant="outline" onClick={handleClose}>Huỷ</Button>
             <Button
