@@ -16,6 +16,7 @@ interface ReportSidebarProps {
   catalog: ReportCatalogItem[];
   isLoading: boolean;
   isError: boolean;
+  isForbidden?: boolean;
   selectedCode: string;
   onSelectDashboard: () => void;
   onSelectReport: (code: string) => void;
@@ -34,6 +35,7 @@ export function ReportSidebar({
   catalog,
   isLoading,
   isError,
+  isForbidden = false,
   selectedCode,
   onSelectDashboard,
   onSelectReport,
@@ -148,7 +150,9 @@ export function ReportSidebar({
 
         {isError && (
           <p className="px-2.5 text-sm text-destructive">
-            Không tải được danh mục báo cáo. Vui lòng thử lại.
+            {isForbidden
+              ? "Bạn không có quyền xem báo cáo này."
+              : "Không tải được danh mục báo cáo. Vui lòng thử lại."}
           </p>
         )}
 

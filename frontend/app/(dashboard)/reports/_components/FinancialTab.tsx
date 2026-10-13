@@ -12,7 +12,7 @@ import { ReportFilterBar, type DateRange } from "@/components/domain/ReportFilte
 import { ExportReportDialog } from "@/components/domain/ExportReportDialog";
 import { RevenueTrendChart } from "@/components/domain/charts/RevenueTrendChart";
 import { ComplicationsRateChart } from "@/components/domain/charts/ComplicationsRateChart";
-import { useRevenueReport, useRevenueByMethod, useTopDoctorsReport } from "@/lib/hooks/use-reports";
+import { useRevenueReport, useRevenueByMethod, useTopDoctorsReport, isForbiddenError } from "@/lib/hooks/use-reports";
 
 const fmt = (d: Date) => format(d, "yyyy-MM-dd");
 const DEFAULT_FROM = fmt(subDays(new Date(), 29));
@@ -24,9 +24,21 @@ export function FinancialTab() {
   const [range, setRange] = useState<DateRange>({ from: DEFAULT_FROM, to: DEFAULT_TO });
   const [exportOpen, setExportOpen] = useState(false);
 
-  const { data: revenue, isLoading: revLoading } = useRevenueReport("DAY", range.from, range.to);
-  const { data: byMethod, isLoading: methodLoading } = useRevenueByMethod(range.from, range.to);
-  const { data: doctors, isLoading: docLoading } = useTopDoctorsReport(range.from, range.to);
+  const { data: revenue, isLoading: revLoading, error: revError } = useRevenueReport("DAY", range.from, range.to);
+  const { data: byMethod, isLoading: methodLoading, error: methodError } = useRevenueByMethod(range.from, range.to);
+  const { data: doctors, isLoading: docLoading, error: docError } = useTopDoctorsReport(range.from, range.to);
+
+  // BM-51: server tra 403 -> bao thieu quyen thay vi hien bieu do/so lieu
+  const forbidden = isForbiddenError(revError) || isForbiddenError(methodError) || isForbiddenError(docError);
+  if (forbidden) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground" role="alert">
+          Bạn không có quyền xem báo cáo này. Vui lòng liên hệ quản trị viên nếu cần truy cập.
+        </CardContent>
+      </Card>
+    );
+  }
 
   const methodPieData = (byMethod ?? []).map((x) => ({ name: x.label, value: x.value }));
 

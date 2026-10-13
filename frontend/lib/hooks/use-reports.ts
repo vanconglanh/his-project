@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import {
   getRevenueReport,
   getRevenueByPaymentMethod,
@@ -42,12 +43,18 @@ import {
 // ---- Report Engine (config-driven) ----
 
 /** Danh mục toàn bộ báo cáo — cache dài (5 phút), hiếm khi đổi trong phiên làm việc. */
+// BM-51: 401/403 la loi quyen, khong retry va de UI hien thong bao thieu quyen.
+export function isForbiddenError(e: unknown): boolean {
+  return isAxiosError(e) && (e.response?.status === 401 || e.response?.status === 403);
+}
+const retryUnlessForbidden = (count: number, e: unknown) => !isForbiddenError(e) && count < 1;
+
 export function useReportCatalog() {
   return useQuery({
     queryKey: ["reports", "engine", "catalog"],
     queryFn: getReportCatalog,
     staleTime: 5 * 60 * 1000,
-    retry: 1,
+    retry: retryUnlessForbidden,
   });
 }
 
@@ -258,7 +265,7 @@ export function useRevenueReport(period: ReportPeriod, from: string, to: string)
     queryKey: ["reports", "revenue", period, from, to],
     queryFn: () => getRevenueReport(period, from, to),
     enabled: !!from && !!to,
-    retry: 1,
+    retry: retryUnlessForbidden,
   });
 }
 
@@ -267,7 +274,7 @@ export function useRevenueByMethod(from: string, to: string) {
     queryKey: ["reports", "revenue-by-method", from, to],
     queryFn: () => getRevenueByPaymentMethod(from, to),
     enabled: !!from && !!to,
-    retry: 1,
+    retry: retryUnlessForbidden,
   });
 }
 
@@ -276,7 +283,7 @@ export function useTopDoctorsReport(from: string, to: string) {
     queryKey: ["reports", "top-doctors", from, to],
     queryFn: () => getTopDoctorsReport(from, to),
     enabled: !!from && !!to,
-    retry: 1,
+    retry: retryUnlessForbidden,
   });
 }
 

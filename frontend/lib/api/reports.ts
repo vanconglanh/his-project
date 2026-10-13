@@ -1,4 +1,12 @@
 import apiClient from "./client";
+import { isAxiosError } from "axios";
+
+// BM-51: khi server tra 401/403 thi PHAI nem loi cho UI hien "Ban khong co quyen..."; truoc day
+// moi loi (ke ca 403) deu bi nuot roi tra so lieu mau ngau nhien -> nguoi khong co quyen van thay
+// "doanh thu" gia. Cac loi khac (mang/500) van giu hanh vi fallback cu cua tung ham.
+function rethrowAuthError(e: unknown): void {
+  if (isAxiosError(e) && (e.response?.status === 401 || e.response?.status === 403)) throw e;
+}
 
 // ---- Report Engine (config-driven, /reports/catalog + /reports/{code}/*) ----
 // Nguồn chân lý: docs/api/reports-engine-contract.md
@@ -586,7 +594,8 @@ export async function getRevenueReport(
       params: { period, from, to, ...(clinic_id ? { clinic_id } : {}) },
     });
     return data.data;
-  } catch {
+  } catch (e) {
+    rethrowAuthError(e);
     // Fallback mock — shape khớp RevenueReportResponse (BE nguồn chân lý)
     const legacySeries = mockRevenueSeries(from, to, period);
     const series = legacySeries.map((x) => ({ label: x.period_label, value: x.total }));
@@ -610,7 +619,8 @@ export async function getRevenueByPaymentMethod(from: string, to: string): Promi
       params: { from, to },
     });
     return data.data;
-  } catch {
+  } catch (e) {
+    rethrowAuthError(e);
     return [
       { label: "Tiền mặt", value: 45_000_000, percentage: 55 },
       { label: "Chuyển khoản", value: 25_000_000, percentage: 30 },
@@ -626,7 +636,8 @@ export async function getTopDoctorsReport(from: string, to: string, top = 20): P
       params: { from, to, top },
     });
     return data.data;
-  } catch {
+  } catch (e) {
+    rethrowAuthError(e);
     return Array.from({ length: 5 }, (_, i) => ({
       doctor_id: `doc-${i}`,
       doctor_name: `BS. Bác sĩ ${i + 1}`,
@@ -650,7 +661,8 @@ export async function getEncountersCount(
       params: { period, from, to },
     });
     return data.data;
-  } catch {
+  } catch (e) {
+    rethrowAuthError(e);
     return mockRevenueSeries(from, to, period).map((x) => ({
       period_label: x.period_label,
       count: Math.round(10 + Math.random() * 50),
@@ -664,7 +676,8 @@ export async function getTopDiagnoses(from: string, to: string, top = 20): Promi
       params: { from, to, top },
     });
     return data.data;
-  } catch {
+  } catch (e) {
+    rethrowAuthError(e);
     const mock = [
       { icd10_code: "E11", icd10_name: "Đái tháo đường type 2", count: 245, percentage: 28.3 },
       { icd10_code: "I10", icd10_name: "Tăng huyết áp nguyên phát", count: 180, percentage: 20.8 },
@@ -691,7 +704,8 @@ export async function getTopPharmacyDrugs(from: string, to: string, top = 20): P
       params: { from, to, top, order_by: "REVENUE" },
     });
     return data.data;
-  } catch {
+  } catch (e) {
+    rethrowAuthError(e);
     const names = ["Metformin 500mg", "Glibenclamide 5mg", "Insulin Glargine U-300",
       "Sitagliptin 100mg", "Atorvastatin 20mg", "Amlodipine 5mg", "Losartan 50mg",
       "Aspirin 100mg", "Empagliflozin 10mg", "Linagliptin 5mg"];
@@ -710,7 +724,8 @@ export async function getInventoryValue(): Promise<InventoryValue> {
   try {
     const { data } = await apiClient.get<{ data: InventoryValue }>("/reports/pharmacy/inventory-value");
     return data.data;
-  } catch {
+  } catch (e) {
+    rethrowAuthError(e);
     return {
       total_value: 185_000_000,
       total_skus: 234,
@@ -729,7 +744,8 @@ export async function getNearExpirySummary(): Promise<NearExpirySummary> {
   try {
     const { data } = await apiClient.get<{ data: NearExpirySummary }>("/reports/pharmacy/near-expiry-summary");
     return data.data;
-  } catch {
+  } catch (e) {
+    rethrowAuthError(e);
     return {
       total_lots: 18,
       total_value_at_risk: 12_500_000,

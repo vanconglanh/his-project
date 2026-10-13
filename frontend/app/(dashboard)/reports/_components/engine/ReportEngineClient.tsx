@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useReportCatalog } from "@/lib/hooks/use-reports";
+import { useReportCatalog, isForbiddenError } from "@/lib/hooks/use-reports";
 import { useReportRecentFavorites } from "@/lib/hooks/use-report-recent-favorites";
 import { ReportSidebar } from "@/components/domain/reports-engine/ReportSidebar";
 import { ReportRunner } from "@/components/domain/reports-engine/ReportRunner";
@@ -24,7 +24,7 @@ interface ReportEngineClientProps {
  */
 export function ReportEngineClient({ initialReportCode }: ReportEngineClientProps) {
   const router = useRouter();
-  const { data: catalog = [], isLoading, isError } = useReportCatalog();
+  const { data: catalog = [], isLoading, isError, error: catalogError } = useReportCatalog();
   const { touchRecent } = useReportRecentFavorites();
   const [selectedCode, setSelectedCode] = useState<string>(initialReportCode || DASHBOARD_CODE);
 
@@ -65,6 +65,7 @@ export function ReportEngineClient({ initialReportCode }: ReportEngineClientProp
           catalog={catalog}
           isLoading={isLoading}
           isError={isError}
+          isForbidden={isForbiddenError(catalogError)}
           selectedCode={selectedCode}
           onSelectDashboard={handleSelectDashboard}
           onSelectReport={handleSelectReport}
