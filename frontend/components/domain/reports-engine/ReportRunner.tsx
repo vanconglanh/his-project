@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { isAxiosError } from "axios";
+import { AlertCircle, Pencil, RefreshCw, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,8 @@ export function ReportRunner({ descriptor }: ReportRunnerProps) {
     ? { ...appliedParams, page, page_size: 100 }
     : null;
 
-  const { data, isLoading, isFetching, isError, refetch } = useReportData(descriptor.code, queryParams);
+  const { data, isLoading, isFetching, isError, error, refetch } = useReportData(descriptor.code, queryParams);
+  const isPermissionError = isAxiosError(error) && error.response?.status === 403;
 
   function handleDraftChange(patch: Partial<ReportFilterDraft>) {
     setDraft((prev) => ({ ...prev, ...patch }));
@@ -177,7 +179,17 @@ export function ReportRunner({ descriptor }: ReportRunnerProps) {
         />
       )}
 
-      {appliedParams && isError && (
+      {appliedParams && isError && isPermissionError && (
+        <Alert className="border-destructive/40 bg-destructive/5">
+          <ShieldAlert className="h-4 w-4 text-destructive" />
+          <AlertTitle className="text-destructive">Bạn không có quyền xem báo cáo này</AlertTitle>
+          <AlertDescription>
+            <span>Tài khoản của bạn không được cấp quyền xem báo cáo này. Vui lòng liên hệ quản trị viên nếu cần truy cập.</span>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {appliedParams && isError && !isPermissionError && (
         <Alert className="border-destructive/40 bg-destructive/5">
           <AlertCircle className="h-4 w-4 text-destructive" />
           <AlertTitle className="text-destructive">Không tải được báo cáo</AlertTitle>
