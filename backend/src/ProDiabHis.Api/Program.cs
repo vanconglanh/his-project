@@ -54,6 +54,10 @@ try
         // Global JSON naming: snake_case (khop voi FE interface)
         opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower;
         opts.JsonSerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower;
+        // BM-49: Dapper doc MySQL DateTime -> DateTimeKind.Unspecified, System.Text.Json khong them Z suffix
+        // -> FE hieu la local time thay vi UTC -> hien sai gio. Converter nay dam bao luon co Z suffix.
+        opts.JsonSerializerOptions.Converters.Add(new ProDiabHis.Api.Converters.UtcDateTimeConverter());
+        opts.JsonSerializerOptions.Converters.Add(new ProDiabHis.Api.Converters.UtcNullableDateTimeConverter());
     });
 
     // BUG-003: model-binding validation (DataAnnotations / JSON binding) mac dinh tra message tieng Anh
