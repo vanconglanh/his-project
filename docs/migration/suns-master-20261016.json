@@ -1,0 +1,69 @@
+{
+"source": "diabclinic.suns.com.vn (API doc chi-doc, 16/10/2026). Bo qua: mau benh an (200 ten mau mac dinh SUNS, khong co noi dung), goi test ('Tên Gói dv 2026', 'TEST MINH CHI'), phac do test ('Suns tech', 'SUNS TECH', 'Testchidinhmau-MC'), tai khoan suns/pharmacy/sale1.",
+"phong_kham": [
+ {"ma":"PK001","ten":"Phòng khám DiaB","loai":"KHAM","bac_si":["NV001","NV002","NV003","NV004","NV005","NV006","NV007","NV008","NV009","NV010","NV012","NV013","NV017","NV018","NV020","NV021","NV022","NV023","NV025"],"loai_kham":["LK001","KL002"]},
+ {"ma":"PK008","ten":"Phòng khám Cali","loai":"KHAM","bac_si":["NV001","NV006","NV008","NV012","NV013","NV017","NV018","NV020","NV022","NV025"],"loai_kham":["LK001","KL002"]},
+ {"ma":"PK02","ten":"BSGĐ","loai":"KHAM","bac_si":["NV001","NV002","NV003","NV004","NV005","NV006","NV007","NV008","NV009","NV010","NV013","NV017","NV018","NV021","NV023","NV025"],"loai_kham":["LK001","KL002"]},
+ {"ma":"PK03","ten":"Phòng Siêu Âm","loai":"CDHA","bac_si":["NV001","NV002","NV003","NV004","NV005","NV006","NV007","NV008","NV009","NV010","NV021","NV025"],"loai_kham":["LK001","KL002"]},
+ {"ma":"PK04","ten":"Phòng X-Quang","loai":"CDHA","bac_si":["NV001","NV002","NV003","NV004","NV005","NV006","NV007","NV008","NV009","NV010","NV021","NV025"],"loai_kham":["LK001","KL002"]},
+ {"ma":"PK05","ten":"Phòng Xét Nghiệm","loai":"XN","bac_si":["NV001","NV002","NV003","NV004","NV005","NV006","NV007","NV008","NV009","NV010","NV021","NV025"],"loai_kham":["LK001","KL002"]},
+ {"ma":"PK06","ten":"Phòng khám NBK","loai":"KHAM","bac_si":["NV001","NV002","NV003","NV004","NV005","NV006","NV007","NV008","NV009","NV010","NV012","NV013","NV017","NV018","NV021","NV023","NV025"],"loai_kham":["LK001","NBK001","KL002"]},
+ {"ma":"PK07","ten":"Phòng khám trực tuyến","loai":"KHAM","bac_si":["NV001","NV002","NV003","NV004","NV005","NV006","NV007","NV008","NV009","NV010","NV012","NV013","NV017","NV018","NV021","NV023","NV025"],"loai_kham":["LK001","KL002"]}
+],
+"nhan_su": [
+ {"ma":"NV001","ten":"BSCKI. Trương Lan Đài","loai_suns":"Bác sĩ","cchn":"051334HCM-CCHN","user":"bsdai"},
+ {"ma":"NV002","ten":"TS BS. Lý Đại Lương","loai_suns":"Bác sĩ","cchn":null,"user":"bsluong"},
+ {"ma":"NV003","ten":"BSCKI. Trần Vũ Lan Hương","loai_suns":"Bác sĩ","cchn":null,"user":"bshuong"},
+ {"ma":"NV004","ten":"BSCKI. Châu Hồ Minh Quân","loai_suns":"Bác sĩ","cchn":null,"user":"bsquan"},
+ {"ma":"NV005","ten":"BSCKII. Dương Thị Mỹ Dung","loai_suns":"Bác sĩ","cchn":null,"user":"bsdung"},
+ {"ma":"NV006","ten":"ThS BS. Nguyễn Kim Chi","loai_suns":"Bác sĩ","cchn":null,"user":"bschi"},
+ {"ma":"NV007","ten":"ThS BSCKI. Nguyễn Vũ Nhật Phong","loai_suns":"Bác sĩ","cchn":null,"user":"bsphong"},
+ {"ma":"NV008","ten":"BS. Đinh Nguyễn Phương Khanh","loai_suns":"Bác sĩ","cchn":null,"user":"bskhanh"},
+ {"ma":"NV009","ten":"BS. Cao Phúc Hậu","loai_suns":"Bác sĩ","cchn":null,"user":"bshau"},
+ {"ma":"NV010","ten":"BS. Trương Như Ý","loai_suns":"Bác sĩ","cchn":null,"user":"bsy"},
+ {"ma":"NV023","ten":"BSCKI. Trần Thị Ngọc Mai","loai_suns":"Bác sĩ","cchn":null,"user":"bsmai"},
+ {"ma":"NV025","ten":"BSCKI. Bùi Thị Huỳnh Anh","loai_suns":"Bác sĩ","cchn":null,"user":"bsanh"},
+ {"ma":"NV012","ten":"Nguyễn Thị Thục Uyên","loai_suns":"Bác sĩ (nhóm user: Điều dưỡng)","cchn":null,"user":"nttuyen"},
+ {"ma":"NV013","ten":"Nguyễn Minh Châu","loai_suns":"Bác sĩ (nhóm user: Điều dưỡng)","cchn":null,"user":"nmchau"},
+ {"ma":"NV017","ten":"Nguyễn Thị Ánh Ngọc","loai_suns":"Bác sĩ (nhóm user: Điều dưỡng)","cchn":null,"user":"ntangoc"},
+ {"ma":"NV018","ten":"Lê Công Hoàn","loai_suns":"Bác sĩ (nhóm user: Điều dưỡng)","cchn":null,"user":"lchoan"},
+ {"ma":"NV0016","ten":"Huỳnh Kim Hoàng","loai_suns":"Thu ngân","cchn":null,"user":"hoanghk"},
+ {"ma":"NV0024","ten":"Hà Thị Hoài Thi","loai_suns":"","cchn":null,"user":"hththi"},
+ {"ma":"NV0026","ten":"Trần Ngọc Thiên Di","loai_suns":"Điều dưỡng","cchn":null,"user":"tntdi"},
+ {"ma":"NV0027","ten":"Nguyễn Hoàng Anh","loai_suns":"Điều dưỡng","cchn":null,"user":"nhanh"},
+ {"ma":"NV011","ten":"Phạm Thị Phượng Hoàng","loai_suns":"Thu ngân","cchn":null,"user":"ptphoang"},
+ {"ma":"NV014","ten":"Dương Hàn Ngọc Vân","loai_suns":"Thu ngân","cchn":null,"user":"dhnvan"},
+ {"ma":"NV015","ten":"Quảng Thị Thanh Hương","loai_suns":"Thu ngân","cchn":null,"user":"qtthuong"},
+ {"ma":"NV016","ten":"Lê Thị Ni Ca","loai_suns":"","cchn":null,"user":"accounting"},
+ {"ma":"NV019","ten":"Trần Thị Huyền Trân","loai_suns":"Thu ngân","cchn":null,"user":"tthtran"},
+ {"ma":"NV020","ten":"Khổng Thuỳ Minh Như","loai_suns":"Kỹ thuật viên","cchn":null,"user":"ktmnhu"},
+ {"ma":"NV021","ten":"Nguyễn Phúc Hồng Duyên","loai_suns":"Kỹ thuật viên","cchn":null,"user":null},
+ {"ma":"NV022","ten":"Nguyễn Nam Bình","loai_suns":"Kỹ thuật viên","cchn":null,"user":"nnbinh"},
+ {"ma":"admin","ten":"Nguyễn Ngọc Minh Chi","loai_suns":"Điều dưỡng","cchn":null,"user":"admin"},
+ {"ma":"admin_op","ten":"Dư Mỹ Vân","loai_suns":"Kỹ thuật viên","cchn":null,"user":"ops_admin"},
+ {"ma":"admin_op1","ten":"Nguyễn Trần Thảo Duyên","loai_suns":"Kỹ thuật viên","cchn":null,"user":"admin_op1"}
+],
+"loai_kham": [
+ {"ma":"LK001","ten":"Khám","dich_vu":"KB002"},
+ {"ma":"KL002","ten":"Khám và tư vấn chuyên sâu","dich_vu":"KB003"},
+ {"ma":"NBK001","ten":"Khám chuyên gia NBK","dich_vu":"KB005"}
+],
+"doi_tuong": [["BHYT","BHYT"],["BT","Dịch vụ"],["KSK","Khám sức khỏe"]],
+"doi_tac": [["ZBS","ZBS"]],
+"nhom_dich_vu": [["DT","Điện tim"],["DVK","Dịch vụ khác"],["GDV","Gói dịch vụ"],["KB","Khám bệnh"],["NBK","Dịch vụ NBK"],["NS","Nội soi"],["SA","CĐHA"],["THUOC","Kho thuốc"],["THUOCDT","Kho thuốc đối tác"],["VTYT","Vật tư y tế"],["XN","Xét nghiệm"],["XQ","X-quang"]],
+"phac_do_chi_dinh": [
+ {"ten":"Bộ XN đầu vào giảm cân","items":["XN062","XN038","XN023","XN022","XN024","XN033","XN032","XN042","XN043","XN044","XN045","XN036","XN009","XN010","XN014","XN107","XN037"]},
+ {"ten":"Bộ XN trẻ em, đủ vi chất","items":["XN062","XN023","XN022","XN024","XN033","XN032","XN042","XN043","XN044","XN045","XN036","XN009","XN010","XN037","XN047","XN027","XN051","XN050","XN059","XN060","XN054","XN056","XN055","XN057"]},
+ {"ten":"DH","items":["XN055","XN056"]},
+ {"ten":"GCCB","items":["XN003","XN002","XN008"]},
+ {"ten":"Giảm cân","items":["XN062","XN038","XN023","XN022","XN024","XN033","XN032","XN042","XN043","XN044","XN045","XN036","XN009","XN010","XN014","XN107","XN037"]},
+ {"ten":"Gói xét nghiệm tổng quát nâng cao","items":["XN001","XN003","XN004","XN015","XN014","XN009","XN010","XN011","XN005","XN007","XN008","XN006","XN002","XN020","XN021","XN016"]},
+ {"ten":"lp","items":["XN001","XN017","XN024","XN025","XN023","XN028","XN027","XN033","XN030","XN031","XN003","XN004","XN009","XN010","XN011","XN015","XN014","XN005","XN007","XN008","XN006","XN020","XN021","XN002"]},
+ {"ten":"Siêu âm + Xét nghiệm DSMES","items":["XN057","XN045","XN008","XN054","XN058","XN062"]},
+ {"ten":"Tuyến giáp","items":["XN023","XN017"]}
+],
+"goi_dich_vu": [
+ {"ten":"Gói chương trình TĐLS VIP","mo_ta":"Program + 6 lần khám BS","gia":14500000,"giam":4500000,"thanh_tien":10000000,"items":[["GDV017",1,8400000,4500000,3900000],["GDV002",1,6100000,0,6100000]]}
+],
+"ly_do_kham_chuan_hoa": ["Khám giảm cân","Tái khám giảm cân","Khám tăng cân","Khám dinh dưỡng","Tư vấn dinh dưỡng","Tư vấn giữ cân","Tư vấn cân nặng","Tư vấn kết quả","Tư vấn thay đổi lối sống","Khám trải nghiệm","Khám đái tháo đường","Tái khám đái tháo đường","Khám tiền tiểu đường","Khám đái tháo đường thai kỳ","Khám nội tiết","Khám tuyến giáp","Khám bệnh thận mạn","Gan nhiễm mỡ","Tăng huyết áp","Khám PCOS","Suy dinh dưỡng","Xét nghiệm bất thường","Chỉ định xét nghiệm trước khám","Thay băng vết thương","Tiêm bắp","Tiêm tĩnh mạch","Khám tại nhà","Khám tham gia chương trình Kiểm soát cân nặng","Khám tham gia chương trình Phòng ngừa bệnh mạn tính","Khám tham gia chương trình Tăng huyết áp","Chương trình đánh giá sức khỏe miễn phí","Sốt, ho","Đau đầu","Đau bụng / dạ dày","Đau cơ xương khớp"]
+}
