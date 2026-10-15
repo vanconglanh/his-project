@@ -1,8 +1,8 @@
 # Kế hoạch Migration Data: HIS Cũ → Pro-Diab HIS Mới
 
 **Tác giả:** Migration Agent  
-**Ngày:** 2026-09-02  
-**Trạng thái:** ĐÃ TEST LOCAL — CHƯA CHẠY TRÊN SERVER  
+**Ngày:** 2026-09-02 (cập nhật 2026-10-15)  
+**Trạng thái:** ĐÃ CHẠY PRODUCTION — pro-his-db trên VNG 116.118.95.177  
 
 ---
 
@@ -10,14 +10,15 @@
 
 | Thông số | Nguồn (HIS cũ) | Đích (Pro-Diab HIS mới) |
 |---|---|---|
-| Container | `dev-diab-his-api` | `prodiab-his-backend` |
-| DB host | `57.155.1.252:4406` (dev-mysql-master) | `prodiab-his-mysql:3306` |
+| Container | `pro-diab-hisapi` (HIS cũ đang production) | `pro-his-backend` (stack mới) |
+| DB host | `pro-db-my8` (172.18.0.2:3306) | `pro-his-db` (172.20.0.2:3306) |
 | DB name | `diab_his` | `prodiab_his` |
 | Schema style | UPPERCASE columns, INT PK | lowercase columns, CHAR(36) UUID PK |
 | Multi-tenant | HOSPITAL_ID (không phải tenant) | tenant_id (SaaS multi-tenant) |
-| Server | `4.145.112.223` (his-diab-staging) | `4.145.112.223` (cùng server) |
+| Server | VNG 116.118.95.177 (ssh `vng`, LAN 192.168.1.4) | Cùng server VNG |
+| Tenant đích | — | id=1, code=DIAB-HCM, name="Phòng khám Đái tháo đường DiaBetis HCM" |
 
-**Lưu ý quan trọng:** Cả hai DB nằm trên **cùng server vật lý** → migration thực tế chỉ cần SSH vào server một lần, chạy script Python từ đó với kết nối localhost, không cần tunnel.
+**Lưu ý quan trọng:** Cả hai DB nằm trên **cùng server VNG** nhưng khác Docker network → script Python chạy trực tiếp trên host, kết nối qua container IP (`172.18.0.2` và `172.20.0.2`). Cần tạo user read-only `his_migr` trong pro-db-my8 vì root chỉ cho phép `caching_sha2_password` từ bên trong container.
 
 ---
 
@@ -135,26 +136,41 @@ Nếu DB production thật có PII đã mã hóa:
 
 ---
 
-## 7. Kết quả Test Local
+## 7. Kết quả
+
+### 7a. Test Local (2026-09-02, tham khảo)
 
 **Môi trường:**
 - Nguồn: container `his-old-db-test` (port 13300, `diab_his`)
 - Đích: container `prodiab-mysql-local` (port 13301, `prodiab_his` với full 219 migrations)
 
-**Row counts:**
+Row counts test local: 316 bệnh nhân, 384 visits, 3.414 medications, 89 files.
 
-| Bảng đích | Rows migrated | Nguồn (old rows) |
-|---|---|---|
-| `diab_his_pat_patients` | 316 | 316 (pat_patients) |
-| `diab_his_enc_encounters` | 384 | 384 (cli_visits) |
-| `diab_his_enc_emr_contents` | 384 | 384 (cli_emr_headers join contents) |
-| `diab_his_enc_vital_signs` | 167 | 167 (cli_vital_signs) |
-| `diab_his_cli_lab_orders` | 311 | 311 (cli_lab_orders) |
-| `diab_his_lab_results` | 356 | 356 (cli_lab_results) |
-| `diab_his_pha_prescriptions` | 127 | 117 visits có medications |
-| `diab_his_pha_prescription_items` | 3.424 | 3.414 (cli_medications) |
-| `fil_files` | 89 | 89 (fil_files) |
-| `diab_his_enc_diagnoses` | 253 | 164/384 encounter có text chẩn đoán (tách từ EMR content, xem bug bên dưới) |
+### 7b. PRODUCTION (2026-10-15, server VNG 116.118.95.177)
+
+**Môi trường:**
+- Nguồn: container `pro-db-my8` (172.18.0.2:3306, DB `diab_his`) — HIS cũ production
+- Đích: container `pro-his-db` (172.20.0.2:3306, DB `prodiab_his`) — 237 migrations
+- Tenant đích: id=1, code=DIAB-HCM, "Phòng khám Đái tháo đường DiaBetis HCM"
+- Backup trước: `/home/stackops/backups/pro-his/prodiab_his_before_migration_20261015_181801.sql.gz`
+
+**Row counts (đã xác minh 100%):**
+
+| Bảng đích | Đích | Nguồn | Kết quả |
+|---|---|---|---|
+| `diab_his_pat_patients` | 358 | 358 (pat_patients) | OK |
+| `diab_his_enc_encounters` | 649 | 649 (cli_visits) | OK |
+| `diab_his_enc_emr_contents` | 649 | 649 (cli_emr_headers join contents) | OK |
+| `diab_his_enc_vital_signs` | 212 | 212 (cli_vital_signs) | OK |
+| `diab_his_cli_lab_orders` | 506 | 506 (cli_lab_orders) | OK |
+| `diab_his_lab_results` | 2609 | 2609 (cli_lab_results) | OK |
+| `diab_his_pha_drugs` | 139 | 139 tên thuốc duy nhất | OK (mới) |
+| `diab_his_pha_prescriptions` | 147 | 147 visits có medications | OK |
+| `diab_his_pha_prescription_items` | 517 | 517 (cli_medications) | OK |
+| `diab_his_enc_diagnoses` | 524 | 286/649 có text chẩn đoán | OK |
+| `fil_files` | 181 | 181 (fil_files) | OK |
+
+**PII:** 268/358 bệnh nhân có SĐT plaintext; 16/358 có NATIONAL_ID plaintext. Không phát hiện ciphertext thật (ENCRYPTION_KEY_ID=1 nhưng giá trị rõ). Tất cả đã copy bình thường.
 
 **Cố ý KHÔNG migrate (nguồn thực sự không có data, không phải bug):**
 - Dị ứng (`cli_allergies` nguồn = 0 dòng), CĐHA (`cli_rad_orders` nguồn = 0 dòng).

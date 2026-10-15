@@ -23,17 +23,45 @@ import logging
 import argparse
 from datetime import datetime
 
+import os
+
 import pymysql
 import pymysql.cursors
 
-# ─── Cấu hình kết nối ────────────────────────────────────────────────────────
-SRC_CFG = dict(host="127.0.0.1", port=13300, user="root", password="hisoldtest",
-               db="diab_his", charset="utf8mb4",
-               cursorclass=pymysql.cursors.DictCursor)
+# ─── Cấu hình kết nối (qua biến môi trường, KHÔNG hardcode mật khẩu) ────────
+# Môi trường server VNG (thực tế):
+#   export HIS_SRC_HOST=172.18.0.2   # pro-db-my8 container IP
+#   export HIS_SRC_PORT=3306
+#   export HIS_SRC_USER=root
+#   export HIS_SRC_PASS=<lấy từ docker inspect pro-db-my8>
+#   export HIS_DST_HOST=172.20.0.2   # pro-his-db container IP
+#   export HIS_DST_PORT=3306
+#   export HIS_DST_USER=root
+#   export HIS_DST_PASS=<lấy từ docker inspect pro-his-db>
+#
+# Môi trường local (test):
+#   export HIS_SRC_HOST=127.0.0.1 HIS_SRC_PORT=13300 HIS_SRC_PASS=hisoldtest
+#   export HIS_DST_HOST=127.0.0.1 HIS_DST_PORT=13301 HIS_DST_PASS=root_dev
 
-DST_CFG = dict(host="127.0.0.1", port=13301, user="root", password="root_dev",
-               db="prodiab_his", charset="utf8mb4",
-               cursorclass=pymysql.cursors.DictCursor)
+SRC_CFG = dict(
+    host=os.environ.get("HIS_SRC_HOST", "127.0.0.1"),
+    port=int(os.environ.get("HIS_SRC_PORT", "13300")),
+    user=os.environ.get("HIS_SRC_USER", "root"),
+    password=os.environ.get("HIS_SRC_PASS", ""),
+    db="diab_his",
+    charset="utf8mb4",
+    cursorclass=pymysql.cursors.DictCursor,
+)
+
+DST_CFG = dict(
+    host=os.environ.get("HIS_DST_HOST", "127.0.0.1"),
+    port=int(os.environ.get("HIS_DST_PORT", "13301")),
+    user=os.environ.get("HIS_DST_USER", "root"),
+    password=os.environ.get("HIS_DST_PASS", ""),
+    db="prodiab_his",
+    charset="utf8mb4",
+    cursorclass=pymysql.cursors.DictCursor,
+)
 
 MIGRATION_TENANT_ID = 1
 MIGRATION_TAG       = "LEG-IMPORT-2026"   # gắn vào patient_source để trace
@@ -813,11 +841,93 @@ def migrate_lab_results(src, dst, dry, pat_map, enc_map, order_map):
     log.info("Lab results: %d inserted, %d bỏ (không map patient)", inserted, skipped)
 
 
+# ─── BƯỚC 6b: Tạo drug master từ tên thuốc cũ (backfill_drugs) ───────────────
+def migrate_drugs(src, dst, dry) -> dict:
+    """
+    Gom tên thuốc duy nhất từ cli_medications → tạo bản ghi trong diab_his_pha_drugs.
+    Trả về dict: {drug_name_lower → drug_uuid}
+    Chạy TRƯỚC migrate_medications() để prescription_items có drug_id hợp lệ.
+
+    Lý do: diab_his_pha_prescription_items.drug_id NOT NULL + backend JOIN vào
+    diab_his_pha_drugs → placeholder UUID ngẫu nhiên làm item biến mất khỏi UI.
+    Giải pháp: tạo record Legacy Drug cho từng tên thuốc duy nhất, sau đó trỏ drug_id về đó.
+    """
+    if not dry:
+        with dst.cursor() as c:
+            c.execute(
+                "SELECT COUNT(*) AS n FROM diab_his_pha_drugs WHERE tenant_id=%s AND code LIKE 'LEG-%%'",
+                (MIGRATION_TENANT_ID,),
+            )
+            if c.fetchone()["n"] > 0:
+                log.info("Drugs: tenant %s đã có drug legacy → bỏ qua, nạp lại map.", MIGRATION_TENANT_ID)
+                with dst.cursor() as c2:
+                    c2.execute(
+                        "SELECT id, name FROM diab_his_pha_drugs WHERE tenant_id=%s AND code LIKE 'LEG-%%'",
+                        (MIGRATION_TENANT_ID,),
+                    )
+                    return {r["name"].lower(): r["id"] for r in c2.fetchall()}
+
+    with src.cursor() as c:
+        c.execute("""
+            SELECT DISTINCT
+                COALESCE(NULLIF(TRIM(MEDICATION_NAME),''), NULLIF(TRIM(GENERIC_NAME),''), 'UNKNOWN') AS drug_name,
+                MAX(GENERIC_NAME) AS generic_name,
+                MAX(STRENGTH) AS strength,
+                MAX(FORM) AS form,
+                MAX(ROUTE) AS route,
+                MAX(UNIT) AS unit
+            FROM cli_medications
+            WHERE STATUS_FLAG = 1
+            GROUP BY LOWER(COALESCE(NULLIF(TRIM(MEDICATION_NAME),''), NULLIF(TRIM(GENERIC_NAME),''), 'UNKNOWN'))
+        """)
+        rows = c.fetchall()
+
+    log.info("Drug master: %d tên thuốc duy nhất từ nguồn.", len(rows))
+    drug_map = {}
+
+    for row in rows:
+        name = (row["drug_name"] or "UNKNOWN")[:200]
+        new_uuid = uid()
+        drug_map[name.lower()] = new_uuid
+
+        if not dry:
+            with dst.cursor() as c:
+                # Lưu ý: bảng diab_his_pha_drugs dùng cột `code`, `name`, `drug_form`
+                # (không phải drug_code, drug_name, dosage_form); không có cột `source`.
+                # Dùng note để đánh dấu bản ghi legacy.
+                c.execute("""
+                    INSERT IGNORE INTO diab_his_pha_drugs
+                        (id, tenant_id, code, name, generic_name,
+                         strength, drug_form, route, unit,
+                         is_active, status, sell_price, reorder_level,
+                         requires_prescription, is_psychotropic, is_narcotic,
+                         note, created_at, updated_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,1,'ACTIVE',0,0,0,0,0,%s,NOW(),NOW())
+                """, (
+                    new_uuid,
+                    MIGRATION_TENANT_ID,
+                    f"LEG-{new_uuid[:8].upper()}",
+                    name,
+                    (row.get("generic_name") or name)[:200],
+                    (row.get("strength") or "")[:100] or None,
+                    (row.get("form") or "")[:50] or None,
+                    (row.get("route") or "")[:50] or None,
+                    (row.get("unit") or "viên")[:20],
+                    "Legacy Import - dữ liệu từ HIS cũ (LEG-IMPORT-2026)",
+                ))
+
+    if not dry:
+        dst.commit()
+    log.info("Drug master: %d records tạo/nạp.", len(drug_map))
+    return drug_map
+
+
 # ─── BƯỚC 7: Migrate medications → prescriptions + items ─────────────────────
-def migrate_medications(src, dst, dry, enc_map, pat_map):
+def migrate_medications(src, dst, dry, enc_map, pat_map, drug_map=None):
     """
     cli_medications (old) gom theo VISIT_ID → 1 prescription/visit → N items.
-    Drugs trong DB mới chưa có drug_id → dùng NULL-safe placeholder UUID.
+    drug_map: dict {drug_name_lower → uuid} từ migrate_drugs(); nếu None thì
+    dùng placeholder UUID ngẫu nhiên (sẽ fail JOIN trên UI, chỉ dùng khi test).
     """
     # BUG FIX: xem ghi chú idempotent ở migrate_vitals(). INSERT IGNORE ở
     # diab_his_pha_prescriptions không đủ vì id là UUID random mỗi lần (không đụng
@@ -883,8 +993,14 @@ def migrate_medications(src, dst, dry, enc_map, pat_map):
             dosage    = (med.get("DOSAGE") or "1 viên")[:100]
             days      = int(med.get("DAYS_SUPPLY") or 7)
 
-            # drug_id bắt buộc NOT NULL → dùng UUID placeholder (không có drug master)
-            placeholder_drug_id = uid()
+            # drug_id: tra cứu từ drug_map (tạo trước bởi migrate_drugs()); fallback UUID
+            drug_lookup_key = drug_name.lower()
+            if drug_map and drug_lookup_key in drug_map:
+                placeholder_drug_id = drug_map[drug_lookup_key]
+            else:
+                # Fallback: thử generic_name
+                generic_key = (med.get("GENERIC_NAME") or "").lower()
+                placeholder_drug_id = (drug_map or {}).get(generic_key) or uid()
 
             if not dry:
                 with dst.cursor() as c:
@@ -1044,8 +1160,11 @@ def main():
         log.info("─── BƯỚC 6: Lab results ───")
         migrate_lab_results(src, dst, dry, pat_map, enc_map, order_map)
 
+        log.info("─── BƯỚC 6b: Drug master (tạo từ tên thuốc cũ) ───")
+        drug_map = migrate_drugs(src, dst, dry)
+
         log.info("─── BƯỚC 7: Medications → Prescriptions ───")
-        migrate_medications(src, dst, dry, enc_map, pat_map)
+        migrate_medications(src, dst, dry, enc_map, pat_map, drug_map)
 
         log.info("─── BƯỚC 8: Files metadata ───")
         migrate_files(src, dst, dry, pat_map, enc_map)
