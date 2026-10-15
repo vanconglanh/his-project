@@ -251,7 +251,7 @@ public class ReportsController : ControllerBase
 
     /// <summary>Top thuoc su dung nhieu nhat</summary>
     [HttpGet("pharmacy/top-drugs")]
-    [RequirePermission("report.read")]
+    [RequirePermission("report.pharmacy")] // BM-56: tach quyen bao cao kho duoc khoi report.read
     public async Task<IActionResult> GetTopDrugs(
         [FromQuery] DateOnly from,
         [FromQuery] DateOnly to,
@@ -264,7 +264,7 @@ public class ReportsController : ControllerBase
 
     /// <summary>Gia tri ton kho</summary>
     [HttpGet("pharmacy/inventory-value")]
-    [RequirePermission("report.read")]
+    [RequirePermission("report.pharmacy")] // BM-56
     public async Task<IActionResult> GetInventoryValue(CancellationToken ct = default)
     {
         var result = await _mediator.Send(new GetInventoryValueQuery(), ct);

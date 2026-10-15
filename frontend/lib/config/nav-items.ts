@@ -244,7 +244,8 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         href: "/reports",
         labelKey: "reports",
         icon: BarChart3,
-        permissions: ["report.read"],
+        // BM-56: Dược sĩ chỉ còn report.pharmacy (đã gỡ report.read) -> vẫn thấy trang có tab Kho dược
+        permissions: ["report.read", "report.pharmacy"],
       },
       {
         href: "/reports/builder",
