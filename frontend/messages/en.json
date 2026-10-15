@@ -41,6 +41,13 @@
     "exportError": "Report export failed"
   },
   "Auth": {
+    "sessionExpiry": {
+      "title": "Your session is about to expire",
+      "message": "Your session is about to expire due to inactivity. Do you want to continue working?",
+      "countdown": "Signing out automatically in {seconds}",
+      "extendButton": "Continue working",
+      "logoutButton": "Sign out"
+    },
     "loginTitle": "Sign In",
     "loginSubtitle": "Enter your credentials to access the system",
     "email": "Email",

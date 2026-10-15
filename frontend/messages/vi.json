@@ -43,6 +43,13 @@
     "exportError": "Xuất báo cáo thất bại"
   },
   "Auth": {
+    "sessionExpiry": {
+      "title": "Phiên làm việc sắp hết",
+      "message": "Phiên làm việc sắp hết do không hoạt động. Bạn có muốn tiếp tục làm việc không?",
+      "countdown": "Tự động đăng xuất sau {seconds}",
+      "extendButton": "Tiếp tục làm việc",
+      "logoutButton": "Đăng xuất"
+    },
     "loginTitle": "Đăng nhập",
     "loginSubtitle": "Nhập thông tin để truy cập hệ thống",
     "email": "Email",
