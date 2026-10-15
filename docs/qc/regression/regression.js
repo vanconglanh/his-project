@@ -195,21 +195,24 @@ function perms(token) {
     t = (await getTokens(page)).access;
 
     // BM-71: bao cao tra cot snake_case (khong camelCase) + Ke toan xem duoc (200)
-    // (siet: TRUOC day co the PASS gia khi rows rong (sample=[] -> hasCamel=false).
-    //  Nay dung khoang ngay rong ca nam de co du lieu va BAT BUOC co it nhat 1 dong + co cot -> moi kiem camelCase that su.)
+    // (siet: TRUOC day doc key cua rows[0] -> khi rows rong (sample=[]) thi hasCamel=false -> PASS GIA.
+    //  Nay kiem tren data.columns[].key (API LUON tra metadata cot ke ca khi 0 dong), BAT BUOC co >=1 cot,
+    //  va khong co key camelCase. Neu co rows thi kiem them key cua dong. -> dung du lieu doanh thu rong/khong.)
     {
       const r = await api(page, t, "/api/v1/reports/revenue-daily/data?from=2026-01-01&to=2026-12-31&page=1&page_size=10");
       let colsOk = false;
       let note = `status=${r.status}`;
-      if (r.status === 200 && r.json) {
-        const rows = (r.json.data && (r.json.data.rows || r.json.data.items)) || r.json.data || [];
-        const arr = Array.isArray(rows) ? rows : [];
-        const sample = arr[0] ? Object.keys(arr[0]) : [];
-        const hasCamel = sample.some((k) => /[a-z][A-Z]/.test(k));
-        // PHAI co du lieu (rows > 0) VA co cot VA khong camelCase
-        colsOk = arr.length > 0 && sample.length > 0 && !hasCamel;
-        note += `, so dong=${arr.length}, cot mau=${sample.slice(0, 6).join(",")}, co camelCase=${hasCamel}`;
-        if (arr.length === 0) note += " (FAIL: rong -> khong xac minh duoc cot, co the hoi quy data/report)";
+      if (r.status === 200 && r.json && r.json.data) {
+        const cols = Array.isArray(r.json.data.columns) ? r.json.data.columns : [];
+        const colKeys = cols.map((c) => c && c.key).filter(Boolean);
+        const colsCamel = colKeys.some((k) => /[a-z][A-Z]/.test(k));
+        const rows = Array.isArray(r.json.data.rows) ? r.json.data.rows : [];
+        const rowKeys = rows[0] ? Object.keys(rows[0]) : [];
+        const rowsCamel = rowKeys.some((k) => /[a-z][A-Z]/.test(k));
+        // PHAI co metadata cot (>=1) va KHONG camelCase (ca o cot lan o dong neu co dong)
+        colsOk = colKeys.length > 0 && !colsCamel && !rowsCamel;
+        note += `, so cot=${colKeys.length}, cot mau=${colKeys.slice(0, 6).join(",")}, camelCase(cot)=${colsCamel}, so dong=${rows.length}, camelCase(dong)=${rowsCamel}`;
+        if (colKeys.length === 0) note += " (FAIL: khong co metadata cot)";
       }
       rec("BM-71", colsOk, `Ke toan report columns ${note}`);
     }
