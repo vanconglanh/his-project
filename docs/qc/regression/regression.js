@@ -133,12 +133,25 @@ function perms(token) {
       }
     }
 
-    // BM-04: tim benh nhan theo tu khoa -> ra ket qua
+    // BM-04: tim benh nhan theo SO DIEN THOAI THUC -> ra dung benh nhan do
+    // (siet: khong dung tu khoa "test" chung chung; lay 1 benh nhan that roi tim lai theo SDT cua chinh ho)
     {
-      const r = await api(page, t, "/api/v1/patients?page=1&page_size=5&search=test");
-      const items = (r.json && (r.json.data || r.json.items)) || [];
-      rec("BM-04", r.status === 200 && Array.isArray(items) && items.length > 0,
-        `GET /patients?search=test status=${r.status}, so ket qua=${Array.isArray(items) ? items.length : "?"}`);
+      const list = await api(page, t, "/api/v1/patients?page=1&page_size=20");
+      const items = (list.json && (list.json.data || list.json.items)) || [];
+      const arr = Array.isArray(items) ? items : [];
+      // tim benh nhan co so dien thoai (phone/phone_number/mobile)
+      const withPhone = arr.find((p) => p && (p.phone || p.phone_number || p.mobile));
+      const phone = withPhone && (withPhone.phone || withPhone.phone_number || withPhone.mobile);
+      if (phone) {
+        const r = await api(page, t, "/api/v1/patients?page=1&page_size=10&search=" + encodeURIComponent(phone));
+        const found = (r.json && (r.json.data || r.json.items)) || [];
+        const foundArr = Array.isArray(found) ? found : [];
+        const hit = foundArr.some((p) => p && p.id === withPhone.id);
+        rec("BM-04", r.status === 200 && hit,
+          `GET /patients?search=<SDT ${phone}> status=${r.status}, tim thay dung BN id=${withPhone.id}=${hit} (so ket qua=${foundArr.length})`);
+      } else {
+        rec("BM-04", false, `Khong co benh nhan nao co SDT trong ${arr.length} ban ghi dau -> khong kiem duoc tim theo SDT`);
+      }
     }
 
     // BM-81: tao benh nhan thieu ngay sinh -> bi chan (4xx), khong tao record rac
@@ -182,16 +195,21 @@ function perms(token) {
     t = (await getTokens(page)).access;
 
     // BM-71: bao cao tra cot snake_case (khong camelCase) + Ke toan xem duoc (200)
+    // (siet: TRUOC day co the PASS gia khi rows rong (sample=[] -> hasCamel=false).
+    //  Nay dung khoang ngay rong ca nam de co du lieu va BAT BUOC co it nhat 1 dong + co cot -> moi kiem camelCase that su.)
     {
-      const r = await api(page, t, "/api/v1/reports/revenue-daily/data?from=2026-10-01&to=2026-10-31&page=1&page_size=5");
-      let colsOk = r.status === 200;
+      const r = await api(page, t, "/api/v1/reports/revenue-daily/data?from=2026-01-01&to=2026-12-31&page=1&page_size=10");
+      let colsOk = false;
       let note = `status=${r.status}`;
       if (r.status === 200 && r.json) {
         const rows = (r.json.data && (r.json.data.rows || r.json.data.items)) || r.json.data || [];
-        const sample = Array.isArray(rows) && rows[0] ? Object.keys(rows[0]) : [];
+        const arr = Array.isArray(rows) ? rows : [];
+        const sample = arr[0] ? Object.keys(arr[0]) : [];
         const hasCamel = sample.some((k) => /[a-z][A-Z]/.test(k));
-        colsOk = colsOk && !hasCamel;
-        note += `, cot mau=${sample.slice(0, 6).join(",")}, co camelCase=${hasCamel}`;
+        // PHAI co du lieu (rows > 0) VA co cot VA khong camelCase
+        colsOk = arr.length > 0 && sample.length > 0 && !hasCamel;
+        note += `, so dong=${arr.length}, cot mau=${sample.slice(0, 6).join(",")}, co camelCase=${hasCamel}`;
+        if (arr.length === 0) note += " (FAIL: rong -> khong xac minh duoc cot, co the hoi quy data/report)";
       }
       rec("BM-71", colsOk, `Ke toan report columns ${note}`);
     }
