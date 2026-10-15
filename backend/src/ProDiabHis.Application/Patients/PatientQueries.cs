@@ -8,7 +8,10 @@ public record ListPatientsQuery(
     int PageSize,
     string? Sort,
     string? Status,
-    string? Gender)
+    string? Gender,
+    // FIX (2026-10-16): truoc day GET /patients BO QUA tu khoa -> tra ve toan bo 358 BN
+    // ke ca chuoi vo nghia. Bo sung loc theo ten/ma BN (LIKE) + SDT/CMND (blind index exact).
+    string? Search = null)
     : IRequest<PagedResult<PatientResponse>>;
 
 public record SearchPatientsQuery(

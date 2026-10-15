@@ -27,9 +27,10 @@ public class PatientsController : ControllerBase
         [FromQuery] string? sort = null,
         [FromQuery] string? status = null,
         [FromQuery] string? gender = null,
+        [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new ListPatientsQuery(page, page_size, sort, status, gender), ct);
+        var result = await _mediator.Send(new ListPatientsQuery(page, page_size, sort, status, gender, search), ct);
         return Ok(new
         {
             data = result.Items,

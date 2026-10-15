@@ -1,7 +1,9 @@
-﻿using MediatR;
+﻿using Dapper;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Auth;
 using ProDiabHis.Application.Common;
+using ProDiabHis.Application.Common.Interfaces;
 using ProDiabHis.Domain.Entities;
 
 namespace ProDiabHis.Application.Patients;
@@ -9,8 +11,12 @@ namespace ProDiabHis.Application.Patients;
 public class ListPatientsQueryHandler : IRequestHandler<ListPatientsQuery, PagedResult<PatientResponse>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly IPiiProtector _pii;
 
-    public ListPatientsQueryHandler(IApplicationDbContext db) => _db = db;
+    public ListPatientsQueryHandler(IApplicationDbContext db, IPiiProtector pii)
+    {
+        _db = db; _pii = pii;
+    }
 
     public async Task<PagedResult<PatientResponse>> Handle(ListPatientsQuery request, CancellationToken cancellationToken)
     {
@@ -21,6 +27,21 @@ public class ListPatientsQueryHandler : IRequestHandler<ListPatientsQuery, Paged
 
         if (!string.IsNullOrEmpty(request.Gender))
             query = query.Where(p => p.Gender == request.Gender);
+
+        // FIX (2026-10-16): loc theo tu khoa neu co. Ten/Ma BN dung LIKE (chua, khong phan biet hoa/thuong);
+        // SDT/CMND khong the LIKE tren ciphertext (AES-GCM nonce ngau nhien) -> tra cuu bang blind index HMAC
+        // (exact-match sau chuan hoa). Tenant filter da tu dong qua EF Core Global Query Filter.
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var s = request.Search.Trim().ToLower();
+            var phoneBidx = _pii.BlindIndex(request.Search, PiiField.Phone);
+            var idBidx = _pii.BlindIndex(request.Search, PiiField.IdNumber);
+            query = query.Where(p =>
+                p.FullName.ToLower().Contains(s) ||
+                p.Code.ToLower().Contains(s) ||
+                (phoneBidx != null && p.PhoneBidx == phoneBidx) ||
+                (idBidx != null && p.IdNumberBidx == idBidx));
+        }
 
         query = request.Sort switch
         {
@@ -192,8 +213,12 @@ public class GetPatientQueryHandler : IRequestHandler<GetPatientQuery, Result<Pa
 public class ListPatientEncountersQueryHandler : IRequestHandler<ListPatientEncountersQuery, PagedResult<EncounterSummaryDto>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly IDapperConnectionFactory _dapper;
 
-    public ListPatientEncountersQueryHandler(IApplicationDbContext db) => _db = db;
+    public ListPatientEncountersQueryHandler(IApplicationDbContext db, IDapperConnectionFactory dapper)
+    {
+        _db = db; _dapper = dapper;
+    }
 
     public async Task<PagedResult<EncounterSummaryDto>> Handle(ListPatientEncountersQuery request, CancellationToken cancellationToken)
     {
@@ -212,12 +237,46 @@ public class ListPatientEncountersQueryHandler : IRequestHandler<ListPatientEnco
             .Where(d => encounterIds.Contains(d.EncounterId))
             .ToListAsync(cancellationToken);
 
+        // FIX (2026-10-16): truoc day DoctorName/RoomName LUON null (hard-code) -> danh sach
+        // luot kham cua benh nhan khong hien ten bac si/phong. Batch-load ten theo id (uu tien
+        // 1 round-trip, tranh N+1). doctor_id rong (du lieu legacy) -> de null (hien "Chua ghi nhan" o FE).
+        var doctorGuids = encounters
+            .Select(e => e.DoctorId)
+            .Where(d => Guid.TryParse(d, out _))
+            .Select(d => Guid.Parse(d!))
+            .Distinct()
+            .ToList();
+        var doctorNameById = doctorGuids.Count == 0
+            ? new Dictionary<Guid, string>()
+            : (await _db.Users.AsNoTracking()
+                .Where(u => doctorGuids.Contains(u.Id))
+                .Select(u => new { u.Id, u.FullName })
+                .ToListAsync(cancellationToken))
+              .ToDictionary(u => u.Id, u => u.FullName);
+
+        // Phong (diab_his_sys_rooms) khong co EF entity -> dung Dapper.
+        var roomIds = encounters
+            .Select(e => e.RoomId)
+            .Where(r => !string.IsNullOrEmpty(r))
+            .Distinct()
+            .ToList();
+        var roomNameById = new Dictionary<string, string>();
+        if (roomIds.Count > 0)
+        {
+            using var conn = _dapper.CreateConnection();
+            var rows = await conn.QueryAsync<(string Id, string Name)>(
+                "SELECT id AS Id, name AS Name FROM diab_his_sys_rooms WHERE id IN @ids AND deleted_at IS NULL",
+                new { ids = roomIds });
+            foreach (var r in rows)
+                if (!string.IsNullOrEmpty(r.Id)) roomNameById[r.Id] = r.Name;
+        }
+
         var items = encounters.Select(e => new EncounterSummaryDto(
             Id: e.Id,
             EncounterNo: "",
             EncounterDate: e.StartedAt ?? e.CreatedAt,
-            DoctorName: null,
-            RoomName: null,
+            DoctorName: (Guid.TryParse(e.DoctorId, out var dg) && doctorNameById.TryGetValue(dg, out var dn)) ? dn : null,
+            RoomName: (!string.IsNullOrEmpty(e.RoomId) && roomNameById.TryGetValue(e.RoomId, out var rn)) ? rn : null,
             ChiefComplaint: e.ChiefComplaint,
             DiagnosisIcd10: diagnoses.Where(d => d.EncounterId == e.Id.ToString()).Select(d => d.Icd10Code).ToList(),
             Status: e.Status)).ToList();

@@ -41,7 +41,7 @@ public class PatientHandlersTests
         db.Patients.Add(new Patient { TenantId = 1, Code = "BNT01000002", FullName = "Tran Thi B", Status = "INACTIVE" });
         await db.SaveChangesAsync();
 
-        var handler = new ListPatientsQueryHandler(db);
+        var handler = new ListPatientsQueryHandler(db, new FakePiiProtector());
         var result = await handler.Handle(new ListPatientsQuery(1, 20, null, "ACTIVE", null), CancellationToken.None);
 
         result.Items.Should().HaveCount(1);
@@ -58,7 +58,7 @@ public class PatientHandlersTests
         db.Patients.Add(new Patient { TenantId = 1, Code = "BNT01000001", FullName = "My Tenant" });
         await db.SaveChangesAsync();
 
-        var handler = new ListPatientsQueryHandler(db);
+        var handler = new ListPatientsQueryHandler(db, new FakePiiProtector());
         var result = await handler.Handle(new ListPatientsQuery(1, 20, null, null, null), CancellationToken.None);
 
         result.Items.Should().HaveCount(1);
