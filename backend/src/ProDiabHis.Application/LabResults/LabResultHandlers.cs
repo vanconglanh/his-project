@@ -12,22 +12,27 @@ namespace ProDiabHis.Application.LabResults;
 // tu danh muc XN diab_his_dict_lab_tests theo test_code (bang global keyed by code).
 file static class LabRefRangeLookup
 {
-    public static async Task<(decimal? Low, decimal? High)> LoadAsync(
+    // BM-68: tra them nguong nguy kich cau hinh duoc (flag_critical_low/high) theo tung XN.
+    public static async Task<(decimal? Low, decimal? High, decimal? CritLow, decimal? CritHigh)> LoadAsync(
         IDapperConnectionFactory dapper, string? testCode, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(testCode)) return (null, null);
+        if (string.IsNullOrWhiteSpace(testCode)) return (null, null, null, null);
         try
         {
             using var conn = dapper.CreateConnection();
             var row = await conn.QueryFirstOrDefaultAsync<dynamic>(new CommandDefinition(
-                "SELECT reference_range_low AS Low, reference_range_high AS High FROM diab_his_dict_lab_tests WHERE code=@Code",
+                "SELECT reference_range_low AS Low, reference_range_high AS High, " +
+                "flag_critical_low AS CritLow, flag_critical_high AS CritHigh " +
+                "FROM diab_his_dict_lab_tests WHERE code=@Code",
                 new { Code = testCode }, cancellationToken: ct));
-            if (row is null) return (null, null);
-            var low  = row.Low  is null ? (decimal?)null : Convert.ToDecimal(row.Low);
-            var high = row.High is null ? (decimal?)null : Convert.ToDecimal(row.High);
-            return (low, high);
+            if (row is null) return (null, null, null, null);
+            var low   = row.Low  is null ? (decimal?)null : Convert.ToDecimal(row.Low);
+            var high  = row.High is null ? (decimal?)null : Convert.ToDecimal(row.High);
+            var cLow  = row.CritLow  is null ? (decimal?)null : Convert.ToDecimal(row.CritLow);
+            var cHigh = row.CritHigh is null ? (decimal?)null : Convert.ToDecimal(row.CritHigh);
+            return (low, high, cLow, cHigh);
         }
-        catch { return (null, null); }
+        catch { return (null, null, null, null); }
     }
 }
 
@@ -240,9 +245,9 @@ public class CreateLabResultCommandHandler
 
         // Bug A fix: truoc day luon (null,null) -> flag LUON NORMAL. Lay khoang tham chieu tu
         // danh muc XN theo test_code roi tinh flag dung + luu vao entity.
-        var (refLow, refHigh) = await LabRefRangeLookup.LoadAsync(_dapper, labOrder.TestCode, ct);
+        var (refLow, refHigh, critLow, critHigh) = await LabRefRangeLookup.LoadAsync(_dapper, labOrder.TestCode, ct);
         // BM-68: dung CalculateForTest de ap dung nguong phu hop theo test_code (HbA1c, TSH dung nguong rong hon)
-        var flag = _flagCalc.CalculateForTest(labOrder.TestCode, req.ValueNumeric, refLow, refHigh);
+        var flag = _flagCalc.CalculateForTest(labOrder.TestCode, req.ValueNumeric, refLow, refHigh, critLow, critHigh);
 
         var entity = new LabResult
         {
@@ -290,10 +295,12 @@ public class UpdateLabResultCommandHandler
     private readonly ICurrentUser _user;
     private readonly IAuditService _audit;
     private readonly ILabResultFlagCalculator _flagCalc;
+    private readonly IDapperConnectionFactory? _dapper;
 
     public UpdateLabResultCommandHandler(IApplicationDbContext db,
-        ICurrentUser user, IAuditService audit, ILabResultFlagCalculator flagCalc)
-    { _db = db; _user = user; _audit = audit; _flagCalc = flagCalc; }
+        ICurrentUser user, IAuditService audit, ILabResultFlagCalculator flagCalc,
+        IDapperConnectionFactory? dapper = null)
+    { _db = db; _user = user; _audit = audit; _flagCalc = flagCalc; _dapper = dapper; }
 
     public async Task<Result<LabResultResponse>> Handle(UpdateLabResultCommand cmd, CancellationToken ct)
     {
@@ -313,7 +320,13 @@ public class UpdateLabResultCommandHandler
         var newStatus = entity.Status == LabResultStatus.Verified ? LabResultStatus.Amended : entity.Status;
         var valNum = req.ValueNumeric ?? entity.ValueNumeric;
         // BM-68: dung CalculateForTest de ap dung nguong phu hop theo test_code
-        var flag   = _flagCalc.CalculateForTest(entity.TestCode, valNum, entity.ReferenceRangeLow, entity.ReferenceRangeHigh);
+        decimal? critLow = null, critHigh = null;
+        if (_dapper is not null)
+        {
+            var r = await LabRefRangeLookup.LoadAsync(_dapper, entity.TestCode, ct);
+            critLow = r.CritLow; critHigh = r.CritHigh;
+        }
+        var flag   = _flagCalc.CalculateForTest(entity.TestCode, valNum, entity.ReferenceRangeLow, entity.ReferenceRangeHigh, critLow, critHigh);
 
         if (req.Value is not null)    entity.Value         = req.Value;
         if (req.ValueNumeric.HasValue) entity.ValueNumeric = req.ValueNumeric;
@@ -454,7 +467,7 @@ public class ImportLabResultsCommandHandler
         var errors  = new List<ImportErrorItem>();
         var success = 0;
         // Bug A: cache khoang tham chieu theo test_code (truoc day null,null -> flag LUON NORMAL).
-        var refRangeCache = new Dictionary<string, (decimal? Low, decimal? High)>(StringComparer.OrdinalIgnoreCase);
+        var refRangeCache = new Dictionary<string, (decimal? Low, decimal? High, decimal? CritLow, decimal? CritHigh)>(StringComparer.OrdinalIgnoreCase);
 
         for (int i = 0; i < rows.Count; i++)
         {
@@ -486,7 +499,7 @@ public class ImportLabResultsCommandHandler
                     refRangeCache[testCode] = range;
                 }
                 // BM-68: dung CalculateForTest de ap dung nguong phu hop theo test_code
-                var flag = _flagCalc.CalculateForTest(testCode, valNum, range.Low, range.High);
+                var flag = _flagCalc.CalculateForTest(testCode, valNum, range.Low, range.High, range.CritLow, range.CritHigh);
 
                 // P1-03: import file thu cong (khong phai ket noi may XN da ky) -> PerformedBy
                 // luon la nguoi import (_user.UserId). Neu cho phep AutoVerify o day thi

@@ -112,4 +112,34 @@ public class LabResultFlagCalculatorTests
         var flag = _sut.Calculate(5m, 5m, 5m);
         flag.Should().Be(LabResultFlag.Normal);
     }
+
+    // ─── BM-68: nguong nguy kich cau hinh duoc (HbA1c ref 4.0-5.6, criticalHigh 10.0) ───
+    [Theory]
+    [InlineData(5.0, LabResultFlag.Normal)]
+    [InlineData(5.6, LabResultFlag.Normal)]
+    [InlineData(6.5, LabResultFlag.H)]
+    [InlineData(8.5, LabResultFlag.H)]
+    [InlineData(9.9, LabResultFlag.H)]
+    [InlineData(10.0, LabResultFlag.Critical)]
+    [InlineData(10.5, LabResultFlag.Critical)]
+    public void CalculateForTest_HbA1cWithCriticalHigh_ReturnsExpected(double val, string expected)
+    {
+        var flag = _sut.CalculateForTest("HBA1C", (decimal)val, 4.0m, 5.6m, null, 10.0m);
+        flag.Should().Be(expected);
+    }
+
+    [Fact]
+    public void CalculateForTest_CriticalLow_ReturnsCriticalAndL()
+    {
+        _sut.CalculateForTest("GLU", 2.0m, 3.9m, 6.4m, 2.5m, null).Should().Be(LabResultFlag.Critical);
+        _sut.CalculateForTest("GLU", 3.0m, 3.9m, 6.4m, 2.5m, null).Should().Be(LabResultFlag.L);
+    }
+
+    [Fact]
+    public void CalculateForTest_NullCritical_FallsBackToRatioLogic()
+    {
+        var withNull = _sut.CalculateForTest("GLU", 20m, 4m, 6m, null, null);
+        withNull.Should().Be(_sut.CalculateForTest("GLU", 20m, 4m, 6m));
+        withNull.Should().Be(LabResultFlag.Critical);
+    }
 }

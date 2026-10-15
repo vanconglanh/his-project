@@ -33,6 +33,23 @@ public class LabResultFlagCalculator : ILabResultFlagCalculator
         return Calculate(valueNumeric, low, high, hh, critical);
     }
 
+    // BM-68: nguong nguy kich tuyet doi cau hinh per-test.
+    // value >= criticalHigh -> CRITICAL; value > high -> H; value <= criticalLow -> CRITICAL; value < low -> L.
+    public string CalculateForTest(string? testCode, decimal? valueNumeric, decimal? low, decimal? high,
+        decimal? criticalLow, decimal? criticalHigh)
+    {
+        if (criticalLow is null && criticalHigh is null)
+            return CalculateForTest(testCode, valueNumeric, low, high);
+        if (valueNumeric is null) return LabResultFlag.Normal;
+
+        var v = valueNumeric.Value;
+        if (criticalHigh is not null && v >= criticalHigh.Value) return LabResultFlag.Critical;
+        if (criticalLow  is not null && v <= criticalLow.Value)  return LabResultFlag.Critical;
+        if (high is not null && v > high.Value) return LabResultFlag.H;
+        if (low  is not null && v < low.Value)  return LabResultFlag.L;
+        return LabResultFlag.Normal;
+    }
+
     // BM-68: overload nhan nguong tuy chinh de test co khoang tham chieu hep (HbA1c, TSH...)
     // khong bi cat sai muc CRITICAL khi gia tri chi "Cao" (H) ve mat lam sang.
     // Vd HbA1c ref 4-6%: voi DefaultHhThreshold 50%  nguong HH = 7%, CRITICAL = 8% ->

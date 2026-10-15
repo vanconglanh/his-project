@@ -15,4 +15,8 @@ public interface ILabResultFlagCalculator
         double hhThresholdRatio, double criticalThresholdRatio);
     /// BM-68: tinh flag voi nguong tu dong theo testCode (HbA1c, TSH dung nguong rong hon).
     string CalculateForTest(string? testCode, decimal? valueNumeric, decimal? low, decimal? high);
+    /// BM-68: nhu tren, kem nguong nguy kich tuyet doi cau hinh per-test (flag_critical_low/high).
+    /// Khi criticalLow/criticalHigh = null -> giu logic ti le cu.
+    string CalculateForTest(string? testCode, decimal? valueNumeric, decimal? low, decimal? high,
+        decimal? criticalLow, decimal? criticalHigh);
 }
