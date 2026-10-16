@@ -78,3 +78,26 @@ Chi tiết 4 thuốc FIX-6 (cần nhập lại giá đúng):
 
 - Trước khi sửa: `/home/stackops/backups/pro-his/prodiab_his_20261016_013223.sql.gz` (mysqldump đầy đủ, single-transaction).
 - Mọi thay đổi ở mục 3 có thể hoàn tác từ backup này nếu cần.
+
+---
+
+## 7. Đợt sửa bổ sung 2026-10-16 (prefix2) — ĐÃ THỰC HIỆN
+
+> Backup trước: `/home/stackops/backups/pro-his/prodiab_his_20261016_080412_prefix2.sql.gz`.
+> Script: `docs/migration/fix_prod_data_20261016b.sql` (idempotent, đã verify chạy lại 0 thay đổi).
+
+### 7.1 Lỗi CODE (mục 5) — ĐÃ FIX + DEPLOY (backend `prod-20261016-0758`)
+- **A1** `GET /patients?search=` giờ lọc theo tên/mã BN (LIKE) + SĐT/CMND (blind index). Verify API production (user lễ tân): tên "TRẦN VĂN HƯNG" → 1 đúng người; mã `DIAB2610150388` → 1 đúng người; chuỗi vô nghĩa `ZZZQWX999` → 0; list không search → 303. Đường SĐT (blind index) proven xanh ở regression staging BM-04 (cùng image).
+- **A2** `ListPatientEncountersQueryHandler` (`GET /patients/{id}/encounters`) hết hard-code null — batch-load `doctor_name` (Users) + `room_name` (rooms). Verify production: HTTP 200, `doctor_name=null` an toàn khi `doctor_id` rỗng.
+- **A3** `finished_at` null → JSON `null` (không còn 0001-01-01), khoá bằng unit test converter.
+- **A4** Migration `9220_widen_lab_result_flag.sql` nới `diab_his_lab_results.result_flag`. **Thực tế production là VARCHAR(10)** (không phải 5 như ghi nhận ban đầu — 10 vẫn đủ cho "CRITICAL"=8 nên KHÔNG có giá trị bị cắt). Đã nới 10→20 cho margin an toàn; ghi `_schema_migrations`.
+- Mỗi lỗi có unit test; `dotnet build` + UnitTests (1028) + ArchitectureTests (7) xanh. Commit `f4fcf2d` trên `test/lark-full-stack`.
+
+### 7.2 Dữ liệu (mục 4) — ĐÃ XỬ LÝ
+- **C1 doctor_id NULL** (649 lượt / 147 đơn legacy): GIỮ NULL. Xác nhận UI/API hiển thị an toàn — API trả `doctor_name=null`, FE hiển thị "Chưa phân công" (các view chính) hoặc để trống, KHÔNG lỗi/500.
+- **C2 bệnh nhân test**: soft-delete **55 BN** có "TEST" trong tên (+ **81 lượt khám**, **20 đơn thuốc**, dòng đơn/XN/chẩn đoán/EMR/sinh hiệu liên quan). Danh sách còn sống: 358 → **303 BN**. KHÔNG đụng "MINH CHI" (không có marker TEST, không rõ test). **2 ca thật trùng phone_bidx (HOÀNG THỊ HUỆ, VŨ ĐÌNH BẢO): KHÔNG gộp/xoá** — chỉ liệt kê.
+- **C3 đơn thuốc giá 0**: backfill đơn giá từ `diab_his_pha_drugs.price` (price>0): **332 dòng** cập nhật giá>0 + `line_total`; **149 dòng** giữ 0 (thuốc catalog giá 0); ghi chú "[giá danh mục tại thời điểm migrate 2026-10-16]". Đơn thuốc không có cột tổng (tổng tính runtime từ SUM line_total).
+
+### 7.3 Deploy
+- Staging: image `latest` (rollback `prev-stg-20261016_080545`), recreate backend + restart nginx, regression **12 PASS / 0 FAIL**.
+- Production: `PRO_HIS_TAG=prod-20261016-0758` (rollback `prod-20261015-1759`), `up -d --no-deps backend` (frontend KHÔNG đổi), restart `pro-his-nginx`, health 200. Migration + data fix áp vào `pro-his-db`.
