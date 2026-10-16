@@ -86,16 +86,14 @@ BEFORE=$($SSH "docker exec pro-his-db bash -c \"MYSQL_PWD=$DST_PASS mysql -uroot
 ok "Trước: $BEFORE"
 
 # =============================================================================
-# BƯỚC 3: Tạo user migrator tạm (chỉ đọc src, ghi dst)
+# BƯỚC 3: Tạo user migrator tạm CHỈ trên đích pro-his-db.
+# KHÔNG tạo/đổi tài khoản trên nguồn pro-db-my8 (DB của hệ thống khác) — nguồn chỉ đọc
+# bằng root sẵn có, script migrate chỉ chạy SELECT trên diab_his.
 # =============================================================================
 step "3: Tạo migrator user tạm"
 MIG_PASS="mig_sync_$(date +%s)"
 
 $SSH "
-docker exec pro-db-my8 bash -c \"MYSQL_PWD=$SRC_PASS mysql -uroot -e \\\"
-  CREATE USER IF NOT EXISTS 'migrator'@'%' IDENTIFIED BY '$MIG_PASS';
-  GRANT SELECT ON diab_his.* TO 'migrator'@'%';
-  FLUSH PRIVILEGES;\\\"\"
 docker exec pro-his-db bash -c \"MYSQL_PWD=$DST_PASS mysql -uroot -e \\\"
   CREATE USER IF NOT EXISTS 'migrator'@'%' IDENTIFIED BY '$MIG_PASS';
   GRANT ALL PRIVILEGES ON prodiab_his.* TO 'migrator'@'%';
@@ -106,7 +104,6 @@ ok "migrator user tạo OK"
 # Cleanup on exit
 cleanup() {
   $SSH "
-    docker exec pro-db-my8 bash -c \"MYSQL_PWD=$SRC_PASS mysql -uroot -e \\\"DROP USER IF EXISTS 'migrator'@'%'; FLUSH PRIVILEGES;\\\"\" 2>/dev/null || true
     docker exec pro-his-db bash -c \"MYSQL_PWD=$DST_PASS mysql -uroot -e \\\"DROP USER IF EXISTS 'migrator'@'%'; FLUSH PRIVILEGES;\\\"\" 2>/dev/null || true
     docker stop mig-runner 2>/dev/null && docker rm mig-runner 2>/dev/null || true
   " 2>/dev/null || true
@@ -138,7 +135,7 @@ DRY_FLAG=""
 $SSH "
 docker exec \
   -e HIS_SRC_HOST=$SRC_IP -e HIS_SRC_PORT=3306 \
-  -e HIS_SRC_USER=migrator -e HIS_SRC_PASS=$MIG_PASS \
+  -e HIS_SRC_USER=root -e HIS_SRC_PASS=$SRC_PASS \
   -e HIS_DST_HOST=$DST_IP -e HIS_DST_PORT=3306 \
   -e HIS_DST_USER=migrator -e HIS_DST_PASS=$MIG_PASS \
   mig-runner python /app/migrate_legacy_his.py $DRY_FLAG 2>&1
