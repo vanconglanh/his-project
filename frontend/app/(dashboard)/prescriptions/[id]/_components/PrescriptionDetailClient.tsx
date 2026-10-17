@@ -70,7 +70,7 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
   const canSign = prescription.status === "DRAFT" && prescription.items.length > 0 && !cdssBlocking;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-3 max-w-6xl mx-auto">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/prescriptions" className="hover:text-foreground flex items-center gap-1">
@@ -121,16 +121,16 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
         dinh vua du (320px) thay vi ty le 1/3, content chinh duoc "1fr" chiem het
         phan con lai.
       */}
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px] gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_300px] gap-4">
         {/* Main content */}
-        <div className="space-y-6">
+        <div className="space-y-3">
           {/* Patient info */}
-          <Card>
+          <Card data-size="sm">
             <CardHeader>
               <CardTitle className="text-base">Thông tin bệnh nhân</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <CardContent className="text-sm">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 lg:grid-cols-[auto_1fr_auto_1fr]">
                 <span className="text-muted-foreground">Họ tên:</span>
                 <span className="font-medium">{prescription.patient_summary?.full_name}</span>
                 <span className="text-muted-foreground">Giới tính:</span>
@@ -166,7 +166,7 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
           )}
 
           {/* Items */}
-          <Card>
+          <Card data-size="sm">
             <CardHeader>
               <CardTitle className="text-base">Danh sách thuốc</CardTitle>
             </CardHeader>
@@ -176,7 +176,7 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
           </Card>
 
           {prescription.note && (
-            <Card>
+            <Card data-size="sm">
               <CardHeader><CardTitle className="text-base">Ghi chú</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-sm">{prescription.note}</p>
@@ -192,9 +192,9 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
         </div>
 
         {/* Sidebar: QR + DTQG */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {prescription.dtqg_code && (
-            <Card>
+            <Card data-size="sm">
               <CardHeader><CardTitle className="text-base">Mã ĐTQG</CardTitle></CardHeader>
               <CardContent>
                 <QrPrescription
@@ -208,7 +208,7 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
 
           {/* DTQG submission status */}
           {dtqgData && (
-            <Card>
+            <Card data-size="sm">
               <CardHeader><CardTitle className="text-base">Gửi ĐTQG</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="grid grid-cols-2 gap-1">
@@ -229,7 +229,7 @@ export function PrescriptionDetailClient({ prescriptionId }: Props) {
 
           {/* Signed info */}
           {prescription.signed_at && (
-            <Card>
+            <Card data-size="sm">
               <CardHeader><CardTitle className="text-base">Ký số</CardTitle></CardHeader>
               <CardContent className="text-sm space-y-1">
                 <div className="grid grid-cols-2 gap-1">

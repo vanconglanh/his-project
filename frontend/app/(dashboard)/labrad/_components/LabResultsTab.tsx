@@ -71,9 +71,9 @@ export function LabResultsTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-3">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 shrink-0">
         <Input
           className="w-56"
           placeholder="Tìm chỉ số..."
@@ -133,11 +133,12 @@ export function LabResultsTab() {
         </div>
       </div>
 
-      {/* Table */}
-      <div data-tour="labrad-table">
+      {/* Table — chiếm hết chiều cao còn lại, cuộn nội bộ để trang không scroll */}
+      <div data-tour="labrad-table" className="flex min-h-0 flex-1 flex-col">
       <LabResultTable
         data={filtered}
         loading={isLoading}
+        fillHeight
         onEnterResult={handleEnterResult}
         onVerify={handleVerify}
         onUnverify={handleUnverify}
@@ -148,7 +149,7 @@ export function LabResultsTab() {
 
       {/* Pagination info */}
       {data?.meta && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground shrink-0">
           Tổng: {data.meta.total} kết quả
         </p>
       )}
