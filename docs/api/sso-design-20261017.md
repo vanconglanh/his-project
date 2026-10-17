@@ -90,10 +90,8 @@ sequenceDiagram
     participant TS as TimeSheet API
     U->>BE: POST /api/v1/auth/sso/logout
     BE->>BE: Thu hồi refresh token, xóa cookie, audit AUTH_SSO_LOGOUT
-    BE-->>U: 200 { endSessionUrl } (id_token_hint, post_logout_redirect_uri, state)
-    U->>IS: GET /connect/endsession
-    IS->>TS: POST backchannel_logout_uri (logout_token)
-    IS-->>U: 302 https://his.../login
+    BE-->>U: 200 (chỉ kết thúc phiên HIS)
+    U->>U: Chuyển về https://his.../login — KHÔNG gọi /connect/endsession (giữ phiên portal + app)
     Note over IS,BE: Đăng xuất từ portal: IS gọi POST /api/v1/auth/sso/backchannel-logout tới HIS
     IS->>BE: POST logout_token (JWT: iss, aud, sub, sid, events, jti)
     BE->>BE: Validate chữ ký + iss + aud + events + không có nonce + jti chưa dùng
@@ -125,7 +123,7 @@ Client secret: sinh ngẫu nhiên >= 32 byte, IS lưu dạng SHA256, gửi cho D
 | GET | `/api/v1/auth/sso/config` | `{ enabled, providerName: "DiaB" }` để FE ẩn/hiện nút |
 | GET | `/api/v1/auth/sso/login?returnUrl=` | Tạo state/nonce/PKCE, lưu Redis, 302 tới authorize |
 | GET | `/api/v1/auth/sso/callback?code&state` (hoặc `error`) | Đổi code, validate, ánh xạ user, phát phiên HIS hoặc chuyển 2FA; luôn kết thúc bằng 302 về FE |
-| POST | `/api/v1/auth/sso/logout` | Thu hồi phiên HIS, trả `{ data: { endSessionUrl } }` |
+| POST | `/api/v1/auth/sso/logout` | Chỉ thu hồi phiên HIS. KHÔNG trả/gọi end_session_endpoint |
 | POST | `/api/v1/auth/sso/backchannel-logout` | `application/x-www-form-urlencoded` `logout_token`; trả 200 / 400; không cần cookie; loại khỏi CSRF/rate-limit user |
 | DELETE | `/api/v1/users/{id}/external-logins/{provider}` | Admin gỡ liên kết (`RequirePermission("users.update")`) |
 
@@ -214,7 +212,7 @@ Nếu IdP không phát `email_verified` (Identity mặc định chỉ phát khi 
 - Hiển thị lỗi theo `?error=` từ `messages/vi.json` (`auth.sso.errors.SSO_USER_NOT_PROVISIONED`...).
 - Không cần trang callback FE riêng vì callback nằm ở backend và 302 về `returnUrl`; tùy chọn `app/(auth)/sso/complete/page.tsx` để hiện trạng thái "Đang đăng nhập..." rồi gọi `/auth/me` khởi tạo store.
 - Bước 2FA: tái dùng màn 2FA hiện có; backend truyền ticket qua cookie httpOnly ngắn hạn, không qua query string.
-- Đăng xuất: gọi `POST /auth/sso/logout`, nếu có `endSessionUrl` thì `window.location.href = endSessionUrl`.
+- Đăng xuất: gọi `POST /auth/sso/logout` rồi về `/login`. TUYỆT ĐỐI không chuyển tới `end_session_endpoint` của IS.
 - Trang quản lý user: cột "Liên kết DiaB" + nút gỡ liên kết.
 - Lưu ý middleware/proxy Next.js 16: route `/login?error=` và `/sso/complete` phải public.
 
@@ -347,9 +345,19 @@ Rủi ro:
 Câu hỏi mở:
 - Q1: IdP có phát `email_verified` không? Email nhân viên trên IS đã được xác minh hết chưa?
 - Q2: Một người có thể có tài khoản ở nhiều tenant HIS — pha 1 chặn (`SSO_AMBIGUOUS_ACCOUNT`) hay làm luôn trang chọn phòng khám?
-- Q3: Đăng xuất HIS có bắt buộc đăng xuất portal (RP-initiated) không, hay chỉ đăng xuất HIS?
+- Q3: ĐÃ CHỐT (user 17/10/2026): đăng xuất HIS/TimeSheet KHÔNG đăng xuất portal và app DiaB.
 - Q4: Có kế hoạch bật MFA trên IdP không (để dùng `Sso__TrustIdpMfa`)?
 - Q5: SSO áp dụng cho mọi tenant hay chỉ tenant nội bộ DiaB? Cần cờ `sso_enabled` theo tenant ngay pha 1?
 - Q6: Domain chính thức production: `his.diab.com.vn` (tài liệu) vs `his.diab.vn` (staging hiện tại) — xác nhận.
 - Q7: TimeSheet: repo `pro-diab-ai/diab-timesheet` có đúng là nguồn của container `pro-docosan-ts-be/fe`? Có multi-tenant không? Đang dùng DB nào?
 - Q8: Ai giữ quyền ghi ConfigurationStore SQL Server của IS để đăng ký client (có UI admin hay phải chạy SQL)?
+
+
+## 13. Ràng buộc cứng: tuyệt đối không đăng xuất người dùng portal và app DiaB (user chốt 17/10/2026)
+
+- HIS và TimeSheet KHÔNG dùng RP-initiated logout: không gọi/redirect `end_session_endpoint`, không gọi `revocation_endpoint` với token của IS, không xoá grant/consent/persisted grant của người dùng trên IS.
+- Không bật front-channel logout từ HIS/TimeSheet về phía IS; client mới đăng ký với `FrontChannelLogoutUri = null`.
+- Back-channel logout chỉ là chiều IS → HIS/TimeSheet (portal đăng xuất thì HIS huỷ phiên SSO tương ứng); không có chiều ngược lại.
+- Không restart, không redeploy, không đổi cấu hình dùng chung (signing key, Data Protection key, cookie, CORS, client cũ của portal/app mobile) của IdentityServer trong bất kỳ pha nào nếu chưa xác nhận Data Protection key lưu bền vững và chưa có phê duyệt riêng của user.
+- Đăng ký client = INSERT bản ghi mới trong transaction; xoá client mới khi rollback cũng không đụng bản ghi khác.
+- Test bắt buộc GS8: người dùng đang đăng nhập portal web + app mobile DiaB → đăng nhập rồi đăng xuất HIS qua SSO → portal và app vẫn đăng nhập, gọi API bình thường.
