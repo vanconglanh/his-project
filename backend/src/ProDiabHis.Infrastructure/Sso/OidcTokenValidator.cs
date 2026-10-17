@@ -35,7 +35,9 @@ public static class OidcTokenValidator
             RequireExpirationTime = lifetime,
             ClockSkew = TimeSpan.FromMinutes(2),
             RequireSignedTokens = true,
-            ValidateIssuerSigningKey = true,
+            // Van VERIFY chu ky bang IssuerSigningKeys (JWKS). ValidateIssuerSigningKey chi kiem
+            // them han/chain cua X509 cert -> tat khi IgnoreSigningCertExpiry (cert IS het han 2020).
+            ValidateIssuerSigningKey = !opts.IgnoreSigningCertExpiry,
             IssuerSigningKeys = cfg.SigningKeys,
             ValidAlgorithms = Rs256
         };

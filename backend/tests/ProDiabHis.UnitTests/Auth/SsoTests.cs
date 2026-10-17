@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -137,6 +138,36 @@ public class OidcTokenValidatorTests
         // khi cau hinh Sso__ValidIssuers co altIss -> chap nhan
         var opts2 = new SsoOptions { ClientId = ClientId, Authority = "https://login.test", ValidIssuers = new[] { altIss } };
         (await OidcTokenValidator.ValidateIdTokenAsync(tok, Cfg(), opts2, Nonce)).result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IdToken_ExpiredSigningCert_ValidWhenIgnoreFlag_RejectedWhenStrict()
+    {
+        // Mo phong cert signing cua IS da het han (giong IDX10249 tren IS DiaB)
+        using var rsa = RSA.Create(2048);
+        var reqc = new CertificateRequest("CN=diab-is-test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var cert = reqc.CreateSelfSigned(DateTimeOffset.UtcNow.AddYears(-6), DateTimeOffset.UtcNow.AddYears(-5));
+        var key = new X509SecurityKey(cert) { KeyId = "kexp" };
+        var cfg = new OpenIdConnectConfiguration { Issuer = Issuer };
+        cfg.SigningKeys.Add(key);
+        var tok = Token(key: key);
+
+        // Mac dinh IgnoreSigningCertExpiry=true -> van verify chu ky, bo qua han cert -> hop le
+        var optsIgnore = new SsoOptions { ClientId = ClientId };
+        (await OidcTokenValidator.ValidateIdTokenAsync(tok, cfg, optsIgnore, Nonce)).result.IsSuccess.Should().BeTrue();
+
+        // Strict -> tu choi vi cert het han (IDX10249)
+        var optsStrict = new SsoOptions { ClientId = ClientId, IgnoreSigningCertExpiry = false };
+        (await OidcTokenValidator.ValidateIdTokenAsync(tok, cfg, optsStrict, Nonce)).result.IsSuccess.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IdToken_WrongSignature_RejectedEvenWhenIgnoreExpiry()
+    {
+        // Ky bang key khac khong co trong JWKS -> van bi tu choi du IgnoreSigningCertExpiry=true (mac dinh)
+        using var other = RSA.Create(2048);
+        var tok = Token(key: new RsaSecurityKey(other) { KeyId = "kother" });
+        (await OidcTokenValidator.ValidateIdTokenAsync(tok, Cfg(), _opts, Nonce)).result.IsSuccess.Should().BeFalse();
     }
 
     [Fact]
