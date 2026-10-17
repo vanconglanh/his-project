@@ -90,13 +90,13 @@ public class OidcClient : IOidcClient
         if (string.IsNullOrEmpty(idToken))
             return Result<OidcIdentity>.Failure("SSO_TOKEN_INVALID", "Token đăng nhập SSO không hợp lệ");
 
-        var (result, err) = await OidcTokenValidator.ValidateIdTokenAsync(idToken, cfg, _options, expectedNonce);
+        var (result, err) = await OidcTokenValidator.ValidateIdTokenAsync(idToken, cfg, _options, expectedNonce, _logger);
         if (!result.IsSuccess && OidcTokenValidator.IsKeyProblem(err))
         {
             // kid la -> yeu cau refresh JWKS (ConfigurationManager gioi han tan suat) roi thu lai 1 lan
             _cfg.Value.RequestRefresh();
             cfg = await GetConfigAsync(ct);
-            (result, _) = await OidcTokenValidator.ValidateIdTokenAsync(idToken, cfg, _options, expectedNonce);
+            (result, _) = await OidcTokenValidator.ValidateIdTokenAsync(idToken, cfg, _options, expectedNonce, _logger);
         }
         return result;
     }
@@ -104,12 +104,12 @@ public class OidcClient : IOidcClient
     public async Task<Result<OidcLogoutToken>> ValidateLogoutTokenAsync(string logoutToken, CancellationToken ct)
     {
         var cfg = await GetConfigAsync(ct);
-        var (result, err) = await OidcTokenValidator.ValidateLogoutTokenAsync(logoutToken, cfg, _options);
+        var (result, err) = await OidcTokenValidator.ValidateLogoutTokenAsync(logoutToken, cfg, _options, _logger);
         if (!result.IsSuccess && OidcTokenValidator.IsKeyProblem(err))
         {
             _cfg.Value.RequestRefresh();
             cfg = await GetConfigAsync(ct);
-            (result, _) = await OidcTokenValidator.ValidateLogoutTokenAsync(logoutToken, cfg, _options);
+            (result, _) = await OidcTokenValidator.ValidateLogoutTokenAsync(logoutToken, cfg, _options, _logger);
         }
         return result;
     }

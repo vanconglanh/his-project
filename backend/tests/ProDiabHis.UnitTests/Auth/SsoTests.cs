@@ -127,6 +127,19 @@ public class OidcTokenValidatorTests
     [Fact] public async Task IdToken_MissingNonce_Rejected() => (await Validate(Token(nonce: null))).IsSuccess.Should().BeFalse();
 
     [Fact]
+    public async Task IdToken_AltIssuer_RejectedByDefault_AcceptedWhenConfigured()
+    {
+        // iss khac discovery.Issuer (vd host IdP khac gia tri IssuerUri) -> mac dinh tu choi
+        var altIss = "https://is.staging.diab.com.vn";
+        var tok = Token(iss: altIss);
+        (await OidcTokenValidator.ValidateIdTokenAsync(tok, Cfg(), _opts, Nonce)).result.IsSuccess.Should().BeFalse();
+
+        // khi cau hinh Sso__ValidIssuers co altIss -> chap nhan
+        var opts2 = new SsoOptions { ClientId = ClientId, Authority = "https://login.test", ValidIssuers = new[] { altIss } };
+        (await OidcTokenValidator.ValidateIdTokenAsync(tok, Cfg(), opts2, Nonce)).result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task IdToken_Expired_Rejected()
         => (await Validate(Token(nbf: DateTime.UtcNow.AddMinutes(-30), exp: DateTime.UtcNow.AddMinutes(-20)))).IsSuccess.Should().BeFalse();
 
