@@ -14,15 +14,18 @@ public class Setup2FACommandHandler : IRequestHandler<Setup2FACommand, Result<Se
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUser _currentUser;
     private readonly IEncryptionService _encryption;
+    private readonly IQrCodeImageGenerator _qrGenerator;
 
     public Setup2FACommandHandler(
         IApplicationDbContext db,
         ICurrentUser currentUser,
-        IEncryptionService encryption)
+        IEncryptionService encryption,
+        IQrCodeImageGenerator qrGenerator)
     {
         _db = db;
         _currentUser = currentUser;
         _encryption = encryption;
+        _qrGenerator = qrGenerator;
     }
 
     public async Task<Result<Setup2FAResponse>> Handle(Setup2FACommand req, CancellationToken ct)
@@ -49,9 +52,9 @@ public class Setup2FACommandHandler : IRequestHandler<Setup2FACommand, Result<Se
         var issuer = "ProDiabHIS";
         var otpauthUrl = $"otpauth://totp/{issuer}:{Uri.EscapeDataString(user.Email)}?secret={secret}&issuer={issuer}";
 
-        // Tra ve QR PNG base64 don gian (URL encoded, frontend tu render QR)
-        // De tich hop QR generator thu vien nhu QRCoder sau; hien tai tra base64 cua URL
-        var qrBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(otpauthUrl));
+        // Sinh anh QR PNG that tu otpauth URL (header PNG 89 50 4E 47) roi base64 hoa.
+        // FE dat truc tiep vao src="data:image/png;base64,..." nen phai la PNG, khong phai base64 cua chuoi.
+        var qrBase64 = Convert.ToBase64String(_qrGenerator.GeneratePng(otpauthUrl));
 
         return Result<Setup2FAResponse>.Success(new Setup2FAResponse(secret, otpauthUrl, qrBase64));
     }

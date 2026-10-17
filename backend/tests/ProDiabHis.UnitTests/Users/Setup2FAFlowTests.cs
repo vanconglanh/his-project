@@ -13,6 +13,8 @@ public class Setup2FAFlowTests
 {
     private readonly IEncryptionService _encryption = new ProDiabHis.UnitTests.FakeEncryptionService();
     private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
+    private readonly ProDiabHis.Application.Common.IQrCodeImageGenerator _qrGenerator =
+        new ProDiabHis.Infrastructure.Security.QrCoderImageGenerator();
 
     [Fact]
     public async Task Setup_GeneratesSecretAndSavesEncrypted()
@@ -28,7 +30,7 @@ public class Setup2FAFlowTests
         });
         await db.SaveChangesAsync();
 
-        var handler = new Setup2FACommandHandler(db, _currentUser, _encryption);
+        var handler = new Setup2FACommandHandler(db, _currentUser, _encryption, _qrGenerator);
         var result = await handler.Handle(new Setup2FACommand(), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -37,6 +39,37 @@ public class Setup2FAFlowTests
 
         var user = db.Users.IgnoreQueryFilters().First(u => u.Id == userId);
         user.TwoFaSecret.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Setup_ReturnsRealPngImage_NotBase64OfUrl()
+    {
+        var userId = Guid.NewGuid();
+        _currentUser.UserId.Returns(userId);
+
+        var db = TestDbContextFactory.Create();
+        db.Users.Add(new User
+        {
+            Id = userId, TenantId = 1, Email = "doc@test.vn",
+            FullName = "Test", PasswordHash = "h", Status = UserStatus.Active
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new Setup2FACommandHandler(db, _currentUser, _encryption, _qrGenerator);
+        var result = await handler.Handle(new Setup2FACommand(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.QrPngBase64.Should().NotBeNullOrEmpty();
+
+        // Giai base64 -> phai la PNG that voi magic header 89 50 4E 47 0D 0A 1A 0A
+        var bytes = Convert.FromBase64String(result.Value.QrPngBase64);
+        bytes.Length.Should().BeGreaterThan(8);
+        bytes.Take(8).Should().Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+
+        // Dam bao KHONG phai base64 cua chuoi otpauth (bug cu)
+        var legacyBug = Convert.ToBase64String(
+            System.Text.Encoding.UTF8.GetBytes(result.Value.OtpauthUrl));
+        result.Value.QrPngBase64.Should().NotBe(legacyBug);
     }
 
     [Fact]

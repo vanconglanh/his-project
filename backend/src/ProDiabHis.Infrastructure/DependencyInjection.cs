@@ -359,6 +359,8 @@ public static class DependencyInjection
             services.AddScoped<IDtqgClient, MockDtqgClient>();
         }
         services.AddSingleton<IDtqgQrGenerator, QrCoderDtqgQrGenerator>();
+        services.AddSingleton<ProDiabHis.Application.Common.IQrCodeImageGenerator,
+            ProDiabHis.Infrastructure.Security.QrCoderImageGenerator>();
         services.AddScoped<IDrugCucQldSync, MockDrugCucQldSync>();
         services.AddScoped<ICucQldLienThong, MockCucQldLienThong>();
         services.AddScoped<IExcelImporter, ClosedXmlImporter>();
