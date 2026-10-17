@@ -18,6 +18,7 @@ public interface IApplicationDbContext
     DbSet<Tenant> Tenants { get; }
     DbSet<UserRole> UserRoles { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<ExternalLogin> ExternalLogins { get; }
     DbSet<AuditLog> AuditLogs { get; }
 
     // Patient

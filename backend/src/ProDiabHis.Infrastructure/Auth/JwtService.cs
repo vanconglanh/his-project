@@ -20,6 +20,17 @@ public class JwtService : IJwtService
 
     public string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null,
         int? overrideBranchId = null)
+        => BuildAccessToken(user, roles, roleCodes, overrideBranchId, null);
+
+    public string GenerateSsoAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes, string ssoSid)
+        => BuildAccessToken(user, roles, roleCodes, null, new[]
+        {
+            new Claim("amr", "sso"),
+            new Claim("sso_sid", ssoSid)
+        });
+
+    private string BuildAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes,
+        int? overrideBranchId, IEnumerable<Claim>? extraClaims)
     {
         var secret = _configuration["JWT__SECRET"]
             ?? _configuration["Jwt:Secret"]
@@ -77,6 +88,8 @@ public class JwtService : IJwtService
         claims.Add(new Claim("branch_id", branchId?.ToString() ?? "0"));
         claims.Add(new Claim("branch_ids", string.Join(',', allowedBranchIds)));
         claims.Add(new Claim("branch_cross_view", hasCrossView ? "true" : "false"));
+
+        if (extraClaims != null) claims.AddRange(extraClaims);
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"] ?? "ProDiabHis",

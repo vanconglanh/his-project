@@ -43,6 +43,29 @@ export async function refreshToken(
   return data.data;
 }
 
+function ssoAuthHeader(): Record<string, string> {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem("auth-store") : null;
+    const token = raw ? JSON.parse(raw)?.state?.accessToken : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Single logout SSO. Dùng axios "trần" (không qua interceptor 401→refresh→redirect)
+ * để lỗi không đá user về /login giữa chừng. Trả endSessionUrl (phiên SSO) hoặc null.
+ */
+export async function ssoLogout(): Promise<string | null> {
+  const { data } = await axios.post<ApiResponse<{ endSessionUrl?: string | null }>>(
+    `${API_BASE_URL}/api/v1/auth/sso/logout`,
+    {},
+    { withCredentials: true, timeout: 10000, headers: ssoAuthHeader() }
+  );
+  return data?.data?.endSessionUrl || null;
+}
+
 export async function logout(refreshToken: string): Promise<void> {
   await apiClient.post("/auth/logout", { refreshToken });
 }

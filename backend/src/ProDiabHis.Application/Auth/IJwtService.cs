@@ -15,6 +15,8 @@ public interface IJwtService
     /// ve gia tri nay thay vi branch mac dinh/is_primary cua user (van phai validate thuoc branch_ids truoc khi goi).</param>
     string GenerateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes = null,
         int? overrideBranchId = null);
+    /// <summary>Access token cho phien SSO: nhu GenerateAccessToken + claim amr=sso va sso_sid.</summary>
+    string GenerateSsoAccessToken(User user, IEnumerable<string> roles, IEnumerable<string>? roleCodes, string ssoSid);
     string GenerateRefreshToken();
     bool ValidateRefreshToken(string token);
 

@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
+import { SsoLoginSection } from "@/components/forms/SsoLoginSection";
 import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/forms/LoginForm";
 
@@ -20,6 +22,9 @@ export default async function LoginPage() {
         <p className="text-sm text-muted-foreground">{t("loginSubtitle")}</p>
       </div>
       <LoginForm />
+      <Suspense fallback={null}>
+        <SsoLoginSection />
+      </Suspense>
     </div>
   );
 }

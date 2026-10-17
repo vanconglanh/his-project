@@ -60,6 +60,27 @@
     "rememberMe": "Remember me",
     "forgotPassword": "Forgot password?",
     "serverError": "Server error, please try again later",
+    "sso": {
+      "or": "or",
+      "button": "Sign in with DiaB account",
+      "redirecting": "Redirecting to DiaB...",
+      "unavailable": "DiaB sign-in is temporarily unavailable, please use email/password",
+      "completing": "Signing in...",
+      "completeFailed": "Could not complete sign-in. Please try again.",
+      "backToLogin": "Back to sign in",
+      "errors": {
+        "SSO_DISABLED": "DiaB sign-in is not enabled.",
+        "SSO_INVALID_STATE": "Sign-in session expired or invalid. Please try again.",
+        "SSO_IDP_ERROR": "DiaB returned an error. Please try again.",
+        "SSO_TOKEN_INVALID": "Could not verify the DiaB response. Please try again.",
+        "SSO_EMAIL_NOT_VERIFIED": "The DiaB account email is not verified.",
+        "SSO_USER_NOT_PROVISIONED": "This account has no HIS access. Please contact your clinic administrator.",
+        "SSO_USER_DISABLED": "This HIS account is locked.",
+        "SSO_AMBIGUOUS_ACCOUNT": "Email matches multiple HIS accounts. Please contact your clinic administrator.",
+        "SSO_IDP_UNAVAILABLE": "DiaB sign-in is temporarily unavailable, please use email/password",
+        "UNKNOWN": "DiaB sign-in failed. Please try again."
+      }
+    },
     "acceptInvite": {
       "title": "Activate Account",
       "subtitle": "Set a password to complete account activation",

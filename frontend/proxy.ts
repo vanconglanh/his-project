@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 const AUTH_COOKIE = "his-access-token";
 
-const PUBLIC_PATHS = ["/login", "/session"];
+const PUBLIC_PATHS = ["/login", "/session", "/sso"];
 
 const BYPASS_PREFIXES = ["/_next/", "/favicon", "/icons/", "/manifest", "/session/", "/brand/", "/images/", "/assets/"];
 

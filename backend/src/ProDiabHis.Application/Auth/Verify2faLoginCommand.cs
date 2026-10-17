@@ -23,6 +23,7 @@ public class Verify2faLoginCommandHandler : IRequestHandler<Verify2faLoginComman
     private readonly IEncryptionService _encryption;
     private readonly LoginCommandHandler _loginHandler;
     private readonly ILogger<Verify2faLoginCommandHandler> _logger;
+    private readonly Sso.ISsoStateStore? _ssoStore;
 
     public Verify2faLoginCommandHandler(
         IApplicationDbContext db,
@@ -30,8 +31,10 @@ public class Verify2faLoginCommandHandler : IRequestHandler<Verify2faLoginComman
         IRateLimiter rateLimiter,
         IEncryptionService encryption,
         LoginCommandHandler loginHandler,
-        ILogger<Verify2faLoginCommandHandler> logger)
+        ILogger<Verify2faLoginCommandHandler> logger,
+        Sso.ISsoStateStore? ssoStore = null)
     {
+        _ssoStore = ssoStore;
         _db = db;
         _jwtService = jwtService;
         _rateLimiter = rateLimiter;
@@ -95,7 +98,14 @@ public class Verify2faLoginCommandHandler : IRequestHandler<Verify2faLoginComman
 
         // Thanh cong -> cap token day du (BuildSuccessResponseAsync cung goi SaveChanges, luu ca viec xoa
         // recovery code da dung neu co).
-        var response = await _loginHandler.BuildSuccessResponseAsync(user, cancellationToken);
+        // SSO: neu buoc 1 la dang nhap SSO thi gan sid/sub vao phien (de back-channel logout thu hoi duoc)
+        Sso.SsoSessionInfo? ssoInfo = null;
+        if (_ssoStore is not null)
+        {
+            try { ssoInfo = await _ssoStore.TakeMfaLinkAsync(user.Id, cancellationToken); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Khong doc duoc lien ket SSO cho buoc 2FA"); }
+        }
+        var response = await _loginHandler.BuildSuccessResponseAsync(user, cancellationToken, ssoInfo);
         return Result<LoginResponse>.Success(response);
     }
 

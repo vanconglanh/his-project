@@ -12,6 +12,10 @@ public class RefreshToken
     public bool IsRevoked { get; set; }
     public string? ReplacedByToken { get; set; }
     public string? IpAddress { get; set; }
+    /// <summary>sid phien IdP (SSO). NULL = phien dang nhap mat khau — back-channel logout KHONG dong toi.</summary>
+    public string? SsoSid { get; set; }
+    /// <summary>sub cua IdP (SSO)</summary>
+    public string? SsoSub { get; set; }
 
     public User? User { get; set; }
 }

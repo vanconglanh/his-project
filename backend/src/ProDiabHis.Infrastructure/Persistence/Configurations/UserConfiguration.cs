@@ -202,8 +202,37 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.Property(rt => rt.IsRevoked).HasColumnName("is_revoked").HasDefaultValue(false);
         builder.Property(rt => rt.ReplacedByToken).HasColumnName("replaced_by_token").HasMaxLength(500);
         builder.Property(rt => rt.IpAddress).HasColumnName("ip_address").HasMaxLength(50);
+        builder.Property(rt => rt.SsoSid).HasColumnName("sso_sid").HasMaxLength(200);
+        builder.Property(rt => rt.SsoSub).HasColumnName("sso_sub").HasMaxLength(200);
 
         builder.HasIndex(rt => rt.Token).IsUnique();
         builder.HasIndex(rt => rt.UserId);
+    }
+}
+
+public class ExternalLoginConfiguration : IEntityTypeConfiguration<ExternalLogin>
+{
+    public void Configure(EntityTypeBuilder<ExternalLogin> builder)
+    {
+        builder.ToTable("diab_his_sec_user_external_logins");
+
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).HasColumnName("id");
+        builder.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
+        builder.Property(e => e.Provider).HasColumnName("provider").HasMaxLength(50).IsRequired();
+        builder.Property(e => e.Subject).HasColumnName("subject").HasMaxLength(200).IsRequired();
+        builder.Property(e => e.EmailAtLink).HasColumnName("email_at_link").HasMaxLength(255);
+        builder.Property(e => e.LastLoginAt).HasColumnName("last_login_at");
+        builder.Property(e => e.LastSid).HasColumnName("last_sid").HasMaxLength(200);
+        builder.Property(e => e.CreatedAt).HasColumnName("created_at");
+        builder.Property(e => e.CreatedBy).HasColumnName("created_by");
+        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+        builder.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+        builder.Property(e => e.DeletedBy).HasColumnName("deleted_by");
+
+        builder.HasIndex(e => new { e.TenantId, e.UserId });
+        builder.HasIndex(e => new { e.Provider, e.Subject });
     }
 }

@@ -62,6 +62,27 @@
     "rememberMe": "Ghi nhớ đăng nhập",
     "forgotPassword": "Quên mật khẩu?",
     "serverError": "Lỗi hệ thống, vui lòng thử lại sau",
+    "sso": {
+      "or": "hoặc",
+      "button": "Đăng nhập bằng tài khoản DiaB",
+      "redirecting": "Đang chuyển đến DiaB...",
+      "unavailable": "Hệ thống đăng nhập DiaB tạm thời không khả dụng, vui lòng dùng email/mật khẩu",
+      "completing": "Đang đăng nhập...",
+      "completeFailed": "Không thể hoàn tất đăng nhập. Vui lòng thử lại.",
+      "backToLogin": "Quay lại trang đăng nhập",
+      "errors": {
+        "SSO_DISABLED": "Đăng nhập bằng tài khoản DiaB hiện chưa được bật.",
+        "SSO_INVALID_STATE": "Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng thử lại.",
+        "SSO_IDP_ERROR": "Hệ thống DiaB trả về lỗi khi đăng nhập. Vui lòng thử lại.",
+        "SSO_TOKEN_INVALID": "Không xác thực được phản hồi từ DiaB. Vui lòng thử lại.",
+        "SSO_EMAIL_NOT_VERIFIED": "Email tài khoản DiaB chưa được xác minh.",
+        "SSO_USER_NOT_PROVISIONED": "Tài khoản chưa được cấp quyền HIS. Vui lòng liên hệ quản trị phòng khám.",
+        "SSO_USER_DISABLED": "Tài khoản HIS đã bị khóa.",
+        "SSO_AMBIGUOUS_ACCOUNT": "Email khớp với nhiều tài khoản HIS. Vui lòng liên hệ quản trị phòng khám.",
+        "SSO_IDP_UNAVAILABLE": "Hệ thống đăng nhập DiaB tạm thời không khả dụng, vui lòng dùng email/mật khẩu",
+        "UNKNOWN": "Đăng nhập bằng DiaB thất bại. Vui lòng thử lại."
+      }
+    },
     "acceptInvite": {
       "title": "Kích hoạt tài khoản",
       "subtitle": "Đặt mật khẩu để hoàn tất kích hoạt tài khoản",

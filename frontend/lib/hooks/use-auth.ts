@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { login as apiLogin, logout as apiLogout } from "@/lib/api/auth";
+import { login as apiLogin, logout as apiLogout, ssoLogout } from "@/lib/api/auth";
 import type { LoginRequest, LoginResponse } from "@/lib/api/types";
 
 export function useAuth() {
@@ -50,20 +50,35 @@ export function useAuth() {
 
   async function logout() {
     const { refreshToken } = useAuthStore.getState();
+    // Single logout SSO: BE trả endSessionUrl khi phiên là SSO; phiên mật khẩu → null.
+    let endSessionUrl: string | null = null;
     try {
       if (refreshToken) {
         await apiLogout(refreshToken);
       }
     } catch {
       // ignore logout API errors
-    } finally {
-      clearAuth();
-      // Xóa toàn bộ TanStack Query cache để tránh data của tài khoản trước bị lộ (BM-87)
-      queryClient.clear();
-      // Xóa httpOnly cookie qua Route Handler (NEW-001)
-      await fetch("/session/clear-cookie", { method: "POST" });
-      router.push("/login");
     }
+    try {
+      endSessionUrl = await ssoLogout();
+    } catch {
+      // ignore: lỗi SSO logout → đăng xuất thường
+    }
+    clearAuth();
+    // Xóa toàn bộ TanStack Query cache để tránh data của tài khoản trước bị lộ (BM-87)
+    queryClient.clear();
+    // Xóa httpOnly cookie qua Route Handler (NEW-001)
+    try {
+      await fetch("/session/clear-cookie", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    if (endSessionUrl) {
+      // RP-initiated logout: điều hướng toàn trang sang IdP để đóng phiên DiaB.
+      window.location.href = endSessionUrl;
+      return;
+    }
+    router.push("/login");
   }
 
   return {

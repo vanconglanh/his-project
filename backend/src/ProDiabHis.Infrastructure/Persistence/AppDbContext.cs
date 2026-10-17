@@ -35,6 +35,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     // Patient
@@ -141,6 +142,11 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
         modelBuilder.Entity<Tenant>()
             .HasQueryFilter(t => t.DeletedAt == null);
+
+        // SSO: lien ket tai khoan ngoai. Luong callback SSO dung IgnoreQueryFilters co chu dich
+        // (chua co tenant khi chua dang nhap), giong luong login mat khau.
+        modelBuilder.Entity<ExternalLogin>()
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<Branch>()
             .HasQueryFilter(b => b.DeletedAt == null && b.TenantId == _tenantProvider.TenantId);

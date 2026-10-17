@@ -56,12 +56,17 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
             UserId = user.Id,
             TenantId = user.TenantId,
             Token = newRefreshTokenValue,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            // SSO: giu sid/sub qua moi lan xoay refresh de back-channel logout van thu hoi duoc
+            SsoSid = existing.SsoSid,
+            SsoSub = existing.SsoSub
         };
         _db.RefreshTokens.Add(newRefreshToken);
 
         var roleCodes = user.UserRoles.Where(ur => ur.Role != null).Select(ur => ur.Role!.Code).ToList();
-        var newAccessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes);
+        var newAccessToken = existing.SsoSid is null
+            ? _jwtService.GenerateAccessToken(user, roles, roleCodes)
+            : _jwtService.GenerateSsoAccessToken(user, roles, roleCodes, existing.SsoSid);
         await _db.SaveChangesAsync(cancellationToken);
 
         var roleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();

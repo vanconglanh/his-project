@@ -96,6 +96,12 @@ Chain chạy 0 lỗi. Không còn file nào lỗi. Duy nhất 1 điểm cần l�
 
 ---
 
+## Migration SSO (9221) - 2026-10-17
+
+- `9221_create_sec_user_external_logins.sql`: bảng `diab_his_sec_user_external_logins` + cột `sso_sid`, `sso_sub` (NULL) + index trên `diab_his_sec_sessions`. Áp SAU `0000_helpers.sql` và `9220`. Idempotent; chỉ thêm, không xóa/đổi dữ liệu session. Deploy backend với `Sso__Enabled=false` trước, bật sau khi test giữ phiên (GS1-GS7). Không rollback migration (xem mục 12.5 thiết kế SSO).
+
+---
+
 ## Prerequisites
 
 - MySQL 8.0+ với charset mặc định `utf8mb4`, collation `utf8mb4_0900_ai_ci`

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { SSO_PENDING_KEY } from "@/lib/sso-pending";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -108,6 +109,33 @@ export function LoginForm() {
   });
 
   const rememberMe = watch("rememberMe");
+
+  // SSO DiaB: /sso/complete để lại trạng thái 2FA chờ → tiếp tục đúng màn như login mật khẩu.
+  useEffect(() => {
+    const raw = sessionStorage.getItem(SSO_PENDING_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(SSO_PENDING_KEY);
+    try {
+      const p = JSON.parse(raw) as { kind: string; token: string; message?: string };
+      if (p.kind === "mfa" && p.token) {
+        setMfaPendingToken(p.token);
+        setMfaCode("");
+        setStep("mfa");
+      } else if (p.kind === "setup" && p.token) {
+        setSetupMessage(
+          p.message ||
+            "Tài khoản của bạn bắt buộc bật xác thực 2 lớp trước khi sử dụng hệ thống."
+        );
+        setMfaSetupToken(p.token);
+        setStep("mfaSetup");
+        setSetupSub("loading");
+        void startForcedSetup();
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── Bước 1: đăng nhập bằng email + mật khẩu ─────────────────────────────────
   async function onSubmit(data: LoginFormData) {

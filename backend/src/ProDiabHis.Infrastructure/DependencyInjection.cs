@@ -195,6 +195,26 @@ public static class DependencyInjection
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
                     ClockSkew = TimeSpan.Zero
                 };
+                // SSO: access token co claim sso_sid se bi tu choi neu sid da bi back-channel logout (Redis).
+                // Token khong co sso_sid (phien mat khau) bo qua hoan toan.
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async ctx =>
+                    {
+                        var sid = ctx.Principal?.FindFirst("sso_sid")?.Value;
+                        if (string.IsNullOrEmpty(sid)) return;
+                        var opts = ctx.HttpContext.RequestServices.GetService<ProDiabHis.Application.Auth.Sso.SsoOptions>();
+                        if (opts is null || !opts.EnforceSidRevocation) return;
+                        var store = ctx.HttpContext.RequestServices.GetService<ProDiabHis.Application.Auth.Sso.ISsoStateStore>();
+                        if (store is null || !store.IsAvailable) return;
+                        try
+                        {
+                            if (await store.IsSidRevokedAsync(sid, ctx.HttpContext.RequestAborted))
+                                ctx.Fail("SSO session revoked");
+                        }
+                        catch { /* Redis loi -> khong chan (fail-open), refresh token da bi thu hoi o DB */ }
+                    }
+                };
             })
             // Scheme rieng "MfaSetup" cho token tam aud=mfa-setup (user role bat buoc 2FA nhung chua bat).
             // CHI dung duoc cho me/2fa/setup + me/2fa/enable (2 action khai bao
@@ -221,6 +241,27 @@ public static class DependencyInjection
         {
             services.AddSingleton<IConnectionMultiplexer>(_ =>
                 ConnectionMultiplexer.Connect(redisConnectionString));
+        }
+
+        // SSO OIDC (DiaB IdentityServer) - mac dinh TAT (Sso:Enabled=false)
+        {
+            var ssoOptions = new ProDiabHis.Application.Auth.Sso.SsoOptions();
+            configuration.GetSection(ProDiabHis.Application.Auth.Sso.SsoOptions.SectionName).Bind(ssoOptions);
+            // Env Sso__TrustedMfaAmrValues=mfa,otp,hwk (CSV) -> tach chuoi
+            var amrRaw = configuration["Sso:TrustedMfaAmrValues"];
+            if (!string.IsNullOrWhiteSpace(amrRaw))
+                ssoOptions.TrustedMfaAmrValues = amrRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            services.AddSingleton(ssoOptions);
+            services.AddHttpClient(ProDiabHis.Infrastructure.Sso.OidcClient.HttpClientName,
+                c => c.Timeout = TimeSpan.FromSeconds(15));
+            services.AddSingleton<ProDiabHis.Application.Auth.Sso.IOidcClient, ProDiabHis.Infrastructure.Sso.OidcClient>();
+            services.AddSingleton<ProDiabHis.Application.Auth.Sso.ISsoStateStore>(sp =>
+            {
+                var mux = sp.GetService<IConnectionMultiplexer>();
+                return mux is null
+                    ? new ProDiabHis.Application.Auth.Sso.NullSsoStateStore()
+                    : new ProDiabHis.Infrastructure.Sso.RedisSsoStateStore(mux);
+            });
         }
 
         // FR-302/FR-402: Ky so bao mat (chu ky so remote-signing - VNPT SmartCA / Viettel-CA).

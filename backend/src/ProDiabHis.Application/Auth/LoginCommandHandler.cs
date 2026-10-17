@@ -83,6 +83,10 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         return new[] { "admin" };
     }
 
+    /// <summary>Cong khai cho luong SSO tai dung dung logic role bat buoc 2FA (khong doi hanh vi login cu).</summary>
+    public Task<IReadOnlyList<string>> GetMandatoryMfaRolesForSsoAsync(int tenantId, CancellationToken ct)
+        => GetMandatoryMfaRoleCodesAsync(tenantId, ct);
+
     public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         // Tim user theo email (cross-tenant cho login)
@@ -171,7 +175,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
 
     /// <summary>Tao AccessToken + RefreshToken + cap nhat LastLoginAt + build LoginResponse day du.
     /// Dung chung cho login binh thuong va buoc verify TOTP (Verify2faLoginCommand).</summary>
-    public async Task<LoginResponse> BuildSuccessResponseAsync(User user, CancellationToken cancellationToken)
+    public async Task<LoginResponse> BuildSuccessResponseAsync(User user, CancellationToken cancellationToken,
+        Sso.SsoSessionInfo? sso = null)
     {
         var roles = user.UserRoles
             .Where(ur => ur.Role != null)
@@ -190,7 +195,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var accessToken = _jwtService.GenerateAccessToken(user, roles, roleCodes);
+        var accessToken = sso is null
+            ? _jwtService.GenerateAccessToken(user, roles, roleCodes)
+            : _jwtService.GenerateSsoAccessToken(user, roles, roleCodes, sso.Sid);
         var refreshTokenValue = _jwtService.GenerateRefreshToken();
 
         _db.RefreshTokens.Add(new RefreshToken
@@ -198,7 +205,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
             UserId = user.Id,
             TenantId = user.TenantId,
             Token = refreshTokenValue,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            SsoSid = sso?.Sid,
+            SsoSub = sso?.Sub
         });
 
         user.LastLoginAt = DateTime.UtcNow;
