@@ -343,6 +343,7 @@ Rủi ro:
 - R8: Chưa biết Data Protection key của IS có lưu bền vững không → mọi việc cần restart IS (sửa ProfileService) có thể làm mất phiên portal; pha 1 tránh hoàn toàn.
 - R9: TimeSheet có thể đang dùng SQLite không có volume → recreate container làm mất dữ liệu/phiên (rủi ro sẵn có).
 - R7: Admin phải 2FA hai lớp (IdP không có MFA) → trải nghiệm kém nhưng an toàn.
+- R10 (phát hiện khi E2E staging 2026-10-17): **Signing cert của IdentityServer DiaB đã HẾT HẠN từ 22/09/2020** nhưng IS vẫn dùng để ký id_token (portal/app vẫn chấp nhận). HIS validate chuẩn (`ValidateIssuerSigningKey=true`) từ chối với `IDX10249: certificate has expired`. Giảm thiểu phía HIS: cờ `Sso__IgnoreSigningCertExpiry=true` (mặc định) → vẫn VERIFY chữ ký bằng khoá lấy từ JWKS qua HTTPS (token phải ký đúng khoá trong JWKS), chỉ bỏ kiểm hạn/chain X509. Áp dụng cả logout_token. **Khuyến nghị chủ IS**: lên kế hoạch **xoay signing cert mới có overlap key** (giữ cả key cũ trong JWKS một thời gian để không làm hỏng token đang lưu); trước khi xoay/restart IS phải **cấu hình lưu Data Protection key bền vững** (DB/volume/Redis) để không mất phiên portal (xem R8). Sau khi IS có cert hợp lệ, đặt lại `Sso__IgnoreSigningCertExpiry=false` để bật kiểm hạn cert như chuẩn.
 
 Câu hỏi mở:
 - Q1: IdP có phát `email_verified` không? Email nhân viên trên IS đã được xác minh hết chưa?
