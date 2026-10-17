@@ -23,7 +23,7 @@ Mục tiêu: dùng một tài khoản DiaB đăng nhập cả hai hệ thống, 
 | D3 | Giữ đăng nhập email/mật khẩu làm phương án dự phòng |
 | D4 | Vai trò/quyền/tenant/phòng khám do HIS (và timesheet) quản lý; không dùng claim `role` từ IdP |
 | D5 | Admin HIS: SSO **không** bỏ qua 2FA của HIS, trừ khi IdP chứng minh MFA qua claim `amr` chứa `mfa`/`otp`/`hwk` (cấu hình bật/tắt, mặc định tắt) |
-| D6 | Đăng xuất HIS/TimeSheet CHỈ kết thúc phiên của chính hệ thống đó, TUYỆT ĐỐI không đăng xuất portal và app DiaB; chiều ngược lại (portal đăng xuất) thì back-channel huỷ phiên SSO của HIS |
+| D6 | Đăng xuất HIS kết thúc phiên HIS; hỗ trợ back-channel logout từ IdP để đăng xuất portal kéo theo HIS |
 
 ## 3. Đối tượng
 
@@ -57,9 +57,9 @@ Là nhân viên phòng khám, tôi muốn bấm "Đăng nhập bằng tài kho�
 - AC3: Admin chưa thiết lập 2FA → vào màn hình thiết lập 2FA như hiện nay.
 
 **US-SSO-04 — Đăng xuất**
-- AC1: Bấm "Đăng xuất" trong HIS → thu hồi refresh token HIS, xóa cookie → về `/login`. KHÔNG chuyển tới `end_session_endpoint`; phiên portal web và app mobile DiaB vẫn còn.
+- AC1: Bấm "Đăng xuất" trong HIS → thu hồi refresh token HIS, xóa cookie, chuyển tới `end_session_endpoint` của IdP với `id_token_hint` và `post_logout_redirect_uri` → về `/login`.
 - AC2: Đăng xuất trên portal → IdP gọi back-channel `POST /api/v1/auth/sso/backchannel-logout` → HIS thu hồi mọi refresh token gắn `sid`/`sub` đó; access token còn hạn tới hết thời hạn hiện tại (chấp nhận, không đổi thời hạn); chỉ phiên tạo từ SSO bị thu hồi, phiên mật khẩu không bị ảnh hưởng hoặc bị chặn ngay nếu bật kiểm tra blacklist `sid` trong Redis.
-- AC3: Không có tuỳ chọn đăng xuất portal từ HIS/TimeSheet (user chốt 17/10/2026).
+- AC3: Người dùng chỉ đăng xuất HIS có thể chọn "Chỉ đăng xuất HIS" (không đăng xuất portal) — tùy chọn pha 2.
 
 **US-SSO-05 — Dự phòng mật khẩu**
 - AC1: Form email/mật khẩu vẫn hoạt động bình thường kể cả khi IdP lỗi.
