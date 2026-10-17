@@ -58,7 +58,7 @@ Là nhân viên phòng khám, tôi muốn bấm "Đăng nhập bằng tài kho�
 
 **US-SSO-04 — Đăng xuất**
 - AC1: Bấm "Đăng xuất" trong HIS → thu hồi refresh token HIS, xóa cookie, chuyển tới `end_session_endpoint` của IdP với `id_token_hint` và `post_logout_redirect_uri` → về `/login`.
-- AC2: Đăng xuất trên portal → IdP gọi back-channel `POST /api/v1/auth/sso/backchannel-logout` → HIS thu hồi mọi refresh token gắn `sid`/`sub` đó; access token còn hạn tối đa 15 phút (chấp nhận) hoặc bị chặn ngay nếu bật kiểm tra blacklist `sid` trong Redis.
+- AC2: Đăng xuất trên portal → IdP gọi back-channel `POST /api/v1/auth/sso/backchannel-logout` → HIS thu hồi mọi refresh token gắn `sid`/`sub` đó; access token còn hạn tới hết thời hạn hiện tại (chấp nhận, không đổi thời hạn); chỉ phiên tạo từ SSO bị thu hồi, phiên mật khẩu không bị ảnh hưởng hoặc bị chặn ngay nếu bật kiểm tra blacklist `sid` trong Redis.
 - AC3: Người dùng chỉ đăng xuất HIS có thể chọn "Chỉ đăng xuất HIS" (không đăng xuất portal) — tùy chọn pha 2.
 
 **US-SSO-05 — Dự phòng mật khẩu**
@@ -77,6 +77,18 @@ Là nhân viên phòng khám, tôi muốn bấm "Đăng nhập bằng tài kho�
 **US-TS-02** — Chặn user chưa có tài khoản TimeSheet: "Tài khoản chưa được cấp quyền TimeSheet".
 **US-TS-03** — Đăng xuất đồng bộ (RP-initiated + back-channel) như US-SSO-04.
 **US-TS-04** — App mobile TimeSheet: pha 2, dùng client public + PKCE riêng (`diab-timesheet-mobile`, redirect custom scheme).
+
+### Bảo toàn phiên đăng nhập (bắt buộc)
+
+**US-SSO-07 — Không làm mất session hiện có ở bất kỳ hệ thống nào**
+Là người dùng đang đăng nhập portal/HIS/TimeSheet, tôi không muốn bị đá ra khi SSO được triển khai.
+- AC1 (IdentityServer/portal): Đăng ký client mới chỉ bằng INSERT vào ConfigurationStore DB; **không** restart IS, **không** đổi signing key (pfx), **không** sửa client cũ, **không** đổi cookie scheme / Data Protection key của IS. Người đang đăng nhập portal trước khi đăng ký vẫn dùng bình thường sau đó.
+- AC2 (HIS/TimeSheet): Bản deploy SSO **không** đổi JWT secret/issuer/audience/thời hạn token, tên/thuộc tính cookie, định dạng refresh token. Access token và refresh token phát trước deploy vẫn hợp lệ sau deploy.
+- AC3: Đăng nhập email/mật khẩu cũ chạy song song, không đổi hành vi (kể cả 2FA admin).
+- AC4: Back-channel logout chỉ thu hồi phiên được tạo từ SSO (refresh token có `sso_sid`/`sso_sub` khớp); phiên đăng nhập kiểu cũ (`sso_sid IS NULL`) không bị ảnh hưởng.
+- AC5: Migration chỉ thêm bảng/cột nullable; không xóa/đổi/truncate bảng refresh token hay session.
+- AC6: Có bài test "giữ session": đăng nhập trước deploy → sau deploy vẫn gọi API, refresh được, không bị chuyển về `/login` (HIS, TimeSheet, portal).
+- AC7: Có kế hoạch rollback: tắt `Sso__Enabled=false` hoặc quay lại image cũ mà không làm mất phiên; xóa client mới trên IS không ảnh hưởng client cũ.
 
 ## 5. Ngoài phạm vi
 

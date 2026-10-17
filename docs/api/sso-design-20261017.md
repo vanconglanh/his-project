@@ -140,7 +140,7 @@ Mã lỗi (redirect `/login?error=CODE`, message tiếng Việt ở FE `vi.json`
 - Ánh xạ email: chuẩn hóa `trim().ToLowerInvariant()`; tra user theo email qua Dapper **không có tenant filter** (ngoại lệ có kiểm soát, giống luồng login mật khẩu — ghi rõ trong code review) rồi chỉ lấy user `deleted_at IS NULL AND is_active`.
 - Phát JWT HIS: tái dùng `JwtService` (lưu ý giữ quy tắc không nhét permission của admin vào JWT). Thêm claim `amr=sso`, `sso_sid` (không bắt buộc).
 - Refresh token HIS: thêm cột `sso_sid`, `sso_sub` để thu hồi theo back-channel.
-- Access token lifetime HIS khuyến nghị 15 phút; middleware kiểm `sso:revoked-sid:{sid}` trong Redis (O(1)) nếu bật `Sso__EnforceSidRevocation`.
+- Access token lifetime HIS: giữ nguyên giá trị hiện tại (không đổi, xem mục 12.2); middleware kiểm `sso:revoked-sid:{sid}` trong Redis (O(1)) nếu bật `Sso__EnforceSidRevocation`.
 
 ### 6.3 Database — migration `db/migrations/9221_create_sec_user_external_logins.sql`
 
@@ -283,7 +283,55 @@ Bảo mật: thử open redirect, CSRF login (callback không có cookie bind), 
 
 TimeSheet: bộ test tương đương ở mức đơn vị + E2E.
 
-## 12. Rủi ro + câu hỏi mở
+## 12. Bảo toàn phiên đăng nhập (yêu cầu bắt buộc)
+
+### 12.1 IdentityServer / portal
+- Client lưu trong **ConfigurationStore SQL Server** (đã xác minh trong `Startup.cs`: `AddConfigurationStore`, `AddInMemoryClients` bị comment). `AddClientStoreCache` cũng đang comment → IS đọc client từ DB mỗi request, **client mới có hiệu lực ngay, không cần restart**. Nếu sau này bật client store cache thì client mới có hiệu lực sau khi cache hết hạn — vẫn không cần restart.
+- Cách đăng ký: script SQL chỉ `INSERT` vào `Clients`, `ClientGrantTypes`, `ClientRedirectUris`, `ClientPostLogoutRedirectUris`, `ClientScopes`, `ClientSecrets` trong một transaction; **không UPDATE/DELETE** dòng của client cũ; không sửa `IdentityResources`/`ApiScopes` dùng chung (scope `openid profile email` đã có sẵn). Backup các bảng cấu hình trước khi chạy.
+- Không đụng: signing pfx, `IssuerUri`, cookie scheme, Data Protection key, `appsettings` của IS, `PersistedGrants`. Như vậy cookie phiên IS và token portal đã phát vẫn hợp lệ.
+- Hạng mục 9.2 (sửa ProfileService phát `email_verified`) và 9.6 (lọc claim) **cần deploy lại IS** → tách thành đợt riêng, chỉ làm khi đã xác nhận IS lưu Data Protection key bền vững (DB/thư mục mount/Redis) và chạy cùng pfx; nếu key Data Protection đang nằm trong container ephemeral thì restart sẽ làm mất mọi phiên portal → **không làm**; thay vào đó HIS dùng phương án dự phòng (Q1). Pha 1 không yêu cầu deploy IS.
+- Rollback: xóa đúng các dòng của client mới theo `ClientId` (client cũ không bị ảnh hưởng).
+
+### 12.2 HIS
+- Không đổi `Jwt__Secret/Issuer/Audience`, thời hạn access/refresh token, tên + thuộc tính cookie, thuật toán ký, định dạng refresh token. Khuyến nghị "access token 15 phút" ở mục 6.2 chỉ áp dụng nếu bằng giá trị hiện tại; **không đổi trong đợt này**.
+- Claim mới (`amr=sso`, `sso_sid`) chỉ thêm vào token SSO; validator không bắt buộc claim mới → token cũ vẫn qua.
+- Middleware kiểm `sso:revoked-sid` chỉ chạy khi token **có** claim `sso_sid`; token không có claim này bỏ qua.
+- Migration 9221: chỉ `CREATE TABLE IF NOT EXISTS` + `ADD COLUMN ... NULL` (không default bắt buộc, không rebuild dữ liệu); MySQL 8 thêm cột nullable là INSTANT/INPLACE, không khóa bảng refresh token lâu. Không truncate/xóa refresh token.
+- Back-channel logout: `UPDATE ... SET revoked_at=NOW() WHERE sso_sid=@sid` (hoặc `sso_sub=@sub AND sso_sid IS NOT NULL` khi logout_token không có sid). Tuyệt đối không thu hồi theo `user_id` → phiên mật khẩu cũ (`sso_sid IS NULL`) giữ nguyên.
+- Logout HIS do người dùng bấm: chỉ thu hồi refresh token của phiên hiện tại như hiện nay.
+- Deploy theo quy trình hiện có (`--no-deps --force-recreate` backend, restart nginx). Refresh token lưu DB nên recreate container không mất phiên. Kiểm tra Data Protection key của ASP.NET HIS (nếu có dùng cho cookie/antiforgery) đã persist qua volume; nếu chưa thì **không** thêm phụ thuộc mới vào Data Protection trong đợt này (state SSO để trong Redis, không trong cookie mã hóa).
+- Feature flag `Sso__Enabled=false` mặc định khi deploy → bật sau khi test giữ session đạt.
+
+### 12.3 TimeSheet
+- Không đổi `JwtTokenService` (signing key/issuer/audience); SSO gọi lại đúng service đó.
+- Bảng mới `user_external_logins` chỉ thêm; không đổi bảng user/token.
+- Nếu TimeSheet thật sự chạy SQLite trong container (`operations.db` trong `AppContext.BaseDirectory`) thì recreate container có thể mất dữ liệu/phiên → **trước khi deploy phải xác minh volume**; nếu không có volume thì đây là rủi ro sẵn có, cần DevOps xử lý trước, không gộp vào đợt SSO.
+- State/nonce: ưu tiên Redis/DB; nếu dùng cookie Data Protection thì key phải persist, nếu không chỉ làm hỏng luồng SSO đang dở (không ảnh hưởng phiên đăng nhập).
+- Back-channel chỉ thu hồi phiên có liên kết SSO; JWT stateless cũ hết hạn tự nhiên.
+
+### 12.4 Test "giữ session"
+Chuẩn bị trước deploy (staging rồi production): đăng nhập sẵn các phiên — portal (trình duyệt A), HIS bằng mật khẩu (bác sĩ + admin 2FA, trình duyệt B), TimeSheet (trình duyệt C); lưu lại thời điểm và token hết hạn.
+
+| # | Bước | Kỳ vọng |
+|---|------|---------|
+| GS1 | Chạy script đăng ký client trên IS | Trình duyệt A reload portal vẫn đăng nhập; mở `is.diab.com.vn` không bị hỏi lại mật khẩu; discovery/JWKS không đổi `kid` |
+| GS2 | Áp migration 9221 + deploy backend/FE HIS (SSO tắt) | Trình duyệt B gọi API không 401; sau khi access token hết hạn, refresh thành công; không bị về `/login` |
+| GS3 | Bật `Sso__Enabled=true` | Như GS2; form mật khẩu đăng nhập mới vẫn chạy |
+| GS4 | Đăng nhập SSO ở trình duyệt D, rồi đăng xuất portal | D bị đăng xuất HIS; B (phiên mật khẩu cùng user) **vẫn** dùng được |
+| GS5 | Deploy TimeSheet | Trình duyệt C không bị đá ra, refresh/gọi API bình thường |
+| GS6 | Rollback (mục 12.5) | Phiên B, C, A vẫn dùng được; phiên SSO D (nếu có) có thể phải đăng nhập lại — chấp nhận |
+| GS7 | Kiểm `jwks_uri` trước/sau | Tập khóa giống hệt |
+
+Tự động hóa: thêm vào `docs/qc/regression/` kịch bản lưu cookie trước deploy (Playwright `storageState`) và chạy lại sau deploy.
+
+### 12.5 Kế hoạch rollback
+1. Mức 1 (nhanh nhất): `Sso__Enabled=false` + recreate backend → ẩn nút SSO, các endpoint SSO trả `SSO_DISABLED`; phiên cũ không ảnh hưởng.
+2. Mức 2: quay lại image `prev-<ts>`. Bảng/cột mới để nguyên (nullable, code cũ bỏ qua) → **không rollback migration** để tránh động vào bảng refresh token.
+3. Mức 3 (IS): xóa các client mới theo `ClientId` trong transaction; không đụng client cũ, không restart IS.
+4. TimeSheet: tương tự mức 1–2.
+Trước mỗi bước: backup DB HIS, backup bảng cấu hình IS, gắn tag image.
+
+## 13. Rủi ro + câu hỏi mở
 
 Rủi ro:
 - R1: IdentityServer4 EOL, không còn bản vá bảo mật.
@@ -292,6 +340,8 @@ Rủi ro:
 - R4: Email HIS nếu được mã hóa (chỉ có blind index) → tra cứu phải qua blind index HMAC email; cần kiểm cột email có thuộc diện mã hóa không.
 - R5: Back-channel logout phụ thuộc mạng IdP → HIS; nếu lỗi, phiên HIS tồn tại tới hết refresh token.
 - R6: TimeSheet chưa rõ DB thực tế (SQLite fallback trong code) và chưa xác minh repo khớp container trên VNG.
+- R8: Chưa biết Data Protection key của IS có lưu bền vững không → mọi việc cần restart IS (sửa ProfileService) có thể làm mất phiên portal; pha 1 tránh hoàn toàn.
+- R9: TimeSheet có thể đang dùng SQLite không có volume → recreate container làm mất dữ liệu/phiên (rủi ro sẵn có).
 - R7: Admin phải 2FA hai lớp (IdP không có MFA) → trải nghiệm kém nhưng an toàn.
 
 Câu hỏi mở:
