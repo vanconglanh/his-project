@@ -1169,6 +1169,40 @@ def main():
         log.info("─── BƯỚC 8: Files metadata ───")
         migrate_files(src, dst, dry, pat_map, enc_map)
 
+        # ── Bước 9: Post-processing (completeness) ──────────────────────────────
+        # Chạy sau migrate gốc để bổ sung các phần bị bỏ sót.
+        # Script riêng: docs/migration/fix_visit_completeness_20261017.py
+        # Gọi trực tiếp ở đây để các lần chạy sau tự động áp dụng.
+        log.info("─── BƯỚC 9: Visit completeness (fix_visit_completeness) ───")
+        try:
+            import importlib.util as _ilu, os as _os
+            _here = _os.path.dirname(_os.path.abspath(__file__))
+            _spec = _ilu.spec_from_file_location(
+                "fix_vc", _os.path.join(_here, "fix_visit_completeness_20261017.py")
+            )
+            _mod = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            # Reuseconn DST (đã commit ở các bước trên)
+            _conn = pymysql.connect(
+                host=_mod.DST_HOST, port=_mod.DST_PORT, user=_mod.DST_USER,
+                password=_mod.DST_PASS or dst.get_server_info() and dst._host,
+                database=_mod.DST_DB, charset="utf8mb4",
+                cursorclass=pymysql.cursors.DictCursor, autocommit=False,
+            )
+            # DST_PASS đã set ở module thông qua biến môi trường
+            _conn.close()
+            log.info("Bước 9: gọi fix_visit_completeness_20261017.py --skip-backup ...")
+            import subprocess as _sp
+            _r = _sp.run(
+                ["python3", _os.path.join(_here, "fix_visit_completeness_20261017.py"), "--skip-backup"],
+                capture_output=True, text=True, timeout=300,
+            )
+            log.info("Bước 9 stdout: %s", _r.stdout[-2000:] if _r.stdout else "(trống)")
+            if _r.returncode != 0:
+                log.warning("Bước 9 exit %d stderr: %s", _r.returncode, _r.stderr[-500:])
+        except Exception as _e:
+            log.warning("Bước 9 bỏ qua (lỗi import/chạy): %s", _e)
+
         log.info("=== HOÀN TẤT %s ===", "(DRY-RUN)" if dry else "")
 
     except Exception as e:

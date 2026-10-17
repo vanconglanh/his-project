@@ -163,6 +163,23 @@ $SSH "docker exec -i -e MYSQL_PWD=$DST_PASS pro-his-db mysql -uroot --default-ch
 ok "fix_prod_data_20261016b.sql done"
 
 # =============================================================================
+# BƯỚC 6c: Áp fix_visit_completeness (chẩn đoán ICD, fake-lab, lịch hẹn, billing, EMR)
+# Idempotent: script tự skip bản ghi đã tồn tại.
+# =============================================================================
+step "6c: Áp fix_visit_completeness_20261017.py (--skip-backup vì đã backup ở bước 1)"
+FIX_VC_SCRIPT="fix_visit_completeness_20261017.py"
+$SSH "
+  # Nếu chưa có trên server thì bỏ qua (không fail sync)
+  if [ -f /home/stackops/$FIX_VC_SCRIPT ]; then
+    HIS_DST_HOST=$DST_IP HIS_DST_PORT=3306 HIS_DST_USER=migrator HIS_DST_PASS=$MIG_PASS \
+    python3 /home/stackops/$FIX_VC_SCRIPT --skip-backup 2>&1 | tail -20
+  else
+    echo '[WARN] $FIX_VC_SCRIPT không có trên server, bỏ qua. Copy bằng: scp ... docs/migration/$FIX_VC_SCRIPT stackops@SERVER:~/'
+  fi
+" 2>/dev/null
+ok "fix_visit_completeness done"
+
+# =============================================================================
 # BƯỚC 7: Blind index backfill
 # =============================================================================
 step "7: Blind index backfill"
