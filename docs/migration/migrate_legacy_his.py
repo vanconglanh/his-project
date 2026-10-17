@@ -1200,8 +1200,17 @@ def main():
             log.info("Bước 9 stdout: %s", _r.stdout[-2000:] if _r.stdout else "(trống)")
             if _r.returncode != 0:
                 log.warning("Bước 9 exit %d stderr: %s", _r.returncode, _r.stderr[-500:])
+
+            log.info("─── BƯỚC 10: Compound diagnoses + dedupe + doctor map ───")
+            _r10 = _sp.run(
+                ["python3", _os.path.join(_here, "fix_compound_dedup_doctor_20261017.py"), "--skip-backup"],
+                capture_output=True, text=True, timeout=600,
+            )
+            log.info("Bước 10 stdout: %s", _r10.stdout[-2000:] if _r10.stdout else "(trống)")
+            if _r10.returncode != 0:
+                log.warning("Bước 10 exit %d stderr: %s", _r10.returncode, _r10.stderr[-500:])
         except Exception as _e:
-            log.warning("Bước 9 bỏ qua (lỗi import/chạy): %s", _e)
+            log.warning("Bước 9-10 bỏ qua (lỗi import/chạy): %s", _e)
 
         log.info("=== HOÀN TẤT %s ===", "(DRY-RUN)" if dry else "")
 
