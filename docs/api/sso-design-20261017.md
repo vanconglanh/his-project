@@ -361,3 +361,11 @@ Câu hỏi mở:
 - Không restart, không redeploy, không đổi cấu hình dùng chung (signing key, Data Protection key, cookie, CORS, client cũ của portal/app mobile) của IdentityServer trong bất kỳ pha nào nếu chưa xác nhận Data Protection key lưu bền vững và chưa có phê duyệt riêng của user.
 - Đăng ký client = INSERT bản ghi mới trong transaction; xoá client mới khi rollback cũng không đụng bản ghi khác.
 - Test bắt buộc GS8: người dùng đang đăng nhập portal web + app mobile DiaB → đăng nhập rồi đăng xuất HIS qua SSO → portal và app vẫn đăng nhập, gọi API bình thường.
+
+
+## 13. Ràng buộc cứng khi triển khai (user chốt 17/10/2026)
+
+- **Hành vi mong muốn:** Single Sign-On + Single Logout. Đăng xuất HIS → RP-initiated logout tới `end_session_endpoint` → IS back-channel/front-channel logout các client còn lại (portal, TimeSheet). Đăng xuất portal → IS back-channel tới HIS, TimeSheet. Đây là hành vi người dùng chủ động, được phép.
+- **Không được:** việc deploy/code/đăng ký client làm phát sinh TOÀN BỘ người dùng (portal, app mobile DiaB, HIS, TimeSheet) phải đăng nhập lại. Cụ thể: không restart/redeploy IS khi chưa xác nhận Data Protection key lưu bền vững; không đổi signing key, cookie scheme, client cũ của portal/app; HIS/TimeSheet giữ JWT secret/issuer/audience/refresh token; SSO deploy với `Sso__Enabled=false` rồi mới bật; migration chỉ thêm bảng/cột.
+- Đăng ký client = INSERT bản ghi mới; rollback chỉ xoá đúng bản ghi đó.
+- Test bắt buộc: GS1–GS7 (giữ phiên qua mỗi bước deploy) + SLO1 (đăng xuất HIS → portal và TimeSheet cùng phiên SSO bị đăng xuất) + SLO2 (đăng xuất portal → HIS/TimeSheet phiên SSO bị đăng xuất; phiên đăng nhập bằng mật khẩu riêng ở thiết bị khác không bị ảnh hưởng).
