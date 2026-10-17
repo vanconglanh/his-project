@@ -347,9 +347,16 @@ Rủi ro:
 Câu hỏi mở:
 - Q1: IdP có phát `email_verified` không? Email nhân viên trên IS đã được xác minh hết chưa?
 - Q2: Một người có thể có tài khoản ở nhiều tenant HIS — pha 1 chặn (`SSO_AMBIGUOUS_ACCOUNT`) hay làm luôn trang chọn phòng khám?
-- Q3: Đăng xuất HIS có bắt buộc đăng xuất portal (RP-initiated) không, hay chỉ đăng xuất HIS?
+- Q3: ĐÃ CHỐT (user 17/10/2026): Single Sign-On + Single Logout — đăng nhập 1 hệ thống là vào được tất cả, đăng xuất 1 hệ thống thì đăng xuất tất cả (portal, HIS, TimeSheet).
 - Q4: Có kế hoạch bật MFA trên IdP không (để dùng `Sso__TrustIdpMfa`)?
 - Q5: SSO áp dụng cho mọi tenant hay chỉ tenant nội bộ DiaB? Cần cờ `sso_enabled` theo tenant ngay pha 1?
 - Q6: Domain chính thức production: `his.diab.com.vn` (tài liệu) vs `his.diab.vn` (staging hiện tại) — xác nhận.
 - Q7: TimeSheet: repo `pro-diab-ai/diab-timesheet` có đúng là nguồn của container `pro-docosan-ts-be/fe`? Có multi-tenant không? Đang dùng DB nào?
 - Q8: Ai giữ quyền ghi ConfigurationStore SQL Server của IS để đăng ký client (có UI admin hay phải chạy SQL)?
+
+## 13. Ràng buộc cứng khi triển khai (user chốt 17/10/2026)
+
+- **Hành vi mong muốn:** Single Sign-On + Single Logout. Đăng xuất HIS → RP-initiated logout tới `end_session_endpoint` → IS back-channel/front-channel logout các client còn lại (portal, TimeSheet). Đăng xuất portal → IS back-channel tới HIS, TimeSheet. Đây là hành vi người dùng chủ động, được phép.
+- **Không được:** việc deploy/code/đăng ký client làm phát sinh TOÀN BỘ người dùng (portal, app mobile DiaB, HIS, TimeSheet) phải đăng nhập lại. Cụ thể: không restart/redeploy IS khi chưa xác nhận Data Protection key lưu bền vững; không đổi signing key, cookie scheme, client cũ của portal/app; HIS/TimeSheet giữ JWT secret/issuer/audience/refresh token; SSO deploy với `Sso__Enabled=false` rồi mới bật; migration chỉ thêm bảng/cột.
+- Đăng ký client = INSERT bản ghi mới; rollback chỉ xoá đúng bản ghi đó.
+- Test bắt buộc: GS1–GS7 (giữ phiên qua mỗi bước deploy) + SLO1 (đăng xuất HIS → portal và TimeSheet cùng phiên SSO bị đăng xuất) + SLO2 (đăng xuất portal → HIS/TimeSheet phiên SSO bị đăng xuất; phiên đăng nhập bằng mật khẩu riêng ở thiết bị khác không bị ảnh hưởng).

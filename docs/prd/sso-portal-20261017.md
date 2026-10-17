@@ -23,7 +23,7 @@ Mục tiêu: dùng một tài khoản DiaB đăng nhập cả hai hệ thống, 
 | D3 | Giữ đăng nhập email/mật khẩu làm phương án dự phòng |
 | D4 | Vai trò/quyền/tenant/phòng khám do HIS (và timesheet) quản lý; không dùng claim `role` từ IdP |
 | D5 | Admin HIS: SSO **không** bỏ qua 2FA của HIS, trừ khi IdP chứng minh MFA qua claim `amr` chứa `mfa`/`otp`/`hwk` (cấu hình bật/tắt, mặc định tắt) |
-| D6 | Đăng xuất HIS kết thúc phiên HIS; hỗ trợ back-channel logout từ IdP để đăng xuất portal kéo theo HIS |
+| D6 | Single Logout: đăng xuất 1 hệ thống (portal/HIS/TimeSheet) thì đăng xuất tất cả qua IdP (RP-initiated + back-channel). Deploy không được làm toàn bộ user phải đăng nhập lại |
 
 ## 3. Đối tượng
 
