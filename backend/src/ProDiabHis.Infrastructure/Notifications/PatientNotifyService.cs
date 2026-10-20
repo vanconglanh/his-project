@@ -1,4 +1,5 @@
 using Dapper;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.PublicApi;
@@ -78,21 +79,33 @@ public class PatientNotifyService : IPatientNotifyService
 {
     private readonly IEnumerable<INotificationChannel> _channels;
     private readonly Application.Common.IDapperConnectionFactory _db;
+    private readonly IConfiguration _config;
     private readonly ILogger<PatientNotifyService> _logger;
 
     public PatientNotifyService(
         IEnumerable<INotificationChannel> channels,
         Application.Common.IDapperConnectionFactory db,
+        IConfiguration config,
         ILogger<PatientNotifyService> logger)
     {
         _channels = channels;
         _db = db;
+        _config = config;
         _logger = logger;
     }
 
     public async Task NotifyAsync(Guid patientId, int tenantId, string type, string title, string body,
         string? url = null, CancellationToken cancellationToken = default)
     {
+        // Cong tat tong: production tat toi khi go-live (xem PatientNotificationSettings).
+        if (!PatientNotificationSettings.IsEnabled(_config))
+        {
+            _logger.LogInformation(
+                "PatientNotifications dang TAT - bo qua gui thong bao {Type} cho benh nhan {PatientId} (khong gui, khong ghi log)",
+                type, patientId);
+            return;
+        }
+
         using var conn = _db.CreateConnection();
         var prefsJson = await conn.ExecuteScalarAsync<string?>(
             "SELECT notify_prefs_json FROM diab_his_pat_portal_accounts WHERE patient_id = @PatientId AND tenant_id = @TenantId",

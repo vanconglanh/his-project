@@ -102,6 +102,12 @@ Chain chạy 0 lỗi. Không còn file nào lỗi. Duy nhất 1 điểm cần l�
 
 ---
 
+## Migration fix thông báo (9222) - 2026-10-20
+
+- `9222_fix_nti_notifications_id_charid.sql`: sửa shape legacy của `diab_his_nti_notifications` (`id INT`→`CHAR(36)`, bỏ AUTO_INCREMENT; `recipient_user_id` NOT NULL→NULL; `type` VARCHAR(100); `title` VARCHAR(300)). Gốc lỗi: migration 9030 bị skip (guard `has_user_id` sai sau khi 9072 thêm cột `user_id`) nên `id` vẫn INT → code INSERT GUID 36 ký tự báo "Data truncated for column 'id'" → job nhắc bệnh nhân (recall/med/queue) FAILED. Idempotent (kiểm `information_schema` trước mỗi ALTER). Prod bảng rỗng; staging ~5 row legacy giữ nguyên (id INT → chuỗi). Backup DB trước khi áp.
+
+---
+
 ## Prerequisites
 
 - MySQL 8.0+ với charset mặc định `utf8mb4`, collation `utf8mb4_0900_ai_ci`

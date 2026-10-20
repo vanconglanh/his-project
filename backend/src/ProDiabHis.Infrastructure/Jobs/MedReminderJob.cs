@@ -1,8 +1,10 @@
 using System.Data;
 using Dapper;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.PublicApi;
+using ProDiabHis.Infrastructure.Notifications;
 
 namespace ProDiabHis.Infrastructure.Jobs;
 
@@ -16,17 +18,25 @@ public class MedReminderJob
 {
     private readonly IDapperConnectionFactory _db;
     private readonly IPatientNotifyService _notify;
+    private readonly IConfiguration _config;
     private readonly ILogger<MedReminderJob> _logger;
 
-    public MedReminderJob(IDapperConnectionFactory db, IPatientNotifyService notify, ILogger<MedReminderJob> logger)
+    public MedReminderJob(IDapperConnectionFactory db, IPatientNotifyService notify, IConfiguration config, ILogger<MedReminderJob> logger)
     {
         _db = db;
         _notify = notify;
+        _config = config;
         _logger = logger;
     }
 
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
+        if (!PatientNotificationSettings.IsEnabled(_config))
+        {
+            _logger.LogInformation("PatientNotifications dang TAT - bo qua quet nhac uong thuoc.");
+            return;
+        }
+
         _logger.LogInformation("Bat dau quet nhac uong thuoc...");
         using var conn = (IDbConnection)_db.CreateConnection();
 

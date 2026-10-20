@@ -32,6 +32,12 @@ public class AppointmentReminderNotifyJob
 
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
+        if (!ProDiabHis.Infrastructure.Notifications.PatientNotificationSettings.IsEnabled(_config))
+        {
+            _logger.LogInformation("PatientNotifications dang TAT - bo qua nhac lich hen qua SMS/Zalo (khong gui, khong set reminder_sent_at).");
+            return;
+        }
+
         var hours = int.TryParse(_config["Notifications:AppointmentReminderHours"], out var h) && h > 0 ? h : 24;
         _logger.LogInformation("Bat dau quet nhac lich hen qua SMS/Zalo (nguong {Hours}h)...", hours);
 

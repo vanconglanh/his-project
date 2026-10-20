@@ -1,8 +1,10 @@
 using System.Data;
 using Dapper;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.PublicApi;
+using ProDiabHis.Infrastructure.Notifications;
 
 namespace ProDiabHis.Infrastructure.Jobs;
 
@@ -15,17 +17,25 @@ public class QueueTurnNotifyJob
 {
     private readonly IDapperConnectionFactory _db;
     private readonly IPatientNotifyService _notify;
+    private readonly IConfiguration _config;
     private readonly ILogger<QueueTurnNotifyJob> _logger;
 
-    public QueueTurnNotifyJob(IDapperConnectionFactory db, IPatientNotifyService notify, ILogger<QueueTurnNotifyJob> logger)
+    public QueueTurnNotifyJob(IDapperConnectionFactory db, IPatientNotifyService notify, IConfiguration config, ILogger<QueueTurnNotifyJob> logger)
     {
         _db = db;
         _notify = notify;
+        _config = config;
         _logger = logger;
     }
 
     public async Task ExecuteAsync(string roomId, int tenantId, string calledTicketId, CancellationToken ct = default)
     {
+        if (!PatientNotificationSettings.IsEnabled(_config))
+        {
+            _logger.LogInformation("PatientNotifications dang TAT - bo qua thong bao sap den luot phong {RoomId}.", roomId);
+            return;
+        }
+
         using var conn = (IDbConnection)_db.CreateConnection();
 
         var calledTicket = await conn.QueryFirstOrDefaultAsync<(string ticket_no, DateTime ticket_date)>(

@@ -1,8 +1,10 @@
 using System.Data;
 using Dapper;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.PublicApi;
+using ProDiabHis.Infrastructure.Notifications;
 
 namespace ProDiabHis.Infrastructure.Jobs;
 
@@ -16,17 +18,25 @@ public class RecallNotifyJob
 {
     private readonly IDapperConnectionFactory _db;
     private readonly IPatientNotifyService _notify;
+    private readonly IConfiguration _config;
     private readonly ILogger<RecallNotifyJob> _logger;
 
-    public RecallNotifyJob(IDapperConnectionFactory db, IPatientNotifyService notify, ILogger<RecallNotifyJob> logger)
+    public RecallNotifyJob(IDapperConnectionFactory db, IPatientNotifyService notify, IConfiguration config, ILogger<RecallNotifyJob> logger)
     {
         _db = db;
         _notify = notify;
+        _config = config;
         _logger = logger;
     }
 
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
+        if (!PatientNotificationSettings.IsEnabled(_config))
+        {
+            _logger.LogInformation("PatientNotifications dang TAT - bo qua gui nhac tai kham + nhac lich hen (recall van giu PENDING cho nhan vien xem).");
+            return;
+        }
+
         _logger.LogInformation("Bat dau quet nhac tai kham + nhac lich hen...");
         using var conn = (IDbConnection)_db.CreateConnection();
 
