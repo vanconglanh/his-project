@@ -52,6 +52,10 @@ public class CreatePatientRequestValidator : AbstractValidator<CreatePatientRequ
         RuleFor(x => x.Ethnicity).MaximumLength(50).WithMessage("Dân tộc tối đa 50 ký tự")
             .When(x => !string.IsNullOrEmpty(x.Ethnicity));
 
+        RuleFor(x => x.VisitType).Must(PatientVisitTypes.IsValid)
+            .WithMessage("Hình thức đến khám không hợp lệ (FIRST_VISIT, RE_EXAM, RE_EXAM_IN_PACKAGE)")
+            .When(x => !string.IsNullOrEmpty(x.VisitType));
+
         RuleForEach(x => x.Guardians).SetValidator(new GuardianRequestValidator())
             .When(x => x.Guardians is { Count: > 0 });
     }
@@ -106,5 +110,21 @@ public class UpdatePatientRequestValidator : AbstractValidator<UpdatePatientRequ
 
         RuleFor(x => x.Ethnicity).MaximumLength(50).WithMessage("Dân tộc tối đa 50 ký tự")
             .When(x => !string.IsNullOrEmpty(x.Ethnicity));
+
+        RuleFor(x => x.VisitType).Must(PatientVisitTypes.IsValid)
+            .WithMessage("Hình thức đến khám không hợp lệ (FIRST_VISIT, RE_EXAM, RE_EXAM_IN_PACKAGE)")
+            .When(x => !string.IsNullOrEmpty(x.VisitType));
     }
+}
+
+/// <summary>BM-90: Hình thức đến khám của bệnh nhân.</summary>
+public static class PatientVisitTypes
+{
+    public const string FirstVisit = "FIRST_VISIT";            // Khám lần đầu
+    public const string ReExam = "RE_EXAM";                    // Tái khám
+    public const string ReExamInPackage = "RE_EXAM_IN_PACKAGE"; // Tái khám trong gói
+
+    public static readonly string[] All = { FirstVisit, ReExam, ReExamInPackage };
+
+    public static bool IsValid(string? value) => value != null && All.Contains(value);
 }
