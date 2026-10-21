@@ -17,7 +17,9 @@ public class PatientVisitTypeValidatorTests
 
     [Theory]
     [InlineData("FIRST_VISIT")]
-    [InlineData("RE_EXAM")]
+    [InlineData("FOLLOW_UP")]
+    [InlineData("EMERGENCY")]
+    [InlineData("SPECIALIST")]
     [InlineData("RE_EXAM_IN_PACKAGE")]
     [InlineData(null)]
     public void Create_Accepts_Valid_VisitType(string? v) =>
@@ -25,7 +27,9 @@ public class PatientVisitTypeValidatorTests
 
     [Theory]
     [InlineData("FIRST_VISIT")]
-    [InlineData("RE_EXAM")]
+    [InlineData("FOLLOW_UP")]
+    [InlineData("EMERGENCY")]
+    [InlineData("SPECIALIST")]
     [InlineData("RE_EXAM_IN_PACKAGE")]
     [InlineData(null)]
     public void Update_Accepts_Valid_VisitType(string? v) =>

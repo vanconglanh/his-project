@@ -53,7 +53,7 @@ public class CreatePatientRequestValidator : AbstractValidator<CreatePatientRequ
             .When(x => !string.IsNullOrEmpty(x.Ethnicity));
 
         RuleFor(x => x.VisitType).Must(PatientVisitTypes.IsValid)
-            .WithMessage("Hình thức đến khám không hợp lệ (FIRST_VISIT, RE_EXAM, RE_EXAM_IN_PACKAGE)")
+            .WithMessage("Hình thức đến khám không hợp lệ")
             .When(x => !string.IsNullOrEmpty(x.VisitType));
 
         RuleFor(x => x.CustomerSource).Must(CustomerSources.IsValid)
@@ -124,7 +124,7 @@ public class UpdatePatientRequestValidator : AbstractValidator<UpdatePatientRequ
             .When(x => !string.IsNullOrEmpty(x.Ethnicity));
 
         RuleFor(x => x.VisitType).Must(PatientVisitTypes.IsValid)
-            .WithMessage("Hình thức đến khám không hợp lệ (FIRST_VISIT, RE_EXAM, RE_EXAM_IN_PACKAGE)")
+            .WithMessage("Hình thức đến khám không hợp lệ")
             .When(x => !string.IsNullOrEmpty(x.VisitType));
 
         RuleFor(x => x.CustomerSource).Must(CustomerSources.IsValid)
@@ -144,11 +144,14 @@ public class UpdatePatientRequestValidator : AbstractValidator<UpdatePatientRequ
 /// <summary>BM-90: Hình thức đến khám của bệnh nhân.</summary>
 public static class PatientVisitTypes
 {
-    public const string FirstVisit = "FIRST_VISIT";            // Khám lần đầu
-    public const string ReExam = "RE_EXAM";                    // Tái khám
-    public const string ReExamInPackage = "RE_EXAM_IN_PACKAGE"; // Tái khám trong gói
+    // Giá trị khớp danh mục master code group VISIT_TYPE (db/migrations/9035, 9227).
+    public const string FirstVisit = "FIRST_VISIT";             // Khám lần đầu
+    public const string FollowUp = "FOLLOW_UP";                 // Tái khám
+    public const string Emergency = "EMERGENCY";               // Cấp cứu
+    public const string Specialist = "SPECIALIST";             // Khám chuyên khoa
+    public const string ReExamInPackage = "RE_EXAM_IN_PACKAGE"; // Tái khám trong gói (BM-90)
 
-    public static readonly string[] All = { FirstVisit, ReExam, ReExamInPackage };
+    public static readonly string[] All = { FirstVisit, FollowUp, Emergency, Specialist, ReExamInPackage };
 
     public static bool IsValid(string? value) => value != null && All.Contains(value);
 }

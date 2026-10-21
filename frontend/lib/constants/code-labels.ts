@@ -34,7 +34,7 @@ export const PATIENT_TYPE: CodeLabelMap = {
 };
 
 export const VISIT_TYPE: CodeLabelMap = {
-  FIRST_VISIT: "Khám lần đầu", RE_EXAM: "Tái khám", RE_EXAM_IN_PACKAGE: "Tái khám trong gói",
+  FIRST_VISIT: "Khám lần đầu", FOLLOW_UP: "Tái khám", EMERGENCY: "Cấp cứu", SPECIALIST: "Khám chuyên khoa", RE_EXAM_IN_PACKAGE: "Tái khám trong gói",
 };
 
 export const CUSTOMER_SOURCE_LABELS: CodeLabelMap = {
