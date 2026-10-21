@@ -66,6 +66,8 @@ public interface IApplicationDbContext
     DbSet<ServicePackage> ServicePackages { get; }
     DbSet<Domain.Entities.Billing> Billings { get; }
     DbSet<BillingItem> BillingItems { get; }
+    DbSet<Voucher> Vouchers { get; }
+    DbSet<VoucherUsage> VoucherUsages { get; }
     DbSet<Payment> Payments { get; }
     DbSet<QrCode> QrCodes { get; }
     DbSet<EInvoice> EInvoices { get; }

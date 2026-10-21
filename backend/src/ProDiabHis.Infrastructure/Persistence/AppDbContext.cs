@@ -81,6 +81,8 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<ServicePackage> ServicePackages => Set<ServicePackage>();
     public DbSet<BillingEntity> Billings => Set<BillingEntity>();
     public DbSet<BillingItem> BillingItems => Set<BillingItem>();
+    public DbSet<Voucher> Vouchers => Set<Voucher>();
+    public DbSet<VoucherUsage> VoucherUsages => Set<VoucherUsage>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<QrCode> QrCodes => Set<QrCode>();
     public DbSet<EInvoice> EInvoices => Set<EInvoice>();
@@ -266,6 +268,12 @@ public class AppDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<BillingEntity>()
             .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId
                 && (_branchProvider.IgnoreBranchFilter || e.BranchId == null || e.BranchId == _branchProvider.BranchId));
+
+        modelBuilder.Entity<Voucher>()
+            .HasQueryFilter(e => e.DeletedAt == null && e.TenantId == _tenantProvider.TenantId);
+
+        modelBuilder.Entity<VoucherUsage>()
+            .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
 
         modelBuilder.Entity<BillingItem>()
             .HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);

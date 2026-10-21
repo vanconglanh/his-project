@@ -191,6 +191,26 @@ public class BillingsController : ControllerBase
         return Ok(new { data = result.Value });
     }
 
+    /// <summary>BM-95: thu ngan nhap ma voucher de giam gia hoa don nhap (DRAFT). Dung quyen billing.update.</summary>
+    // POST /api/v1/billings/{id}/apply-voucher
+    [HttpPost("{id:guid}/apply-voucher")]
+    [RequirePermission("billing.update")]
+    public async Task<IActionResult> ApplyVoucher(Guid id, [FromBody] ApplyVoucherRequest request, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ApplyVoucherCommand(id, request), ct);
+        if (!result.IsSuccess)
+        {
+            var body = new { error = new { code = result.ErrorCode, message = result.ErrorMessage } };
+            return result.ErrorCode switch
+            {
+                "BILLING_NOT_FOUND" or "VOUCHER_NOT_FOUND" => NotFound(body),
+                "BILLING_ALREADY_FINALIZED" or "VOUCHER_ALREADY_APPLIED" => Conflict(body),
+                _ => BadRequest(body)
+            };
+        }
+        return Ok(new { data = result.Value });
+    }
+
     // GET /api/v1/billings/encounter/{encounterId}
     [HttpGet("encounter/{encounterId:guid}")]
     [RequirePermission("billing.read")]

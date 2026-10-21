@@ -295,3 +295,8 @@ Các cột đã ADD vào bảng cũ (tenant_id, updated_by, deleted_at, v.v.) c�
 
 - `9223_bm91_add_customer_source.sql`: thêm `customer_source VARCHAR(20)`, `customer_source_detail VARCHAR(255)` (NULL) vào `pat_patients` (BM-91 nguồn khách). Idempotent.
 - `9224_bm94_seed_exam_services.sql`: thêm `pat_patients.exam_service_id CHAR(36) NULL` + seed dịch vụ `KBTH` (Khám thường 350.000đ), `KBCG` (Khám chuyên gia 700.000đ) category EXAM cho mọi tenant (không đụng KB001-003). Idempotent. Áp SAU 9223.
+
+## Migration Voucher (9225, 9226) - 2026-10-21
+
+- `9225_bm95_voucher.sql`: tạo `diab_his_bil_vouchers` (UNIQUE tenant_id+code) và `diab_his_bil_voucher_usages` (BM-95). Idempotent.
+- `9226_bm95_voucher_permissions.sql`: seed quyền `voucher.read/write/delete`, gán admin (cả 3) và Kế toán (`voucher.read`). Áp SAU 9225.
