@@ -10,16 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import type { InviteUserRequest } from "@/lib/api/types";
-
-// Role code theo seed DB (9001-series): snake_case thường
-const ROLES = [
-  { code: "admin", label: "Quản trị viên" },
-  { code: "bac_si", label: "Bác sĩ" },
-  { code: "le_tan", label: "Lễ tân" },
-  { code: "duoc_si", label: "Dược sĩ" },
-  { code: "ke_toan", label: "Kế toán" },
-  { code: "ky_thuat_vien", label: "Kỹ thuật viên" },
-];
+import { useRoles } from "@/lib/hooks/use-roles";
 
 const schema = z.object({
   email: z.string().email("Email không hợp lệ"),
@@ -42,6 +33,10 @@ interface InviteUserFormProps {
 
 export function InviteUserForm({ formId, onSubmit, isLoading, hideActions, onCancel }: InviteUserFormProps) {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  // BM-96: lấy danh sách vai trò từ API (gồm cả Điều dưỡng và vai trò tự tạo),
+  // thay vì danh sách cứng vốn thiếu role mới tạo ở Tab Vai trò.
+  const { data: roles, isLoading: rolesLoading } = useRoles();
+  const roleOptions = (roles ?? []).map((r) => ({ code: r.code, label: r.name }));
 
   const {
     register,
@@ -86,20 +81,26 @@ export function InviteUserForm({ formId, onSubmit, isLoading, hideActions, onCan
 
       <div className="space-y-2">
         <Label>Vai trò *</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {ROLES.map((role) => (
-            <div key={role.code} className="flex items-center gap-2">
-              <Checkbox
-                id={`role-${role.code}`}
-                checked={selectedRoles.includes(role.code)}
-                onCheckedChange={() => toggleRole(role.code)}
-              />
-              <Label htmlFor={`role-${role.code}`} className="font-normal cursor-pointer">
-                {role.label}
-              </Label>
-            </div>
-          ))}
-        </div>
+        {rolesLoading ? (
+          <p className="text-xs text-muted-foreground">Đang tải danh sách vai trò...</p>
+        ) : roleOptions.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Chưa có vai trò nào. Hãy tạo vai trò ở mục Vai trò trước.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {roleOptions.map((role) => (
+              <div key={role.code} className="flex items-center gap-2">
+                <Checkbox
+                  id={`role-${role.code}`}
+                  checked={selectedRoles.includes(role.code)}
+                  onCheckedChange={() => toggleRole(role.code)}
+                />
+                <Label htmlFor={`role-${role.code}`} className="font-normal cursor-pointer">
+                  {role.label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        )}
         {errors.role_codes && (
           <p className="text-xs text-destructive">{errors.role_codes.message}</p>
         )}
