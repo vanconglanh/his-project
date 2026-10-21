@@ -31,9 +31,8 @@ import { toast } from "sonner";
 
 // Tab định nghĩa
 const EDITOR_TABS = [
-  { id: "general", label: "Thông tin chung", fields: ["full_name", "gender", "date_of_birth", "phone", "email", "id_number", "blood_type", "occupation", "ethnicity", "province_code", "district_code", "ward_code", "street", "id_card_issued_date", "id_card_issued_place", "nationality", "patient_type", "marital_status", "visit_type"] as (keyof PatientFormValues)[] },
+  { id: "general", label: "Thông tin chung", fields: ["full_name", "gender", "date_of_birth", "phone", "email", "id_number", "blood_type", "occupation", "ethnicity", "province_code", "district_code", "ward_code", "street", "id_card_issued_date", "id_card_issued_place", "nationality", "patient_type", "marital_status", "visit_type", "guardian_full_name", "guardian_relationship", "guardian_phone", "guardian_id_number"] as (keyof PatientFormValues)[] },
   { id: "bhyt", label: "Bảo hiểm y tế", fields: [] as (keyof PatientFormValues)[] },
-  { id: "emergency", label: "Liên hệ khẩn cấp", fields: [] as (keyof PatientFormValues)[] },
   { id: "allergies", label: "Dị ứng", fields: [] as (keyof PatientFormValues)[] },
 ];
 
@@ -49,7 +48,21 @@ export interface PatientEditorLayoutProps {
 }
 
 function buildPayload(values: PatientFormValues): CreatePatientRequest {
-  const { province_code, district_code, ward_code, street, email, ...rest } = values;
+  const {
+    province_code, district_code, ward_code, street, email,
+    guardian_full_name, guardian_relationship, guardian_phone, guardian_id_number,
+    ...rest
+  } = values;
+  // BM-89: chỉ gửi guardians khi có nhập người liên hệ (không bắt buộc)
+  const guardians =
+    guardian_full_name?.trim() && guardian_phone?.trim()
+      ? [{
+          full_name: guardian_full_name.trim(),
+          relationship: guardian_relationship || "OTHER",
+          phone: guardian_phone.trim(),
+          id_number: guardian_id_number?.trim() || undefined,
+        }]
+      : undefined;
   // Chuẩn hoá: ô optional bỏ trống -> undefined (không gửi chuỗi rỗng "" khiến BE parse date/field lỗi 400)
   const emptyToUndef = <T,>(v: T): T | undefined =>
     typeof v === "string" && v.trim() === "" ? undefined : v;
@@ -59,6 +72,7 @@ function buildPayload(values: PatientFormValues): CreatePatientRequest {
   return {
     ...normalized,
     email: email || undefined,
+    guardians,
     address:
       province_code || district_code || ward_code || street
         ? { province_code, district_code, ward_code, street }
@@ -394,18 +408,17 @@ export function PatientEditorLayout({
                     setValue={setValue}
                     autoFocus
                   />
+                  <PatientEmergencyTab
+                    register={register}
+                    errors={errors}
+                    watch={watch}
+                    setValue={setValue}
+                    mode={mode}
+                  />
                 </div>
               )}
               {activeTab === "bhyt" && (
                 <PatientBhytTab
-                  register={register}
-                  errors={errors}
-                  watch={watch}
-                  setValue={setValue}
-                />
-              )}
-              {activeTab === "emergency" && (
-                <PatientEmergencyTab
                   register={register}
                   errors={errors}
                   watch={watch}

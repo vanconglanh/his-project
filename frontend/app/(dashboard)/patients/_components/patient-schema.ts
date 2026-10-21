@@ -13,7 +13,7 @@ export type PatientType = string;
 export type MaritalStatus = string;
 export type VisitType = string;
 
-export const patientSchema = z.object({
+const patientBaseSchema = z.object({
   full_name: z.string().min(2, "Họ tên tối thiểu 2 ký tự").max(200),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   date_of_birth: z
@@ -66,6 +66,36 @@ export const patientSchema = z.object({
   patient_type: z.string().min(1, "Vui lòng chọn đối tượng").optional().default("SERVICE"),
   marital_status: z.string().optional(),
   visit_type: z.string().min(1, "Vui lòng chọn loại khám").optional().default("FIRST_VISIT"),
+  // BM-89: liên hệ khẩn cấp / người giám hộ (không bắt buộc)
+  guardian_full_name: z.string().max(200).optional(),
+  guardian_relationship: z.string().optional(),
+  guardian_phone: z
+    .string()
+    .optional()
+    .refine((v) => !v || PHONE_VN.test(v), { message: "Số điện thoại VN không hợp lệ" }),
+  guardian_id_number: z
+    .string()
+    .optional()
+    .refine((v) => !v || ID_NUMBER.test(v), { message: "CMND 9 số hoặc CCCD 12 số" }),
+});
+
+const filled = (v?: string) => !!v && v.trim() !== "";
+
+export const patientSchema = patientBaseSchema.superRefine((v, ctx) => {
+  // BM-89: chỉ khi đã nhập một phần thông tin người liên hệ thì cần đủ họ tên + số điện thoại
+  const anyGuardian =
+    filled(v.guardian_full_name) ||
+    filled(v.guardian_phone) ||
+    filled(v.guardian_relationship) ||
+    filled(v.guardian_id_number);
+  if (anyGuardian) {
+    if (!filled(v.guardian_full_name)) {
+      ctx.addIssue({ code: "custom", path: ["guardian_full_name"], message: "Vui lòng nhập họ tên người liên hệ" });
+    }
+    if (!filled(v.guardian_phone)) {
+      ctx.addIssue({ code: "custom", path: ["guardian_phone"], message: "Vui lòng nhập số điện thoại người liên hệ" });
+    }
+  }
 });
 
 export type PatientFormValues = z.infer<typeof patientSchema>;
