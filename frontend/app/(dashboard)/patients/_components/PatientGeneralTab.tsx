@@ -18,6 +18,7 @@ import {
 import type { PatientFormValues } from "./patient-schema";
 import { useCodeItems } from "@/lib/hooks/use-codes";
 import {
+  CUSTOMER_SOURCE_LABELS,
   GENDER,
   BLOOD_TYPE,
   NATIONALITY,
@@ -54,6 +55,7 @@ export function PatientGeneralTab({
 }: PatientGeneralTabProps) {
   const dob = watch("date_of_birth");
   const age = computeAge(dob);
+  const customerSource = watch("customer_source");
 
   // Danh muc DB-driven (API /codes/{groupId}), fallback ve hang so code-labels.ts
   // khi dang tai hoac loi (offline/SSR) de UI khong vo.
@@ -354,6 +356,48 @@ export function PatientGeneralTab({
               </SelectContent>
             </Select>
           </div>
+
+          {/* BM-91: Nguồn khách */}
+          <div className="space-y-1">
+            <Label htmlFor="customer_source">Nguồn khách</Label>
+            <Select
+              items={CUSTOMER_SOURCE_LABELS}
+              value={customerSource ?? ""}
+              onValueChange={(v) => {
+                setValue("customer_source", (v || undefined) as PatientFormValues["customer_source"], { shouldDirty: true });
+                if (v !== "REFERRAL" && v !== "B2B") {
+                  setValue("customer_source_detail", null, { shouldDirty: true });
+                }
+              }}
+            >
+              <SelectTrigger id="customer_source">
+                <SelectValue placeholder="Chọn nguồn khách" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CUSTOMER_SOURCE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(customerSource === "REFERRAL" || customerSource === "B2B") && (
+            <div className="space-y-1">
+              <Label htmlFor="customer_source_detail">
+                {customerSource === "REFERRAL" ? "Mã/Tên người giới thiệu" : "Tên công ty"}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="customer_source_detail"
+                {...register("customer_source_detail")}
+                placeholder={customerSource === "REFERRAL" ? "Mã hoặc tên người giới thiệu" : "Tên công ty đối tác"}
+                aria-invalid={!!errors.customer_source_detail}
+              />
+              {errors.customer_source_detail && (
+                <p className="text-xs text-destructive">{errors.customer_source_detail.message}</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

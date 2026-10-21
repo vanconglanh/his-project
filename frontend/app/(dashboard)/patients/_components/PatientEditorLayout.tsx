@@ -31,7 +31,7 @@ import { toast } from "sonner";
 
 // Tab định nghĩa
 const EDITOR_TABS = [
-  { id: "general", label: "Thông tin chung", fields: ["full_name", "gender", "date_of_birth", "phone", "email", "id_number", "blood_type", "occupation", "ethnicity", "province_code", "district_code", "ward_code", "street", "id_card_issued_date", "id_card_issued_place", "nationality", "patient_type", "marital_status", "visit_type", "guardian_full_name", "guardian_relationship", "guardian_phone", "guardian_id_number"] as (keyof PatientFormValues)[] },
+  { id: "general", label: "Thông tin chung", fields: ["full_name", "gender", "date_of_birth", "phone", "email", "id_number", "blood_type", "occupation", "ethnicity", "province_code", "district_code", "ward_code", "street", "id_card_issued_date", "id_card_issued_place", "nationality", "patient_type", "marital_status", "visit_type", "customer_source", "customer_source_detail", "guardian_full_name", "guardian_relationship", "guardian_phone", "guardian_id_number"] as (keyof PatientFormValues)[] },
   { id: "bhyt", label: "Bảo hiểm y tế", fields: [] as (keyof PatientFormValues)[] },
   { id: "allergies", label: "Dị ứng", fields: [] as (keyof PatientFormValues)[] },
 ];
@@ -49,7 +49,7 @@ export interface PatientEditorLayoutProps {
 
 function buildPayload(values: PatientFormValues): CreatePatientRequest {
   const {
-    province_code, district_code, ward_code, street, email,
+    province_code, district_code, ward_code, street, email, customer_source_detail,
     guardian_full_name, guardian_relationship, guardian_phone, guardian_id_number,
     ...rest
   } = values;
@@ -72,6 +72,11 @@ function buildPayload(values: PatientFormValues): CreatePatientRequest {
   return {
     ...normalized,
     email: email || undefined,
+    // BM-91: chỉ REFERRAL/B2B mới có detail; còn lại gửi null
+    customer_source_detail:
+      rest.customer_source === "REFERRAL" || rest.customer_source === "B2B"
+        ? customer_source_detail?.trim() || null
+        : null,
     guardians,
     address:
       province_code || district_code || ward_code || street
@@ -102,6 +107,8 @@ function buildDefaultValues(src?: Partial<PatientResponse>): Partial<PatientForm
     patient_type: src.patient_type ?? "SERVICE",
     marital_status: src.marital_status ?? undefined,
     visit_type: src.visit_type ?? "FIRST_VISIT",
+    customer_source: src.customer_source ?? undefined,
+    customer_source_detail: src.customer_source_detail ?? "",
   };
 }
 

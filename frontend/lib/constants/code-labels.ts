@@ -37,6 +37,10 @@ export const VISIT_TYPE: CodeLabelMap = {
   FIRST_VISIT: "Khám lần đầu", RE_EXAM: "Tái khám", RE_EXAM_IN_PACKAGE: "Tái khám trong gói",
 };
 
+export const CUSTOMER_SOURCE_LABELS: CodeLabelMap = {
+  WALK_IN: "Vãng lai", REFERRAL: "Giới thiệu", B2B: "B2B", MKT: "MKT",
+};
+
 export const RELATIONSHIP: CodeLabelMap = {
   FATHER: "Cha", MOTHER: "Mẹ", SPOUSE: "Vợ/Chồng", CHILD: "Con", SIBLING: "Anh/Chị/Em", OTHER: "Khác",
 };

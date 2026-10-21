@@ -315,9 +315,14 @@ export interface PatientResponse {
   patient_type?: PatientType;
   marital_status?: MaritalStatus | null;
   visit_type?: VisitType | null;
+  customer_source?: CustomerSource | null;
+  customer_source_detail?: string | null;
+  exam_service_id?: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type CustomerSource = "WALK_IN" | "REFERRAL" | "B2B" | "MKT";
 
 export interface GuardianRequest {
   full_name: string;
@@ -343,6 +348,9 @@ export interface CreatePatientRequest {
   patient_type?: PatientType;
   marital_status?: MaritalStatus;
   visit_type?: VisitType;
+  customer_source?: CustomerSource;
+  customer_source_detail?: string | null;
+  exam_service_id?: string | null;
   guardians?: GuardianRequest[];
   confirm_create_despite_duplicate?: boolean;
 }

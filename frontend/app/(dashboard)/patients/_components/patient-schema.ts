@@ -9,6 +9,8 @@ export const PATIENT_TYPES = ["SERVICE", "BHYT", "FREE", "CONTRACT"] as const;
 export const MARITAL_STATUSES = ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "OTHER"] as const;
 export const VISIT_TYPES = ["FIRST_VISIT", "RE_EXAM", "RE_EXAM_IN_PACKAGE"] as const;
 
+export const CUSTOMER_SOURCES = ["WALK_IN", "REFERRAL", "B2B", "MKT"] as const;
+
 export type PatientType = string;
 export type MaritalStatus = string;
 export type VisitType = string;
@@ -66,6 +68,9 @@ const patientBaseSchema = z.object({
   patient_type: z.string().min(1, "Vui lòng chọn đối tượng").optional().default("SERVICE"),
   marital_status: z.string().optional(),
   visit_type: z.string().min(1, "Vui lòng chọn hình thức đến khám").optional().default("FIRST_VISIT"),
+  // BM-91: nguồn khách
+  customer_source: z.enum(CUSTOMER_SOURCES).optional(),
+  customer_source_detail: z.string().max(255).optional().nullable(),
   // BM-89: liên hệ khẩn cấp / người giám hộ (không bắt buộc)
   guardian_full_name: z.string().max(200).optional(),
   guardian_relationship: z.string().optional(),
@@ -82,6 +87,14 @@ const patientBaseSchema = z.object({
 const filled = (v?: string) => !!v && v.trim() !== "";
 
 export const patientSchema = patientBaseSchema.superRefine((v, ctx) => {
+  // BM-91: REFERRAL/B2B bắt buộc nhập chi tiết nguồn khách
+  if ((v.customer_source === "REFERRAL" || v.customer_source === "B2B") && !filled(v.customer_source_detail ?? undefined)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["customer_source_detail"],
+      message: v.customer_source === "REFERRAL" ? "Vui lòng nhập mã/tên người giới thiệu" : "Vui lòng nhập tên công ty",
+    });
+  }
   // BM-89: chỉ khi đã nhập một phần thông tin người liên hệ thì cần đủ họ tên + số điện thoại
   const anyGuardian =
     filled(v.guardian_full_name) ||
