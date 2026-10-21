@@ -127,6 +127,7 @@
     "tenants": "Clinics",
     "branches": "Branches",
     "rooms": "Exam rooms",
+    "vouchers": "Vouchers",
     "users": "Users",
     "roles": "Roles",
     "audit": "Audit Log",

@@ -26,7 +26,8 @@ import {
   ShieldCheck,
   QrCode,
 } from "lucide-react";
-import { useBilling, useFinalizeBilling, useVoidBilling, useApplyBhyt } from "@/lib/hooks/use-billing";
+import { useBilling, useFinalizeBilling, useVoidBilling, useApplyBhyt, useApplyVoucher } from "@/lib/hooks/use-billing";
+import { Input } from "@/components/ui/input";
 import { usePayments } from "@/lib/hooks/use-payments";
 import { useEInvoices } from "@/lib/hooks/use-einvoice";
 import { BillingStatusBadge } from "@/components/domain/BillingStatusBadge";
@@ -60,6 +61,8 @@ export function BillingDetailClient({ id }: Props) {
   const finalize = useFinalizeBilling();
   const voidBilling = useVoidBilling();
   const applyBhyt = useApplyBhyt();
+  const applyVoucher = useApplyVoucher();
+  const [voucherCode, setVoucherCode] = useState("");
   const { has } = usePermissions();
 
   const payments = paymentsData?.data ?? [];
@@ -93,6 +96,28 @@ export function BillingDetailClient({ id }: Props) {
         default:
           toast.error("Xác nhận hoá đơn thất bại, vui lòng thử lại hoặc liên hệ kỹ thuật");
       }
+    }
+  }
+
+  async function handleApplyVoucher() {
+    const code = voucherCode.trim();
+    if (!code) return;
+    try {
+      await applyVoucher.mutateAsync({ id, code });
+      toast.success("Đã áp mã voucher");
+      setVoucherCode("");
+    } catch (err: unknown) {
+      const c = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      const map: Record<string, string> = {
+        VOUCHER_NOT_FOUND: "Không tìm thấy mã voucher",
+        VOUCHER_EXPIRED: "Mã voucher đã hết hạn hoặc chưa đến ngày hiệu lực",
+        VOUCHER_USAGE_EXCEEDED: "Mã voucher đã hết lượt sử dụng",
+        VOUCHER_INACTIVE: "Mã voucher đang ngừng hoạt động",
+        VOUCHER_ALREADY_APPLIED: "Hoá đơn này đã áp mã voucher",
+        VOUCHER_NOT_APPLICABLE: "Mã voucher không áp dụng được cho các mục trong hoá đơn",
+        PERMISSION_DENIED: "Bạn không có quyền áp mã voucher",
+      };
+      toast.error((c && map[c]) || "Áp mã voucher thất bại, vui lòng thử lại");
     }
   }
 
@@ -297,6 +322,40 @@ export function BillingDetailClient({ id }: Props) {
                   <ShieldCheck className="mr-2 h-4 w-4" />
                   Áp dụng BHYT
                 </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* BM-95: Voucher — chỉ áp được khi hoá đơn còn DRAFT */}
+          {billing.status === "DRAFT" && has("billing.update") && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Mã voucher</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form
+                  className="flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void handleApplyVoucher();
+                  }}
+                >
+                  <Input
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                    placeholder="Nhập mã voucher"
+                    aria-label="Mã voucher"
+                    className="h-11 uppercase"
+                  />
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    className="h-11"
+                    disabled={applyVoucher.isPending || !voucherCode.trim()}
+                  >
+                    Áp dụng
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           )}

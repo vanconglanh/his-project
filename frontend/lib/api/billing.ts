@@ -176,7 +176,13 @@ export async function applyBhyt(id: string, body: {
   return data.data;
 }
 
-/** BUG-F01 — liệt kê lượt khám có dịch vụ nhưng CHƯA lập hoá đơn, phục vụ màn "Hàng chờ thu ngân". */
+/** BM-95 — áp mã voucher vào hoá đơn DRAFT; trả hoá đơn đã cập nhật. */
+export async function applyVoucher(id: string, code: string): Promise<BillingResponse> {
+  const { data } = await apiClient.post<{ data: BillingResponse }>(`/billings/${id}/apply-voucher`, { code });
+  return data.data;
+}
+
+/** BUG-F01— liệt kê lượt khám có dịch vụ nhưng CHƯA lập hoá đơn, phục vụ màn "Hàng chờ thu ngân". */
 export async function listPendingEncounters(params?: PendingEncounterListParams): Promise<PendingEncounterListResponse> {
   const { data } = await apiClient.get<PendingEncounterListResponse>("/billings/pending-encounters", { params });
   return data;

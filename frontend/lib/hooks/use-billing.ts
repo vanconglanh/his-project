@@ -9,6 +9,7 @@ import {
   finalizeBilling,
   voidBilling,
   applyBhyt,
+  applyVoucher,
   getBillingsByEncounter,
   generateDynamicBillingQr,
   listPendingEncounters,
@@ -129,6 +130,17 @@ export function useVoidBilling() {
 export function useGenerateDynamicBillingQr() {
   return useMutation({
     mutationFn: (id: string) => generateDynamicBillingQr(id),
+  });
+}
+
+export function useApplyVoucher() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, code }: { id: string; code: string }) => applyVoucher(id, code),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: BILLING_KEYS.detail(data.id) });
+      qc.invalidateQueries({ queryKey: BILLING_KEYS.all });
+    },
   });
 }
 

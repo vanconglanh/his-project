@@ -34,6 +34,7 @@ import {
   ListTree,
   SlidersHorizontal,
   DoorOpen,
+  Ticket,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -308,6 +309,13 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         icon: DoorOpen,
         // BM-93: RoomsController enforce room.read/room.write/room.delete that su
         permissions: ["room.read"],
+      },
+      {
+        href: "/admin/vouchers",
+        labelKey: "vouchers",
+        icon: Ticket,
+        // BM-95: VouchersController enforce voucher.read/write/delete that su
+        permissions: ["voucher.read"],
       },
       {
         href: "/admin/users",
