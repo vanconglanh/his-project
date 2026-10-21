@@ -140,3 +140,29 @@ export async function resumeTicket(
   );
   return data.data;
 }
+
+// ─── BM-92: Chỉ định dịch vụ không khám ──────────────────────────────────────
+
+export interface ServiceOnlyRequest {
+  patientId: string;
+  serviceIds: string[];
+  servicePackageIds: string[];
+  note?: string;
+  externalFileIds?: string[];
+}
+
+export interface ServiceOnlyResult {
+  billingId: string;
+  billNo: string;
+  itemCount: number;
+  patientPayable: number;
+}
+
+/** Tạo hoá đơn nháp cho dịch vụ không cần lượt khám bác sĩ. */
+export async function createServiceOnly(body: ServiceOnlyRequest): Promise<ServiceOnlyResult> {
+  const { data } = await apiClient.post<ApiResponse<ServiceOnlyResult>>(
+    "/reception/service-only",
+    body
+  );
+  return data.data;
+}

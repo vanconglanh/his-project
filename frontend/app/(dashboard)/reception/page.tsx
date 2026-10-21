@@ -3,8 +3,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { UserPlus, Users, Activity, CheckCircle, XCircle } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { UserPlus, ClipboardList, Users, Activity, CheckCircle, XCircle } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { ServiceOnlyDialog } from "@/components/domain/ServiceOnlyDialog";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,6 +51,8 @@ export default function ReceptionPage() {
   const { roles } = usePermissions();
   // BM-33: lich hen CONFIRMED duoc chon "Check-in" tu danh sach -> prefill vao form tiep don ben trai.
   const [prefillAppointment, setPrefillAppointment] = useState<PrefillAppointment | null>(null);
+
+  const [serviceOnlyOpen, setServiceOnlyOpen] = useState(false);
 
   const handleCheckInFromAppointment = (appt: AppointmentTodayResponse) => {
     if (!appt.patient_ref) return;
@@ -111,15 +114,26 @@ export default function ReceptionPage() {
         }
         actions={
           !isNursing && (
-            <Link
-              href="/patients/new?returnTo=/reception"
-              className={cn(buttonVariants({ variant: "default" }), "gap-2")}
-              data-tour="reception-add-patient"
-            >
-              <UserPlus className="h-4 w-4" />
-              Thêm bệnh nhân
-              <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => setServiceOnlyOpen(true)}
+              >
+                <ClipboardList className="h-4 w-4" />
+                Không khám
+              </Button>
+              <Link
+                href="/patients/new?returnTo=/reception"
+                className={cn(buttonVariants({ variant: "default" }), "gap-2")}
+                data-tour="reception-add-patient"
+              >
+                <UserPlus className="h-4 w-4" />
+                Thêm bệnh nhân
+                <kbd className="ml-1 text-xs opacity-60 border rounded px-1 py-0.5">F2</kbd>
+              </Link>
+            </div>
           )
         }
       />
@@ -173,6 +187,7 @@ export default function ReceptionPage() {
         </div>
       </div>
 
+      <ServiceOnlyDialog open={serviceOnlyOpen} onOpenChange={setServiceOnlyOpen} />
     </div>
   );
 }

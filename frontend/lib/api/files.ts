@@ -1,7 +1,7 @@
 import apiClient from "./client";
 import type { ApiResponse, FileUploadResponse } from "./types";
 
-export type FileCategory = "AVATAR" | "CLS" | "CONSENT" | "EMR_ATTACHMENT";
+export type FileCategory = "AVATAR" | "CLS" | "EXTERNAL_CLS" | "CONSENT" | "EMR_ATTACHMENT";
 
 export async function uploadFile(file: File, category?: FileCategory): Promise<FileUploadResponse> {
   const form = new FormData();
