@@ -61,6 +61,16 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
     setStructuredValues((prev) => ({ ...prev, [key]: value }));
   }, []);
 
+  // Bệnh án đã ký / đã lưu trước đó: LUÔN render theo schema_snapshot của
+  // chính bản ghi đó, không đọc lại structured_json hiện tại của template
+  // (§5.8.2 — nguyên tắc bắt buộc, tránh sai lệch nội dung sau khi ký).
+  const activeSchema = useMemo(() => {
+    if (pickedTemplateThisSession && !isSigned) {
+      return selectedTemplateSchema;
+    }
+    return emr?.schema_snapshot ?? null;
+  }, [pickedTemplateThisSession, isSigned, selectedTemplateSchema, emr?.schema_snapshot]);
+
   // BM-64: validate trường required trước khi lưu; chỉ validate khi có schema
   const handleBeforeSave = useCallback((): boolean => {
     if (!activeSchema || activeSchema.length === 0) return true;
@@ -71,16 +81,6 @@ export function EmrTabPanel({ encounterId, canEdit }: Props) {
     }
     return true;
   }, [activeSchema, structuredValues]);
-
-  // Bệnh án đã ký / đã lưu trước đó: LUÔN render theo schema_snapshot của
-  // chính bản ghi đó, không đọc lại structured_json hiện tại của template
-  // (§5.8.2 — nguyên tắc bắt buộc, tránh sai lệch nội dung sau khi ký).
-  const activeSchema = useMemo(() => {
-    if (pickedTemplateThisSession && !isSigned) {
-      return selectedTemplateSchema;
-    }
-    return emr?.schema_snapshot ?? null;
-  }, [pickedTemplateThisSession, isSigned, selectedTemplateSchema, emr?.schema_snapshot]);
 
   const showLegacyNotice = isSigned && !emr?.schema_snapshot;
 
