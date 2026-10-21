@@ -330,9 +330,9 @@ export function PatientGeneralTab({
             </Select>
           </div>
 
-          {/* Loại khám */}
+          {/* BM-90: Hình thức đến khám */}
           <div className="space-y-1">
-            <Label htmlFor="visit_type">Loại khám</Label>
+            <Label htmlFor="visit_type">Hình thức đến khám</Label>
             <Select
               items={visitTypeItems}
               value={watch("visit_type") ?? "FIRST_VISIT"}
@@ -345,7 +345,7 @@ export function PatientGeneralTab({
               }
             >
               <SelectTrigger id="visit_type">
-                <SelectValue placeholder="Chọn loại khám" />
+                <SelectValue placeholder="Chọn hình thức đến khám" />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(visitTypeItems).map(([value, label]) => (

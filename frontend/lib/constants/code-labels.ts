@@ -34,7 +34,7 @@ export const PATIENT_TYPE: CodeLabelMap = {
 };
 
 export const VISIT_TYPE: CodeLabelMap = {
-  FIRST_VISIT: "Khám lần đầu", FOLLOW_UP: "Tái khám", EMERGENCY: "Cấp cứu", SPECIALIST: "Khám chuyên khoa",
+  FIRST_VISIT: "Khám lần đầu", RE_EXAM: "Tái khám", RE_EXAM_IN_PACKAGE: "Tái khám trong gói",
 };
 
 export const RELATIONSHIP: CodeLabelMap = {
@@ -133,7 +133,7 @@ export const CODE_GROUPS: Record<string, { name: string; items: CodeLabelMap }> 
   NATIONALITY: { name: "Quốc tịch", items: NATIONALITY },
   MARITAL_STATUS: { name: "Tình trạng hôn nhân", items: MARITAL_STATUS },
   PATIENT_TYPE: { name: "Đối tượng bệnh nhân", items: PATIENT_TYPE },
-  VISIT_TYPE: { name: "Loại khám (tiếp đón)", items: VISIT_TYPE },
+  VISIT_TYPE: { name: "Hình thức đến khám", items: VISIT_TYPE },
   RELATIONSHIP: { name: "Quan hệ liên hệ", items: RELATIONSHIP },
   ENCOUNTER_TYPE: { name: "Loại lượt khám", items: ENCOUNTER_TYPE },
   ENCOUNTER_STATUS: { name: "Trạng thái lượt khám", items: ENCOUNTER_STATUS },

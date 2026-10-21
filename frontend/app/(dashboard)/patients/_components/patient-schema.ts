@@ -7,7 +7,7 @@ const ID_NUMBER = /^\d{9}$|^\d{12}$/;
 // Không còn dùng làm z.enum() chặn giá trị — BE là nguồn sự thật cho danh mục.
 export const PATIENT_TYPES = ["SERVICE", "BHYT", "FREE", "CONTRACT"] as const;
 export const MARITAL_STATUSES = ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "OTHER"] as const;
-export const VISIT_TYPES = ["FIRST_VISIT", "FOLLOW_UP", "EMERGENCY", "SPECIALIST"] as const;
+export const VISIT_TYPES = ["FIRST_VISIT", "RE_EXAM", "RE_EXAM_IN_PACKAGE"] as const;
 
 export type PatientType = string;
 export type MaritalStatus = string;
@@ -65,7 +65,7 @@ const patientBaseSchema = z.object({
   nationality: z.string().optional().default("VN"),
   patient_type: z.string().min(1, "Vui lòng chọn đối tượng").optional().default("SERVICE"),
   marital_status: z.string().optional(),
-  visit_type: z.string().min(1, "Vui lòng chọn loại khám").optional().default("FIRST_VISIT"),
+  visit_type: z.string().min(1, "Vui lòng chọn hình thức đến khám").optional().default("FIRST_VISIT"),
   // BM-89: liên hệ khẩn cấp / người giám hộ (không bắt buộc)
   guardian_full_name: z.string().max(200).optional(),
   guardian_relationship: z.string().optional(),
