@@ -39,6 +39,8 @@ public static class PatientEntityMapper
             Nationality: p.Nationality,
             PatientType: p.PatientType,
             MaritalStatus: p.MaritalStatus,
-            VisitType: p.VisitType);
+            VisitType: p.VisitType,
+            CustomerSource: p.CustomerSource,
+            CustomerSourceDetail: p.CustomerSourceDetail);
     }
 }

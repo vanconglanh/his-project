@@ -142,6 +142,8 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
             PatientType = req.PatientType,
             MaritalStatus = req.MaritalStatus,
             VisitType = req.VisitType,
+            CustomerSource = string.IsNullOrWhiteSpace(req.CustomerSource) ? null : req.CustomerSource,
+            CustomerSourceDetail = string.IsNullOrWhiteSpace(req.CustomerSourceDetail) ? null : req.CustomerSourceDetail.Trim(),
             CreatedAt = now,
             CreatedBy = _currentUser.UserId,
             UpdatedAt = now
@@ -239,6 +241,11 @@ public class UpdatePatientCommandHandler : IRequestHandler<UpdatePatientCommand,
         if (!string.IsNullOrEmpty(req.PatientType)) patient.PatientType = req.PatientType;
         if (req.MaritalStatus != null) patient.MaritalStatus = req.MaritalStatus;
         if (req.VisitType != null) patient.VisitType = req.VisitType;
+        if (req.CustomerSource != null)
+        {
+            patient.CustomerSource = string.IsNullOrWhiteSpace(req.CustomerSource) ? null : req.CustomerSource;
+            patient.CustomerSourceDetail = string.IsNullOrWhiteSpace(req.CustomerSourceDetail) ? null : req.CustomerSourceDetail.Trim();
+        }
         patient.UpdatedBy = _currentUser.UserId;
 
         await _db.SaveChangesAsync(cancellationToken);

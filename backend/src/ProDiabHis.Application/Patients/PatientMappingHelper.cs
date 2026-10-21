@@ -108,6 +108,8 @@ public static class PatientMappingHelper
             Nationality: (string?)row.nationality ?? "VN",
             PatientType: (string?)row.patient_type ?? "SERVICE",
             MaritalStatus: (string?)row.marital_status,
-            VisitType: (string?)row.visit_type);
+            VisitType: (string?)row.visit_type,
+            CustomerSource: (string?)row.customer_source,
+            CustomerSourceDetail: (string?)row.customer_source_detail);
     }
 }

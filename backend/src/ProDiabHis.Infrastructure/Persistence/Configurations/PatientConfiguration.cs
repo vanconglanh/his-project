@@ -57,6 +57,8 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.Property(e => e.PatientType).HasColumnName("patient_type").HasMaxLength(20).HasDefaultValue("SERVICE");
         builder.Property(e => e.MaritalStatus).HasColumnName("marital_status").HasMaxLength(20);
         builder.Property(e => e.VisitType).HasColumnName("visit_type").HasMaxLength(20);
+        builder.Property(e => e.CustomerSource).HasColumnName("customer_source").HasMaxLength(20);
+        builder.Property(e => e.CustomerSourceDetail).HasColumnName("customer_source_detail").HasMaxLength(255);
         builder.Property(e => e.CreatedAt).HasColumnName("created_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(36);
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");

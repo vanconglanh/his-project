@@ -56,6 +56,18 @@ public class CreatePatientRequestValidator : AbstractValidator<CreatePatientRequ
             .WithMessage("Hình thức đến khám không hợp lệ (FIRST_VISIT, RE_EXAM, RE_EXAM_IN_PACKAGE)")
             .When(x => !string.IsNullOrEmpty(x.VisitType));
 
+        RuleFor(x => x.CustomerSource).Must(CustomerSources.IsValid)
+            .WithMessage("Nguồn khách không hợp lệ (WALK_IN, REFERRAL, B2B, MKT)")
+            .When(x => !string.IsNullOrEmpty(x.CustomerSource));
+
+        RuleFor(x => x.CustomerSourceDetail).NotEmpty()
+            .WithMessage("Vui lòng nhập mã/tên người giới thiệu hoặc tên công ty")
+            .When(x => CustomerSources.RequiresDetail(x.CustomerSource));
+
+        RuleFor(x => x.CustomerSourceDetail).MaximumLength(255)
+            .WithMessage("Chi tiết nguồn khách tối đa 255 ký tự")
+            .When(x => !string.IsNullOrEmpty(x.CustomerSourceDetail));
+
         RuleForEach(x => x.Guardians).SetValidator(new GuardianRequestValidator())
             .When(x => x.Guardians is { Count: > 0 });
     }
@@ -114,6 +126,18 @@ public class UpdatePatientRequestValidator : AbstractValidator<UpdatePatientRequ
         RuleFor(x => x.VisitType).Must(PatientVisitTypes.IsValid)
             .WithMessage("Hình thức đến khám không hợp lệ (FIRST_VISIT, RE_EXAM, RE_EXAM_IN_PACKAGE)")
             .When(x => !string.IsNullOrEmpty(x.VisitType));
+
+        RuleFor(x => x.CustomerSource).Must(CustomerSources.IsValid)
+            .WithMessage("Nguồn khách không hợp lệ (WALK_IN, REFERRAL, B2B, MKT)")
+            .When(x => !string.IsNullOrEmpty(x.CustomerSource));
+
+        RuleFor(x => x.CustomerSourceDetail).NotEmpty()
+            .WithMessage("Vui lòng nhập mã/tên người giới thiệu hoặc tên công ty")
+            .When(x => CustomerSources.RequiresDetail(x.CustomerSource));
+
+        RuleFor(x => x.CustomerSourceDetail).MaximumLength(255)
+            .WithMessage("Chi tiết nguồn khách tối đa 255 ký tự")
+            .When(x => !string.IsNullOrEmpty(x.CustomerSourceDetail));
     }
 }
 
@@ -127,4 +151,19 @@ public static class PatientVisitTypes
     public static readonly string[] All = { FirstVisit, ReExam, ReExamInPackage };
 
     public static bool IsValid(string? value) => value != null && All.Contains(value);
+}
+
+/// <summary>BM-91: Nguồn khách của bệnh nhân.</summary>
+public static class CustomerSources
+{
+    public const string WalkIn = "WALK_IN";     // Vãng lai
+    public const string Referral = "REFERRAL";  // Giới thiệu (kèm mã/tên người giới thiệu)
+    public const string B2B = "B2B";            // Doanh nghiệp (kèm tên công ty)
+    public const string Mkt = "MKT";            // Marketing
+
+    public static readonly string[] All = { WalkIn, Referral, B2B, Mkt };
+
+    public static bool IsValid(string? value) => value != null && All.Contains(value);
+
+    public static bool RequiresDetail(string? value) => value == Referral || value == B2B;
 }

@@ -31,7 +31,9 @@ public record CreatePatientRequest(
     string? MaritalStatus = null,
     string? VisitType = "FIRST_VISIT",
     List<GuardianRequest>? Guardians = null,
-    bool ConfirmCreateDespiteDuplicate = false);
+    bool ConfirmCreateDespiteDuplicate = false,
+    string? CustomerSource = null,
+    string? CustomerSourceDetail = null);
 
 /// <summary>Ho so benh nhan nghi trung, tra ve de le tan doi chieu truoc khi xac nhan tao moi</summary>
 public record PatientDuplicateCandidate(
@@ -73,7 +75,9 @@ public record UpdatePatientRequest(
     string? Nationality = null,
     string? PatientType = null,
     string? MaritalStatus = null,
-    string? VisitType = null);
+    string? VisitType = null,
+    string? CustomerSource = null,
+    string? CustomerSourceDetail = null);
 
 public record UpdatePatientCommand(Guid PatientId, UpdatePatientRequest Request)
     : IRequest<Result<PatientResponse>>;

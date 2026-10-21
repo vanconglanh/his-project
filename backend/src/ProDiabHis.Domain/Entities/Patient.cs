@@ -43,6 +43,10 @@ public class Patient : BaseEntity, ITenantScoped
     public string PatientType { get; set; } = "SERVICE";
     public string? MaritalStatus { get; set; }
     public string? VisitType { get; set; } = "FIRST_VISIT";
+    /// <summary>BM-91: nguon khach (WALK_IN|REFERRAL|B2B|MKT)</summary>
+    public string? CustomerSource { get; set; }
+    /// <summary>BM-91: ma gioi thieu (REFERRAL) hoac ten cong ty (B2B)</summary>
+    public string? CustomerSourceDetail { get; set; }
 }
 
 public static class PatientStatus

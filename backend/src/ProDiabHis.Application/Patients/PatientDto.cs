@@ -35,7 +35,9 @@ public record PatientResponse(
     string PatientType,
     string? MaritalStatus,
     string? VisitType,
-    List<GuardianResponse>? Guardians = null);
+    List<GuardianResponse>? Guardians = null,
+    string? CustomerSource = null,
+    string? CustomerSourceDetail = null);
 
 public record EncounterSummaryDto(
     Guid Id,

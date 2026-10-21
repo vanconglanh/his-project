@@ -290,3 +290,7 @@ DROP PROCEDURE IF EXISTS add_index_if_missing;
 ```
 
 Các cột đã ADD vào bảng cũ (tenant_id, updated_by, deleted_at, v.v.) cần DROP thủ công theo từng bảng nếu muốn rollback hoàn toàn.
+
+## Migration Lễ tân (9223, 9224) - 2026-10-21
+
+- `9223_bm91_add_customer_source.sql`: thêm `customer_source VARCHAR(20)`, `customer_source_detail VARCHAR(255)` (NULL) vào `pat_patients` (BM-91 nguồn khách). Idempotent.
