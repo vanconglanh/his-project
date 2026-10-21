@@ -16,6 +16,7 @@ import { ReceptionTodayAppointments } from "@/components/domain/ReceptionTodayAp
 import { useReceptionStats } from "@/lib/hooks/use-reception";
 import { usePermissions } from "@/lib/hooks/use-permissions";
 import { isNursingRole } from "@/lib/utils/roles";
+import { toast } from "sonner";
 import type { AppointmentTodayResponse } from "@/lib/api/types";
 
 /** Đọc `?selectPatient=` (quay về từ /patients/new) rồi strip khỏi URL sau khi truyền xuống form. */
@@ -54,9 +55,29 @@ export default function ReceptionPage() {
 
   const [serviceOnlyOpen, setServiceOnlyOpen] = useState(false);
 
+  // BM-100: trước đây bấm "Check-in" trên lịch hẹn chỉ prefill form bên dưới, không có phản hồi
+  // (và im lặng khi lịch hẹn chưa gắn hồ sơ bệnh nhân) -> lễ tân tưởng nút không bấm được.
+  // Nay luôn phản hồi: cuộn tới form tiếp đón + toast hướng dẫn bước tiếp theo.
+  const scrollToCheckInForm = () => {
+    if (typeof document === "undefined") return;
+    document
+      .querySelector('[data-tour="reception-checkin-form"]')
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   const handleCheckInFromAppointment = (appt: AppointmentTodayResponse) => {
-    if (!appt.patient_ref) return;
+    if (!appt.patient_ref) {
+      toast.info(
+        "Lịch hẹn chưa gắn hồ sơ bệnh nhân. Vui lòng tìm chọn bệnh nhân ở form tiếp đón bên dưới.",
+      );
+      scrollToCheckInForm();
+      return;
+    }
     setPrefillAppointment({ appointmentId: appt.appointment_id, patientId: appt.patient_ref });
+    toast.success(
+      `Đã chọn ${appt.patient_name ?? "bệnh nhân"} từ lịch hẹn. Chọn phòng khám rồi bấm Tiếp đón để bắt đầu khám.`,
+    );
+    scrollToCheckInForm();
   };
   // BM-05: Dieu duong/KTV chi theo doi + goi benh nhan trong "Bang hang doi", KHONG lam
   // nghiep vu tiep don (dang ky kham/tao benh nhan moi) - an han panel ben trai.
