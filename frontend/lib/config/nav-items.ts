@@ -33,6 +33,7 @@ import {
   ScanLine,
   ListTree,
   SlidersHorizontal,
+  DoorOpen,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -300,6 +301,13 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "branches",
         icon: Building2,
         permissions: ["tenant.read"],
+      },
+      {
+        href: "/admin/rooms",
+        labelKey: "rooms",
+        icon: DoorOpen,
+        // BM-93: RoomsController enforce room.read/room.write/room.delete that su
+        permissions: ["room.read"],
       },
       {
         href: "/admin/users",
