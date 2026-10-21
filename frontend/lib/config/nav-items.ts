@@ -44,6 +44,12 @@ export interface NavItemConfig {
   icon: LucideIcon;
   /** permission code(s) bắt buộc — undefined = hiển thị cho tất cả đã đăng nhập */
   permissions?: string[];
+  /**
+   * BM-104: ẩn mục khỏi menu của các vai trò liệt kê (dù vai trò đó CÓ permission
+   * phía API). Dùng khi permission đọc được cấp cho mục đích chức năng (dùng chéo),
+   * KHÔNG phải để hiện menu — tránh gỡ quyền API làm vỡ luồng khác.
+   */
+  hideForRoles?: string[];
 }
 
 export interface NavGroupConfig {
@@ -193,12 +199,14 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "cashierPending",
         icon: ClipboardList,
         permissions: ["billing.read"],
+        hideForRoles: ["bac_si"],
       },
       {
         href: "/billings",
         labelKey: "billings",
         icon: FileText,
         permissions: ["billing.read"],
+        hideForRoles: ["bac_si"],
       },
       {
         href: "/cashier/debts",
@@ -211,12 +219,14 @@ export const NAV_GROUPS: NavGroupConfig[] = [
         labelKey: "services",
         icon: Layers,
         permissions: ["service.read"],
+        hideForRoles: ["bac_si"],
       },
       {
         href: "/bhyt",
         labelKey: "bhyt",
         icon: ShieldCheck,
         permissions: ["bhyt.read"],
+        hideForRoles: ["bac_si"],
       },
       {
         href: "/cashier/inter-branch-debts",

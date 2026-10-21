@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { usePermissions } from "@/lib/hooks/use-permissions";
-import { NAV_GROUPS } from "@/lib/config/nav-items";
+import { NAV_GROUPS, type NavItemConfig } from "@/lib/config/nav-items";
 import {
   Tooltip,
   TooltipContent,
@@ -38,7 +38,7 @@ export function AppSidebar() {
   const t = useTranslations("Nav");
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUiStore();
-  const { has, hasAny } = usePermissions();
+  const { has, hasAny, roles } = usePermissions();
   useTabletCollapse();
 
   function isActive(href: string) {
@@ -46,9 +46,11 @@ export function AppSidebar() {
     return pathname.startsWith(href);
   }
 
-  function isItemVisible(permissions?: string[]): boolean {
-    if (!permissions || permissions.length === 0) return true;
-    return hasAny(permissions);
+  function isItemVisible(item: NavItemConfig): boolean {
+    // BM-104: ẩn mục khỏi menu của vai trò liệt kê (dù vai trò có permission API).
+    if (item.hideForRoles && item.hideForRoles.some((r) => roles.includes(r))) return false;
+    if (!item.permissions || item.permissions.length === 0) return true;
+    return hasAny(item.permissions);
   }
 
   return (
@@ -77,9 +79,7 @@ export function AppSidebar() {
         data-tour="sidebar-nav"
       >
         {NAV_GROUPS.map((group) => {
-          const visibleItems = group.items.filter((item) =>
-            isItemVisible(item.permissions)
-          );
+          const visibleItems = group.items.filter((item) => isItemVisible(item));
           if (visibleItems.length === 0) return null;
 
           return (
