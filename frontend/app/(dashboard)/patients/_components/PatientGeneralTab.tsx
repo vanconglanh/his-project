@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { PatientFormValues } from "./patient-schema";
+import { useServices } from "@/lib/hooks/use-services";
+import { formatCurrency } from "@/lib/utils/format";
 import { useCodeItems } from "@/lib/hooks/use-codes";
 import {
   CUSTOMER_SOURCE_LABELS,
@@ -56,6 +58,18 @@ export function PatientGeneralTab({
   const dob = watch("date_of_birth");
   const age = computeAge(dob);
   const customerSource = watch("customer_source");
+
+  // BM-94: danh sách dịch vụ khám (category EXAM, đang hoạt động) kèm giá
+  const { data: servicesRes } = useServices({
+    category: "EXAM" as never, // BE hỗ trợ EXAM; type ServiceCategory chưa liệt kê
+    is_active: true,
+    page_size: 100,
+  });
+  const examServiceItems: Record<string, string> = Object.fromEntries(
+    (servicesRes?.data ?? [])
+      .filter((s) => (s.category as string) === "EXAM" && s.is_active)
+      .map((s) => [s.id, `${s.name} — ${formatCurrency(s.price)}`]),
+  );
 
   // Danh muc DB-driven (API /codes/{groupId}), fallback ve hang so code-labels.ts
   // khi dang tai hoac loi (offline/SSR) de UI khong vo.
@@ -351,6 +365,27 @@ export function PatientGeneralTab({
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(visitTypeItems).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* BM-94: Loại khám (dịch vụ khám có giá) */}
+          <div className="space-y-1">
+            <Label htmlFor="exam_service_id">Loại khám</Label>
+            <Select
+              items={examServiceItems}
+              value={watch("exam_service_id") ?? ""}
+              onValueChange={(v) =>
+                setValue("exam_service_id", v || null, { shouldDirty: true })
+              }
+            >
+              <SelectTrigger id="exam_service_id">
+                <SelectValue placeholder="Chọn dịch vụ khám" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(examServiceItems).map(([value, label]) => (
                   <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>

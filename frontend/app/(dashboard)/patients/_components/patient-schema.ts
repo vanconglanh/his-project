@@ -71,6 +71,8 @@ const patientBaseSchema = z.object({
   // BM-91: nguồn khách
   customer_source: z.enum(CUSTOMER_SOURCES).optional(),
   customer_source_detail: z.string().max(255).optional().nullable(),
+  // BM-94: dịch vụ khám (category EXAM), không bắt buộc
+  exam_service_id: z.string().optional().nullable(),
   // BM-89: liên hệ khẩn cấp / người giám hộ (không bắt buộc)
   guardian_full_name: z.string().max(200).optional(),
   guardian_relationship: z.string().optional(),

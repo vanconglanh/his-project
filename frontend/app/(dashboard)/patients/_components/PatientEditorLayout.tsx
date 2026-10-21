@@ -31,7 +31,7 @@ import { toast } from "sonner";
 
 // Tab định nghĩa
 const EDITOR_TABS = [
-  { id: "general", label: "Thông tin chung", fields: ["full_name", "gender", "date_of_birth", "phone", "email", "id_number", "blood_type", "occupation", "ethnicity", "province_code", "district_code", "ward_code", "street", "id_card_issued_date", "id_card_issued_place", "nationality", "patient_type", "marital_status", "visit_type", "customer_source", "customer_source_detail", "guardian_full_name", "guardian_relationship", "guardian_phone", "guardian_id_number"] as (keyof PatientFormValues)[] },
+  { id: "general", label: "Thông tin chung", fields: ["full_name", "gender", "date_of_birth", "phone", "email", "id_number", "blood_type", "occupation", "ethnicity", "province_code", "district_code", "ward_code", "street", "id_card_issued_date", "id_card_issued_place", "nationality", "patient_type", "marital_status", "visit_type", "customer_source", "customer_source_detail", "exam_service_id", "guardian_full_name", "guardian_relationship", "guardian_phone", "guardian_id_number"] as (keyof PatientFormValues)[] },
   { id: "bhyt", label: "Bảo hiểm y tế", fields: [] as (keyof PatientFormValues)[] },
   { id: "allergies", label: "Dị ứng", fields: [] as (keyof PatientFormValues)[] },
 ];
@@ -77,6 +77,7 @@ function buildPayload(values: PatientFormValues): CreatePatientRequest {
       rest.customer_source === "REFERRAL" || rest.customer_source === "B2B"
         ? customer_source_detail?.trim() || null
         : null,
+    exam_service_id: rest.exam_service_id || null,
     guardians,
     address:
       province_code || district_code || ward_code || street
@@ -108,6 +109,7 @@ function buildDefaultValues(src?: Partial<PatientResponse>): Partial<PatientForm
     marital_status: src.marital_status ?? undefined,
     visit_type: src.visit_type ?? "FIRST_VISIT",
     customer_source: src.customer_source ?? undefined,
+    exam_service_id: src.exam_service_id ?? undefined,
     customer_source_detail: src.customer_source_detail ?? "",
   };
 }
