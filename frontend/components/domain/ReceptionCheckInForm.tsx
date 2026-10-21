@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Search, UserPlus, Loader2 } from "lucide-react";
+import { Search, UserPlus, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,7 @@ import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { CccdQrData } from "@/lib/utils/cccd-qr";
 import { VitalSignsForm } from "@/components/domain/VitalSignsForm";
+import { SmartUploadDialog } from "@/components/domain/SmartUploadDialog";
 import { VitalSignsHistory } from "@/components/domain/VitalSignsHistory";
 import { useCreateVitalSigns } from "@/lib/hooks/use-vital-signs";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -115,10 +116,12 @@ export function ReceptionCheckInForm({
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   // BM-101: sau check-in thành công mở Sheet nhập sinh hiệu cho encounter vừa tạo
   const [vitalTarget, setVitalTarget] = useState<{
-    encounterId: string;
+    encounterId: string | null;
     patientId: string;
     patientName: string;
   } | null>(null);
+  // BM-101 (WI-7): tải tài liệu / Inbody ngay sau tiếp đón (tái dùng SmartUploadDialog)
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const { data: rooms } = useRooms();
   const checkInMutation = useCheckIn();
@@ -156,14 +159,15 @@ export function ReceptionCheckInForm({
 
   const onSubmit = async (values: CheckInFormValues) => {
     const ticket = await checkInMutation.mutateAsync(values);
-    if (ticket?.encounter_id) {
-      setVitalTarget({
-        encounterId: ticket.encounter_id,
-        patientId: values.patient_id,
-        patientName: ticket.patient_summary?.full_name ?? selectedPatient?.full_name ?? "bệnh nhân",
-      });
-    } else {
-      toast.info("Chưa tạo được lượt khám chờ nên bỏ qua bước nhập sinh hiệu. Có thể nhập sau ở màn khám bệnh.");
+    // BM-101: luôn mở panel sau check-in. Có encounter_id thì nhập sinh hiệu được;
+    // null thì bỏ qua sinh hiệu nhưng vẫn cho tải tài liệu/Inbody theo bệnh nhân.
+    setVitalTarget({
+      encounterId: ticket?.encounter_id ?? null,
+      patientId: values.patient_id,
+      patientName: ticket?.patient_summary?.full_name ?? selectedPatient?.full_name ?? "bệnh nhân",
+    });
+    if (!ticket?.encounter_id) {
+      toast.info("Chưa tạo được lượt khám chờ nên bỏ qua bước nhập sinh hiệu. Vẫn có thể tải tài liệu/Inbody; sinh hiệu nhập sau ở màn khám bệnh.");
     }
     sessionStorage.removeItem(CHECKIN_DRAFT_KEY);
     reset({ priority: "NORMAL", patient_id: "", room_id: "" });
@@ -583,10 +587,26 @@ export function ReceptionCheckInForm({
         </SheetHeader>
         {vitalTarget && (
           <div className="space-y-6 px-4 pb-4">
-            <VitalSignsAtCheckIn
-              encounterId={vitalTarget.encounterId}
-              onSaved={() => setVitalTarget(null)}
-            />
+            {vitalTarget.encounterId ? (
+              <VitalSignsAtCheckIn
+                encounterId={vitalTarget.encounterId}
+                onSaved={() => setVitalTarget(null)}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Chưa có lượt khám chờ cho bệnh nhân này nên tạm bỏ qua nhập sinh hiệu
+                (có thể nhập sau ở màn khám bệnh). Vẫn có thể tải tài liệu/Inbody bên dưới.
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px] gap-2"
+              onClick={() => setUploadOpen(true)}
+            >
+              <Upload className="h-4 w-4" />
+              Tải tài liệu / Inbody
+            </Button>
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Lịch sử đo</h4>
               <VitalSignsHistory patientId={vitalTarget.patientId} />
@@ -595,6 +615,20 @@ export function ReceptionCheckInForm({
         )}
       </SheetContent>
     </Sheet>
+
+    {vitalTarget && (
+      <SmartUploadDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        patientId={vitalTarget.patientId}
+        defaultEncounterId={vitalTarget.encounterId ?? undefined}
+        encounterOptions={
+          vitalTarget.encounterId
+            ? [{ id: vitalTarget.encounterId, label: `Lượt khám vừa tiếp đón - ${vitalTarget.patientName}` }]
+            : []
+        }
+      />
+    )}
 
     {/* BM-03: dang ky nhanh benh nhan moi ngay tai panel Tiep don - da tu tao ticket
         (neu chon "hom nay") hoac lich hen (neu chon ngay tuong lai) ben trong dialog,
