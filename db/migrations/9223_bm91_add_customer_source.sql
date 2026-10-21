@@ -23,11 +23,11 @@ BEGIN
 END$$
 DELIMITER ;
 
-CALL add_col_if_missing_9223('pat_patients', 'customer_source', 'VARCHAR(20) NULL COMMENT "Nguon khach: WALK_IN|REFERRAL|B2B|MKT"');
-CALL add_col_if_missing_9223('pat_patients', 'customer_source_detail', 'VARCHAR(255) NULL COMMENT "Ma gioi thieu (REFERRAL) hoac ten cong ty (B2B)"');
+CALL add_col_if_missing_9223('diab_his_pat_patients', 'customer_source', 'VARCHAR(20) NULL COMMENT "Nguon khach: WALK_IN|REFERRAL|B2B|MKT"');
+CALL add_col_if_missing_9223('diab_his_pat_patients', 'customer_source_detail', 'VARCHAR(255) NULL COMMENT "Ma gioi thieu (REFERRAL) hoac ten cong ty (B2B)"');
 
 DROP PROCEDURE IF EXISTS add_col_if_missing_9223;
 
 -- Rollback:
--- ALTER TABLE pat_patients DROP COLUMN customer_source_detail;
--- ALTER TABLE pat_patients DROP COLUMN customer_source;
+-- ALTER TABLE diab_his_pat_patients DROP COLUMN customer_source_detail;
+-- ALTER TABLE diab_his_pat_patients DROP COLUMN customer_source;

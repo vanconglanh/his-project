@@ -25,7 +25,7 @@ BEGIN
 END$$
 DELIMITER ;
 
-CALL add_col_if_missing_9224('pat_patients', 'exam_service_id', 'CHAR(36) NULL COMMENT "Dich vu kham da chon (diab_his_bil_services.id)"');
+CALL add_col_if_missing_9224('diab_his_pat_patients', 'exam_service_id', 'CHAR(36) NULL COMMENT "Dich vu kham da chon (diab_his_bil_services.id)"');
 
 DROP PROCEDURE IF EXISTS add_col_if_missing_9224;
 
@@ -46,4 +46,4 @@ WHERE NOT EXISTS (SELECT 1 FROM diab_his_bil_services x WHERE x.tenant_id = t.id
 
 -- Rollback:
 -- DELETE FROM diab_his_bil_services WHERE code IN ('KBTH','KBCG');
--- ALTER TABLE pat_patients DROP COLUMN exam_service_id;
+-- ALTER TABLE diab_his_pat_patients DROP COLUMN exam_service_id;
