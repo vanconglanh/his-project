@@ -28,6 +28,11 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
     {
         var req = command.Request;
 
+        // ── BM-94: dich vu kham (neu co) phai ton tai trong tenant hien tai (query filter tenant) ──
+        if (req.ExamServiceId.HasValue &&
+            !await _db.BillingServices.AsNoTracking().AnyAsync(s => s.Id == req.ExamServiceId.Value && s.IsActive, cancellationToken))
+            return Result<CreatePatientResult>.Failure("EXAM_SERVICE_NOT_FOUND", "Không tìm thấy dịch vụ khám");
+
         // ── BR: benh nhan < 72 thang tuoi phai co it nhat 1 guardian hop le (FullName + Phone) ──
         var ageMonths = PatientMappingHelper.CalcAgeInMonths(req.DateOfBirth);
         if (ageMonths is not null && ageMonths < GuardianRequiredMaxAgeMonths)
@@ -144,6 +149,7 @@ public class CreatePatientCommandHandler : IRequestHandler<CreatePatientCommand,
             VisitType = req.VisitType,
             CustomerSource = string.IsNullOrWhiteSpace(req.CustomerSource) ? null : req.CustomerSource,
             CustomerSourceDetail = string.IsNullOrWhiteSpace(req.CustomerSourceDetail) ? null : req.CustomerSourceDetail.Trim(),
+            ExamServiceId = req.ExamServiceId,
             CreatedAt = now,
             CreatedBy = _currentUser.UserId,
             UpdatedAt = now
@@ -241,6 +247,12 @@ public class UpdatePatientCommandHandler : IRequestHandler<UpdatePatientCommand,
         if (!string.IsNullOrEmpty(req.PatientType)) patient.PatientType = req.PatientType;
         if (req.MaritalStatus != null) patient.MaritalStatus = req.MaritalStatus;
         if (req.VisitType != null) patient.VisitType = req.VisitType;
+        if (req.ExamServiceId.HasValue)
+        {
+            if (!await _db.BillingServices.AsNoTracking().AnyAsync(s => s.Id == req.ExamServiceId.Value && s.IsActive, cancellationToken))
+                return Result<PatientResponse>.Failure("EXAM_SERVICE_NOT_FOUND", "Không tìm thấy dịch vụ khám");
+            patient.ExamServiceId = req.ExamServiceId;
+        }
         if (req.CustomerSource != null)
         {
             patient.CustomerSource = string.IsNullOrWhiteSpace(req.CustomerSource) ? null : req.CustomerSource;

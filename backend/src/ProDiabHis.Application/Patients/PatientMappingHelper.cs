@@ -110,6 +110,7 @@ public static class PatientMappingHelper
             MaritalStatus: (string?)row.marital_status,
             VisitType: (string?)row.visit_type,
             CustomerSource: (string?)row.customer_source,
-            CustomerSourceDetail: (string?)row.customer_source_detail);
+            CustomerSourceDetail: (string?)row.customer_source_detail,
+            ExamServiceId: Guid.TryParse((string?)row.exam_service_id, out var examSvcId) ? examSvcId : null);
     }
 }

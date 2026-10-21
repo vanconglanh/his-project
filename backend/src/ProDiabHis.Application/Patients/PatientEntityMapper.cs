@@ -41,6 +41,7 @@ public static class PatientEntityMapper
             MaritalStatus: p.MaritalStatus,
             VisitType: p.VisitType,
             CustomerSource: p.CustomerSource,
-            CustomerSourceDetail: p.CustomerSourceDetail);
+            CustomerSourceDetail: p.CustomerSourceDetail,
+            ExamServiceId: p.ExamServiceId);
     }
 }

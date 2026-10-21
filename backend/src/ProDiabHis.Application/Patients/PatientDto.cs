@@ -37,7 +37,8 @@ public record PatientResponse(
     string? VisitType,
     List<GuardianResponse>? Guardians = null,
     string? CustomerSource = null,
-    string? CustomerSourceDetail = null);
+    string? CustomerSourceDetail = null,
+    Guid? ExamServiceId = null);
 
 public record EncounterSummaryDto(
     Guid Id,

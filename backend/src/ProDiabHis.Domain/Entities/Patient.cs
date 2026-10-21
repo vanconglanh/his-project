@@ -47,6 +47,8 @@ public class Patient : BaseEntity, ITenantScoped
     public string? CustomerSource { get; set; }
     /// <summary>BM-91: ma gioi thieu (REFERRAL) hoac ten cong ty (B2B)</summary>
     public string? CustomerSourceDetail { get; set; }
+    /// <summary>BM-94: dich vu kham da chon (FK mem toi diab_his_bil_services.id)</summary>
+    public Guid? ExamServiceId { get; set; }
 }
 
 public static class PatientStatus
