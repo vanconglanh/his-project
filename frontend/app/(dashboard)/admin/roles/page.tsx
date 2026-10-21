@@ -115,7 +115,7 @@ export default function RolesPage() {
         title="Vai trò & Quyền hạn"
         description="Quản lý vai trò và ma trận quyền hạn"
         actions={
-          <Can permission="admin.role_manage">
+          <Can permission="role.write">
             <Button onClick={() => router.push("/admin/roles/new")} className="min-h-[44px]">
               <Plus className="h-4 w-4 mr-2" />
               Tạo vai trò mới
@@ -138,7 +138,12 @@ export default function RolesPage() {
           <SheetHeader>
             <SheetTitle>Ma trận quyền — {selectedRole?.name}</SheetTitle>
           </SheetHeader>
-          {selectedRole && <PermissionMatrix role={selectedRole} />}
+          {selectedRole && (
+            <PermissionMatrix
+              role={selectedRole}
+              onSaved={() => setSelectedRole(null)}
+            />
+          )}
         </SheetContent>
       </Sheet>
 
