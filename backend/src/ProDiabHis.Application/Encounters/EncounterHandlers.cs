@@ -231,7 +231,18 @@ public class AdmitTicketToEncounterCommandHandler
             .OrderByDescending(e => e.CreatedAt)
             .FirstOrDefaultAsync(ct);
         if (existing is not null)
+        {
+            // BM-101: luot kham da duoc tao luc check-in -> van phai chuyen ve Cho -> Da goi
+            if (ticketStatus == TicketStatus.Waiting)
+            {
+                await conn.ExecuteAsync(
+                    @"UPDATE diab_his_rcp_queue_tickets
+                      SET status = 'CALLED', called_at = @now, updated_at = @now
+                      WHERE id = @Id AND tenant_id = @Tid",
+                    new { now = DateTime.UtcNow, Id = cmd.TicketId.ToString(), Tid = tenantId });
+            }
             return Result<AdmitTicketResponse>.Success(new AdmitTicketResponse(existing.Id, false));
+        }
 
         // 3) Tao luot kham moi tu thong tin ve
         var now = DateTime.UtcNow;

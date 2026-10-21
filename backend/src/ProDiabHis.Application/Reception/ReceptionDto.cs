@@ -29,7 +29,8 @@ public record ReceptionTicketResponse(
     DateTime? StartedAt,
     DateTime? FinishedAt,
     Guid? CreatedBy,
-    string? Note);
+    string? Note,
+    Guid? EncounterId = null);
 
 public record RoomResponse(
     string Id,

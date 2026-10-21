@@ -92,6 +92,7 @@ public class VitalSignsConfiguration : IEntityTypeConfiguration<VitalSigns>
         builder.Property(e => e.Spo2Percent).HasColumnName("spo2_percent");
         builder.Property(e => e.WeightKg).HasColumnName("weight_kg").HasColumnType("DECIMAL(6,2)");
         builder.Property(e => e.HeightCm).HasColumnName("height_cm").HasColumnType("DECIMAL(5,1)");
+        builder.Property(e => e.WaistCm).HasColumnName("waist_cm").HasColumnType("DECIMAL(5,1)");
         builder.Property(e => e.PainScale).HasColumnName("pain_scale");
         builder.Property(e => e.GlucoseMgDl).HasColumnName("glucose_mg_dl").HasColumnType("DECIMAL(6,2)");
         builder.Property(e => e.Note).HasColumnName("note");

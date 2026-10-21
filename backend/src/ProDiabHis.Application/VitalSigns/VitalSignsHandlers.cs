@@ -24,6 +24,8 @@ public static class VitalSignsValidator
             return "Đường huyết phải trong khoảng 20-1000 mg/dL";
         if (req.RespiratoryRate.HasValue && (req.RespiratoryRate < 5 || req.RespiratoryRate > 60))
             return "Nhịp thở phải 5-60 lần/phút";
+        if (req.WaistCm.HasValue && (req.WaistCm < 20 || req.WaistCm > 300))
+            return "Vòng eo phải trong khoảng 20-300 cm";
         return null;
     }
 
@@ -57,7 +59,8 @@ file static class VitalSignsMapper
             e.Note,
             VitalSignsValidator.ComputeBmi(e.WeightKg, e.HeightCm),
             e.RecordSequence,
-            e.CreatedAt);
+            e.CreatedAt,
+            e.WaistCm);
 }
 
 // ─────────────────────────────────────────────────
@@ -106,6 +109,7 @@ public class CreateVitalSignsCommandHandler : IRequestHandler<CreateVitalSignsCo
             Spo2Percent    = req.Spo2Percent,
             WeightKg       = req.WeightKg,
             HeightCm       = req.HeightCm,
+            WaistCm        = req.WaistCm,
             PainScale      = req.PainScale,
             GlucoseMgDl    = req.GlucoseMgDl,
             Note           = req.Note,
@@ -187,6 +191,7 @@ public class UpdateVitalSignsCommandHandler : IRequestHandler<UpdateVitalSignsCo
         entity.Spo2Percent    = req.Spo2Percent;
         entity.WeightKg       = req.WeightKg;
         entity.HeightCm       = req.HeightCm;
+        entity.WaistCm        = req.WaistCm;
         entity.PainScale      = req.PainScale;
         entity.GlucoseMgDl    = req.GlucoseMgDl;
         entity.Note           = req.Note;

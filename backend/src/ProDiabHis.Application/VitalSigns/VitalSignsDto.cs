@@ -12,7 +12,8 @@ public record VitalSignsRequest(
     decimal? HeightCm,
     int? PainScale,
     decimal? GlucoseMgDl,
-    string? Note);
+    string? Note,
+    decimal? WaistCm = null);
 
 public record VitalSignsResponse(
     Guid Id,
@@ -33,4 +34,5 @@ public record VitalSignsResponse(
     string? Note,
     decimal? Bmi,
     int RecordSequence,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    decimal? WaistCm = null);

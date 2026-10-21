@@ -300,3 +300,8 @@ Các cột đã ADD vào bảng cũ (tenant_id, updated_by, deleted_at, v.v.) c�
 
 - `9225_bm95_voucher.sql`: tạo `diab_his_bil_vouchers` (UNIQUE tenant_id+code) và `diab_his_bil_voucher_usages` (BM-95). Idempotent.
 - `9226_bm95_voucher_permissions.sql`: seed quyền `voucher.read/write/delete`, gán admin (cả 3) và Kế toán (`voucher.read`). Áp SAU 9225.
+
+## Migration BM-101 (9229, 9230) - 2026-10-21
+
+- `9229_bm101_add_waist_to_vital_signs.sql`: thêm `diab_his_enc_vital_signs.waist_cm DECIMAL(5,1) NULL` (vòng eo). Idempotent.
+- `9230_bm101_grant_vital_sign_write_letan.sql`: cấp quyền `vital_sign.write` cho role `le_tan` (INSERT IGNORE). Idempotent.

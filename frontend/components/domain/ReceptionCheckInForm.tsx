@@ -44,6 +44,10 @@ import {
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { CccdQrData } from "@/lib/utils/cccd-qr";
+import { VitalSignsForm } from "@/components/domain/VitalSignsForm";
+import { VitalSignsHistory } from "@/components/domain/VitalSignsHistory";
+import { useCreateVitalSigns } from "@/lib/hooks/use-vital-signs";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 /** sessionStorage key lưu dữ liệu đã quét CCCD để prefill /patients/new (dùng 1 lần). */
 const CCCD_PREFILL_KEY = "reception-cccd-prefill";
@@ -80,6 +84,23 @@ interface ReceptionCheckInFormProps {
   onPrefillAppointmentConsumed?: () => void;
 }
 
+/** BM-101: nhập sinh hiệu cho lượt khám vừa tạo khi check-in. Toast thành công do hook xử lý. */
+function VitalSignsAtCheckIn({
+  encounterId,
+  onSaved,
+}: {
+  encounterId: string;
+  onSaved: () => void;
+}) {
+  const create = useCreateVitalSigns(encounterId);
+  return (
+    <VitalSignsForm
+      isLoading={create.isPending}
+      onSubmit={(data) => create.mutate(data, { onSuccess: onSaved })}
+    />
+  );
+}
+
 export function ReceptionCheckInForm({
   preselectPatientId,
   prefillAppointment,
@@ -92,6 +113,12 @@ export function ReceptionCheckInForm({
   const [showSearchList, setShowSearchList] = useState(false);
   // BM-03: dang ky nhanh benh nhan moi ngay tai panel, khong dieu huong sang /patients/new nua.
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  // BM-101: sau check-in thành công mở Sheet nhập sinh hiệu cho encounter vừa tạo
+  const [vitalTarget, setVitalTarget] = useState<{
+    encounterId: string;
+    patientId: string;
+    patientName: string;
+  } | null>(null);
 
   const { data: rooms } = useRooms();
   const checkInMutation = useCheckIn();
@@ -128,7 +155,16 @@ export function ReceptionCheckInForm({
     });
 
   const onSubmit = async (values: CheckInFormValues) => {
-    await checkInMutation.mutateAsync(values);
+    const ticket = await checkInMutation.mutateAsync(values);
+    if (ticket?.encounter_id) {
+      setVitalTarget({
+        encounterId: ticket.encounter_id,
+        patientId: values.patient_id,
+        patientName: ticket.patient_summary?.full_name ?? selectedPatient?.full_name ?? "bệnh nhân",
+      });
+    } else {
+      toast.info("Chưa tạo được lượt khám chờ nên bỏ qua bước nhập sinh hiệu. Có thể nhập sau ở màn khám bệnh.");
+    }
     sessionStorage.removeItem(CHECKIN_DRAFT_KEY);
     reset({ priority: "NORMAL", patient_id: "", room_id: "" });
     setSelectedPatient(null);
@@ -535,6 +571,30 @@ export function ReceptionCheckInForm({
         onSave={handleSaveMismatch}
       />
     )}
+
+    {/* BM-101: nhap sinh hieu ngay tai tiep don */}
+    <Sheet open={!!vitalTarget} onOpenChange={(o) => !o && setVitalTarget(null)}>
+      <SheetContent side="right" className="sm:max-w-xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Nhập sinh hiệu</SheetTitle>
+          <SheetDescription>
+            {vitalTarget?.patientName} — có thể bỏ qua và nhập sau ở màn khám bệnh
+          </SheetDescription>
+        </SheetHeader>
+        {vitalTarget && (
+          <div className="space-y-6 px-4 pb-4">
+            <VitalSignsAtCheckIn
+              encounterId={vitalTarget.encounterId}
+              onSaved={() => setVitalTarget(null)}
+            />
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Lịch sử đo</h4>
+              <VitalSignsHistory patientId={vitalTarget.patientId} />
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
 
     {/* BM-03: dang ky nhanh benh nhan moi ngay tai panel Tiep don - da tu tao ticket
         (neu chon "hom nay") hoac lich hen (neu chon ngay tuong lai) ben trong dialog,

@@ -19,6 +19,7 @@ public class ObservationMapper : IFhirMapper<DomainVitalSigns, List<Observation>
         ["spo2"]             = ("59408-5", "Oxygen saturation",        "%",     "%"),
         ["weight"]           = ("29463-7", "Body weight",              "kg",    "kg"),
         ["height"]           = ("8302-2",  "Body height",              "cm",    "cm"),
+        ["waist"]            = ("8280-0",  "Waist circumference at umbilicus", "cm", "cm"),
         ["pain_scale"]       = ("72514-3", "Pain severity",            "/10",   "{score}"),
         ["glucose"]          = ("15074-8", "Glucose",                  "mg/dL", "mg/dL")
     };
@@ -70,6 +71,7 @@ public class ObservationMapper : IFhirMapper<DomainVitalSigns, List<Observation>
         AddObs("spo2",             entity.Spo2Percent.HasValue ? (decimal)entity.Spo2Percent.Value : null);
         AddObs("weight",           entity.WeightKg);
         AddObs("height",           entity.HeightCm);
+        AddObs("waist",            entity.WaistCm);
         AddObs("pain_scale",       entity.PainScale.HasValue ? (decimal)entity.PainScale.Value : null);
         AddObs("glucose",          entity.GlucoseMgDl);
 

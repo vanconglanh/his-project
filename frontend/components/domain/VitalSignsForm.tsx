@@ -21,6 +21,7 @@ const schema = z.object({
   spo2_percent: z.number().int().min(50).max(100).optional().or(z.literal(undefined)),
   weight_kg: z.number().min(1).max(300).optional().or(z.literal(undefined)),
   height_cm: z.number().min(30).max(250).optional().or(z.literal(undefined)),
+  waist_cm: z.number().min(20).max(300).optional().or(z.literal(undefined)),
   pain_scale: z.number().int().min(0).max(10).optional().or(z.literal(undefined)),
   glucose_mg_dl: z.number().min(20).max(800).optional().or(z.literal(undefined)),
   note: z.string().optional(),
@@ -77,6 +78,7 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
       spo2_percent: numOrUndef(data.spo2_percent),
       weight_kg: numOrUndef(data.weight_kg),
       height_cm: numOrUndef(data.height_cm),
+      waist_cm: numOrUndef(data.waist_cm),
       pain_scale: numOrUndef(data.pain_scale),
       glucose_mg_dl: numOrUndef(data.glucose_mg_dl),
       note: data.note,
@@ -155,6 +157,15 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
             step="0.1"
             placeholder="165"
             {...register("height_cm", numReg)}
+          />
+        </Field>
+        <Field id="vital-waist" label="Vòng eo (cm)" error={errors.waist_cm?.message}>
+          <Input
+            id="vital-waist"
+            type="number"
+            step="0.1"
+            placeholder="80"
+            {...register("waist_cm", numReg)}
           />
         </Field>
         <Field id="vital-pain-scale" label="Đau (0-10)" error={errors.pain_scale?.message}>

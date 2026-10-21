@@ -1,5 +1,7 @@
 using Dapper;
 using MediatR;
+using ProDiabHis.Application.Auth;
+using Microsoft.EntityFrameworkCore;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Domain.Entities;
 using System.Text.Json;
@@ -30,10 +32,12 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
     private readonly IBranchProvider _branch;
     private readonly ICurrentUser _currentUser;
     private readonly IAuditService _audit;
+    private readonly IApplicationDbContext _efDb;
 
     public CheckInCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant, IBranchProvider branch,
-        ICurrentUser currentUser, IAuditService audit)
+        ICurrentUser currentUser, IAuditService audit, IApplicationDbContext efDb)
     {
+        _efDb = efDb;
         _db = db;
         _tenant = tenant;
         _branch = branch;
@@ -122,6 +126,12 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
                 new { Id = req.AppointmentId.Value, TenantId = _tenant.TenantId, Now = now });
         }
 
+        // BM-101: tao san Encounter WAITING (cung guard chong trung voi AdmitTicketToEncounter) de
+        // bac si thay trong hang doi + FE luu sinh hieu/Inbody. KHONG tru dinh muc VISIT (tru o StartEncounter).
+        // Ve van giu WAITING (chua goi vao phong).
+        var encounterId = await EnsureWaitingEncounterAsync(patId, req.RoomId.ToString(), req.ReasonForVisit, now, cancellationToken);
+        await _audit.LogAsync("CHECKIN_ENCOUNTER", "Encounter", encounterId.ToString(), new { ticketId = newId }, cancellationToken);
+
         return Result<ReceptionTicketResponse>.Success(new ReceptionTicketResponse(
             Guid.Parse(newId),
             _tenant.TenantId,
@@ -140,7 +150,36 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Result<Rece
             now,
             null, null, null,
             _currentUser.UserId,
-            req.Note));
+            req.Note,
+            encounterId));
+    }
+
+    private async Task<Guid> EnsureWaitingEncounterAsync(string patId, string roomId, string? reason, DateTime now, CancellationToken ct)
+    {
+        var existing = await _efDb.Encounters
+            .Where(e => e.PatientId == patId
+                     && (e.Status == EncounterStatus.Waiting || e.Status == EncounterStatus.InProgress))
+            .OrderByDescending(e => e.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (existing is not null) return existing.Id;
+
+        var enc = new Encounter
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenant.TenantId,
+            PatientId = patId,
+            RoomId = roomId,
+            DoctorId = null,
+            EncounterType = EncounterTypes.FirstVisit,
+            Status = EncounterStatus.Waiting,
+            ReasonForVisit = reason,
+            CreatedAt = now,
+            CreatedBy = _currentUser.UserId,
+            UpdatedAt = now
+        };
+        _efDb.Encounters.Add(enc);
+        await _efDb.SaveChangesAsync(ct);
+        return enc.Id;
     }
 }
 

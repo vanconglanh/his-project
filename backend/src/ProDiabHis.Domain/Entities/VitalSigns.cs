@@ -19,6 +19,8 @@ public class VitalSigns : BaseEntity, ITenantScoped
     public int? Spo2Percent { get; set; }
     public decimal? WeightKg { get; set; }
     public decimal? HeightCm { get; set; }
+    /// <summary>Vòng eo (cm) - BM-101</summary>
+    public decimal? WaistCm { get; set; }
     public int? PainScale { get; set; }
     public decimal? GlucoseMgDl { get; set; }
     public string? Note { get; set; }

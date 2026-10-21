@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
-import { AlertTriangle, Stethoscope, Clock, RefreshCw, Plus, MoreHorizontal, Activity, ClipboardList, CheckCircle } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { AlertTriangle, Stethoscope, Clock, RefreshCw, Plus, Users, MoreHorizontal, Activity, ClipboardList, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { EncounterResponse } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 
 const ENCOUNTER_TYPE_LABELS: Record<string, string> = {
@@ -60,6 +61,15 @@ export function EncountersPageClient() {
 
   const { data, isLoading, refetch } = useEncounters(params);
   const { data: alerts } = useOver12hAlerts();
+  // BM-101: hàng đợi chờ khám (toàn bộ lượt WAITING, không phụ thuộc bộ lọc đang chọn)
+  const [queueOpen, setQueueOpen] = useState(false);
+  const { data: waitingData, isLoading: waitingLoading } = useEncounters({
+    status: "WAITING",
+    page: 1,
+    page_size: 50,
+  });
+  const waitingList = waitingData?.data ?? [];
+  const waitingCount = waitingData?.meta?.total ?? waitingList.length;
 
   const encounters = data?.data ?? [];
   const meta = data?.meta;
@@ -86,6 +96,19 @@ export function EncountersPageClient() {
                 Tạo lượt khám
               </Button>
             </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setQueueOpen(true)}
+              className="gap-2 min-h-[44px]"
+              aria-label={`Hàng đợi (${waitingCount})`}
+            >
+              <Users className="h-4 w-4" />
+              Hàng đợi
+              <Badge variant={waitingCount > 0 ? "destructive" : "secondary"} className="h-5 px-1 text-xs">
+                {waitingCount}
+              </Badge>
+            </Button>
             <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-2">
               <RefreshCw className="h-4 w-4" />
               Làm mới
@@ -244,7 +267,53 @@ export function EncountersPageClient() {
         </div>
       )}
 
-      {/* CreateEncounterDialog đã chuyển sang /encounters/new */}
+      <Sheet open={queueOpen} onOpenChange={setQueueOpen}>
+        <SheetContent side="right" className="sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Hàng đợi chờ khám ({waitingCount})</SheetTitle>
+            <SheetDescription>Bệnh nhân đã tiếp đón, đang chờ bác sĩ khám</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-2 px-4 pb-4">
+            {waitingLoading ? (
+              Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+            ) : waitingList.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                <Users className="mx-auto mb-2 h-10 w-10 opacity-30" />
+                Không có bệnh nhân đang chờ khám
+              </div>
+            ) : (
+              waitingList.map((e) => {
+                const since = e.started_at ?? e.created_at;
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => { setQueueOpen(false); router.push(`/encounters/${e.id}`); }}
+                    className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent/50 min-h-[44px]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{e.patient_summary?.full_name ?? "—"}</span>
+                      {e.alert_over_12h && (
+                        <span className="flex items-center gap-1 text-xs font-medium text-red-600">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Quá 12h
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Phòng: {e.room_name ?? "—"} · Lý do: {e.reason_for_visit || "—"}
+                    </p>
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {since ? `Chờ ${formatDistanceToNow(new Date(since), { locale: vi })}` : "—"}
+                    </p>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

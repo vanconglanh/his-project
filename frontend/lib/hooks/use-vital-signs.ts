@@ -48,6 +48,8 @@ export function useCreateVitalSigns(encounterId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: vitalKeys.list(encounterId) });
       qc.invalidateQueries({ queryKey: vitalKeys.latest(encounterId) });
+      // BM-101: lịch sử đo theo bệnh nhân (VitalSignsHistory) cũng phải làm mới
+      qc.invalidateQueries({ queryKey: ["vital-signs", "history"] });
       // Card "Sinh hieu" o sidebar kham benh doc tu encounter.vital_signs_latest -> phai invalidate
       // ca query chi tiet encounter thi moi tu refresh, khong can F5 (xem BUG-03 QC 2026-08-30).
       qc.invalidateQueries({ queryKey: encounterKeys.detail(encounterId) });

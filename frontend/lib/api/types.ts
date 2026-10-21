@@ -560,6 +560,8 @@ export interface ReceptionTicketResponse {
   patient_id: string;
   patient_summary?: PatientSummary;
   ticket_no: string;
+  /** BM-101: lượt khám WAITING được tạo sẵn khi check-in (null nếu backend không tạo) */
+  encounter_id?: string | null;
   room_id: string;
   room_name?: string;
   doctor_id?: string | null;
@@ -740,6 +742,7 @@ export interface VitalSignsRequest {
   spo2_percent?: number;
   weight_kg?: number;
   height_cm?: number;
+  waist_cm?: number;
   pain_scale?: number;
   glucose_mg_dl?: number;
   note?: string;
