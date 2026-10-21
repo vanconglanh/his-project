@@ -50,6 +50,21 @@ public class ReceptionController : ControllerBase
         return StatusCode(201, new { data = result.Value });
     }
 
+    // POST /api/v1/reception/service-only
+    // BM-92: chi dinh dich vu khong kham -> hoa don DRAFT khong gan encounter
+    [HttpPost("service-only")]
+    [RequirePermission("reception.checkin")]
+    public async Task<IActionResult> CreateServiceOnly([FromBody] ServiceOnlyOrderRequest request, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new CreateServiceOnlyOrderCommand(request), ct);
+        if (!result.IsSuccess)
+        {
+            var status = result.ErrorCode is "PATIENT_NOT_FOUND" or "SERVICE_NOT_FOUND" or "SERVICE_PACKAGE_NOT_FOUND" ? 404 : 422;
+            return StatusCode(status, new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
+        }
+        return StatusCode(201, new { data = result.Value });
+    }
+
     // GET /api/v1/reception/appointments/today
     // BM-33 (Lark): lich hen CONFIRMED hom nay (gio VN) de le tan tiep don tu lich hen co san
     [HttpGet("appointments/today")]
