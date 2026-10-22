@@ -66,7 +66,14 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
       setError("warehouse_id", { message: "Cần chọn kho khi không có đơn đặt hàng" });
       return;
     }
-    await createGrn.mutateAsync({ ...data, warehouse_id: poId ? undefined : data.warehouse_id, received_at: new Date(data.received_at).toISOString() });
+    // Chuẩn hoá items: ngày rỗng ("") -> undefined (DateOnly? backend không parse được ""), ép kiểu số.
+    const items = (data.items ?? []).map((it) => ({
+      ...it,
+      manufacture_date: it.manufacture_date ? it.manufacture_date : undefined,
+      quantity_received: Number(it.quantity_received),
+      unit_cost: Number(it.unit_cost),
+    }));
+    await createGrn.mutateAsync({ ...data, items, warehouse_id: poId ? undefined : data.warehouse_id, received_at: new Date(data.received_at).toISOString() });
     onSuccess?.();
   }
 
