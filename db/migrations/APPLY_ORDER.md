@@ -309,3 +309,7 @@ Các cột đã ADD vào bảng cũ (tenant_id, updated_by, deleted_at, v.v.) c�
 ## Migration BM-101 regression (9231) - 2026-10-22
 
 - `9231_bm101_grant_vital_sign_read_letan.sql`: cấp quyền `vital_sign.read` cho role `le_tan` (INSERT IGNORE) để màn tiếp đón xem được "Lịch sử đo" (endpoint history yêu cầu vital_sign.read, trước đó staging le_tan thiếu -> 403). Idempotent. Lễ tân cần đăng nhập lại.
+
+## Migration BM-101 WI-7 (9232) - 2026-10-22
+
+- `9232_bm101_grant_clinical_write_letan_inbody.sql`: cấp `patient.clinical.write` cho `le_tan` để upload Inbody ở tiếp đón (smart-upload + confirm inbody yêu cầu quyền này; file.upload BM-105 không đủ). LƯU Ý: quyền này cũng gate thêm/xoá dị ứng bệnh nhân — cần BA/security review. Idempotent, le_tan đăng nhập lại.
