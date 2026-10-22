@@ -39,7 +39,6 @@ export function StockTable({ stocks }: Props) {
         <TableHeader>
           <TableRow>
             <TableHead>Mã thuốc</TableHead>
-            <TableHead>Mã thuốc</TableHead>
             <TableHead>Tên thuốc</TableHead>
             <TableHead>Số lô</TableHead>
             <TableHead>HSD</TableHead>
