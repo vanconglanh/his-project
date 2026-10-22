@@ -26,6 +26,17 @@ Hiện KHÔNG có ticket mới ở Not started/In dev/Return in dev. Không tìm
 | **BM-73** | [HIS-28] Danh mục — dữ liệu danh mục thuốc & dịch vụ | Nội dung dữ liệu danh mục | Cần BA/nghiệp vụ cung cấp data |
 | **BM-97** | [HIS-51] Dược sĩ — chưa có chức năng bán thuốc/thiết bị y tế | **Feature mới** (bán lẻ thuốc/thiết bị) | Cần BA/product quyết định scope |
 
-### Hành động Đợt 6
-- BM-57: fix dev (xem phần triển khai bên dưới khi hoàn tất).
-- BM-69, BM-73, BM-97: giữ To BA, chờ BA (ghi rõ lý do trong comment nếu cần).
+### Hành động Đợt 6 — KẾT QUẢ
+
+| Ticket | Kết quả | Commit / Ghi chú |
+|---|---|---|
+| **BM-57** | ✅ Fix + deploy staging + test E2E (Bác sĩ 2 mở ca Bác sĩ 1 → banner cảnh báo + editor khoá) → **In test** | `7b2566f` (FE EncounterDetailClient canEdit theo chủ ca + banner; BE SaveEmrDraft chặn FORBIDDEN) |
+| **BM-69** | ✅ Fix + deploy staging + test (5.6 mmol/L ↔ 100 mg/dL) → **In test** | `1e32bf2` (chuẩn hoá hiển thị mmol/L + toggle, hệ số 18.016; KHÔNG đổi schema/quy đổi dữ liệu cũ — glucose_mg_dl vẫn là nguồn sự thật) |
+| **BM-73** | ✅ Nạp SUNS catalog vào staging + test UI (/drugs, /services có data + giá) → **In test** | Import `import_suns_catalog.py`; GOTCHA: clinic test là **tenant 2** (DIAB-TEST), lần đầu nạp nhầm tenant 1 → đã re-import tenant 2 (165 thuốc có giá, 49 dịch vụ, 159 XN, 13 CĐHA). Backup: `/home/stackops/backups/stg-his/prodiab_his_before_suns_20261022_190609.sql.gz` |
+| **BM-97** | ⏸ Giữ **To BA** | Feature mới (bán thuốc/thiết bị y tế) — cần BA/product chốt scope |
+
+Evidence: `docs/qc/evidence-lark-20261020/BM-57-*.jpg`, `BM-69-*.jpg`, `BM-73-*.jpg`.
+
+### Quan sát phụ (ngoài scope Đợt 6, cần theo dõi)
+- Màn nhập sinh hiệu ở tiếp đón (vai Lễ tân) báo "Lịch sử đo: Không tải được lịch sử sinh hiệu" — endpoint history có thể lỗi/thiếu quyền cho Lễ tân. Chưa xử lý, nên kiểm tra riêng.
+- Tenant 1 (DiaBetis HCM) đã bị nạp data SUNS thừa từ lần import đầu (devops để nguyên, không xoá vì khó tách). Nếu tenant 1 là môi trường có ý nghĩa, cần dọn.
