@@ -60,10 +60,10 @@ public class PrescriptionStateMachineTests
     public async Task DdiChecker_returns_no_warnings_for_single_drug()
     {
         // Single drug cannot have DDI
-        _ddiChecker.CheckAsync(Arg.Any<IReadOnlyList<int>>(), Arg.Any<CancellationToken>())
+        _ddiChecker.CheckAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([]);
 
-        var warnings = await _ddiChecker.CheckAsync([1], CancellationToken.None);
+        var warnings = await _ddiChecker.CheckAsync(["1"], CancellationToken.None);
         warnings.Should().BeEmpty();
     }
 
@@ -72,11 +72,11 @@ public class PrescriptionStateMachineTests
     {
         // Arrange
         var contraWarning = new DdiWarning(1, "DrugA", 2, "DrugB", "CONTRAINDICATED", "Chong chi dinh nghiem trong", "A");
-        _ddiChecker.CheckAsync(Arg.Any<IReadOnlyList<int>>(), Arg.Any<CancellationToken>())
+        _ddiChecker.CheckAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([contraWarning]);
 
         // Act - simulate sign check
-        var warnings = await _ddiChecker.CheckAsync([1, 2], CancellationToken.None);
+        var warnings = await _ddiChecker.CheckAsync(["1", "2"], CancellationToken.None);
         var hasContra = warnings.Any(w => w.Severity == "CONTRAINDICATED");
 
         // Assert

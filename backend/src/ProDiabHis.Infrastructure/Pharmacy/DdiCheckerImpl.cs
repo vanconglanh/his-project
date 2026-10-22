@@ -15,27 +15,31 @@ public class DdiCheckerImpl : IDdiChecker
         _db = db;
     }
 
-    public async Task<IReadOnlyList<DdiWarning>> CheckAsync(IReadOnlyList<int> drugIds, CancellationToken ct = default)
+    /// <summary>
+    /// drugIds la GUID thuoc (bang active diab_his_pha_drugs). Ten thuoc lay tu bang nay;
+    /// DdiWarning giu Drug1Id/Drug2Id kieu int de khong doi hop dong FE (GUID khong map duoc -> 0,
+    /// giong nhanh CDSS trong PrescriptionHandlers).
+    /// </summary>
+    public async Task<IReadOnlyList<DdiWarning>> CheckAsync(IReadOnlyList<string> drugIds, CancellationToken ct = default)
     {
         if (drugIds.Count < 2) return [];
 
         using var conn = (IDbConnection)_db.CreateConnection();
 
-        var idList = string.Join(",", drugIds);
-
         var rows = await conn.QueryAsync<dynamic>(
-            $@"SELECT r.drug1_id, d1.DRUG_NAME as drug1_name,
-                      r.drug2_id, d2.DRUG_NAME as drug2_name,
+            @"SELECT COALESCE(NULLIF(d1.name_vi, ''), d1.name) AS drug1_name,
+                      COALESCE(NULLIF(d2.name_vi, ''), d2.name) AS drug2_name,
                       r.severity, r.description, r.evidence_level
                FROM diab_his_pha_ddi_rules r
-               JOIN pha_drug_master d1 ON d1.ID = r.drug1_id
-               JOIN pha_drug_master d2 ON d2.ID = r.drug2_id
-               WHERE r.drug1_id IN ({idList}) AND r.drug2_id IN ({idList})
-                 AND r.deleted_at IS NULL");
+               JOIN diab_his_pha_drugs d1 ON d1.id = r.drug1_id
+               JOIN diab_his_pha_drugs d2 ON d2.id = r.drug2_id
+               WHERE r.drug1_id IN @ids AND r.drug2_id IN @ids
+                 AND r.deleted_at IS NULL",
+            new { ids = drugIds });
 
         return rows.Select(r => new DdiWarning(
-            (int)r.drug1_id, (string)r.drug1_name,
-            (int)r.drug2_id, (string)r.drug2_name,
-            (string)r.severity, (string)r.description, (string)r.evidence_level)).ToList();
+            0, (string)r.drug1_name,
+            0, (string)r.drug2_name,
+            (string)r.severity, (string)(r.description ?? ""), (string)(r.evidence_level ?? ""))).ToList();
     }
 }

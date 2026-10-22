@@ -155,6 +155,8 @@ public class PharmacyWarehouseController : ControllerBase
     public async Task<IActionResult> CreateAdjustment([FromBody] StockAdjustmentRequest request, CancellationToken ct)
     {
         var result = await _mediator.Send(new CreateAdjustmentCommand(request), ct);
+        if (!result.IsSuccess)
+            return UnprocessableEntity(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } });
         return Created("", new { data = result.Value });
     }
 

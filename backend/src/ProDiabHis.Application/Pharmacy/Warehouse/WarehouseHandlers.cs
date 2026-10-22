@@ -238,8 +238,11 @@ public class CreateGrnHandler : IRequestHandler<CreateGrnCommand, Result<GrnResp
     private readonly ICurrentUser _currentUser;
     private readonly ICucQldLienThong _cucQld;
 
-    public CreateGrnHandler(IDapperConnectionFactory db, ICurrentUser currentUser, ICucQldLienThong cucQld)
+    private readonly IBranchProvider _branch;
+
+    public CreateGrnHandler(IDapperConnectionFactory db, ICurrentUser currentUser, ICucQldLienThong cucQld, IBranchProvider branch)
     {
+        _branch = branch;
         _db = db;
         _currentUser = currentUser;
         _cucQld = cucQld;
@@ -270,49 +273,89 @@ public class CreateGrnHandler : IRequestHandler<CreateGrnCommand, Result<GrnResp
                 return Result<GrnResponse>.Failure("VALIDATION_ERROR", "Cần ít nhất một dòng thuốc nhập kho");
         }
 
-        var grnId = Guid.NewGuid().ToString();
-        await conn.ExecuteAsync(
-            "INSERT INTO diab_his_pha_grn (id, tenant_id, purchase_order_id, received_at, note, created_at, updated_at) VALUES (@id, @tenantId, @poId, @receivedAt, @note, NOW(), NOW())",
-            new { id = grnId, tenantId, poId = hasPo ? cmd.PurchaseOrderId : null, receivedAt = cmd.Request.ReceivedAt == default ? DateTime.UtcNow : cmd.Request.ReceivedAt, note = cmd.Request.Note });
-
-        var updatedStocks = new List<StockResponse>();
+        // Kiem tra thuoc ton tai (GUID, bang active diab_his_pha_drugs) truoc khi ghi.
+        var drugNames = new Dictionary<string, string?>();
         foreach (var item in cmd.Request.Items)
         {
-            // Update or insert stock
-            var stockId = Guid.NewGuid().ToString();
-            await conn.ExecuteAsync(
-                @"INSERT INTO pha_stocks (tenant_id, warehouse_id, drug_id, batch_no, manufacture_date, expiry_date, quantity_available, quantity_reserved, unit_cost, reorder_level, created_at, updated_at)
-                  VALUES (@tenantId, @warehouseId, @drugId, @batchNo, @mfgDate, @expiryDate, @qty, 0, @unitCost, 10, NOW(), NOW())
-                  ON DUPLICATE KEY UPDATE quantity_available = quantity_available + @qty, unit_cost = @unitCost, updated_at = NOW()",
-                new { tenantId, warehouseId = warehouseId, drugId = item.DrugId, batchNo = item.BatchNo,
-                      mfgDate = item.ManufactureDate, expiryDate = item.ExpiryDate, qty = item.QuantityReceived, unitCost = item.UnitCost });
-
-            // Movement record
-            await conn.ExecuteAsync(
-                @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, unit_price, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
-                  SELECT @tenantId, id, warehouse_id, 'IMPORT', @qty, @unitCost, 'GRN', @grnId, NOW(), @userId, NOW(), NOW()
-                  FROM pha_stocks WHERE tenant_id = @tenantId AND warehouse_id = @warehouseId AND drug_id = @drugId AND batch_no = @batchNo LIMIT 1",
-                new { tenantId, warehouseId = warehouseId, drugId = item.DrugId, batchNo = item.BatchNo,
-                      qty = item.QuantityReceived, unitCost = item.UnitCost, grnId, userId = 0 });
-
-            var drugName = await conn.ExecuteScalarAsync<string>("SELECT name_vi FROM pha_drug_master WHERE id = @id", new { id = item.DrugId });
-            var daysToExpiry = (item.ExpiryDate.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days;
-
-            updatedStocks.Add(new StockResponse(
-                stockId, tenantId, warehouseId, item.DrugId.ToString(), drugName, item.BatchNo,
-                item.ManufactureDate, item.ExpiryDate, item.QuantityReceived, 0, item.UnitCost,
-                daysToExpiry, daysToExpiry <= 90, false));
+            if (string.IsNullOrWhiteSpace(item.DrugId) || string.IsNullOrWhiteSpace(item.BatchNo))
+                return Result<GrnResponse>.Failure("VALIDATION_ERROR", "Mỗi dòng nhập kho cần có thuốc và số lô");
+            if (item.QuantityReceived <= 0)
+                return Result<GrnResponse>.Failure("VALIDATION_ERROR", "Số lượng nhập phải lớn hơn 0");
+            if (drugNames.ContainsKey(item.DrugId)) continue;
+            var d = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT COALESCE(NULLIF(name_vi, ''), name) AS name FROM diab_his_pha_drugs WHERE id = @id AND tenant_id = @tenantId",
+                new { id = item.DrugId, tenantId });
+            if (d == null)
+                return Result<GrnResponse>.Failure("PHARMACY_DRUG_NOT_FOUND", "Không tìm thấy thuốc trong danh mục");
+            drugNames[item.DrugId] = (string?)d.name;
         }
 
-        // Update PO status (chi khi co PO)
-        var newPoStatus = "NONE";
-        if (hasPo)
+        var grnId = Guid.NewGuid().ToString();
+        var userId = _currentUser.UserId?.ToString();
+        var branchId = _branch.BranchId > 0 ? _branch.BranchId : (int?)null;
+        var updatedStocks = new List<StockResponse>();
+
+        if (conn.State != ConnectionState.Open) conn.Open();
+        using var tx = conn.BeginTransaction();
+        try
         {
-            newPoStatus = "RECEIVED"; // simplified
             await conn.ExecuteAsync(
-                "UPDATE diab_his_pha_purchase_orders SET status = @status, updated_at = NOW() WHERE id = @id",
-                new { status = newPoStatus, id = cmd.PurchaseOrderId });
+                "INSERT INTO diab_his_pha_grn (id, tenant_id, purchase_order_id, received_at, note, created_at, updated_at) VALUES (@id, @tenantId, @poId, @receivedAt, @note, NOW(), NOW())",
+                new { id = grnId, tenantId, poId = hasPo ? cmd.PurchaseOrderId : null, receivedAt = cmd.Request.ReceivedAt == default ? DateTime.UtcNow : cmd.Request.ReceivedAt, note = cmd.Request.Note }, tx);
+
+            foreach (var item in cmd.Request.Items)
+            {
+                var qty = (int)Math.Round(item.QuantityReceived);
+                // Cong don vao lo da co (tenant, thuoc, so lo); chua co thi tao lo moi.
+                var existing = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT id FROM diab_his_pha_stock WHERE tenant_id = @tenantId AND drug_id = @drugId AND lot_number = @batchNo LIMIT 1 FOR UPDATE",
+                    new { tenantId, drugId = item.DrugId, batchNo = item.BatchNo }, tx);
+                string stockId;
+                if (existing != null)
+                {
+                    stockId = existing.id.ToString();
+                    await conn.ExecuteAsync(
+                        "UPDATE diab_his_pha_stock SET quantity = quantity + @qty, import_price = @unitCost, exp_date = @expiryDate, updated_at = NOW() WHERE id = @id",
+                        new { qty, unitCost = item.UnitCost, expiryDate = item.ExpiryDate.ToDateTime(TimeOnly.MinValue), id = stockId }, tx);
+                }
+                else
+                {
+                    stockId = Guid.NewGuid().ToString();
+                    await conn.ExecuteAsync(
+                        @"INSERT INTO diab_his_pha_stock (id, tenant_id, branch_id, drug_id, lot_number, mfg_date, exp_date, quantity, import_price, created_at, updated_at)
+                          VALUES (@id, @tenantId, @branchId, @drugId, @batchNo, @mfgDate, @expiryDate, @qty, @unitCost, NOW(), NOW())",
+                        new { id = stockId, tenantId, branchId, drugId = item.DrugId, batchNo = item.BatchNo,
+                              mfgDate = item.ManufactureDate?.ToDateTime(TimeOnly.MinValue), expiryDate = item.ExpiryDate.ToDateTime(TimeOnly.MinValue),
+                              qty, unitCost = item.UnitCost }, tx);
+                }
+
+                await conn.ExecuteAsync(
+                    @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, unit_price, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
+                      VALUES (@tenantId, @stockId, @wh, 'IMPORT', @qty, @unitCost, 'GRN', @grnId, NOW(), @userId, NOW(), NOW())",
+                    new { tenantId, stockId, wh = warehouseId.ToString(), qty, unitCost = item.UnitCost, grnId, userId }, tx);
+
+                var cur = await conn.ExecuteScalarAsync<decimal>("SELECT quantity FROM diab_his_pha_stock WHERE id = @id", new { id = stockId }, tx);
+                var daysToExpiry = (item.ExpiryDate.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days;
+                updatedStocks.Add(new StockResponse(
+                    stockId, tenantId, warehouseId, item.DrugId, drugNames[item.DrugId], item.BatchNo,
+                    item.ManufactureDate, item.ExpiryDate, cur, 0, item.UnitCost,
+                    daysToExpiry, daysToExpiry >= 0 && daysToExpiry <= 30, false, daysToExpiry < 0));
+            }
+
+            if (hasPo)
+            {
+                await conn.ExecuteAsync(
+                    "UPDATE diab_his_pha_purchase_orders SET status = 'RECEIVED', updated_at = NOW() WHERE id = @id AND tenant_id = @tenantId",
+                    new { id = cmd.PurchaseOrderId, tenantId }, tx);
+            }
+            tx.Commit();
         }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+        var newPoStatus = hasPo ? "RECEIVED" : "NONE";
 
         await _cucQld.ReportImportAsync(Guid.Parse(grnId), ct);
 
@@ -397,24 +440,48 @@ public class CreateAdjustmentHandler : IRequestHandler<CreateAdjustmentCommand, 
         var adjustmentId = Guid.NewGuid().ToString();
         var movements = new List<StockMovementResponse>();
 
-        foreach (var item in r.Items)
+        var userId = _currentUser.UserId?.ToString();
+        if (conn.State != ConnectionState.Open) conn.Open();
+        using var tx = conn.BeginTransaction();
+        try
         {
-            // Update stock
-            await conn.ExecuteAsync(
-                @"UPDATE pha_stocks SET quantity_available = quantity_available + @diff, updated_at = NOW()
-                  WHERE tenant_id = @tenantId AND warehouse_id = @warehouseId AND drug_id = @drugId AND batch_no = @batchNo",
-                new { diff = item.QuantityDiff, tenantId, warehouseId = r.WarehouseId, drugId = item.DrugId, batchNo = item.BatchNo });
+            foreach (var item in r.Items)
+            {
+                var stock = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    @"SELECT s.id, s.quantity, s.import_price, COALESCE(NULLIF(d.name_vi, ''), d.name) AS drug_name
+                      FROM diab_his_pha_stock s LEFT JOIN diab_his_pha_drugs d ON d.id = s.drug_id
+                      WHERE s.tenant_id = @tenantId AND s.drug_id = @drugId AND s.lot_number = @batchNo LIMIT 1 FOR UPDATE",
+                    new { tenantId, drugId = item.DrugId, batchNo = item.BatchNo }, tx);
+                if (stock == null)
+                {
+                    tx.Rollback();
+                    return Result<AdjustmentResponse>.Failure("PHARMACY_BATCH_NOT_FOUND", $"Không tìm thấy lô {item.BatchNo} của thuốc trong kho");
+                }
+                var diff = (int)Math.Round(item.QuantityDiff);
+                if ((decimal)stock.quantity + diff < 0)
+                {
+                    tx.Rollback();
+                    return Result<AdjustmentResponse>.Failure("PHARMACY_STOCK_INSUFFICIENT", $"Tồn kho lô {item.BatchNo} không đủ để điều chỉnh giảm");
+                }
 
-            var mvtId = Guid.NewGuid().ToString();
-            await conn.ExecuteAsync(
-                @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, reason, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
-                  SELECT @tenantId, id, warehouse_id, 'ADJUST', @diff, @reason, 'ADJUSTMENT', @adjId, NOW(), 0, NOW(), NOW()
-                  FROM pha_stocks WHERE tenant_id = @tenantId AND warehouse_id = @warehouseId AND drug_id = @drugId AND batch_no = @batchNo LIMIT 1",
-                new { tenantId, warehouseId = r.WarehouseId, drugId = item.DrugId, batchNo = item.BatchNo, diff = item.QuantityDiff, reason = $"{r.Reason}: {r.Note}", adjId = adjustmentId });
+                await conn.ExecuteAsync(
+                    "UPDATE diab_his_pha_stock SET quantity = quantity + @diff, updated_at = NOW() WHERE id = @id",
+                    new { diff, id = stock.id.ToString() }, tx);
 
-            var drugName = await conn.ExecuteScalarAsync<string>("SELECT name_vi FROM pha_drug_master WHERE id = @id", new { id = item.DrugId });
-            movements.Add(new StockMovementResponse(mvtId, tenantId, r.WarehouseId, "ADJUST", item.DrugId.ToString(), drugName,
-                item.BatchNo, item.QuantityDiff, 0, "ADJUSTMENT", adjustmentId, DateTime.UtcNow, null, r.Reason));
+                await conn.ExecuteAsync(
+                    @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, reason, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
+                      VALUES (@tenantId, @stockId, @wh, 'ADJUST', @diff, @reason, 'ADJUSTMENT', @adjId, NOW(), @userId, NOW(), NOW())",
+                    new { tenantId, stockId = stock.id.ToString(), wh = r.WarehouseId.ToString(), diff, reason = $"{r.Reason}: {r.Note}", adjId = adjustmentId, userId }, tx);
+
+                movements.Add(new StockMovementResponse(Guid.NewGuid().ToString(), tenantId, r.WarehouseId, "ADJUST", item.DrugId, (string?)stock.drug_name,
+                    item.BatchNo, item.QuantityDiff, 0, "ADJUSTMENT", adjustmentId, DateTime.UtcNow, null, r.Reason));
+            }
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
         }
 
         return Result<AdjustmentResponse>.Success(new AdjustmentResponse(adjustmentId, movements));
@@ -494,36 +561,31 @@ public class CreateTransferHandler : IRequestHandler<CreateTransferCommand, Resu
         var transferId = Guid.NewGuid().ToString();
         var movements = new List<StockMovementResponse>();
 
+        // diab_his_pha_stock (active) khong co warehouse_id nen chuyen kho o day chi kiem tra lo + ton
+        // va ghi movement TRANSFER; chuyen ton giua chi nhanh dung module StockTransfers.
+        var userId = _currentUser.UserId?.ToString();
         foreach (var item in r.Items)
         {
             var stock = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT id, quantity_available, expiry_date, unit_cost FROM pha_stocks WHERE tenant_id = @tenantId AND warehouse_id = @wh AND drug_id = @drug AND batch_no = @batch AND deleted_at IS NULL",
-                new { tenantId, wh = r.FromWarehouseId, drug = item.DrugId, batch = item.BatchNo });
+                "SELECT id, quantity, exp_date, import_price FROM diab_his_pha_stock WHERE tenant_id = @tenantId AND drug_id = @drug AND lot_number = @batch LIMIT 1",
+                new { tenantId, drug = item.DrugId, batch = item.BatchNo });
 
             if (stock == null)
-                return Result<TransferResponse>.Failure("PHARMACY_BATCH_NOT_FOUND", $"Khong tim thay lo {item.BatchNo}.");
+                return Result<TransferResponse>.Failure("PHARMACY_BATCH_NOT_FOUND", $"Không tìm thấy lô {item.BatchNo}.");
 
-            if (DateOnly.FromDateTime((DateTime)stock.expiry_date) < DateOnly.FromDateTime(DateTime.Today))
-                return Result<TransferResponse>.Failure("PHARMACY_BATCH_EXPIRED", $"Lo {item.BatchNo} da het han.");
+            if (DateOnly.FromDateTime((DateTime)stock.exp_date) < DateOnly.FromDateTime(DateTime.Today))
+                return Result<TransferResponse>.Failure("PHARMACY_BATCH_EXPIRED", $"Lô {item.BatchNo} đã hết hạn.");
 
-            if ((decimal)stock.quantity_available < item.Quantity)
-                return Result<TransferResponse>.Failure("PHARMACY_STOCK_INSUFFICIENT", "Ton kho khong du de chuyen.");
+            if ((decimal)stock.quantity < item.Quantity)
+                return Result<TransferResponse>.Failure("PHARMACY_STOCK_INSUFFICIENT", "Tồn kho không đủ để chuyển.");
 
-            // Deduct from source
             await conn.ExecuteAsync(
-                "UPDATE pha_stocks SET quantity_available = quantity_available - @qty WHERE id = @id",
-                new { qty = item.Quantity, id = stock.id.ToString() });
+                @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, unit_price, reason, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
+                  VALUES (@tenantId, @stockId, @wh, 'TRANSFER', @qty, @cost, @reason, 'TRANSFER', @transferId, NOW(), @userId, NOW(), NOW())",
+                new { tenantId, stockId = stock.id.ToString(), wh = r.FromWarehouseId.ToString(), qty = item.Quantity, cost = (decimal)stock.import_price, reason = r.Note, transferId, userId });
 
-            // Add to destination
-            await conn.ExecuteAsync(
-                @"INSERT INTO pha_stocks (tenant_id, warehouse_id, drug_id, batch_no, expiry_date, quantity_available, quantity_reserved, unit_cost, reorder_level, created_at, updated_at)
-                  VALUES (@tenantId, @wh, @drug, @batch, @expiry, @qty, 0, @cost, 10, NOW(), NOW())
-                  ON DUPLICATE KEY UPDATE quantity_available = quantity_available + @qty, updated_at = NOW()",
-                new { tenantId, wh = r.ToWarehouseId, drug = item.DrugId, batch = item.BatchNo, expiry = (DateTime)stock.expiry_date, qty = item.Quantity, cost = (decimal)stock.unit_cost });
-
-            var mvt = new StockMovementResponse(Guid.NewGuid().ToString(), tenantId, r.FromWarehouseId, "TRANSFER",
-                item.DrugId.ToString(), null, item.BatchNo, item.Quantity, (decimal)stock.unit_cost, "TRANSFER", transferId, DateTime.UtcNow, null, r.Note);
-            movements.Add(mvt);
+            movements.Add(new StockMovementResponse(Guid.NewGuid().ToString(), tenantId, r.FromWarehouseId, "TRANSFER",
+                item.DrugId, null, item.BatchNo, item.Quantity, (decimal)stock.import_price, "TRANSFER", transferId, DateTime.UtcNow, null, r.Note));
         }
 
         return Result<TransferResponse>.Success(new TransferResponse(transferId, movements));

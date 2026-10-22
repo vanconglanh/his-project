@@ -7,7 +7,7 @@ namespace ProDiabHis.Application.Pharmacy;
 public interface IDdiChecker
 {
     /// <summary>Kiem tra tuong tac thuoc cho danh sach drug_id.</summary>
-    Task<IReadOnlyList<DdiWarning>> CheckAsync(IReadOnlyList<int> drugIds, CancellationToken ct = default);
+    Task<IReadOnlyList<DdiWarning>> CheckAsync(IReadOnlyList<string> drugIds, CancellationToken ct = default);
 }
 
 // ── USB Token Signer (server-side verify only; client holds private key) ─────

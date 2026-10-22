@@ -25,13 +25,13 @@ public class NearExpiryNotificationJob
         using var conn = (IDbConnection)_db.CreateConnection();
 
         var nearExpiryStocks = await conn.QueryAsync<dynamic>(
-            @"SELECT s.DRUG_ID, d.DRUG_NAME, s.batch_no, s.expiry_date, s.quantity_available, s.tenant_id
-              FROM pha_stocks s
-              JOIN pha_drug_master d ON d.ID = s.DRUG_ID
-              WHERE s.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-                AND s.quantity_available > 0
-                AND s.DELETED_AT IS NULL
-              ORDER BY s.expiry_date ASC");
+            @"SELECT s.drug_id, COALESCE(NULLIF(d.name_vi, ''), d.name) AS drug_name,
+                     s.lot_number AS batch_no, s.exp_date AS expiry_date, s.quantity AS quantity_available, s.tenant_id
+              FROM diab_his_pha_stock s
+              JOIN diab_his_pha_drugs d ON d.id = s.drug_id
+              WHERE s.exp_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+                AND s.quantity > 0
+              ORDER BY s.exp_date ASC");
 
         var stockList = nearExpiryStocks.ToList();
         if (!stockList.Any())
@@ -47,7 +47,7 @@ public class NearExpiryNotificationJob
         foreach (var s in stockList)
         {
             _logger.LogWarning("NEAR_EXPIRY: tenant={TenantId} drug={DrugName} batch={Batch} expiry={Expiry} qty={Qty}",
-                (int)s.tenant_id, (string)s.DRUG_NAME, (string)s.batch_no, (DateTime)s.expiry_date, (decimal)s.quantity_available);
+                (int)s.tenant_id, (string)s.drug_name, (string)s.batch_no, (DateTime)s.expiry_date, (decimal)s.quantity_available);
         }
     }
 }
