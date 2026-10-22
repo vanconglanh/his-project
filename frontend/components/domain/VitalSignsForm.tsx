@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,9 +9,19 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { VitalSignsRequest } from "@/lib/api/types";
+import { GlucoseUnitToggle } from "@/components/domain/GlucoseUnitToggle";
+import { useGlucoseUnitStore } from "@/lib/stores/glucose-unit-store";
+import {
+  convertGlucose,
+  mgdlToMmol,
+  mmolToMgdl,
+  roundGlucose,
+  type GlucoseUnit,
+} from "@/lib/utils/glucose";
 
-
-
+// BM-69: glucose nhập/hiển thị theo đơn vị người dùng chọn (mặc định mmol/L),
+// nhưng LƯU vẫn là mg/dL (cột glucose_mg_dl — nguồn sự thật, không đổi schema).
+// Ngưỡng hợp lệ lưu trữ: 20-800 mg/dL ⇔ ~1.1-44.4 mmol/L.
 const schema = z.object({
   temperature_c: z.number().min(30).max(45).optional().or(z.literal(undefined)),
   heart_rate_bpm: z.number().int().min(20).max(250).optional().or(z.literal(undefined)),
@@ -23,7 +33,8 @@ const schema = z.object({
   height_cm: z.number().min(30).max(250).optional().or(z.literal(undefined)),
   waist_cm: z.number().min(20).max(300).optional().or(z.literal(undefined)),
   pain_scale: z.number().int().min(0).max(10).optional().or(z.literal(undefined)),
-  glucose_mg_dl: z.number().min(20).max(800).optional().or(z.literal(undefined)),
+  // Giá trị đường huyết theo đơn vị đang chọn trên UI (không phải đơn vị lưu).
+  glucose_display: z.number().positive().optional().or(z.literal(undefined)),
   note: z.string().optional(),
 });
 
@@ -37,7 +48,9 @@ interface Props {
   onSubmit: (data: VitalSignsRequest) => void;
   onSubmitAndNext?: (data: VitalSignsRequest) => void;
   isLoading?: boolean;
-  defaultValues?: Partial<FormValues>;
+  // defaultValues theo shape LƯU (glucose_mg_dl mg/dL); glucose sẽ được quy đổi
+  // sang đơn vị đang chọn để hiển thị trên ô nhập.
+  defaultValues?: Partial<VitalSignsRequest>;
 }
 
 function numOrUndef(val: unknown): number | undefined {
@@ -45,21 +58,55 @@ function numOrUndef(val: unknown): number | undefined {
   return isNaN(n) || val === "" || val === null || val === undefined ? undefined : n;
 }
 
+// Chuyển defaultValues (lưu mg/dL) -> FormValues (glucose_display theo đơn vị chọn).
+function toFormValues(
+  dv: Partial<VitalSignsRequest> | undefined,
+  unit: GlucoseUnit
+): Partial<FormValues> {
+  if (!dv) return {};
+  const { glucose_mg_dl, ...rest } = dv;
+  const glucose_display =
+    glucose_mg_dl != null
+      ? roundGlucose(unit === "mmol/L" ? mgdlToMmol(glucose_mg_dl) : glucose_mg_dl, unit)
+      : undefined;
+  return { ...rest, glucose_display };
+}
+
 export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultValues }: Props) {
+  const glucoseUnit = useGlucoseUnitStore((s) => s.unit);
+
   const {
     register,
     handleSubmit,
     watch,
     reset,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: defaultValues ?? {},
+    defaultValues: toFormValues(defaultValues, glucoseUnit),
   });
 
   useEffect(() => {
-    if (defaultValues) reset(defaultValues);
+    if (defaultValues) reset(toFormValues(defaultValues, glucoseUnit));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultValues, reset]);
+
+  // Khi người dùng đổi đơn vị: quy đổi giá trị đang nhập sang đơn vị mới để
+  // GIỮ NGUYÊN giá trị lâm sàng (chỉ đổi cách biểu diễn).
+  const prevUnit = useRef<GlucoseUnit>(glucoseUnit);
+  useEffect(() => {
+    if (prevUnit.current === glucoseUnit) return;
+    const current = getValues("glucose_display");
+    if (current != null && !Number.isNaN(current)) {
+      setValue(
+        "glucose_display",
+        roundGlucose(convertGlucose(Number(current), prevUnit.current, glucoseUnit), glucoseUnit)
+      );
+    }
+    prevUnit.current = glucoseUnit;
+  }, [glucoseUnit, getValues, setValue]);
 
   const weight = watch("weight_kg");
   const height = watch("height_cm");
@@ -69,6 +116,12 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
       : null;
 
   function coerce(data: FormValues): VitalSignsRequest {
+    // LƯU luôn theo mg/dL (nguồn sự thật, không đổi schema) dù UI chọn đơn vị nào.
+    const display = numOrUndef(data.glucose_display);
+    const glucose_mg_dl =
+      display != null
+        ? Math.round((glucoseUnit === "mmol/L" ? mmolToMgdl(display) : display) * 100) / 100
+        : undefined;
     return {
       temperature_c: numOrUndef(data.temperature_c),
       heart_rate_bpm: numOrUndef(data.heart_rate_bpm),
@@ -80,7 +133,7 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
       height_cm: numOrUndef(data.height_cm),
       waist_cm: numOrUndef(data.waist_cm),
       pain_scale: numOrUndef(data.pain_scale),
-      glucose_mg_dl: numOrUndef(data.glucose_mg_dl),
+      glucose_mg_dl,
       note: data.note,
     };
   }
@@ -178,14 +231,21 @@ export function VitalSignsForm({ onSubmit, onSubmitAndNext, isLoading, defaultVa
             {...register("pain_scale", numReg)}
           />
         </Field>
-        <Field id="vital-glucose" label="Đường huyết (mg/dL)" error={errors.glucose_mg_dl?.message}>
-          <Input
-            id="vital-glucose"
-            type="number"
-            step="0.1"
-            placeholder="100"
-            {...register("glucose_mg_dl", numReg)}
-          />
+        <Field
+          id="vital-glucose"
+          label={`Đường huyết (${glucoseUnit})`}
+          error={errors.glucose_display?.message}
+        >
+          <div className="space-y-1.5">
+            <Input
+              id="vital-glucose"
+              type="number"
+              step={glucoseUnit === "mmol/L" ? "0.1" : "1"}
+              placeholder={glucoseUnit === "mmol/L" ? "5.6" : "100"}
+              {...register("glucose_display", numReg)}
+            />
+            <GlucoseUnitToggle label="Đơn vị:" />
+          </div>
         </Field>
       </div>
 

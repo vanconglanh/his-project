@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useVitalSigns } from "@/lib/hooks/use-vital-signs";
 import type { VitalSignsResponse } from "@/lib/api/types";
 import { Activity } from "lucide-react";
+import { GlucoseUnitToggle } from "@/components/domain/GlucoseUnitToggle";
+import { useGlucoseUnitStore } from "@/lib/stores/glucose-unit-store";
+import { formatGlucoseFromMgdl } from "@/lib/utils/glucose";
 
 interface Props {
   encounterId: string;
@@ -33,6 +35,10 @@ export function VitalSignsHistoryDrawer({ encounterId, open, onClose, onEdit }: 
             Nhật ký sinh hiệu
           </SheetTitle>
         </SheetHeader>
+        {/* BM-69: bộ chọn đơn vị đường huyết dùng chung, đồng bộ với các màn khác */}
+        <div className="mt-2 flex justify-end">
+          <GlucoseUnitToggle label="Đường huyết:" />
+        </div>
         <div className="mt-4 space-y-3">
           {isLoading ? (
             [1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)
@@ -54,6 +60,7 @@ export function VitalSignsHistoryDrawer({ encounterId, open, onClose, onEdit }: 
 }
 
 function VitalCard({ record, onEdit }: { record: VitalSignsResponse; onEdit?: () => void }) {
+  const glucoseUnit = useGlucoseUnitStore((s) => s.unit);
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2">
       <div className="flex items-center justify-between">
@@ -91,7 +98,10 @@ function VitalCard({ record, onEdit }: { record: VitalSignsResponse; onEdit?: ()
           <VitalItem label="BMI" value={String(record.bmi)} />
         )}
         {record.glucose_mg_dl != null && (
-          <VitalItem label="Đường huyết" value={`${record.glucose_mg_dl} mg/dL`} />
+          <VitalItem
+            label="Đường huyết"
+            value={formatGlucoseFromMgdl(record.glucose_mg_dl, glucoseUnit)}
+          />
         )}
         {record.pain_scale != null && (
           <VitalItem label="Đau" value={`${record.pain_scale}/10`} />

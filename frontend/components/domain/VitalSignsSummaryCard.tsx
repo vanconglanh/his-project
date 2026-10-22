@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatVnTime } from "@/lib/utils/encounter-format";
+import { GlucoseUnitToggle } from "@/components/domain/GlucoseUnitToggle";
+import { useGlucoseUnitStore } from "@/lib/stores/glucose-unit-store";
+import { formatGlucoseFromMgdl, type GlucoseUnit } from "@/lib/utils/glucose";
 
 export interface VitalSignsSummaryCardProps {
   vital?: Record<string, unknown> | null;
@@ -23,7 +26,7 @@ function num(v: unknown): number | null {
   return typeof v === "number" && !Number.isNaN(v) ? v : null;
 }
 
-function buildItems(vital: Record<string, unknown>): VitalItem[] {
+function buildItems(vital: Record<string, unknown>, glucoseUnit: GlucoseUnit): VitalItem[] {
   const temp = num(vital.temperature_c);
   const hr = num(vital.heart_rate_bpm);
   const sys = num(vital.bp_systolic);
@@ -40,7 +43,13 @@ function buildItems(vital: Record<string, unknown>): VitalItem[] {
   if (spo2 != null) items.push({ label: "SpO2", value: `${spo2}%`, abnormal: spo2 < 95 });
   if (weight != null) items.push({ label: "Cân nặng", value: `${weight} kg`, abnormal: false });
   if (glucose != null)
-    items.push({ label: "Đường huyết", value: `${glucose} mg/dL`, abnormal: glucose > 180 });
+    // Ngưỡng bất thường so trên giá trị LƯU mg/dL (>180 mg/dL ≈ 10.0 mmol/L),
+    // độc lập đơn vị hiển thị để không lệch khi đổi đơn vị.
+    items.push({
+      label: "Đường huyết",
+      value: formatGlucoseFromMgdl(glucose, glucoseUnit),
+      abnormal: glucose > 180,
+    });
   return items;
 }
 
@@ -50,7 +59,9 @@ export function VitalSignsSummaryCard({
   onViewAll,
   onAddNew,
 }: VitalSignsSummaryCardProps) {
-  const items = vital ? buildItems(vital) : [];
+  const glucoseUnit = useGlucoseUnitStore((s) => s.unit);
+  const items = vital ? buildItems(vital, glucoseUnit) : [];
+  const hasGlucose = vital != null && typeof vital.glucose_mg_dl === "number";
 
   return (
     <Card>
@@ -66,6 +77,12 @@ export function VitalSignsSummaryCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-3 space-y-3">
+        {hasGlucose && (
+          // BM-69: bộ chọn đơn vị đường huyết, đồng bộ với form nhập & nhật ký sinh hiệu
+          <div className="flex justify-end">
+            <GlucoseUnitToggle label="Đường huyết:" />
+          </div>
+        )}
         {items.length === 0 ? (
           // BM-78: EmptyState action button không có data-tour → tour không bắt được;
           // tách action ra ngoài để gắn data-tour="enc-vital" cho cả 2 trạng thái (có/chưa có sinh hiệu)
