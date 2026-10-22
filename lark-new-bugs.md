@@ -66,3 +66,12 @@ Nguồn: grid "Task summary" board DiaB His(Web). 4 ticket mới, đều module 
 | **BM-111** | ⏳ Form UX xong (chọn thuốc/số lô/tồn cuối/2 cách nhập) nhưng SAVE chặn bởi cùng bug data-model → In dev | CreateAdjustmentHandler ghi pha_stocks(int) không khớp drug_id GUID + không hiện ở tồn kho. Cần căn chỉnh (task riêng). |
 
 **Bug gốc (mới phát hiện):** Warehouse module tách 2 bộ bảng — WRITE (GRN/điều chỉnh/phát) → `pha_stocks`/`pha_drug_master` (drug_id INT), READ (tồn kho/movements) → `diab_his_pha_stock`/`diab_his_pha_drugs` (drug_id GUID). Gây 400 + dữ liệu nhập/điều chỉnh không hiện. Đã tạo task căn chỉnh data-model (chặn BM-110/111 hoạt động đầy đủ).
+
+### KẾT QUẢ CUỐI ĐỢT 7 (sau refactor data-model + test E2E)
+- Đã sửa gốc bug data-model kho dược: căn mọi write-path (GRN/điều chỉnh/chuyển kho) + NearExpiryJob + DdiChecker sang bảng active diab_his_pha_stock/diab_his_pha_drugs (drug_id GUID). Dispense vốn đã đúng. 4 integration test MySQL pass.
+- **BM-110** ✅ E2E: tạo phiếu nhập KHÔNG PO (Glucophage XR 500mg, lô LOT-GRN-NOPO-1, SL 20) → Tồn kho hiện đúng lô (20, mã THUOC026). (Lỗi 400 trước do manufacture_date rỗng → fix FE "" → undefined.)
+- **BM-111** ✅ E2E: điều chỉnh lô LOT-GRN-NOPO-1 (tồn cuối auto 20, nhập -5 → số lượng sau auto 15) → Tồn kho đổi 20→15. Chọn thuốc/số lô/2 chiều nhập OK.
+- **BM-112** ✅ cột Mã thuốc đúng 1 cột, data căn đúng.
+- **BM-109** ✅ hiện message lỗi tạo đơn/nhập (getErrorMessage) — verify qua lỗi "Cần chọn kho" hiện rõ.
+- Regression sau deploy: PASS 12/0.
+- → cả 4 chuyển In test.
