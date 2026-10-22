@@ -225,3 +225,46 @@ pro-diab-his/
 | FHIR      | Fast Healthcare Interoperability Resources |
 | Tenant    | Một phòng khám trong hệ thống SaaS |
 | Encounter | Một lượt khám bệnh |
+
+---
+
+## 10. Lệnh thường dùng
+
+### Backend (`backend/`, solution `ProDiabHis.slnx`)
+```bash
+dotnet build backend/ProDiabHis.slnx
+dotnet run --project backend/src/ProDiabHis.Api --urls http://localhost:5000
+dotnet test backend/tests/ProDiabHis.UnitTests
+dotnet test backend/tests/ProDiabHis.UnitTests --filter "FullyQualifiedName~TenTest"   # chạy 1 test
+dotnet test backend/tests/ProDiabHis.ArchitectureTests
+dotnet test backend/tests/ProDiabHis.IntegrationTests   # cần DB; hiện có ~5 test đỏ có sẵn (users/tenants/cross-tenant/dispensing)
+```
+
+### Frontend (`frontend/`)
+```bash
+npm run dev          # next dev --turbo, port 3000
+npm run typecheck    # tsc --noEmit
+npm run lint
+npm run test:e2e     # Playwright (e2e/); 1 file: npx playwright test --config=e2e/playwright.config.ts e2e/auth.spec.ts
+```
+Frontend dùng Next.js 16 có breaking changes: đọc `frontend/AGENTS.md` và `node_modules/next/dist/docs/` trước khi code.
+
+### Hồi quy sau deploy
+```bash
+BASE_URL=https://his.diab.vn node docs/qc/regression/regression.js   # phải xanh (xem docs/qc/regression/README.md)
+```
+`.claude/launch.json` có sẵn cấu hình `backend` và `frontend` cho preview.
+
+## 11. Kiến trúc backend (cần đọc nhiều file mới thấy)
+
+- 5 project dưới `backend/src`: `Api` (controllers, `Program.cs`, middleware) → `Application` (CQRS bằng MediatR: command/query + handler, `Result<T>`) → `Domain`; `Infrastructure` (EF Core ghi, Dapper đọc, MinIO, mã hóa); `Contracts` (DTO dùng chung). `ProDiabHis.ArchitectureTests` ép ràng buộc phụ thuộc giữa các tầng.
+- Handler thường gom theo module (vd `PrescriptionHandlers.cs` + `PrescriptionDtos.cs`); quyền kiểm bằng `RequirePermission` trên controller, và phải có hiệu lực thật ở backend trước khi FE gate menu theo quyền đó.
+- Tìm kiếm SĐT/CMND/BHYT dùng blind index HMAC (`Encryption__BlindIndexKey`); bệnh nhân cũ cần chạy `POST /api/v1/admin/encryption/pii-backfill` (quyền `encryption.rotate`, admin bắt buộc 2FA).
+- DateTime phải serialize có hậu tố `Z` (`UtcDateTimeConverter` đăng ký trong `Program.cs`).
+- JWT không được nhét danh sách permission của admin (vượt 4KB cookie → login loop).
+
+## 12. Migration & triển khai
+
+- Migration SQL ở `db/migrations/NNNN_*.sql` (dải 92xx là mới nhất), thứ tự áp dụng xem `db/migrations/APPLY_ORDER.md`; trên server theo dõi bằng bảng `_schema_migrations(filename, applied_at)`. Viết idempotent.
+- Môi trường staging hiện tại: server VNG (`his.diab.vn`, stack `/srv/apps/stg/his`). Quy trình: build image **local** từ `git archive HEAD` → push/`docker save | ssh docker load` → `docker compose up -d --no-deps --force-recreate` → restart nginx container. Không build trên server. Frontend cần build-arg `NEXT_PUBLIC_API_BASE_URL=https://his.diab.vn` và `NEXT_PUBLIC_TEST_LOGIN_PANEL=true`. Backup DB trước khi áp migration; gắn tag `prev-<ts>` để rollback.
+- Đừng rsync nguyên thư mục `ops/` lên server (ghi đè `.env` thật).
