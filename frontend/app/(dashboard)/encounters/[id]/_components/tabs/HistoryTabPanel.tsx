@@ -4,6 +4,7 @@ import { AllergyList } from "@/components/domain/AllergyList";
 import { EmergencyContactList } from "@/components/domain/EmergencyContactList";
 import { DiabetesAssessmentForm } from "@/components/domain/DiabetesAssessmentForm";
 import { DiabetesTrendChart } from "@/components/domain/DiabetesTrendChart";
+import { InBodyHistoryList } from "@/components/domain/InBodyHistoryList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useCreateDiabetesAssessment,
@@ -33,6 +34,17 @@ export function HistoryTabPanel({ encounterId, patientId, canEdit }: Props) {
         </CardHeader>
         <CardContent className="px-4 pb-4">
           <DiabetesTrendChart patientId={patientId} />
+        </CardContent>
+      </Card>
+
+      {/* BM-101 (WI-7): hiển thị kết quả InBody (vd lễ tân tải lên khi tiếp đón) ngay ở
+          màn khám bệnh — danh sách theo bệnh nhân nên luôn thấy dù gắn encounter nào. */}
+      <Card>
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold">Kết quả InBody</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <InBodyHistoryList patientId={patientId} />
         </CardContent>
       </Card>
 

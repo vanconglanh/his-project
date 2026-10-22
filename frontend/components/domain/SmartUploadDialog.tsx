@@ -81,6 +81,12 @@ interface SmartUploadDialogProps {
   encounterOptions?: EncounterOption[];
   /** Encounter gần nhất — dùng làm gợi ý mặc định (không tự động chọn để tránh nhầm). */
   defaultEncounterId?: string;
+  /**
+   * BM-101: tự chọn sẵn `defaultEncounterId` khi mở (chỉ bật ở luồng tiếp đón, nơi encounter
+   * duy nhất là lượt khám WAITING vừa tạo — bác sĩ sẽ tái dùng chính encounter đó khi khám).
+   * Mặc định false để giữ hành vi màn hồ sơ bệnh nhân (nhiều lượt khám, không nên tự gắn nhầm).
+   */
+  autoSelectDefaultEncounter?: boolean;
   /** Điều hướng sang tab tương ứng khi người dùng tự chọn loại mơ hồ (Legacy/Unknown). */
   onNavigateTab?: (tabId: "inbody" | "cls" | "legacy-docs") => void;
 }
@@ -91,10 +97,12 @@ export function SmartUploadDialog({
   patientId,
   encounterOptions = [],
   defaultEncounterId,
+  autoSelectDefaultEncounter = false,
   onNavigateTab,
 }: SmartUploadDialogProps) {
+  const initialEncounterId = autoSelectDefaultEncounter ? defaultEncounterId ?? "" : "";
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [encounterId, setEncounterId] = useState<string>("");
+  const [encounterId, setEncounterId] = useState<string>(initialEncounterId);
   const [batch, setBatch] = useState<SmartUploadItemResult[] | null>(null);
   const [savedIdx, setSavedIdx] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +111,7 @@ export function SmartUploadDialog({
 
   function resetAll() {
     setPendingFiles([]);
-    setEncounterId("");
+    setEncounterId(initialEncounterId);
     setBatch(null);
     setSavedIdx(new Set());
   }

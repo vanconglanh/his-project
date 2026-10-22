@@ -622,6 +622,7 @@ export function ReceptionCheckInForm({
         onOpenChange={setUploadOpen}
         patientId={vitalTarget.patientId}
         defaultEncounterId={vitalTarget.encounterId ?? undefined}
+        autoSelectDefaultEncounter
         encounterOptions={
           vitalTarget.encounterId
             ? [{ id: vitalTarget.encounterId, label: `Lượt khám vừa tiếp đón - ${vitalTarget.patientName}` }]
