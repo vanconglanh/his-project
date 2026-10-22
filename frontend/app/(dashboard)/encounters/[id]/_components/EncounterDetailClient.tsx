@@ -13,6 +13,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { EncounterAlertBanner } from "@/components/domain/EncounterAlertBanner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { EncounterLockBanner } from "@/components/domain/EncounterLockBanner";
 import { EncounterToolbar } from "@/components/domain/EncounterToolbar";
 import { EncounterPatientSidebar } from "@/components/domain/EncounterPatientSidebar";
@@ -64,7 +66,8 @@ export function EncounterDetailClient({ encounterId }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { has, roles } = usePermissions();
+  const { has, roles, isSuperAdmin } = usePermissions();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   // BM-05: Dieu duong/KTV chi duoc vao 3 tab nghiep vu cua ho tren man Kham benh -
   // mac dinh vao thang "Chi dinh" (cls-orders) thay vi "Benh an" (emr, thuoc pham vi Bac si).
   const isNursing = isNursingRole(roles);
@@ -135,7 +138,15 @@ export function EncounterDetailClient({ encounterId }: Props) {
 
   const isDone = encounter?.status === "DONE";
   const isLocked = lockState?.is_locked ?? isDone;
-  const canEdit = encounter?.status === "IN_PROGRESS" && !isLocked;
+  // BM-57: bac si chi duoc sua benh an ca cua chinh minh; admin sua duoc moi ca.
+  // Ca chua gan bac si (doctor_id rong) van cho sua (chua co chu ca).
+  const isOtherDoctorCase =
+    !!encounter?.doctor_id &&
+    !!currentUserId &&
+    String(encounter.doctor_id) !== String(currentUserId) &&
+    !isSuperAdmin;
+  const canEdit =
+    encounter?.status === "IN_PROGRESS" && !isLocked && !isOtherDoctorCase;
 
   const counters = useMemo<Partial<Record<EncounterTabValue, number>>>(
     () => ({
@@ -280,6 +291,19 @@ export function EncounterDetailClient({ encounterId }: Props) {
           hoursOpen={(Date.now() - new Date(encounter.started_at).getTime()) / 3_600_000}
           startedAt={encounter.started_at}
         />
+      )}
+
+      {/* BM-57: canh bao khi mo ca cua bac si khac - benh an bi khoa chi doc */}
+      {isOtherDoctorCase && encounter.status === "IN_PROGRESS" && (
+        <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200 [&>svg]:text-amber-600">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Lượt khám của bác sĩ khác</AlertTitle>
+          <AlertDescription>
+            Đây là lượt khám do bác sĩ khác phụ trách. Bạn chỉ được xem, không thể
+            chỉnh sửa bệnh án hay chỉ định. Vui lòng liên hệ bác sĩ phụ trách hoặc
+            quản trị viên nếu cần thay đổi.
+          </AlertDescription>
+        </Alert>
       )}
 
       <PatientStripBar

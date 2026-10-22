@@ -103,6 +103,18 @@ public class SaveEmrDraftCommandHandler : IRequestHandler<SaveEmrDraftCommand, R
         if (enc is null)
             return Result<EmrContentResponse>.Failure("ENCOUNTER_NOT_FOUND", "Không tìm thấy lượt khám");
 
+        // BM-57: bac si chi duoc luu benh an cua chinh minh; admin luu duoc cua bat ky ai.
+        var isAdmin = _user.Roles.Any(r => r.Contains("admin", StringComparison.OrdinalIgnoreCase)
+                                        || r.Contains("Quản trị", StringComparison.Ordinal));
+        if (!isAdmin
+            && !string.IsNullOrEmpty(enc.DoctorId)
+            && _user.UserId.HasValue
+            && !string.Equals(enc.DoctorId, _user.UserId.Value.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<EmrContentResponse>.Failure("FORBIDDEN",
+                "Bạn không có quyền chỉnh sửa bệnh án của bác sĩ khác");
+        }
+
         // Check existing EMR
         var existing = await _db.EmrContents
             .FirstOrDefaultAsync(e => e.EncounterId == encIdStr, ct);
