@@ -55,3 +55,14 @@ Nguồn: grid "Task summary" board DiaB His(Web). 4 ticket mới, đều module 
 | **BM-112** | Tồn kho | Thiếu mã thuốc | Thêm cột Mã thuốc trước cột Tên thuốc | FE: thêm cột bảng |
 
 ### Hành động: xử lý từng ticket (ưu tiên bản mặc định, chỉ To BA khi thật cần BA).
+
+### KẾT QUẢ ĐỢT 7
+
+| Ticket | Kết quả | Ghi chú |
+|---|---|---|
+| **BM-112** | ✅ Fix + deploy (dùng bảng active diab_his_pha_stock/diab_his_pha_drugs) → In test | BE thêm drug_code (d.code); FE thêm cột. Lỗi header trùng "Mã thuốc" đã fix (commit a162d13). |
+| **BM-109** | ✅ Fix (FE) → In test | Hook mutation dùng getErrorMessage (hết nuốt lỗi) + PurchaseOrderForm hiện message từng field + lỗi tổng. PO create ghi bảng active. |
+| **BM-110** | ⏳ FE + endpoint xong nhưng CHẶN bởi bug data-model có sẵn → In dev | POST /pharmacy/grn trả 400: GrnItemRequest.DrugId=int ghi pha_stocks(legacy) trong khi picker/tồn kho dùng diab_his_pha_drugs/diab_his_pha_stock(GUID). Cần căn chỉnh write-path sang bảng active (task riêng). |
+| **BM-111** | ⏳ Form UX xong (chọn thuốc/số lô/tồn cuối/2 cách nhập) nhưng SAVE chặn bởi cùng bug data-model → In dev | CreateAdjustmentHandler ghi pha_stocks(int) không khớp drug_id GUID + không hiện ở tồn kho. Cần căn chỉnh (task riêng). |
+
+**Bug gốc (mới phát hiện):** Warehouse module tách 2 bộ bảng — WRITE (GRN/điều chỉnh/phát) → `pha_stocks`/`pha_drug_master` (drug_id INT), READ (tồn kho/movements) → `diab_his_pha_stock`/`diab_his_pha_drugs` (drug_id GUID). Gây 400 + dữ liệu nhập/điều chỉnh không hiện. Đã tạo task căn chỉnh data-model (chặn BM-110/111 hoạt động đầy đủ).
