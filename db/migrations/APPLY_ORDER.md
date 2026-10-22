@@ -305,3 +305,7 @@ Các cột đã ADD vào bảng cũ (tenant_id, updated_by, deleted_at, v.v.) c�
 
 - `9229_bm101_add_waist_to_vital_signs.sql`: thêm `diab_his_enc_vital_signs.waist_cm DECIMAL(5,1) NULL` (vòng eo). Idempotent.
 - `9230_bm101_grant_vital_sign_write_letan.sql`: cấp quyền `vital_sign.write` cho role `le_tan` (INSERT IGNORE). Idempotent.
+
+## Migration BM-101 regression (9231) - 2026-10-22
+
+- `9231_bm101_grant_vital_sign_read_letan.sql`: cấp quyền `vital_sign.read` cho role `le_tan` (INSERT IGNORE) để màn tiếp đón xem được "Lịch sử đo" (endpoint history yêu cầu vital_sign.read, trước đó staging le_tan thiếu -> 403). Idempotent. Lễ tân cần đăng nhập lại.
