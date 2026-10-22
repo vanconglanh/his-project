@@ -38,6 +38,8 @@ export function StockTable({ stocks }: Props) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Mã thuốc</TableHead>
+            <TableHead>Mã thuốc</TableHead>
             <TableHead>Tên thuốc</TableHead>
             <TableHead>Số lô</TableHead>
             <TableHead>HSD</TableHead>
@@ -51,6 +53,7 @@ export function StockTable({ stocks }: Props) {
         <TableBody>
           {stocks.map((s) => (
             <TableRow key={s.id}>
+              <TableCell className="font-mono text-sm">{s.drug_code ?? "—"}</TableCell>
               <TableCell className="font-medium">{s.drug_name}</TableCell>
               <TableCell className="font-mono text-sm">{s.batch_no}</TableCell>
               <TableCell

@@ -58,6 +58,8 @@ export interface PurchaseOrderResponse {
 
 export interface GoodsReceivedRequest {
   po_id?: string;
+  /** BM-110: bắt buộc khi tạo GRN không có PO */
+  warehouse_id?: string;
   received_at: string;
   note?: string;
   items: Array<{
@@ -75,6 +77,7 @@ export interface StockResponse {
   tenant_id: string;
   warehouse_id: string;
   drug_id: string;
+  drug_code?: string;
   drug_name: string;
   batch_no: string;
   manufacture_date?: string | null;
@@ -166,13 +169,19 @@ export async function createPurchaseOrder(body: PurchaseOrderRequest): Promise<P
 }
 
 export async function createGrn(
-  poId: string,
+  poId: string | undefined,
   body: GoodsReceivedRequest
-): Promise<{ grn_id: string; po_status: PurchaseOrderStatus; stocks_updated: StockResponse[] }> {
-  const { data } = await apiClient.post<ApiResponse<{ grn_id: string; po_status: PurchaseOrderStatus; stocks_updated: StockResponse[] }>>(
-    `/pharmacy/purchase-orders/${poId}/grn`,
-    body
-  );
+): Promise<{ grn_id: string; po_status: PurchaseOrderStatus | "NONE"; stocks_updated: StockResponse[] }> {
+  type Res = { grn_id: string; po_status: PurchaseOrderStatus | "NONE"; stocks_updated: StockResponse[] };
+  if (poId) {
+    // Luồng có PO: giữ endpoint cũ (kho suy từ PO)
+    const { data } = await apiClient.post<ApiResponse<Res>>(`/pharmacy/purchase-orders/${poId}/grn`, body);
+    return data.data;
+  }
+  // BM-110: luồng không PO -> POST /pharmacy/grn, bắt buộc warehouse_id
+  const { po_id: _ignored, ...rest } = body;
+  void _ignored;
+  const { data } = await apiClient.post<ApiResponse<Res>>("/pharmacy/grn", { ...rest, purchase_order_id: null });
   return data.data;
 }
 

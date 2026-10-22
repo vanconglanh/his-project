@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils/errors";
 import {
   listWarehouses,
   createWarehouse,
@@ -102,11 +103,11 @@ export function useCreatePurchaseOrder() {
       qc.invalidateQueries({ queryKey: poKeys.all });
       toast.success("Đã tạo đơn đặt hàng");
     },
-    onError: () => toast.error("Tạo đơn thất bại"),
+    onError: (e) => toast.error(getErrorMessage(e, "Tạo đơn thất bại")),
   });
 }
 
-export function useCreateGrn(poId: string) {
+export function useCreateGrn(poId?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: GoodsReceivedRequest) => createGrn(poId, body),
@@ -115,7 +116,7 @@ export function useCreateGrn(poId: string) {
       qc.invalidateQueries({ queryKey: stockKeys.all });
       toast.success("Nhập kho thành công, tồn kho đã cập nhật");
     },
-    onError: () => toast.error("Nhập kho thất bại"),
+    onError: (e) => toast.error(getErrorMessage(e, "Nhập kho thất bại")),
   });
 }
 
@@ -148,7 +149,7 @@ export function useCreateAdjustment() {
       qc.invalidateQueries({ queryKey: stockKeys.all });
       toast.success("Điều chỉnh tồn kho thành công");
     },
-    onError: () => toast.error("Điều chỉnh thất bại"),
+    onError: (e) => toast.error(getErrorMessage(e, "Điều chỉnh thất bại")),
   });
 }
 

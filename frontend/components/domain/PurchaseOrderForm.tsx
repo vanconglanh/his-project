@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,11 +21,11 @@ const schema = z.object({
     .array(
       z.object({
         drug_id: z.string().min(1, "Bắt buộc"),
-        quantity_ordered: z.coerce.number().min(1),
-        unit_price: z.coerce.number().min(0),
+        quantity_ordered: z.coerce.number({ message: "Nhập số lượng" }).min(1, "Số lượng phải ≥ 1"),
+        unit_price: z.coerce.number({ message: "Nhập đơn giá" }).min(0, "Đơn giá phải ≥ 0"),
       })
     )
-    .min(1),
+    .min(1, "Cần ít nhất 1 dòng thuốc"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -50,17 +50,25 @@ export function PurchaseOrderForm({ onSuccess, formId = "purchase-order-form", o
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
+  const [showSummary, setShowSummary] = useState(false);
+
   useEffect(() => {
     onSubmittingChange?.(createPo.isPending);
   }, [createPo.isPending, onSubmittingChange]);
 
   async function onSubmit(data: FormData) {
+    setShowSummary(false);
     await createPo.mutateAsync(data);
     onSuccess?.();
   }
 
   return (
-    <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit(onSubmit, () => setShowSummary(true))} className="space-y-4">
+      {showSummary && Object.keys(errors).length > 0 && (
+        <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          Vui lòng điền đủ thông tin bắt buộc
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>Nhà cung cấp</Label>
@@ -114,20 +122,26 @@ export function PurchaseOrderForm({ onSuccess, formId = "purchase-order-form", o
             <div className="space-y-1">
               {idx === 0 && <Label className="text-xs">Mã thuốc (UUID)</Label>}
               <Input placeholder="drug_id..." {...register(`items.${idx}.drug_id`)} />
+              {errors.items?.[idx]?.drug_id && <p className="text-xs text-destructive">{errors.items[idx]?.drug_id?.message}</p>}
             </div>
             <div className="space-y-1">
               {idx === 0 && <Label className="text-xs">Số lượng</Label>}
               <Input type="number" min={1} {...register(`items.${idx}.quantity_ordered`)} />
+              {errors.items?.[idx]?.quantity_ordered && <p className="text-xs text-destructive">{errors.items[idx]?.quantity_ordered?.message}</p>}
             </div>
             <div className="space-y-1">
               {idx === 0 && <Label className="text-xs">Đơn giá</Label>}
               <Input type="number" min={0} {...register(`items.${idx}.unit_price`)} />
+              {errors.items?.[idx]?.unit_price && <p className="text-xs text-destructive">{errors.items[idx]?.unit_price?.message}</p>}
             </div>
             <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-destructive" onClick={() => remove(idx)} disabled={fields.length === 1}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         ))}
+        {(errors.items?.message || errors.items?.root?.message) && (
+          <p className="text-xs text-destructive">{errors.items?.message ?? errors.items?.root?.message}</p>
+        )}
       </div>
     </form>
   );

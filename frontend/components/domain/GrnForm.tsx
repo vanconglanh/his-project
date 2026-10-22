@@ -1,21 +1,24 @@
 ﻿"use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreateGrn } from "@/lib/hooks/use-pharmacy-warehouse";
+import { DrugAutocomplete } from "@/components/domain/DrugAutocomplete";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCreateGrn, useWarehouses } from "@/lib/hooks/use-pharmacy-warehouse";
 import { Plus, Trash2 } from "lucide-react";
 
 const schema = z.object({
+  warehouse_id: z.string().optional(),
   received_at: z.string().min(1),
   note: z.string().optional(),
   items: z.array(
     z.object({
-      drug_id: z.string().min(1, "Bắt buộc"),
+      drug_id: z.string().min(1, "Chọn thuốc"),
       batch_no: z.string().min(1, "Bắt buộc"),
       manufacture_date: z.string().optional(),
       expiry_date: z.string().min(1, "Bắt buộc"),
@@ -25,10 +28,12 @@ const schema = z.object({
   ).min(1),
 });
 
+
 type FormData = z.infer<typeof schema>;
 
 interface Props {
-  poId: string;
+  /** Có poId -> luồng gắn PO (kho suy từ PO). Không có -> nhập kho không PO, phải chọn kho. */
+  poId?: string;
   onSuccess?: () => void;
   /** id gắn lên thẻ <form> — trang cha (Fullpage shell) dùng để trigger submit từ ngoài */
   formId?: string;
@@ -38,8 +43,9 @@ interface Props {
 
 export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChange }: Props) {
   const createGrn = useCreateGrn(poId);
+  const { data: warehouses } = useWarehouses();
 
-  const { register, handleSubmit, control, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, setValue, watch, setError, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
       received_at: new Date().toISOString().slice(0, 16),
@@ -47,6 +53,8 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
     },
   });
 
+  // Nhãn hiển thị "code — name_vi" theo field.id (chỉ để UX, không gửi lên BE)
+  const [drugLabels, setDrugLabels] = useState<Record<string, string>>({});
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
   useEffect(() => {
@@ -54,13 +62,34 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
   }, [createGrn.isPending, onSubmittingChange]);
 
   async function onSubmit(data: FormData) {
-    await createGrn.mutateAsync({ ...data, received_at: new Date(data.received_at).toISOString() });
+    if (!poId && !data.warehouse_id) {
+      setError("warehouse_id", { message: "Cần chọn kho khi không có đơn đặt hàng" });
+      return;
+    }
+    await createGrn.mutateAsync({ ...data, warehouse_id: poId ? undefined : data.warehouse_id, received_at: new Date(data.received_at).toISOString() });
     onSuccess?.();
   }
 
   return (
     <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
+        {!poId && (
+          <div className="space-y-1 col-span-2">
+            <Label>Kho nhập</Label>
+            <Select
+              items={Object.fromEntries((warehouses ?? []).map((w) => [w.id, w.name]))}
+              onValueChange={(v) => setValue("warehouse_id", String(v ?? ""), { shouldValidate: true })}
+            >
+              <SelectTrigger><SelectValue placeholder="-- Chọn kho --" /></SelectTrigger>
+              <SelectContent>
+                {warehouses?.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.warehouse_id && <p className="text-xs text-destructive">{errors.warehouse_id.message}</p>}
+          </div>
+        )}
         <div className="space-y-1">
           <Label>Thời gian nhận hàng</Label>
           <Input type="datetime-local" {...register("received_at")} />
@@ -84,8 +113,26 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
           <div key={field.id} className="border rounded-md p-3 space-y-3 relative">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Mã thuốc (UUID)</Label>
-                <Input placeholder="drug_id..." {...register(`items.${idx}.drug_id`)} />
+                <Label className="text-xs">Thuốc</Label>
+                {watch(`items.${idx}.drug_id`) ? (
+                  <div className="flex items-center gap-1">
+                    <div className="flex-1 truncate rounded-md border px-3 h-10 flex items-center text-sm" title={drugLabels[field.id]}>
+                      {drugLabels[field.id] || watch(`items.${idx}.drug_id`)}
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setValue(`items.${idx}.drug_id`, "")}>
+                      Đổi
+                    </Button>
+                  </div>
+                ) : (
+                  <DrugAutocomplete
+                    placeholder="Tìm theo tên hoặc mã..."
+                    onSelect={(d) => {
+                      setValue(`items.${idx}.drug_id`, d.id, { shouldValidate: true });
+                      setDrugLabels((m) => ({ ...m, [field.id]: `${d.code} — ${d.name_vi}` }));
+                    }}
+                  />
+                )}
+                {errors.items?.[idx]?.drug_id && <p className="text-xs text-destructive">{errors.items[idx]?.drug_id?.message}</p>}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Số lô</Label>

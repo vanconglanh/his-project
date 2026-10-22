@@ -313,3 +313,7 @@ Các cột đã ADD vào bảng cũ (tenant_id, updated_by, deleted_at, v.v.) c�
 ## Migration BM-101 WI-7 (9232) - 2026-10-22
 
 - `9232_bm101_grant_clinical_write_letan_inbody.sql`: cấp `patient.clinical.write` cho `le_tan` để upload Inbody ở tiếp đón (smart-upload + confirm inbody yêu cầu quyền này; file.upload BM-105 không đủ). LƯU Ý: quyền này cũng gate thêm/xoá dị ứng bệnh nhân — cần BA/security review. Idempotent, le_tan đăng nhập lại.
+
+## Migration BM-110 (9233) - 2026-10-22
+
+- `9233_bm110_grn_po_nullable.sql`: `diab_his_pha_grn.purchase_order_id` cho phép NULL để tạo phiếu nhập kho không cần đơn đặt hàng (endpoint `POST /api/v1/pharmacy/grn`). Idempotent.

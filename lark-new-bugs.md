@@ -40,3 +40,18 @@ Evidence: `docs/qc/evidence-lark-20261020/BM-57-*.jpg`, `BM-69-*.jpg`, `BM-73-*.
 ### Quan sát phụ (ngoài scope Đợt 6, cần theo dõi)
 - Màn nhập sinh hiệu ở tiếp đón (vai Lễ tân) báo "Lịch sử đo: Không tải được lịch sử sinh hiệu" — endpoint history có thể lỗi/thiếu quyền cho Lễ tân. Chưa xử lý, nên kiểm tra riêng.
 - Tenant 1 (DiaBetis HCM) đã bị nạp data SUNS thừa từ lần import đầu (devops để nguyên, không xoá vì khó tách). Nếu tenant 1 là môi trường có ý nghĩa, cần dọn.
+
+---
+
+## ĐỢT 7 — Ticket mới ≥ BM-109 (2026-10-22)
+
+Nguồn: grid "Task summary" board DiaB His(Web). 4 ticket mới, đều module **Kho dược** (Pharmacy inventory), Role Quản trị viên, Priority Low, Progress Not started. Người file: Nguyen Duyen.
+
+| Ticket | Màn | Mô tả | Expectation | Hướng |
+|---|---|---|---|---|
+| **BM-109** | Nhập kho > Tạo đơn đặt hàng (PO) | Tạo đơn thất bại nhưng KHÔNG hiện lý do | Hiện rõ lý do vì sao tạo đơn thất bại (vd: chưa điền đủ ô nào) | FE: hiển thị lỗi validation/BE rõ ràng |
+| **BM-110** | Nhập kho (GRN) | Lỗi logic: bắt chọn đơn đặt hàng (PO) mới tạo được phiếu nhập kho | Cho phép tạo phiếu nhập kho (GRN) KHÔNG cần chọn PO — PO là tuỳ chọn | FE (+BE nếu bắt buộc PO ở API) |
+| **BM-111** | Điều chỉnh kho | Thiếu trường Tên thuốc, tồn cuối, số lượng sau tăng/giảm | Dropdown thuốc→số lô→auto tồn cuối; 2 cách nhập: Số lượng (+/-) hoặc Số lượng sau — ô còn lại tự tính | FE form enhancement |
+| **BM-112** | Tồn kho | Thiếu mã thuốc | Thêm cột Mã thuốc trước cột Tên thuốc | FE: thêm cột bảng |
+
+### Hành động: xử lý từng ticket (ưu tiên bản mặc định, chỉ To BA khi thật cần BA).

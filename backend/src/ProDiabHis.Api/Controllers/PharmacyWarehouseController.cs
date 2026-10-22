@@ -80,6 +80,20 @@ public class PharmacyWarehouseController : ControllerBase
         return Created("", new { data = result.Value });
     }
 
+    /// <summary>BM-110: Tạo phiếu nhập kho không cần đơn đặt hàng (warehouse_id bắt buộc trong body).</summary>
+    [HttpPost("api/v1/pharmacy/grn")]
+    [RequirePermission("warehouse.write")]
+    public async Task<IActionResult> CreateGrnWithoutPo([FromBody] GoodsReceivedRequest request, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new CreateGrnCommand(request.PurchaseOrderId, request), ct);
+        if (!result.IsSuccess)
+        {
+            var err = new { error = new { code = result.ErrorCode, message = result.ErrorMessage } };
+            return result.ErrorCode == "VALIDATION_ERROR" ? BadRequest(err) : NotFound(err);
+        }
+        return Created("", new { data = result.Value });
+    }
+
     [HttpPost("api/v1/pharmacy/purchase-orders/{id}/grn")]
     [RequirePermission("warehouse.write")]
     public async Task<IActionResult> CreateGrn(string id, [FromBody] GoodsReceivedRequest request, CancellationToken ct)

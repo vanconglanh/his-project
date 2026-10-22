@@ -47,7 +47,11 @@ public record PurchaseOrderItemResponse(
 public record GoodsReceivedRequest(
     DateTime ReceivedAt,
     string? Note,
-    IReadOnlyList<GrnItemRequest> Items);
+    IReadOnlyList<GrnItemRequest> Items,
+    // BM-110: GRN khong can PO. WarehouseId bat buoc khi PurchaseOrderId = null.
+    string? WarehouseId = null,
+    string? SupplierId = null,
+    string? PurchaseOrderId = null);
 
 public record GrnItemRequest(
     int DrugId,
@@ -75,7 +79,9 @@ public record StockResponse(
     bool IsNearExpiry,
     bool IsLowStock,
     // BM-59: tach IsExpired khoi IsNearExpiry de FE hien thi dung "Het han" vs "Sap het han"
-    bool IsExpired = false);
+    bool IsExpired = false,
+    // BM-112: ma thuoc
+    string? DrugCode = null);
 
 public record StockMovementResponse(
     string Id,

@@ -31,10 +31,16 @@ export function WarehouseTab() {
             <TabsTrigger value="po">Đơn đặt hàng (PO)</TabsTrigger>
             <TabsTrigger value="grn">Phiếu nhập (GRN)</TabsTrigger>
           </TabsList>
-          <Button size="sm" onClick={() => router.push("/pharmacy/purchase-orders/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Tạo đơn đặt hàng
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => router.push("/pharmacy/grn/new")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tạo phiếu nhập (không cần PO)
+            </Button>
+            <Button size="sm" onClick={() => router.push("/pharmacy/purchase-orders/new")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tạo đơn đặt hàng
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="po" className="mt-4">
@@ -110,7 +116,7 @@ export function WarehouseTab() {
 
         <TabsContent value="grn" className="mt-4">
           <div className="text-sm text-muted-foreground py-4">
-            Chọn một đơn đặt hàng (PO) ở tab trên và nhấn "Nhập kho" để tạo phiếu nhập kho (GRN).
+            Chọn một đơn đặt hàng (PO) ở tab trên và nhấn "Nhập kho", hoặc nhấn "Tạo phiếu nhập (không cần PO)" để nhập kho trực tiếp.
           </div>
         </TabsContent>
       </Tabs>

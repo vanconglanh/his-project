@@ -15,7 +15,7 @@ public record DeleteWarehouseCommand(string Id) : IRequest<Result<bool>>;
 public record ListPurchaseOrdersQuery(string? Status, string? SupplierId, int Page, int PageSize)
     : IRequest<Result<PagedResult<PurchaseOrderResponse>>>;
 public record CreatePurchaseOrderCommand(PurchaseOrderRequest Request) : IRequest<Result<PurchaseOrderResponse>>;
-public record CreateGrnCommand(string PurchaseOrderId, GoodsReceivedRequest Request) : IRequest<Result<GrnResponse>>;
+public record CreateGrnCommand(string? PurchaseOrderId, GoodsReceivedRequest Request) : IRequest<Result<GrnResponse>>;
 
 public record ListStocksQuery(int? WarehouseId, int? DrugId, string? BatchNo, bool? LowStock, bool? NearExpiry, int Page, int PageSize)
     : IRequest<Result<PagedResult<StockResponse>>>;
@@ -250,17 +250,30 @@ public class CreateGrnHandler : IRequestHandler<CreateGrnCommand, Result<GrnResp
         using var conn = ((IDbConnection)_db.CreateConnection());
         var tenantId = _currentUser.TenantId!.Value;
 
-        var po = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, warehouse_id, status FROM diab_his_pha_purchase_orders WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
-            new { id = cmd.PurchaseOrderId, tenantId });
+        var hasPo = !string.IsNullOrWhiteSpace(cmd.PurchaseOrderId);
+        int warehouseId;
+        if (hasPo)
+        {
+            var po = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT id, warehouse_id, status FROM diab_his_pha_purchase_orders WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { id = cmd.PurchaseOrderId, tenantId });
 
-        if (po == null)
-            return Result<GrnResponse>.Failure("PHARMACY_WAREHOUSE_NOT_FOUND", "Khong tim thay phieu dat hang.");
+            if (po == null)
+                return Result<GrnResponse>.Failure("PHARMACY_WAREHOUSE_NOT_FOUND", "Khong tim thay phieu dat hang.");
+            warehouseId = (int)po.warehouse_id;
+        }
+        else
+        {
+            if (!int.TryParse(cmd.Request.WarehouseId, out warehouseId) || warehouseId <= 0)
+                return Result<GrnResponse>.Failure("VALIDATION_ERROR", "Cần chọn kho khi không có đơn đặt hàng");
+            if (cmd.Request.Items == null || cmd.Request.Items.Count == 0)
+                return Result<GrnResponse>.Failure("VALIDATION_ERROR", "Cần ít nhất một dòng thuốc nhập kho");
+        }
 
         var grnId = Guid.NewGuid().ToString();
         await conn.ExecuteAsync(
             "INSERT INTO diab_his_pha_grn (id, tenant_id, purchase_order_id, received_at, note, created_at, updated_at) VALUES (@id, @tenantId, @poId, @receivedAt, @note, NOW(), NOW())",
-            new { id = grnId, tenantId, poId = cmd.PurchaseOrderId, receivedAt = cmd.Request.ReceivedAt, note = cmd.Request.Note });
+            new { id = grnId, tenantId, poId = hasPo ? cmd.PurchaseOrderId : null, receivedAt = cmd.Request.ReceivedAt == default ? DateTime.UtcNow : cmd.Request.ReceivedAt, note = cmd.Request.Note });
 
         var updatedStocks = new List<StockResponse>();
         foreach (var item in cmd.Request.Items)
@@ -271,7 +284,7 @@ public class CreateGrnHandler : IRequestHandler<CreateGrnCommand, Result<GrnResp
                 @"INSERT INTO pha_stocks (tenant_id, warehouse_id, drug_id, batch_no, manufacture_date, expiry_date, quantity_available, quantity_reserved, unit_cost, reorder_level, created_at, updated_at)
                   VALUES (@tenantId, @warehouseId, @drugId, @batchNo, @mfgDate, @expiryDate, @qty, 0, @unitCost, 10, NOW(), NOW())
                   ON DUPLICATE KEY UPDATE quantity_available = quantity_available + @qty, unit_cost = @unitCost, updated_at = NOW()",
-                new { tenantId, warehouseId = (int)po.warehouse_id, drugId = item.DrugId, batchNo = item.BatchNo,
+                new { tenantId, warehouseId = warehouseId, drugId = item.DrugId, batchNo = item.BatchNo,
                       mfgDate = item.ManufactureDate, expiryDate = item.ExpiryDate, qty = item.QuantityReceived, unitCost = item.UnitCost });
 
             // Movement record
@@ -279,24 +292,27 @@ public class CreateGrnHandler : IRequestHandler<CreateGrnCommand, Result<GrnResp
                 @"INSERT INTO diab_his_pha_stock_movements (tenant_id, stock_id, warehouse_id, movement_type, quantity, unit_price, reference_type, reference_id, movement_at, performed_by, created_at, updated_at)
                   SELECT @tenantId, id, warehouse_id, 'IMPORT', @qty, @unitCost, 'GRN', @grnId, NOW(), @userId, NOW(), NOW()
                   FROM pha_stocks WHERE tenant_id = @tenantId AND warehouse_id = @warehouseId AND drug_id = @drugId AND batch_no = @batchNo LIMIT 1",
-                new { tenantId, warehouseId = (int)po.warehouse_id, drugId = item.DrugId, batchNo = item.BatchNo,
+                new { tenantId, warehouseId = warehouseId, drugId = item.DrugId, batchNo = item.BatchNo,
                       qty = item.QuantityReceived, unitCost = item.UnitCost, grnId, userId = 0 });
 
             var drugName = await conn.ExecuteScalarAsync<string>("SELECT name_vi FROM pha_drug_master WHERE id = @id", new { id = item.DrugId });
             var daysToExpiry = (item.ExpiryDate.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days;
 
             updatedStocks.Add(new StockResponse(
-                stockId, tenantId, (int)po.warehouse_id, item.DrugId.ToString(), drugName, item.BatchNo,
+                stockId, tenantId, warehouseId, item.DrugId.ToString(), drugName, item.BatchNo,
                 item.ManufactureDate, item.ExpiryDate, item.QuantityReceived, 0, item.UnitCost,
                 daysToExpiry, daysToExpiry <= 90, false));
         }
 
-        // Update PO status
-        var allReceived = true; // simplified
-        var newPoStatus = allReceived ? "RECEIVED" : "PARTIAL";
-        await conn.ExecuteAsync(
-            "UPDATE diab_his_pha_purchase_orders SET status = @status, updated_at = NOW() WHERE id = @id",
-            new { status = newPoStatus, id = cmd.PurchaseOrderId });
+        // Update PO status (chi khi co PO)
+        var newPoStatus = "NONE";
+        if (hasPo)
+        {
+            newPoStatus = "RECEIVED"; // simplified
+            await conn.ExecuteAsync(
+                "UPDATE diab_his_pha_purchase_orders SET status = @status, updated_at = NOW() WHERE id = @id",
+                new { status = newPoStatus, id = cmd.PurchaseOrderId });
+        }
 
         await _cucQld.ReportImportAsync(Guid.Parse(grnId), ct);
 
@@ -332,7 +348,7 @@ public class ListStocksHandler : IRequestHandler<ListStocksQuery, Result<PagedRe
 
         var rows = await conn.QueryAsync<dynamic>(
             $@"SELECT s.id, s.tenant_id, s.drug_id,
-                      COALESCE(d.name_vi, d.name) AS drug_name,
+                      d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name,
                       s.lot_number AS batch_no, s.mfg_date AS manufacture_date, s.exp_date AS expiry_date,
                       s.quantity AS quantity_available, 0 AS quantity_reserved, s.import_price AS unit_cost,
                       d.reorder_level,
@@ -362,7 +378,7 @@ public class ListStocksHandler : IRequestHandler<ListStocksQuery, Result<PagedRe
             r.manufacture_date != null ? DateOnly.FromDateTime((DateTime)r.manufacture_date) : (DateOnly?)null,
             DateOnly.FromDateTime((DateTime)r.expiry_date),
             qa, (decimal)(r.quantity_reserved ?? 0), (decimal)(r.unit_cost ?? 0),
-            dte, isNearExpiry, qa < rl, isExpired);
+            dte, isNearExpiry, qa < rl, isExpired, (string?)r.drug_code);
     }
 }
 
@@ -531,7 +547,7 @@ public class GetLowStockAlertsHandler : IRequestHandler<GetLowStockAlertsQuery, 
         prm.Add("tenantId", tenantId);
 
         var rows = await conn.QueryAsync<dynamic>(
-            $@"SELECT s.id, s.tenant_id, s.drug_id, COALESCE(d.name_vi, d.name) AS drug_name,
+            $@"SELECT s.id, s.tenant_id, s.drug_id, d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name,
                       s.lot_number AS batch_no, s.mfg_date AS manufacture_date, s.exp_date AS expiry_date,
                       s.quantity AS quantity_available, 0 AS quantity_reserved, s.import_price AS unit_cost,
                       d.reorder_level, DATEDIFF(s.exp_date, CURDATE()) as days_to_expiry
@@ -559,7 +575,7 @@ public class GetNearExpiryAlertsHandler : IRequestHandler<GetNearExpiryAlertsQue
         prm.Add("tenantId", tenantId); prm.Add("days", q.Days);
 
         var rows = await conn.QueryAsync<dynamic>(
-            $@"SELECT s.id, s.tenant_id, s.drug_id, COALESCE(d.name_vi, d.name) AS drug_name,
+            $@"SELECT s.id, s.tenant_id, s.drug_id, d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name,
                       s.lot_number AS batch_no, s.mfg_date AS manufacture_date, s.exp_date AS expiry_date,
                       s.quantity AS quantity_available, 0 AS quantity_reserved, s.import_price AS unit_cost,
                       d.reorder_level, DATEDIFF(s.exp_date, CURDATE()) as days_to_expiry
@@ -611,7 +627,7 @@ public class ListStocksStringIdHandler : IRequestHandler<ListStocksStringIdQuery
 
         var rows = await conn.QueryAsync<dynamic>(
             $@"SELECT s.id, s.tenant_id, s.drug_id,
-                      COALESCE(d.name_vi, d.name) AS drug_name,
+                      d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name,
                       s.lot_number AS batch_no, s.mfg_date AS manufacture_date, s.exp_date AS expiry_date,
                       s.quantity AS quantity_available, 0 AS quantity_reserved, s.import_price AS unit_cost,
                       d.reorder_level,
@@ -638,7 +654,7 @@ public class GetStockByIdHandler : IRequestHandler<GetStockByIdQuery, Result<Sto
         var tenantId = _currentUser.TenantId!.Value;
 
         var r = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT s.id, s.tenant_id, s.drug_id, COALESCE(d.name_vi, d.name) AS drug_name,
+            @"SELECT s.id, s.tenant_id, s.drug_id, d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name,
                      s.lot_number AS batch_no, s.mfg_date AS manufacture_date, s.exp_date AS expiry_date,
                      s.quantity AS quantity_available, 0 AS quantity_reserved, s.import_price AS unit_cost,
                      d.reorder_level, DATEDIFF(s.exp_date, CURDATE()) as days_to_expiry
@@ -671,7 +687,7 @@ public class GetLowStockStringIdHandler : IRequestHandler<GetLowStockStringIdQue
         prm.Add("tenantId", tenantId);
 
         var rows = await conn.QueryAsync<dynamic>(
-            $@"SELECT s.id, s.tenant_id, s.drug_id, COALESCE(d.name_vi, d.name) AS drug_name,
+            $@"SELECT s.id, s.tenant_id, s.drug_id, d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name,
                       s.lot_number AS batch_no, s.mfg_date AS manufacture_date, s.exp_date AS expiry_date,
                       s.quantity AS quantity_available, 0 AS quantity_reserved, s.import_price AS unit_cost,
                       d.reorder_level, DATEDIFF(s.exp_date, CURDATE()) as days_to_expiry
@@ -699,7 +715,7 @@ public class GetNearExpiryStringIdHandler : IRequestHandler<GetNearExpiryStringI
         prm.Add("tenantId", tenantId); prm.Add("days", q.Days);
 
         var rows = await conn.QueryAsync<dynamic>(
-            $@"SELECT s.id, s.tenant_id, s.drug_id, COALESCE(d.name_vi, d.name) AS drug_name,
+            $@"SELECT s.id, s.tenant_id, s.drug_id, d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name,
                       s.lot_number AS batch_no, s.mfg_date AS manufacture_date, s.exp_date AS expiry_date,
                       s.quantity AS quantity_available, 0 AS quantity_reserved, s.import_price AS unit_cost,
                       d.reorder_level, DATEDIFF(s.exp_date, CURDATE()) as days_to_expiry
@@ -747,7 +763,7 @@ public class GetStocktakePdfHandler : IRequestHandler<GetStocktakePdfQuery, Resu
 
         var itemRows = await conn.QueryAsync<dynamic>(
             @"SELECT it.lot_number, it.system_qty, it.counted_qty, it.difference,
-                     d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name, d.unit AS unit
+                     d.code AS drug_code, d.code AS drug_code, COALESCE(d.name_vi, d.name) AS drug_name, d.unit AS unit
               FROM diab_his_pha_stocktake_items it
               LEFT JOIN diab_his_pha_drugs d ON d.id = it.drug_id AND d.tenant_id = it.tenant_id
               WHERE it.stocktake_id = @stId AND it.tenant_id = @tenantId AND it.deleted_at IS NULL

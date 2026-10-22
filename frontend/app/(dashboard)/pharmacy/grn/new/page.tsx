@@ -1,8 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FullPageFormShell } from "@/components/ui/FullPageFormShell";
 import { GrnForm } from "@/components/domain/GrnForm";
@@ -26,30 +25,18 @@ function NewGrnContent() {
   const poNo = searchParams.get("poNo");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Guard: GRN luôn phải gắn với 1 đơn đặt hàng (PO). Vào thẳng route không có poId → điều hướng về + toast.
-  useEffect(() => {
-    if (!poId) {
-      toast.warning("Chọn đơn đặt hàng trước khi nhập kho");
-      router.replace(RETURN_TO);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [poId]);
-
-  if (!poId) {
-    return <LoadingFallback />;
-  }
-
+  // BM-110: poId không còn bắt buộc. Có poId -> luồng gắn PO; không có -> nhập kho không cần PO (chọn kho trong form).
   return (
     <FullPageFormShell
       title="Nhập kho (GRN)"
-      description={poNo ? `Từ đơn đặt hàng ${poNo}` : `Từ đơn đặt hàng #${poId}`}
+      description={!poId ? "Nhập kho không cần đơn đặt hàng" : poNo ? `Từ đơn đặt hàng ${poNo}` : `Từ đơn đặt hàng #${poId}`}
       backHref={RETURN_TO}
       onSubmit={() => (document.getElementById(FORM_ID) as HTMLFormElement | null)?.requestSubmit()}
       submitLabel="Nhập kho"
       isSubmitting={isSubmitting}
     >
       <GrnForm
-        poId={poId}
+        poId={poId ?? undefined}
         formId={FORM_ID}
         onSubmittingChange={setIsSubmitting}
         onSuccess={() => router.push(RETURN_TO)}
