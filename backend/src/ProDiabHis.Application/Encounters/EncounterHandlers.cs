@@ -730,6 +730,17 @@ public class GetEncounterDetailQueryHandler : IRequestHandler<GetEncounterDetail
             .OrderByDescending(v => v.RecordedAt)
             .FirstOrDefaultAsync(ct);
 
+        // BM-115: neu luot kham hien tai chua co sinh hieu (vd do o tiep don thuoc mot
+        // encounter check-in khac), hien sinh hieu moi nhat cua benh nhan de bac si thay ngay
+        // o profile ma khong phai bam "Xem tat ca". Pham vi benh nhan dong nhat voi lich su sinh hieu.
+        if (latestVital is null)
+        {
+            latestVital = await _db.VitalSigns.AsNoTracking()
+                .Where(v => v.PatientId == enc.PatientId)
+                .OrderByDescending(v => v.RecordedAt)
+                .FirstOrDefaultAsync(ct);
+        }
+
         var emrRow = await _db.EmrContents.AsNoTracking()
             .FirstOrDefaultAsync(e => e.EncounterId == encIdStr, ct);
 
