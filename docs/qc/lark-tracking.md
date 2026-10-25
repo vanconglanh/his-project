@@ -75,3 +75,18 @@ Nguồn: grid "Task summary" board DiaB His(Web). 4 ticket mới, đều module 
 - **BM-109** ✅ hiện message lỗi tạo đơn/nhập (getErrorMessage) — verify qua lỗi "Cần chọn kho" hiện rõ.
 - Regression sau deploy: PASS 12/0.
 - → cả 4 chuyển In test.
+
+---
+
+## ĐỢT 8 (2026-10-25)
+
+Ưu tiên user chốt: BM-115, BM-116.
+
+| Ticket | Mô tả | Trạng thái xử lý | Kết quả |
+|--------|-------|------------------|---------|
+| BM-115 | Role Bác sĩ - Màn khám bệnh: card Sinh hiệu ở profile không hiển thị, phải bấm "Xem tất cả" mới hiện | FIXED backend | commit b96766e; card inline chỉ lấy vital theo encounter hiện tại -> thêm fallback lấy vital mới nhất của bệnh nhân (đồng phạm vi với "Xem tất cả") khi encounter chưa có. Deploy staging (health 200). Verify: API probe 3 case fallback OK + UI (enc e2000000...0002: 37.5C/88/115-90/98%/60kg hiện trực tiếp). Lark In test + comment + evidence. |
+| BM-116 | "Role Bác sĩ \|" - ticket bỏ dở, KHÔNG có mô tả bug (Issue cụt, không expectation/ảnh/bước tái hiện; History chỉ có "Added record" + Issue) | BLOCKED - thiếu thông tin | Không thể fix khi không biết bug là gì. Đã comment yêu cầu reporter bổ sung mô tả; giữ Not started. Cần user/reporter điền chi tiết. |
+
+Root-cause BM-115: `GetEncounterDetailQueryHandler` lấy `latestVital` lọc `v.EncounterId == encId` (chỉ lượt khám hiện tại); trong khi "Xem tất cả" (`GetVitalSignsHistoryQuery`) lọc `v.PatientId` (mọi lượt). Sinh hiệu đo ở tiếp đón thuộc encounter check-in khác -> card rỗng. Fix giữ nguyên ưu tiên vital của lượt hiện tại nếu có, fallback sang bản ghi mới nhất của bệnh nhân.
+
+Rà board: 73->72 records (đã xóa 2 record rỗng tạo nhầm khi thao tác grid canvas: BM-114 đợt trước, BM-117 đợt này). Các ticket BM-50..112 đang In test (chờ QC); BM-97 To BA (chưa thấy BA trả lời khi rà). Không có ticket trạng thái In dev / Return in dev.
