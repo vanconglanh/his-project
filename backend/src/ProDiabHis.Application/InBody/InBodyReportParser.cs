@@ -41,9 +41,17 @@ public static class InBodyReportParser
         (InBodyIndicatorTypes.InBodyScore, @"InBody\s*Score",                           null),
     };
 
-    /// <summary>Khoang tu label den so: cho phep don vi "(kg)"/"(L)"/ky tu rac nhung KHONG chua
-    /// chu so, KHONG qua dong, KHONG chua '~' (de khong lan vao cot range).</summary>
-    private const string GapAndNumber = @"[^0-9\r\n~]{0,18}(-?\d+(?:\.\d+)?)";
+    /// <summary>
+    /// Khoang tu label den so + rang buoc do sach de chong lay nham khi OCR nhieu:
+    ///  - GAP: toi da 18 ky tu, KHONG chua chu so / xuong dong / '~' / '|' (khong lan cot range,
+    ///    khong vuot dong, khong qua dau phan cot '|').
+    ///  - So KHONG duoc dinh ngay sau '(' hoac chu so/dau cham (vd don vi "(9", "(%)", "(0@)" bi OCR
+    ///    doc thanh so) -> negative lookbehind.
+    ///  - So phai KET THUC "sach": theo sau la khoang trang / % / ngoac / chu (don vi) / '~' / het
+    ///    dong — KHONG duoc theo sau boi '|' hay '.' lac (vd garble "3|.|" cua so 31.1 bi loai).
+    /// </summary>
+    private const string GapAndNumber =
+        @"[^0-9\r\n~]{0,18}(?<![(\d.])(\d+(?:\.\d+)?)(?=[\s%)(A-Za-z~]|$)";
 
     private static readonly TimeSpan RxTimeout = TimeSpan.FromSeconds(2);
 
