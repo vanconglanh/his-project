@@ -119,3 +119,27 @@ Kết quả extract trên phiếu thật (ground truth Weight 76.6/TBW 33.3/Body
 - Trước fix: TẤT CẢ ô trống. Sau fix: 5-6/9 ô tự điền đúng, phần còn lại điều dưỡng nhập tay — không có giá trị sai.
 
 Giới hạn đã biết: OCR ảnh scan không ổn định 100% giữa các lần render; chủ trương điền ô chắc chắn, bỏ trống ô không chắc (người dùng review + xác nhận trước khi lưu). Có thể cân nhắc tăng DPI render / preprocessing ảnh để tăng recall sau này.
+
+### OCR InBody — kết quả E2E thực tế trên staging (2026-10-26, backend f54f188)
+
+Upload ảnh InBody270 scan thật (PDF ảnh-only, không text layer) ở màn Tiếp đón → "Tài liệu lên (tự nhận diện)" → nhận diện "Kết quả InBody" 90% → bảng chỉ số:
+
+| Chỉ số | Ground truth | Giá trị điền (E2E) | Kết quả |
+|--------|-------------|--------------------|---------|
+| Cân nặng (Weight) | 76.6 kg | 76.6 | ✅ đúng |
+| SMM (Khối cơ xương) | 25.0 kg | (trống) | ⚪ để trống (OCR callout/history hỏng — không điền sai) |
+| Khối lượng mỡ (Body Fat Mass) | 31.1 kg | (trống) | ⚪ để trống (OCR lần render này hỏng chữ số) |
+| PBF (Tỷ lệ mỡ) | 40.6 % | (trống) | ⚪ để trống (OCR callout hỏng) |
+| BMI | 28.4 | 28.4 | ✅ đúng (tính W/H² + cross-check, chọn ứng viên khớp) |
+| Mỡ nội tạng (Visceral) | 15 | 15 | ✅ đúng |
+| TBW (Tổng nước) | 33.3 L | 33.3 | ✅ đúng |
+| BMR (Chuyển hoá cơ bản) | 1353 kcal | 1353 | ✅ đúng |
+| Điểm InBody | 63 | 63 | ✅ đúng (gộp chữ số OCR tách "6 3/100"→63) |
+
+**Tổng: 6/9 chỉ số tự điền ĐÚNG, 3 để trống (nhập tay), 0 giá trị sai.** Trước fix: TẤT CẢ 9 ô trống (phiếu scan không có text layer → parser nhận chuỗi rỗng).
+
+Evidence (không chứa PII — dialog chỉ hiện các ô chỉ số): `docs/qc/evidence-inbody-ocr-20261026/`.
+
+Giới hạn còn lại: SMM/PBF/Khối mỡ phụ thuộc chất lượng OCR callout/history từng lần render (không ổn định) → chủ trương để trống + cảnh báo khi không chắc, điều dưỡng review/nhập tay trước khi lưu. Hướng nâng recall tương lai (ngoài phạm vi đợt này): tăng DPI render + tiền xử lý ảnh (binarize/denoise), OCR riêng vùng bảng Muscle-Fat/Obesity, hoặc tích hợp thẳng API máy InBody (chính xác tuyệt đối).
+
+Commit: 39168ef (OCR fallback + parser), f891a02 (siết chống giá trị sai), 5ef9864 (loại vạch thang đo), 5ae49ec (BMI cross-check + history fallback), f54f188 (InBody Score gộp chữ số). Deploy staging image `prodiab-his-backend:stg-f54f188` (ID 6725c5b002b4). Rollback: retag prev-20261026-1605 (=5ae49ec) → latest. Regression 12/0.
