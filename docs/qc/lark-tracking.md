@@ -90,3 +90,32 @@ Nguồn: grid "Task summary" board DiaB His(Web). 4 ticket mới, đều module 
 Root-cause BM-115: `GetEncounterDetailQueryHandler` lấy `latestVital` lọc `v.EncounterId == encId` (chỉ lượt khám hiện tại); trong khi "Xem tất cả" (`GetVitalSignsHistoryQuery`) lọc `v.PatientId` (mọi lượt). Sinh hiệu đo ở tiếp đón thuộc encounter check-in khác -> card rỗng. Fix giữ nguyên ưu tiên vital của lượt hiện tại nếu có, fallback sang bản ghi mới nhất của bệnh nhân.
 
 Rà board: 73->72 records (đã xóa 2 record rỗng tạo nhầm khi thao tác grid canvas: BM-114 đợt trước, BM-117 đợt này). Các ticket BM-50..112 đang In test (chờ QC); BM-97 To BA (chưa thấy BA trả lời khi rà). Không có ticket trạng thái In dev / Return in dev.
+
+---
+
+## OCR InBody (2026-10-26)
+
+Bug (user báo + screenshot staging): upload file InBody thật (PDF) ở tiếp đón → classifier nhận diện đúng "Kết quả InBody" ~90% NHƯNG mọi ô chỉ số (Cân nặng, SMM, Khối lượng mỡ, PBF, BMI...) TRỐNG. File mẫu test (case1) thì trích được.
+
+Điều tra (lấy file thật từ MinIO staging bucket inbody-reports, trích text qua đúng PdfPig của app):
+- 3 file InBody thật đều là **PDF ảnh scan KHÔNG có text layer** (PdfPig trả text rỗng) → parser nhận chuỗi rỗng → 0 ô. File mẫu case1 có text layer nên chạy được.
+- Classifier vẫn detect đúng vì nó dùng OCR (Tesseract); còn `InBodyPdfTextProvider` CHỈ đọc text layer, KHÔNG OCR → lệch.
+
+Root cause: `InBodyPdfTextProvider` không OCR phiếu ảnh scan.
+
+Fix (commit 39168ef + f891a02):
+1. `InBodyPdfTextProvider` tái dùng `IPdfTextExtractor` (PdfPig text layer + FALLBACK render từng trang → OCR Tesseract vie+eng) — đã có sẵn, Lab/Rad dùng chung. Phiếu scan giờ được OCR.
+2. `InBodyReportParser` bền hơn với layout InBody270 OCR thật:
+   - chuẩn hoá "76. 6"/"28, 4" → 76.6/28.4; sửa O/()→0 trong ngữ cảnh số;
+   - lấy value NGAY SAU nhãn, TRƯỚC cột "(range)", cùng dòng;
+   - bỏ mục "Body Composition History" (tránh lấy số lần đo cũ);
+   - anchor: Visceral Fat Level "Level N", InBody Score "N/100";
+   - **ƯU TIÊN PRECISION**: số dính sau "(" hoặc kết thúc bẩn ("3|.|") bị loại; giá trị ngoài khoảng vật lý khả dĩ bị loại → ô để TRỐNG + cảnh báo thay vì điền sai (yêu cầu an toàn y tế).
+3. Unit test fixture = text OCR thật của phiếu scan (ảnh 7.webp user gửi), đã ẩn danh (bỏ tên/SĐT).
+
+Kết quả extract trên phiếu thật (ground truth Weight 76.6/TBW 33.3/BodyFat 31.1/SMM 25.0/BMI 28.4/PBF 40.6/Visceral 15/BMR 1353/Score 63):
+- Điền ĐÚNG & chắc: Weight 76.6, TBW 33.3, Visceral 15, InBody Score 63, BMR 1353 (khi OCR rõ), Body Fat Mass 31 (khi OCR rõ).
+- Để TRỐNG + cảnh báo (OCR vùng bar/callout hỏng nặng, không điền sai): SMM, PBF, BMI (và các ô khác tuỳ chất lượng OCR từng lần).
+- Trước fix: TẤT CẢ ô trống. Sau fix: 5-6/9 ô tự điền đúng, phần còn lại điều dưỡng nhập tay — không có giá trị sai.
+
+Giới hạn đã biết: OCR ảnh scan không ổn định 100% giữa các lần render; chủ trương điền ô chắc chắn, bỏ trống ô không chắc (người dùng review + xác nhận trước khi lưu). Có thể cân nhắc tăng DPI render / preprocessing ảnh để tăng recall sau này.
