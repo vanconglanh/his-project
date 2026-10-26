@@ -1,50 +1,62 @@
 using Microsoft.Extensions.Logging;
 using ProDiabHis.Application.Common;
 using ProDiabHis.Application.InBody;
-using UglyToad.PdfPig;
+using ProDiabHis.Application.LegacyImport;
 
 namespace ProDiabHis.Infrastructure.InBody;
 
 /// <summary>
-/// Implementation MVP cua <see cref="IInBodyDataProvider"/> — chi doc TEXT LAYER cua PDF bang
-/// UglyToad.PdfPig, KHONG lam OCR anh. Neu file PDF may InBody xuat ra la dang scan anh (khong
-/// co text layer nhung/it text trich duoc), ket qua se rong hoac thieu hau het field — dieu
-/// duong phai nhap tay. Day la GIOI HAN DA BIET cua MVP (xem docs/prd/inbody-ocr-20260830.md).
+/// Implementation cua <see cref="IInBodyDataProvider"/>. KHONG tu doc PDF nua ma tai dung
+/// <see cref="IPdfTextExtractor"/> (PdfPig text layer + FALLBACK render tung trang roi OCR
+/// Tesseract) — vi phieu may InBody270 thuong duoc in/scan thanh PDF ANH KHONG CO TEXT LAYER
+/// (BM-InBody OCR). Truoc day provider chi doc text layer bang PdfPig nen cac phieu scan tra ve
+/// text rong -> moi o chi so trong, dieu duong phai nhap tay toan bo.
 ///
-/// Dinh huong tuong lai: khi tich hop thang API may InBody, them class InBodyApiProvider moi
-/// implement cung interface nay, dang ky lai trong DI — khong doi Application/API contract.
+/// Sau khi co text (text layer hoac OCR), giao cho <see cref="InBodyReportParser"/> trich chi so.
 /// </summary>
 public class InBodyPdfTextProvider : IInBodyDataProvider
 {
+    private readonly IPdfTextExtractor _pdfText;
     private readonly ILogger<InBodyPdfTextProvider> _logger;
 
-    public InBodyPdfTextProvider(ILogger<InBodyPdfTextProvider> logger)
+    public InBodyPdfTextProvider(IPdfTextExtractor pdfText, ILogger<InBodyPdfTextProvider> logger)
     {
+        _pdfText = pdfText;
         _logger = logger;
     }
 
-    public Task<Result<InBodyReportData>> ExtractAsync(Stream fileStream, string fileName, CancellationToken ct)
+    public async Task<Result<InBodyReportData>> ExtractAsync(Stream fileStream, string fileName, CancellationToken ct)
     {
         try
         {
-            using var pdf = PdfDocument.Open(fileStream);
-            var textBuilder = new System.Text.StringBuilder();
-            foreach (var page in pdf.GetPages())
+            byte[] bytes;
+            if (fileStream is MemoryStream ms0)
             {
-                textBuilder.AppendLine(page.Text);
+                bytes = ms0.ToArray();
+            }
+            else
+            {
+                using var ms = new MemoryStream();
+                await fileStream.CopyToAsync(ms, ct);
+                bytes = ms.ToArray();
             }
 
-            var rawText = textBuilder.ToString();
-            var data = InBodyReportParser.Parse(rawText);
-            return Task.FromResult(Result<InBodyReportData>.Success(data));
+            var textResult = await _pdfText.ExtractTextAsync(bytes, fileName, ct);
+            if (!textResult.IsSuccess)
+            {
+                _logger.LogWarning("InBody: lay text that bai cho {FileName}: {Err}", fileName, textResult.ErrorMessage);
+                return Result<InBodyReportData>.Failure(
+                    "INBODY_EXTRACT_FAILED", "Không đọc được file PDF, vui lòng kiểm tra lại file hoặc nhập tay");
+            }
+
+            var data = InBodyReportParser.Parse(textResult.Value);
+            return Result<InBodyReportData>.Success(data);
         }
         catch (Exception ex)
         {
-            // Khong throw ra ngoai — coi nhu extract that bai (vd file khong phai PDF hop le,
-            // file hong). Log khong dau de tranh loi encoding (quy uoc CLAUDE.md).
             _logger.LogWarning(ex, "InBody PDF extract that bai cho file {FileName}", fileName);
-            return Task.FromResult(Result<InBodyReportData>.Failure(
-                "INBODY_EXTRACT_FAILED", "Không đọc được file PDF, vui lòng kiểm tra lại file hoặc nhập tay"));
+            return Result<InBodyReportData>.Failure(
+                "INBODY_EXTRACT_FAILED", "Không đọc được file PDF, vui lòng kiểm tra lại file hoặc nhập tay");
         }
     }
 }
