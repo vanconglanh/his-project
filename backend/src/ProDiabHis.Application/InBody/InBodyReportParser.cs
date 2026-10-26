@@ -139,11 +139,19 @@ public static class InBodyReportParser
                             return v;
                     break;
                 case InBodyIndicatorTypes.InBodyScore:
-                    // "63/100 Points"
-                    var sc = Regex.Match(text, @"(\d{1,3})\s*/\s*100", RegexOptions.IgnoreCase, RxTimeout);
-                    if (sc.Success && TryParse(sc.Groups[1].Value, out var scv)
-                        && !InBodyPlausibleRanges.Evaluate(indicatorType, scv).OutOfRange)
-                        return scv;
+                    // "63/100 Points" — tren phieu InBody chi co 1 cho "/100" (diem). Nhan "InBody
+                    // Score" va gia tri thuong bi OCR tach xa (doc cheo cot) nen KHONG neo theo nhan.
+                    // Gop chu so bi OCR tach boi khoang trang (vd "6 3/100" -> 63).
+                    var sc = Regex.Match(text,
+                        @"(\d[\d\s]{0,2}\d|\d)\s*/\s*100\b",
+                        RegexOptions.IgnoreCase, RxTimeout);
+                    if (sc.Success)
+                    {
+                        var digits = Regex.Replace(sc.Groups[1].Value, @"\s+", "");
+                        if (TryParse(digits, out var scv)
+                            && !InBodyPlausibleRanges.Evaluate(indicatorType, scv).OutOfRange)
+                            return scv;
+                    }
                     break;
             }
             return null;
