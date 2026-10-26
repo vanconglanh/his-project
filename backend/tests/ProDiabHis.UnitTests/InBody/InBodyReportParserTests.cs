@@ -122,6 +122,37 @@ InBody Score 82 points
         Assert.False(result.Fields.First(f => f.IndicatorType == InBodyIndicatorTypes.Pbf).Extracted);
     }
 
+    [Fact]
+    public void Parse_HistoryLastColumn_FillsSmmPbf_WhenWeightMatches()
+    {
+        // Fallback co kiem cheo: cot moi nhat (so cuoi) cua history dung cho SMM/PBF khi dong du
+        // tot (>=3 so) VA Weight moi nhat history khop Weight hien tai.
+        const string text = @"
+            Sum of the above Weight (kg) 76.6 ( 49.2~66.6 )
+            Body Composition History
+            Weight (kg) 79.0 78.0 77.7 77.3 77.1 77.4 76.8 76.6
+            SMM (kg) 25.3 25.6 25.0 25.8 24.6 25.5 24.8 25.0
+            PBF (%) 41.9 40.5 41.5 39.9 42.1 40.2 41.3 40.6
+        ";
+        var r = InBodyReportParser.Parse(text);
+        Assert.Equal(25.0m, GetValue(r, InBodyIndicatorTypes.Smm));
+        Assert.Equal(40.6m, GetValue(r, InBodyIndicatorTypes.Pbf));
+    }
+
+    [Fact]
+    public void Parse_HistoryLastColumn_Ignored_WhenWeightMismatch()
+    {
+        // Weight history khong khop Weight hien tai -> KHONG dung history (co the la benh nhan khac/loi).
+        const string text = @"
+            Sum of the above Weight (kg) 60.0 ( 49.2~66.6 )
+            Body Composition History
+            Weight (kg) 79.0 78.0 77.7 77.3 77.1 77.4 76.8 76.6
+            SMM (kg) 25.3 25.6 25.0 25.8 24.6 25.5 24.8 25.0
+        ";
+        var r = InBodyReportParser.Parse(text);
+        Assert.False(r.Fields.First(f => f.IndicatorType == InBodyIndicatorTypes.Smm).Extracted);
+    }
+
     private static decimal? GetValue(InBodyReportData data, string indicatorType) =>
         data.Fields.First(f => f.IndicatorType == indicatorType).Value;
 }

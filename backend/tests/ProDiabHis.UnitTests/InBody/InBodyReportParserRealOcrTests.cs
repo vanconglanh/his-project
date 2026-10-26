@@ -117,10 +117,14 @@ ZQ) 20knz| 357. 6 382.6 27.9 239.6 241.9
         // Body Fat Mass: OCR o bang Body Composition cho "31" (rot ".1") - van dien (31.0, gan dung)
         Assert.Equal(31m, V(d, InBodyIndicatorTypes.BodyFatMass));
 
-        // Cac o OCR hong nang -> de TRONG (precision), KHONG dien sai
+        // BMI: dien qua KIEM CHEO cong thuc Weight/(Height/100)^2 (~28.49) -> chon ung vien 28.4
+        // trong vung Obesity (loai vach thang do). Trung ground truth 28.4.
+        Assert.Equal(28.4m, V(d, InBodyIndicatorTypes.Bmi));
+
+        // Cac o OCR hong nang, khong co nguon kiem cheo -> de TRONG (precision), KHONG dien sai.
+        // SMM/PBF: callout + history OCR hong nang (dong history < 3 so) -> khong du tin cay.
         Assert.False(Ex(d, InBodyIndicatorTypes.Smm));
         Assert.False(Ex(d, InBodyIndicatorTypes.Pbf));
-        Assert.False(Ex(d, InBodyIndicatorTypes.Bmi));
         Assert.False(Ex(d, InBodyIndicatorTypes.Bmr));
 
         // Khong bao gio la "all empty" nhu truoc fix (truoc fix: PDF scan -> text rong -> 0 o)

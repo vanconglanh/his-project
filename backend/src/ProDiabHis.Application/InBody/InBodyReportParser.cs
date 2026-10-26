@@ -70,6 +70,10 @@ public static class InBodyReportParser
             fields.Add(new InBodyFieldResult(indicatorType, value, unit, value.HasValue));
         }
 
+        // Fallback CO KIEM CHEO (chi dien khi dang tin cay) cho 3 chi so quan trong SMM/PBF/BMI,
+        // vi o cac bar/callout thuong bi OCR lam hong.
+        ApplyCrossCheckedFallbacks(text, fields);
+
         return new InBodyReportData(text, fields);
     }
 
@@ -148,6 +152,127 @@ public static class InBodyReportParser
         {
             return null;
         }
+    }
+
+    // ───────────────────────────── Fallback co kiem cheo ─────────────────────────────
+
+    /// <summary>
+    /// Dien 3 chi so SMM/PBF/BMI bang nguon du phong CHI KHI qua kiem cheo (uu tien precision):
+    ///  - BMI: tinh ky vong = Weight / (Height/100)^2 roi chon so ung vien gan ky vong nhat trong
+    ///    vung Obesity Analysis (sai lech <= 1.5) -> loai vach thang do, chi dien khi khop cong thuc.
+    ///  - SMM/PBF: lay cot MOI NHAT (so cuoi) o bang "Body Composition History" — chi khi dong do
+    ///    OCR du tot (>= 3 so) VA so Weight moi nhat cua history KHOP voi Weight hien tai (xac nhan
+    ///    day la lan do hien tai). Khong khop -> de trong.
+    /// </summary>
+    private static void ApplyCrossCheckedFallbacks(string text, List<InBodyFieldResult> fields)
+    {
+        var weight = Val(fields, InBodyIndicatorTypes.Weight);
+
+        // BMI qua cong thuc + kiem cheo
+        if (!Has(fields, InBodyIndicatorTypes.Bmi) && weight is > 0)
+        {
+            var heightCm = ExtractHeightCm(text);
+            if (heightCm is >= 80 and <= 230)
+            {
+                var m = heightCm.Value / 100m;
+                var expected = weight.Value / (m * m);
+                var cand = BmiCandidates(text)
+                    .Select(c => (c, diff: Math.Abs(c - expected)))
+                    .OrderBy(x => x.diff)
+                    .FirstOrDefault(x => x.diff <= 1.5m);
+                if (cand.c > 0) SetField(fields, InBodyIndicatorTypes.Bmi, cand.c);
+            }
+        }
+
+        // SMM/PBF qua cot moi nhat cua history (gated)
+        var (histWeight, histSmm, histPbf) = ParseHistoryLastColumn(text);
+        if (weight is > 0 && histWeight is > 0 && Math.Abs(histWeight.Value - weight.Value) <= Math.Max(0.6m, weight.Value * 0.01m))
+        {
+            if (!Has(fields, InBodyIndicatorTypes.Smm) && histSmm is > 0
+                && !InBodyPlausibleRanges.Evaluate(InBodyIndicatorTypes.Smm, histSmm).OutOfRange)
+                SetField(fields, InBodyIndicatorTypes.Smm, histSmm.Value);
+            if (!Has(fields, InBodyIndicatorTypes.Pbf) && histPbf is > 0
+                && !InBodyPlausibleRanges.Evaluate(InBodyIndicatorTypes.Pbf, histPbf).OutOfRange)
+                SetField(fields, InBodyIndicatorTypes.Pbf, histPbf.Value);
+        }
+    }
+
+    private static decimal? ExtractHeightCm(string text)
+    {
+        try
+        {
+            // "Height ... 164. lem/cm" (OCR '1'->'l'). Bat so 100..229 di kem cm/lem/lom/em.
+            var m = Regex.Match(text, @"\b(1[0-9]{2}|2[0-2][0-9])\b[^\n\d]{0,6}(?:cm|[lL][eoc]?m|em)",
+                RegexOptions.IgnoreCase, RxTimeout);
+            if (m.Success && TryParse(m.Groups[1].Value, out var h)) return h;
+        }
+        catch (RegexMatchTimeoutException) { }
+        return null;
+    }
+
+    private static IEnumerable<decimal> BmiCandidates(string text)
+    {
+        // Lay cac so thap phan 10..60 trong vung tu "Obesity Analysis" den "Segmental"/"Research".
+        var region = Slice(text, "Obesity Analysis", new[] { "Segmental", "Research Parameters" });
+        var list = new List<decimal>();
+        try
+        {
+            foreach (Match m in Regex.Matches(region, @"\b(\d{2}(?:\.\d)?)\b", RegexOptions.None, RxTimeout))
+                if (TryParse(m.Groups[1].Value, out var v) && v is >= 10m and <= 60m)
+                    list.Add(v);
+        }
+        catch (RegexMatchTimeoutException) { }
+        return list;
+    }
+
+    private static (decimal? Weight, decimal? Smm, decimal? Pbf) ParseHistoryLastColumn(string text)
+    {
+        var idx = text.IndexOf("Body Composition History", StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return (null, null, null);
+        var hist = text[idx..];
+        return (
+            LastNumberOnRow(hist, @"Weight", 3),
+            LastNumberOnRow(hist, @"Skeletal\s*Muscle\s*Mass|SMM", 3),
+            LastNumberOnRow(hist, @"Percent\s*Body\s*Fat|PBF", 3));
+    }
+
+    /// <summary>Lay so CUOI tren dong chua label, chi khi dong do co >= minCount so (OCR du tot).</summary>
+    private static decimal? LastNumberOnRow(string text, string labelPattern, int minCount)
+    {
+        try
+        {
+            foreach (Match line in Regex.Matches(text, $@"(?:{labelPattern})[^\r\n]*", RegexOptions.IgnoreCase, RxTimeout))
+            {
+                var nums = Regex.Matches(line.Value, @"\d+(?:\.\d+)?", RegexOptions.None, RxTimeout);
+                if (nums.Count >= minCount && TryParse(nums[^1].Value, out var v)) return v;
+            }
+        }
+        catch (RegexMatchTimeoutException) { }
+        return null;
+    }
+
+    private static string Slice(string text, string start, string[] ends)
+    {
+        var s = text.IndexOf(start, StringComparison.OrdinalIgnoreCase);
+        if (s < 0) return text;
+        var from = s + start.Length;
+        var end = text.Length;
+        foreach (var e in ends)
+        {
+            var i = text.IndexOf(e, from, StringComparison.OrdinalIgnoreCase);
+            if (i > 0 && i < end) end = i;
+        }
+        return text[from..end];
+    }
+
+    private static decimal? Val(List<InBodyFieldResult> f, string t) =>
+        f.FirstOrDefault(x => x.IndicatorType == t)?.Value;
+    private static bool Has(List<InBodyFieldResult> f, string t) =>
+        f.Any(x => x.IndicatorType == t && x.Extracted);
+    private static void SetField(List<InBodyFieldResult> f, string t, decimal v)
+    {
+        var i = f.FindIndex(x => x.IndicatorType == t);
+        if (i >= 0) f[i] = new InBodyFieldResult(t, v, f[i].Unit, true);
     }
 
     private static bool TryParse(string raw, out decimal value) =>
