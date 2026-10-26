@@ -49,9 +49,11 @@ public static class InBodyReportParser
     ///    doc thanh so) -> negative lookbehind.
     ///  - So phai KET THUC "sach": theo sau la khoang trang / % / ngoac / chu (don vi) / '~' / het
     ///    dong — KHONG duoc theo sau boi '|' hay '.' lac (vd garble "3|.|" cua so 31.1 bi loai).
+    ///  - So KHONG duoc theo sau ngay boi 1 so khac (vd vach thang do "70 80 90 100..." o cac bar
+    ///    Muscle-Fat/Obesity) -> tranh lay nham gia tri dau tien cua thang do.
     /// </summary>
     private const string GapAndNumber =
-        @"[^0-9\r\n~]{0,18}(?<![(\d.])(\d+(?:\.\d+)?)(?=[\s%)(A-Za-z~]|$)";
+        @"[^0-9\r\n~]{0,18}(?<![(\d.])(\d+(?:\.\d+)?)(?=[\s%)(A-Za-z~]|$)(?![\s]*\d)";
 
     private static readonly TimeSpan RxTimeout = TimeSpan.FromSeconds(2);
 

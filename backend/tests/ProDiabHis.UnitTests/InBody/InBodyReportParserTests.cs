@@ -103,6 +103,25 @@ InBody Score 82 points
         Assert.Null(exception);
     }
 
+    [Fact]
+    public void Parse_ScaleGridlineAfterLabel_NotCaptured_LeftEmpty()
+    {
+        // BM-InBody OCR: o cac bar Muscle-Fat/Obesity, nhan di kem thang do "70 80 90 100..."
+        // Parser KHONG duoc lay nham so dau thang do lam gia tri (vd SMM = 70). De TRONG thay vi sai.
+        const string text = "Skeletal Muscle Mass (kg) 70 80 90 100 110 120 25.0\n";
+        var result = InBodyReportParser.Parse(text);
+        Assert.False(result.Fields.First(f => f.IndicatorType == InBodyIndicatorTypes.Smm).Extracted);
+    }
+
+    [Fact]
+    public void Parse_UnitGluedNumber_NotCaptured()
+    {
+        // Don vi "(9" / "(%)" bi OCR doc dinh so -> KHONG lay "9" lam PBF.
+        const string text = "PBF (9 | 80 13.0 18.0 23.0\n";
+        var result = InBodyReportParser.Parse(text);
+        Assert.False(result.Fields.First(f => f.IndicatorType == InBodyIndicatorTypes.Pbf).Extracted);
+    }
+
     private static decimal? GetValue(InBodyReportData data, string indicatorType) =>
         data.Fields.First(f => f.IndicatorType == indicatorType).Value;
 }
