@@ -108,7 +108,7 @@ internal static class BillingPrintData
         using (var conn = dapper.CreateConnection())
         {
             var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT full_name, dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                "SELECT full_name, date_of_birth AS dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
                 new { id = billing.PatientId.ToString(), tenantId });
 
             if (row != null)
