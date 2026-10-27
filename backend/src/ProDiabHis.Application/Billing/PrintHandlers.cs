@@ -35,6 +35,28 @@ public record PrintReceiptCommand(Guid PaymentId, PrintReceiptRequest Request)
 public record PrintProvisionalReceiptCommand(Guid BillingId)
     : IRequest<Result<PrintReceiptResult>>;
 
+// In BANG KE CHI PHI theo billing.
+public record PrintCostStatementCommand(Guid BillingId)
+    : IRequest<Result<PrintReceiptResult>>;
+
+public record CostStatementLine(string? ItemType, string? Code, string Name, decimal Quantity, decimal UnitPrice, decimal LineTotal);
+
+public record CostStatementData(
+    LetterheadDto Letterhead,
+    string? BillNo,
+    DateTime Date,
+    string PatientName,
+    string? PatientCode,
+    List<CostStatementLine> Lines,
+    decimal DiscountAmount,
+    decimal PaidAmount,
+    decimal Remaining);
+
+public interface ICostStatementPdfBuilder
+{
+    byte[] Build(CostStatementData data);
+}
+
 // ── Handler interfaces cho PDF services (tranh circular dep Api -> Application) ─
 
 /// <summary>
@@ -453,5 +475,90 @@ public class PrintProvisionalReceiptHandler : IRequestHandler<PrintProvisionalRe
             cancellationToken: ct);
 
         return Result<PrintReceiptResult>.Success(new PrintReceiptResult(pdfBytes, receiptNo));
+    }
+}
+
+// ── PrintCostStatementHandler ────────────────────────────────────────────────
+
+public class PrintCostStatementHandler : IRequestHandler<PrintCostStatementCommand, Result<PrintReceiptResult>>
+{
+    private readonly IDapperConnectionFactory _dapper;
+    private readonly ITenantProvider _tenant;
+    private readonly IAuditService _audit;
+    private readonly ICostStatementPdfBuilder _builder;
+
+    public PrintCostStatementHandler(
+        IDapperConnectionFactory dapper,
+        ITenantProvider tenant,
+        IAuditService audit,
+        ICostStatementPdfBuilder builder)
+    {
+        _dapper = dapper;
+        _tenant = tenant;
+        _audit = audit;
+        _builder = builder;
+    }
+
+    public async Task<Result<PrintReceiptResult>> Handle(PrintCostStatementCommand cmd, CancellationToken ct)
+    {
+        var tenantId = _tenant.TenantId;
+        var idStr = cmd.BillingId.ToString();
+        var lines = new List<CostStatementLine>();
+        string patientName = "-";
+        string? patientCode = null;
+        LetterheadDto? letterhead;
+        string? billNo;
+        decimal discount, paid, remaining;
+
+        using (var conn = _dapper.CreateConnection())
+        {
+            var b = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                @"SELECT bill_no, discount_amount, paid_amount, balance
+                  FROM diab_his_bil_billing WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { id = idStr, tenantId });
+            if (b == null)
+                return Result<PrintReceiptResult>.Failure("BILLING_NOT_FOUND", "Khong tim thay hoa don.");
+            billNo = (string?)b.bill_no;
+            discount = (decimal)b.discount_amount;
+            paid = (decimal)b.paid_amount;
+            remaining = (decimal)b.balance;
+
+            var items = await conn.QueryAsync<dynamic>(
+                "SELECT item_type, code, name, quantity, unit_price, line_total FROM diab_his_bil_billing_items WHERE billing_id = @id",
+                new { id = idStr });
+            foreach (var it in items)
+                lines.Add(new CostStatementLine((string?)it.item_type, (string?)it.code, (string)it.name,
+                    (decimal)it.quantity, (decimal)it.unit_price, (decimal)it.line_total));
+
+            var pat = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                @"SELECT p.full_name, p.code FROM diab_his_pat_patients p
+                  JOIN diab_his_bil_billing b ON b.patient_id = p.id
+                  WHERE b.id = @id AND b.tenant_id = @tenantId AND p.deleted_at IS NULL LIMIT 1",
+                new { id = idStr, tenantId });
+            if (pat != null)
+            {
+                patientName = (string?)pat.full_name ?? "-";
+                patientCode = (string?)pat.code;
+            }
+
+            letterhead = await conn.QueryFirstOrDefaultAsync<LetterheadDto>(
+                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                         slogan AS Slogan, website AS Website
+                  FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
+        }
+
+        letterhead ??= new LetterheadDto("", null, null, null, null, null, null, null);
+        var data = new CostStatementData(letterhead, billNo, DateTime.Now, patientName, patientCode, lines, discount, paid, remaining);
+        var pdf = _builder.Build(data);
+
+        await _audit.LogAsync(
+            "cashier.cost_statement.print",
+            "Billing",
+            idStr,
+            details: new { bill_no = billNo, remaining },
+            cancellationToken: ct);
+
+        return Result<PrintReceiptResult>.Success(new PrintReceiptResult(pdf, billNo ?? idStr));
     }
 }

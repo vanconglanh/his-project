@@ -7,9 +7,8 @@ using QuestPDF.Infrastructure;
 namespace ProDiabHis.Infrastructure.Reports;
 
 /// <summary>
-/// Sinh PDF don thuoc that bang QuestPDF (thay stub cu). Bo cuc A5 doc,
-/// tai dung header trang thanh lich dung chung voi 30 bao cao + 6 giay to
-/// (xem ReportPdfCommon.RenderLetterhead) de dong bo thiet ke toan he thong.
+/// Sinh PDF don thuoc bang QuestPDF, A5 doc, khop mau Figma.
+/// Tai dung letterhead dung chung (ReportPdfCommon.RenderLetterhead) lay tu tenant.
 /// </summary>
 public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
 {
@@ -35,44 +34,55 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
                 page.MarginHorizontal(10, Unit.Millimetre);
                 page.DefaultTextStyle(x => x.FontSize(9).FontColor(Ink));
 
-                page.Header().Element(c => RenderLetterhead(c, data));
-
-                page.Content().PaddingTop(8).Column(col =>
+                // Trai: logo + cong ty + dia chi (letterhead); phai: So don + Ngay
+                page.Header().Row(r =>
                 {
-                    col.Item().AlignCenter().Text("ĐƠN THUỐC").FontSize(15).Bold().FontColor(Brand);
-                    col.Item().AlignCenter().Text($"Số: {data.PrescriptionCode}   •   Ngày kê: {data.PrescribedAt:dd/MM/yyyy}")
-                        .FontSize(9).FontColor(Muted);
+                    r.RelativeItem().Element(c => RenderLetterhead(c, data));
+                    r.ConstantItem(105).PaddingLeft(6).Column(c =>
+                    {
+                        c.Item().AlignRight().Text(t =>
+                        {
+                            t.Span("Số đơn: ").FontColor(Muted).FontSize(8.5f);
+                            t.Span(data.PrescriptionCode).Bold().FontSize(9);
+                        });
+                        c.Item().AlignRight().Text($"Ngày: {data.PrescribedAt:dd/MM/yyyy}").FontSize(8.5f);
+                    });
+                });
 
-                    col.Item().PaddingTop(8).Element(c => RenderPatientInfo(c, data));
-                    col.Item().PaddingTop(10).Element(c => RenderItemsTable(c, data.Items));
+                page.Content().PaddingTop(6).Column(col =>
+                {
+                    col.Item().AlignCenter().Text("ĐƠN THUỐC").FontSize(17).Bold().FontColor(Brand);
+                    col.Item().AlignCenter().Text("Prescription · Đơn thuốc").FontSize(8).FontColor(Muted);
+
+                    col.Item().PaddingTop(6).Element(c => RenderPatientInfo(c, data));
+                    col.Item().PaddingTop(8).Element(c => RenderItemsTable(c, data.Items));
+                    col.Item().PaddingTop(3).Text("Số trong cột Sáng/Trưa/Chiều/Tối là số lượng mỗi lần dùng.")
+                        .Italic().FontSize(7.5f).FontColor(Muted);
 
                     if (!string.IsNullOrWhiteSpace(data.Note))
                     {
-                        col.Item().PaddingTop(8).Text(txt =>
+                        col.Item().PaddingTop(8).Border(1).BorderColor(LineColor).Padding(6).Column(n =>
                         {
-                            txt.Span("Lời dặn: ").FontColor(Muted).SemiBold().FontSize(9.5f);
-                            txt.Span(data.Note).FontSize(9.5f);
+                            n.Item().Text("LỜI DẶN").Bold().FontSize(8.5f).FontColor(Brand);
+                            n.Item().PaddingTop(2).Text(data.Note).FontSize(9);
                         });
                     }
 
-                    col.Item().PaddingTop(8).Element(c => RenderFooter(c, data));
+                    col.Item().PaddingTop(10).Element(c => RenderSignature(c, data));
                 });
 
-                page.Footer().AlignCenter().Text(txt =>
+                page.Footer().Column(f =>
                 {
-                    txt.Span("Trang ").FontSize(8).FontColor(Muted);
-                    txt.CurrentPageNumber().FontSize(8).FontColor(Muted);
-                    txt.Span("/").FontSize(8).FontColor(Muted);
-                    txt.TotalPages().FontSize(8).FontColor(Muted);
+                    f.Item().AlignCenter().Text("Khám lại xin mang theo đơn này").Italic().FontSize(8).FontColor(Muted);
+                    var contact = string.Join(" · ", new[] { data.ClinicEmail, data.ClinicPhone }
+                        .Where(x => !string.IsNullOrWhiteSpace(x)));
+                    if (contact.Length > 0)
+                        f.Item().AlignCenter().Text(contact).FontSize(8).FontColor(Muted);
                 });
             });
         }).GeneratePdf();
     }
 
-    /// <summary>
-    /// Dung chung header trang voi 30 bao cao + 6 giay to (ReportPdfCommon.RenderLetterhead).
-    /// Map PrescriptionPdfData sang LetterheadDto de tai su dung dung 1 diem thiet ke duy nhat.
-    /// </summary>
     private static void RenderLetterhead(IContainer container, PrescriptionPdfData data)
     {
         var lh = new LetterheadDto(
@@ -92,70 +102,33 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
 
     private static void RenderPatientInfo(IContainer container, PrescriptionPdfData data)
     {
-        container
-            .Border(1).BorderColor(LineColor).Background("#F8FAFC")
-            .Padding(9)
-            .Column(col =>
+        static void Cell(IContainer c, string label, string value, bool bold = false) =>
+            c.Text(t =>
+            {
+                t.Span(label + ": ").FontColor(Muted).FontSize(9);
+                var sp = t.Span(value).FontSize(9.5f);
+                if (bold) sp.Bold();
+            });
+
+        var birth = data.PatientDateOfBirth.HasValue ? data.PatientDateOfBirth.Value.Year.ToString() : "—";
+        var diagnosis = string.Join(" - ", new[] { data.DiagnosisName, data.DiagnosisCode }
+            .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        container.Border(1).BorderColor(LineColor).Background("#F8FAFC").Padding(7).Column(col =>
         {
-            col.Item().Row(row =>
+            col.Item().Row(r =>
             {
-                row.RelativeItem(2).Text(txt =>
-                {
-                    txt.Span("Họ tên: ").FontColor(Muted).FontSize(9);
-                    txt.Span(data.PatientFullName).Bold().FontSize(10);
-                });
-                row.RelativeItem(1).Text(txt =>
-                {
-                    txt.Span("Giới tính: ").FontColor(Muted).FontSize(9);
-                    txt.Span(GenderLabel(data.PatientGender)).FontSize(9);
-                });
+                r.RelativeItem(3).Element(c => Cell(c, "Họ tên", data.PatientFullName, true));
+                r.RelativeItem(2).Element(c => Cell(c, "Năm sinh", birth));
             });
-
-            col.Item().PaddingTop(2).Row(row =>
+            col.Item().PaddingTop(2).Row(r =>
             {
-                row.RelativeItem(2).Text(txt =>
-                {
-                    txt.Span("Năm sinh: ").FontColor(Muted).FontSize(9);
-                    txt.Span(FormatBirthYearAndAge(data.PatientDateOfBirth)).FontSize(9);
-                });
-                row.RelativeItem(1).Text(txt =>
-                {
-                    txt.Span("Ngày kê: ").FontColor(Muted).FontSize(9);
-                    txt.Span($"{data.PrescribedAt:dd/MM/yyyy}").FontSize(9);
-                });
+                // PrescriptionPdfData chua co can nang / ma KH -> hien "—"
+                r.RelativeItem(3).Element(c => Cell(c, "Giới · Cân nặng", GenderLabel(data.PatientGender) + " · —"));
+                r.RelativeItem(2).Element(c => Cell(c, "Mã KH", "—"));
             });
-
-            if (!string.IsNullOrWhiteSpace(data.PatientAddress))
-            {
-                col.Item().PaddingTop(2).Text(txt =>
-                {
-                    txt.Span("Địa chỉ: ").FontColor(Muted).FontSize(9);
-                    txt.Span(data.PatientAddress).FontSize(9);
-                });
-            }
-
-            if (!string.IsNullOrWhiteSpace(data.DiagnosisCode) || !string.IsNullOrWhiteSpace(data.DiagnosisName))
-            {
-                col.Item().PaddingTop(4).Text(txt =>
-                {
-                    txt.Span("Chẩn đoán: ").FontColor(Muted).FontSize(9);
-                    var diagnosisText = string.Join(" - ",
-                        new[] { data.DiagnosisCode, data.DiagnosisName }
-                            .Where(s => !string.IsNullOrWhiteSpace(s)));
-                    txt.Span(diagnosisText).FontColor(Brand).SemiBold().FontSize(9);
-                });
-            }
+            col.Item().PaddingTop(2).Element(c => Cell(c, "Chẩn đoán", string.IsNullOrEmpty(diagnosis) ? "—" : diagnosis));
         });
-    }
-
-    /// <summary>Format "1980 (46 tuổi)" tu ngay sinh that; tra "—" neu khong co du lieu.</summary>
-    private static string FormatBirthYearAndAge(DateOnly? dob)
-    {
-        if (!dob.HasValue) return "—";
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        var age = today.Year - dob.Value.Year;
-        if (dob.Value > today.AddYears(-age)) age--;
-        return $"{dob.Value.Year} ({age} tuổi)";
     }
 
     private static string GenderLabel(string? gender) => gender switch
@@ -172,25 +145,30 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
         {
             tbl.ColumnsDefinition(cols =>
             {
-                cols.ConstantColumn(20);
-                cols.RelativeColumn(4);
+                cols.ConstantColumn(24);
                 cols.RelativeColumn(5);
-                cols.RelativeColumn(1.6f);
+                cols.RelativeColumn(1.8f);
+                cols.ConstantColumn(30);
+                cols.ConstantColumn(30);
+                cols.ConstantColumn(30);
+                cols.ConstantColumn(30);
             });
 
             tbl.Header(h =>
             {
-                ReportPdfCommon.HText(h.Cell(), "#");
-                ReportPdfCommon.HText(h.Cell(), "Tên thuốc");
-                ReportPdfCommon.HText(h.Cell(), "Cách dùng");
-                ReportPdfCommon.HeadCell(h.Cell()).AlignRight().Text("SL").FontColor("#FFFFFF").Bold().FontSize(9);
+                ReportPdfCommon.HeadCell(h.Cell()).Text("STT").FontColor("#FFFFFF").Bold().FontSize(8);
+                ReportPdfCommon.HeadCell(h.Cell()).Text("Tên thuốc, hàm lượng").FontColor("#FFFFFF").Bold().FontSize(8.5f);
+                ReportPdfCommon.HeadCell(h.Cell()).AlignCenter().Text("Số lượng").FontColor("#FFFFFF").Bold().FontSize(8);
+                foreach (var d in new[] { "Sáng", "Trưa", "Chiều", "Tối" })
+                    ReportPdfCommon.HeadCell(h.Cell()).AlignCenter().Text(d).FontColor("#FFFFFF").Bold().FontSize(7.5f);
             });
 
             var i = 0;
             foreach (var it in items)
             {
-                var drugLabel = string.IsNullOrWhiteSpace(it.Strength) ? it.DrugName : $"{it.DrugName} ({it.Strength})";
+                var drugLabel = string.IsNullOrWhiteSpace(it.Strength) ? it.DrugName : $"{it.DrugName} {it.Strength}";
                 var qtyLabel = string.IsNullOrWhiteSpace(it.Unit) ? $"{it.Quantity:0.##}" : $"{it.Quantity:0.##} {it.Unit}";
+                // Data khong tach sang/trua/chieu/toi -> gop lieu + tan suat vao dong cach dung, 4 cot de trong
                 var usageParts = new List<string> { it.Dosage, it.Frequency, RouteLabel(it.Route) };
                 if (it.DurationDays > 0)
                     usageParts.Add($"{it.DurationDays} ngày");
@@ -200,9 +178,15 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
 
                 i++;
                 ReportPdfCommon.BodyCell(tbl.Cell(), i).Text(it.Stt.ToString()).FontSize(9);
-                ReportPdfCommon.BodyCell(tbl.Cell(), i).Text(t => t.Span(drugLabel).SemiBold().FontSize(9.5f));
-                ReportPdfCommon.BodyCell(tbl.Cell(), i).Text(usageLabel).FontSize(9);
-                ReportPdfCommon.BodyCell(tbl.Cell(), i).AlignRight().Text(qtyLabel).FontSize(9);
+                ReportPdfCommon.BodyCell(tbl.Cell(), i).Column(c =>
+                {
+                    c.Item().Text(drugLabel).SemiBold().FontSize(9.5f);
+                    if (usageLabel.Length > 0)
+                        c.Item().Text(usageLabel).FontSize(8).FontColor(Muted);
+                });
+                ReportPdfCommon.BodyCell(tbl.Cell(), i).AlignCenter().Text(qtyLabel).FontSize(9);
+                for (var k = 0; k < 4; k++)
+                    ReportPdfCommon.BodyCell(tbl.Cell(), i).Text("");
             }
         });
     }
@@ -218,20 +202,17 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
         _ => route ?? ""
     };
 
-    private static void RenderFooter(IContainer container, PrescriptionPdfData data)
+    private static void RenderSignature(IContainer container, PrescriptionPdfData data)
     {
         container.Row(row =>
         {
             row.RelativeItem();
-            row.RelativeItem()
-                .AlignCenter()
-                .Column(col =>
-                {
-                    col.Item().AlignCenter().Text($"Ngày {data.PrescribedAt:dd} tháng {data.PrescribedAt:MM} năm {data.PrescribedAt:yyyy}").Italic().FontSize(8.5f).FontColor(Muted);
-                    col.Item().AlignCenter().Text("BÁC SĨ KÊ ĐƠN").Bold().FontSize(9.5f);
-                    col.Item().AlignCenter().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8f).FontColor(Muted);
-                    col.Item().PaddingTop(22).AlignCenter().Text(data.DoctorFullName ?? "").SemiBold().FontSize(10);
-                });
+            row.RelativeItem().Column(col =>
+            {
+                col.Item().AlignCenter().Text("Bác sĩ kê đơn").Bold().FontSize(9.5f);
+                col.Item().AlignCenter().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8f).FontColor(Muted);
+                col.Item().PaddingTop(24).AlignCenter().Text(data.DoctorFullName ?? "").SemiBold().FontSize(10);
+            });
         });
     }
 }

@@ -92,6 +92,7 @@ try
     builder.Services.AddScoped<IReceiptPdfService, ReceiptPdfService>();
     builder.Services.AddScoped<ProDiabHis.Application.Billing.IInvoicePdfGenerator, InvoicePdfGeneratorAdapter>();
     builder.Services.AddScoped<ProDiabHis.Application.Billing.IReceiptPdfGenerator, ReceiptPdfGeneratorAdapter>();
+    builder.Services.AddScoped<ProDiabHis.Application.Billing.ICostStatementPdfBuilder, ProDiabHis.Infrastructure.Reports.CostStatementPdfBuilder>();
     builder.Services.AddScoped<GlobalRateLimitFilter>();
 
     // Sprint 12: AuditQueryService (Dapper read-side)

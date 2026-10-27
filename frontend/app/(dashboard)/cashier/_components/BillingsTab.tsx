@@ -20,12 +20,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, CreditCard, Printer, Receipt, FileClock } from "lucide-react";
+import { MoreHorizontal, Eye, CreditCard, Printer, Receipt, FileClock, ClipboardList } from "lucide-react";
 import { useBillings } from "@/lib/hooks/use-billing";
 import { BillingStatusBadge } from "@/components/domain/BillingStatusBadge";
 import { PaymentDialog } from "@/components/domain/PaymentDialog";
 import { formatCurrency } from "@/lib/utils/format";
-import { printBillingPdf, printProvisionalReceiptPdf } from "@/lib/api/billing";
+import { printBillingPdf, printProvisionalReceiptPdf, printCostStatementPdf } from "@/lib/api/billing";
 import { printReceiptPdf } from "@/lib/api/cashier";
 import { listPayments } from "@/lib/api/payments";
 import type { BillingStatus, BillingResponse } from "@/lib/api/billing";
@@ -155,6 +155,9 @@ export function BillingsTab({ filterStatus }: Props) {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => printProvisionalReceiptPdf(bill.id)}>
                           <FileClock className="mr-2 h-4 w-4" /> In phiếu thu tạm
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => printCostStatementPdf(bill.id)}>
+                          <ClipboardList className="mr-2 h-4 w-4" /> In bảng kê chi phí
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

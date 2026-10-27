@@ -149,16 +149,25 @@ public class ReceiptPdfService : IReceiptPdfService
                             row.RelativeItem(3).AlignRight().Text(receipt.CashierName).FontSize(9);
                         });
 
-                    col.Item().PaddingTop(16).Row(row =>
+                    // Ngay ky (ben phai) + cac o chu ky. Figma: phieu thu tam 4 o
+                    // (Nguoi nop tien / Nguoi thu tien / Thu ngan / Ke toan); bien lai 3 o.
+                    col.Item().PaddingTop(10).AlignRight()
+                        .Text($"Ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}")
+                        .Italic().FontSize(8.5f).FontColor(ReportPdfCommon.Muted);
+
+                    var signers = provisional
+                        ? new[] { "Người nộp tiền", "Người thu tiền", "Thu ngân", "Kế toán" }
+                        : new[] { "Người lập phiếu", "Người nộp tiền", "Thu ngân" };
+
+                    col.Item().PaddingTop(4).Row(row =>
                     {
-                        row.RelativeItem();
-                        row.RelativeItem().AlignCenter().Column(sig =>
-                        {
-                            sig.Item().AlignCenter().Text($"Ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}")
-                                .Italic().FontSize(8.5f).FontColor(ReportPdfCommon.Muted);
-                            sig.Item().AlignCenter().Text("NGƯỜI THU TIỀN").Bold().FontSize(9.5f);
-                            sig.Item().AlignCenter().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8f).FontColor(ReportPdfCommon.Muted);
-                        });
+                        foreach (var who in signers)
+                            row.RelativeItem().AlignCenter().Column(sig =>
+                            {
+                                sig.Item().AlignCenter().Text(who).Bold().FontSize(9f);
+                                sig.Item().AlignCenter().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(7.5f).FontColor(ReportPdfCommon.Muted);
+                                sig.Item().Height(34);
+                            });
                     });
                 });
 

@@ -222,3 +222,10 @@ export async function printProvisionalReceiptPdf(id: string): Promise<void> {
   const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
   await printPdfBlob(url, "POST");
 }
+
+/** In BẢNG KÊ CHI PHÍ (A5) theo hoá đơn. Endpoint POST. */
+export async function printCostStatementPdf(id: string): Promise<void> {
+  const url = `${apiClient.defaults.baseURL}/billings/${id}/cost-statement`;
+  const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
+  await printPdfBlob(url, "POST");
+}

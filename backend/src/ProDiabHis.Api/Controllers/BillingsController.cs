@@ -286,4 +286,24 @@ public class BillingsController : ControllerBase
         Response.Headers["Content-Disposition"] = $"inline; filename=\"provisional-{value.ReceiptNo}.pdf\"";
         return File(value.PdfBytes, "application/pdf");
     }
+
+    /// <summary>In BANG KE CHI PHI (A5 PDF) theo hoa don.</summary>
+    // POST /api/v1/billings/{id}/cost-statement
+    [HttpPost("{id:guid}/cost-statement")]
+    [RequirePermission("cashier.print_receipt")]
+    public async Task<IActionResult> PrintCostStatement(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new PrintCostStatementCommand(id), ct);
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode switch
+            {
+                "BILLING_NOT_FOUND" => NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } }),
+                _ => Problem(result.ErrorMessage, statusCode: 400)
+            };
+        }
+        var value = result.Value!;
+        Response.Headers["Content-Disposition"] = $"inline; filename=\"cost-statement-{value.ReceiptNo}.pdf\"";
+        return File(value.PdfBytes, "application/pdf");
+    }
 }
