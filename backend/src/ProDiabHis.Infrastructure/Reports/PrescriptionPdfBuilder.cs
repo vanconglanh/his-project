@@ -34,23 +34,17 @@ public class PrescriptionPdfBuilder : IPrescriptionPdfBuilder
                 page.MarginHorizontal(10, Unit.Millimetre);
                 page.DefaultTextStyle(x => x.FontSize(9).FontColor(Ink));
 
-                // Trai: logo + cong ty + dia chi (letterhead); phai: So don + Ngay
-                page.Header().Row(r =>
-                {
-                    r.RelativeItem().Element(c => RenderLetterhead(c, data));
-                    r.ConstantItem(105).PaddingLeft(6).Column(c =>
-                    {
-                        c.Item().AlignRight().Text(t =>
-                        {
-                            t.Span("Số đơn: ").FontColor(Muted).FontSize(8.5f);
-                            t.Span(data.PrescriptionCode).Bold().FontSize(9);
-                        });
-                        c.Item().AlignRight().Text($"Ngày: {data.PrescribedAt:dd/MM/yyyy}").FontSize(8.5f);
-                    });
-                });
+                // Letterhead day du be ngang (banner co hang lien he AutoItem, khong ep vao cot hep)
+                page.Header().Element(c => RenderLetterhead(c, data));
 
                 page.Content().PaddingTop(6).Column(col =>
                 {
+                    col.Item().AlignRight().Text(t =>
+                    {
+                        t.Span("Số đơn: ").FontColor(Muted).FontSize(8.5f);
+                        t.Span(data.PrescriptionCode).Bold().FontSize(9);
+                        t.Span($"   Ngày: {data.PrescribedAt:dd/MM/yyyy}").FontSize(8.5f);
+                    });
                     col.Item().AlignCenter().Text("ĐƠN THUỐC").FontSize(17).Bold().FontColor(Brand);
                     col.Item().AlignCenter().Text("Prescription · Đơn thuốc").FontSize(8).FontColor(Muted);
 
