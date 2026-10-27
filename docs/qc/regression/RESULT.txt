@@ -1,6 +1,6 @@
 === BO TEST HOI QUY Pro-Diab HIS ===
 BASE_URL: https://his.diab.vn
-Thoi diem: 2026-10-27T10:24:09.911Z
+Thoi diem: 2026-10-27T10:59:50.164Z
 Tong: 12 | PASS: 12 | FAIL(do=co the hoi quy): 0
 
 [PASS] BM-49 - GET /encounters status=200, co Z suffix=true

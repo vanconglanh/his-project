@@ -175,3 +175,12 @@ Rà board DiaB His(Web): xoá 1 record rỗng tạo nhầm khi thao tác grid (v
 ### Còn tồn / chờ BA
 - BM-122 (phân 7 nhóm chỉ định), BM-124 (event tracking toàn site), BM-126 (phiếu thu tạm + in Figma): chờ BA/product.
 - Bug (b) cashier: cần 1 ca thu ngân OPEN có giao dịch trên staging để assert "Tổng thu hôm nay" > 0 (hiện code-verified).
+
+### Cập nhật BM-126 (2026-10-27, theo chỉ đạo coordinator) — ĐÃ IMPLEMENT (không còn To BA)
+- Implement "In phiếu thu tạm" (provisional receipt) trong /cashier thay vì để To BA. Commit `72e9574`.
+- BE: `PrintProvisionalReceiptCommand/Handler` in theo billingId — KHÔNG cần Payment, KHÔNG chặn DRAFT; số tiền tạm phải thu = `patient_payable`. Tái dùng `ReceiptPdfService` (QuestPDF A5, letterhead chung) qua flag `provisional`: tiêu đề "PHIẾU THU TẠM", nhãn "SỐ TIỀN TẠM PHẢI THU", ô tick phương thức, ghi chú "chưa phải chứng từ chính thức" — theo mẫu Figma DiaB|HIS Prints.
+- Endpoint `POST /api/v1/billings/{id}/provisional-receipt` (quyền `cashier.print_receipt`), audit `cashier.provisional_receipt.print`.
+- FE: `printProvisionalReceiptPdf` + menu "In phiếu thu tạm" trong `BillingsTab` (/cashier).
+- **Giả định** (ghi trong comment Lark): "lượt khám/giao dịch" = 1 billing (có encounter_id); phiếu thu tạm in theo billing hiện có, số tiền = patient_payable; chữ ký giữ 1 ô "NGƯỜI THU TIỀN" theo layout biên lai chuẩn (Figma có 4 ô — rút gọn để đồng bộ hạ tầng in sẵn có, có thể mở rộng sau).
+- Deploy staging image từ HEAD `72e9574`. Rollback: `prev-20261027-1753`. Regression 12/0.
+- Verify E2E: `docs/qc/evidence-lark-20261027/EVIDENCE-BM126.txt` — Kế toán POST provisional-receipt trên billing DRAFT HD-202610-A8A4B → 200, application/pdf, 117KB (official print vốn chặn DRAFT); Lễ tân 403 (không có quyền — đúng). → Lark **In test**.

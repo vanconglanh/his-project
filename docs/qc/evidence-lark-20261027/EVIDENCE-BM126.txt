@@ -1,0 +1,2 @@
+----  BM-126 role=Lễ tân: POST provisional-receipt status=403, content-type=application/json; charset=utf-8, pdfBytes=104
+PASS  BM-126 role=Kế toán: POST provisional-receipt status=200, content-type=application/pdf, pdfBytes=117871
