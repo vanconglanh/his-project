@@ -1,12 +1,12 @@
 === BO TEST HOI QUY Pro-Diab HIS ===
 BASE_URL: https://his.diab.vn
-Thoi diem: 2026-10-26T10:11:54.278Z
+Thoi diem: 2026-10-27T10:24:09.911Z
 Tong: 12 | PASS: 12 | FAIL(do=co the hoi quy): 0
 
 [PASS] BM-49 - GET /encounters status=200, co Z suffix=true
 [PASS] BM-37/63 - JWT Le tan perms: billing.finalize=false, billing.void=false (ky vong: deu khong co)
-[PASS] BM-61 - Le tan GET /encounters/1be1b56b-5608-42b8-a4cd-8527f6757c9d: diagnoses=[] (ky vong rong/null)
-[PASS] BM-04 - GET /patients?search=<SDT 0998765443> status=200, tim thay dung BN id=9e607147-4ac8-4fee-b59e-09043ba66b82=true (so ket qua=1)
+[PASS] BM-61 - Le tan GET /encounters/fa9e6496-3140-4ccc-87ef-3ae939b9bf6a: diagnoses=[] (ky vong rong/null)
+[PASS] BM-04 - GET /patients?search=<SDT 0931888832> status=200, tim thay dung BN id=1606ccb6-7263-4c78-b6e0-2bbf7ce1b38f=true (so ket qua=1)
 [PASS] BM-81 - POST /patients (thieu ngay sinh) status=400 (ky vong 4xx chan)
 [PASS] BM-86 - POST /auth/refresh {refresh_token} status=200 (ky vong 200)
 [PASS] BM-51 - KTV GET /reports/revenue-daily/data status=403 (ky vong 403, khong tra so mau)
@@ -14,7 +14,7 @@ Tong: 12 | PASS: 12 | FAIL(do=co the hoi quy): 0
 [PASS] BM-71 - Ke toan report columns status=200, so cot=15, cot mau=date,receipt_no,patient_code,patient_name,description,total_cost, camelCase(cot)=false, so dong=0, camelCase(dong)=false
 [PASS] BM-70 - Template DIABETES: hba1c min=3 max=20 (ky vong co min/max)
 [PASS] BM-64 - Template DIABETES: ly_do_kham required=true, co o khong-required=true
-[PASS] BM-47/65 - Bac si PUT /encounters/1be1b56b-5608-42b8-a4cd-8527f6757c9d/emr status=200 (ky vong 200, khong 500)
+[PASS] BM-47/65 - Bac si PUT /encounters/1333f083-f0f4-4feb-99bc-084ec42fbee1/emr status=200 (ky vong 200, khong 500)
 
 Ghi chu: cac ticket UI thuan (BM-07,33,36,40,48,50,59,60,67,74,82) kiem thu cong/khac;
 bo nay tap trung assertion API/JWT (robust, it rac) cho hanh vi da fix.

@@ -1,0 +1,4 @@
+PASS  BM-125  GET /encounters/439e19ce-1a91-42e9-a9c1-a3a5f2a0eed9/vital-signs status=200, so sinh hieu=1 (ky vong >=1 nho fallback benh nhan; truoc fix = 0)
+PASS  BM-120  Upload anh PNG -> status=422, errorCode=INBODY_EXTRACT_FAILED (ky vong KHAC INBODY_INVALID_FORMAT = format anh da duoc chap nhan)
+FAIL  bug-b-cashier  GET /cashier/closing/today status=403, net_collected=undefined (fix: khi ca OPEN tinh live tu payments; staging hien khong co ca OPEN co giao dich de khang dinh >0 -> logic verify qua unit test + build)
+PASS  bug-a-service-only  camelCase serviceIds -> SERVICE_ONLY_EMPTY (tai hien bug cu); snake_case service_ids -> status=201, bill_no=HD-202610-0C4D0 (fix OK: tao duoc hoa don, het SERVICE_ONLY_EMPTY)

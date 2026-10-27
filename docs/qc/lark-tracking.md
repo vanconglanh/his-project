@@ -143,3 +143,35 @@ Evidence (không chứa PII — dialog chỉ hiện các ô chỉ số): `docs/q
 Giới hạn còn lại: SMM/PBF/Khối mỡ phụ thuộc chất lượng OCR callout/history từng lần render (không ổn định) → chủ trương để trống + cảnh báo khi không chắc, điều dưỡng review/nhập tay trước khi lưu. Hướng nâng recall tương lai (ngoài phạm vi đợt này): tăng DPI render + tiền xử lý ảnh (binarize/denoise), OCR riêng vùng bảng Muscle-Fat/Obesity, hoặc tích hợp thẳng API máy InBody (chính xác tuyệt đối).
 
 Commit: 39168ef (OCR fallback + parser), f891a02 (siết chống giá trị sai), 5ef9864 (loại vạch thang đo), 5ae49ec (BMI cross-check + history fallback), f54f188 (InBody Score gộp chữ số). Deploy staging image `prodiab-his-backend:stg-f54f188` (ID 6725c5b002b4). Rollback: retag prev-20261026-1605 (=5ae49ec) → latest. Regression 12/0.
+
+---
+
+## ĐỢT 9 (2026-10-27) — Ticket mới sau BM-116 + 3 bug phát hiện khi chụp tài liệu
+
+Rà board DiaB His(Web): xoá 1 record rỗng tạo nhầm khi thao tác grid (về lại 76 records). Ticket mới Not started sau BM-116: BM-116, BM-120, BM-122, BM-124, BM-125, BM-126. Không thấy comment feedback mới của tester Dư Mỹ Vân trên ticket In test (các ticket In test vẫn chờ QC verify).
+
+### Kết quả xử lý
+
+| Ticket/Bug | Nội dung | Nguyên nhân | Commit | Trạng thái |
+|---|---|---|---|---|
+| **BM-116** | Tiếp đón không nhận diện kết quả file InBody | Reporter đã bổ sung mô tả (trước đây cụt) → chính là bug OCR InBody đã fix+deploy 2026-10-26 (OCR fallback cho PDF scan). Code đã có mặt. | (đã deploy f54f188, 2026-10-26) | **In test** |
+| **BM-120** | Upload InBody chỉ nhận PDF text-layer; cần jpeg/png + PDF scan | BE `UploadInBodyReportCommandHandler.AllowedMimes` chỉ `application/pdf`; `InBodyPdfTextProvider` chỉ đọc PDF (không OCR ảnh trực tiếp). FE đã accept `image/*`. | `281636a` | **In test** |
+| **BM-125** | Sinh hiệu đo ở Tiếp đón không hiện ở màn Điều dưỡng (hiện ở Bác sĩ) | `ListVitalSignsByEncounterQueryHandler` lọc chỉ theo `EncounterId`; vital đo ở Tiếp đón thuộc encounter check-in khác. Thêm fallback theo `PatientId` (đồng pattern BM-115). | `281636a` | **In test** |
+| **BM-122** | "Không khám" cần hiện chỉ định dịch vụ phân 7 nhóm | (1) Bug chặn luồng: `SERVICE_ONLY_EMPTY` — đã fix (xem bug-a). (2) Hiện 7 nhóm chi tiết (Gói DiaB/đối tác, CĐHA Siêu âm/XQ/MRI, Thăm dò CN, XN, Thủ thuật, InBody) cần `category` mịn + `PackageType` DiaB/đối tác ở schema — **cần BA chốt taxonomy danh mục**. | (bug chặn: 281636a) | **To BA** (phần phân nhóm) |
+| **BM-124** | Gắn event tracking toàn site HIS | Feature xuyên suốt; cần quyết định nền tảng analytics (GA4/PostHog/self-host) + xử lý PII app y tế → **cần product/BA quyết định**. | — | **To BA** |
+| **BM-126** | Thiếu phiếu thu tạm + in theo Figma | Feature mới (khái niệm "thu tạm" + template in theo Figma). Cần design/BA cung cấp layout + quy tắc nghiệp vụ. | — | **To BA** |
+| **Bug (a)** [không có ticket riêng] | Tiếp đón "Không khám"→"Tạo chỉ định" luôn báo SERVICE_ONLY_EMPTY | FE `ServiceOnlyRequest` gửi camelCase (`serviceIds`) trong khi BE JSON policy snake_case (`service_ids`) → BE đọc null → EMPTY. Đổi FE sang snake_case. | `281636a` | Fixed + deploy; verify: camelCase→EMPTY (tái hiện), snake_case→201 tạo hoá đơn |
+| **Bug (b)** [không có ticket riêng] | /cashier thẻ "Tổng thu hôm nay" = 0 | `GetTodayReportHandler` đọc cột `total_*` trên row ca (chỉ ghi lúc đóng ca); ca đang OPEN → 0. Thêm tính LIVE từ bảng payments khi ca OPEN (nhân bản logic CalculateShiftSummaryAsync, read-only). | `281636a` | Fixed + deploy (code-verified: unit test + build; staging chưa có ca OPEN có giao dịch để assert live) |
+| **Bug (c)** [không có ticket riêng] | Ô "Lượt khám liên quan" (dialog tải tài liệu) & ô "Thuốc" (GRN) hiện UUID thay vì tên | Base UI `Select.Value` render value thô khi thiếu prop `items` (SmartUploadDialog 2 chỗ). GrnForm lưu drug label ở state theo `field.id` (bay khi thêm/xoá lô) → fallback về GUID. | `281636a` | Fixed + deploy: thêm `items` cho Select encounter; lưu `drug_label` vào form data |
+
+### Deploy & verify
+- Build local từ `git archive HEAD` (281636a) → `docker save | ssh docker load` → `compose up -d --no-deps --force-recreate backend frontend` → `docker restart stg-his-nginx`. Chỉ staging (his.diab.vn, stack /srv/apps/stg/his, tenant 2).
+- Image staging: `prodiab-his-backend:latest` + `prodiab-his-frontend:latest` (từ 281636a). Rollback: `prev-20261027-1713` (backend+frontend, = image trước đợt này, 6725c5b002b4).
+- **Không có migration** (toàn bộ fix là logic/query, không đổi schema) → không backup DB.
+- Build backend 0 lỗi; FE typecheck pass; unit test InBody/Vital/Cashier/ServiceOnly 76/76 pass.
+- **Regression**: `BASE_URL=https://his.diab.vn node docs/qc/regression/regression.js` → **PASS 12 / FAIL 0**. (Lần chạy đầu BM-47/65 FAIL do test chọn mù encounter đầu tiên — nay là ca DONE đã ký số (signed 2026-10-27 08:13) → 400 EMR_ALREADY_SIGNED đúng domain, KHÔNG phải regression từ code đợt này. Đã sửa test chọn encounter IN_PROGRESS của chính bác sĩ → xanh.)
+- Evidence (API probe, không PII): `docs/qc/evidence-lark-20261027/EVIDENCE.txt` (BM-125 fallback trả 1 sinh hiệu; BM-120 upload ảnh PNG không còn INBODY_INVALID_FORMAT; bug-a snake_case tạo hoá đơn HD-... còn camelCase tái hiện EMPTY). Đã dọn hoá đơn draft REGR vừa tạo.
+
+### Còn tồn / chờ BA
+- BM-122 (phân 7 nhóm chỉ định), BM-124 (event tracking toàn site), BM-126 (phiếu thu tạm + in Figma): chờ BA/product.
+- Bug (b) cashier: cần 1 ca thu ngân OPEN có giao dịch trên staging để assert "Tổng thu hôm nay" > 0 (hiện code-verified).

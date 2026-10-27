@@ -248,18 +248,27 @@ function perms(token) {
 
     // BM-47 + BM-65: luu EMR (draft) tra 200, khong 500 / khong bao that bai gia
     {
-      const list = await api(page, t, "/api/v1/encounters?page=1&page_size=3");
+      const me = jwtPayload(t);
+      const myId = me.sub || me.user_id || me.nameid || me.uid || null;
+      const list = await api(page, t, "/api/v1/encounters?page=1&page_size=50");
       const items = (list.json && (list.json.data || list.json.items)) || [];
-      const enc = Array.isArray(items) ? items.find((x) => x && x.id) : null;
-      if (enc) {
+      // Chon luot kham CON SUA DUOC: IN_PROGRESS + thuoc CHINH bac si dang nhap (BM-57 chan sua ca
+      // bac si khac -> FORBIDDEN; luot DONE/da ky so -> 400 EMR_ALREADY_SIGNED). Thu lan luot cac
+      // ung vien, PASS ngay khi 1 luot save tra 200; chi FAIL that su khi gap 500 hoac het ung vien.
+      const cands = (Array.isArray(items) ? items : [])
+        .filter((x) => x && x.id && x.status === "IN_PROGRESS" && (!myId || x.doctor_id === myId));
+      const pool = cands.length ? cands : (Array.isArray(items) ? items.filter((x) => x && x.id) : []);
+      let decided = false, lastStatus = null, lastId = null;
+      for (const enc of pool.slice(0, 10)) {
         const r = await api(page, t, "/api/v1/encounters/" + enc.id + "/emr", {
           method: "PUT",
           body: { content_json: { type: "doc", content: [] }, structured_values: { ly_do_kham: "REGR check", chan_doan_bien_chung: "REGR" } },
         });
-        rec("BM-47/65", r.status === 200, `Bac si PUT /encounters/${enc.id}/emr status=${r.status} (ky vong 200, khong 500)`);
-      } else {
-        rec("BM-47/65", false, "Khong tim duoc encounter de luu EMR");
+        lastStatus = r.status; lastId = enc.id;
+        if (r.status === 500) { rec("BM-47/65", false, `Bac si PUT /encounters/${enc.id}/emr status=500 (loi server)`); decided = true; break; }
+        if (r.status === 200) { rec("BM-47/65", true, `Bac si PUT /encounters/${enc.id}/emr status=200 (ky vong 200, khong 500)`); decided = true; break; }
       }
+      if (!decided) rec("BM-47/65", false, pool.length ? `Khong luot kham IN_PROGRESS nao save duoc (status cuoi=${lastStatus}, enc=${lastId})` : "Khong tim duoc encounter de luu EMR");
     }
 
     // ====== Ghi ket qua ======
