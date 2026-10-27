@@ -3,7 +3,7 @@ namespace ProDiabHis.Api.Services;
 /// <summary>Tao PDF bien lai thu tien kho A5 theo QuestPDF (ADR-0001), dung chuan letterhead teal chung he thong</summary>
 public interface IReceiptPdfService
 {
-    Task<byte[]> GenerateReceiptPdfAsync(ReceiptData receipt, bool reprint = false, CancellationToken ct = default);
+    Task<byte[]> GenerateReceiptPdfAsync(ReceiptData receipt, bool reprint = false, CancellationToken ct = default, bool provisional = false);
 }
 
 public record ReceiptData(

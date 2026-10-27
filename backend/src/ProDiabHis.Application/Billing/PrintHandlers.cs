@@ -31,6 +31,10 @@ public record PrintBillingCommand(Guid BillingId, PrintBillingRequest Request)
 public record PrintReceiptCommand(Guid PaymentId, PrintReceiptRequest Request)
     : IRequest<Result<PrintReceiptResult>>;
 
+// BM-126: in PHIEU THU TAM theo billing (chua can co giao dich/Payment, khong chan DRAFT).
+public record PrintProvisionalReceiptCommand(Guid BillingId)
+    : IRequest<Result<PrintReceiptResult>>;
+
 // ── Handler interfaces cho PDF services (tranh circular dep Api -> Application) ─
 
 /// <summary>
@@ -48,7 +52,8 @@ public interface IInvoicePdfGenerator
 /// </summary>
 public interface IReceiptPdfGenerator
 {
-    Task<byte[]> GenerateAsync(ReceiptPrintData data, bool reprint, CancellationToken ct);
+    // BM-126: provisional=true -> in "PHIEU THU TAM" (chua phai chung tu chinh thuc).
+    Task<byte[]> GenerateAsync(ReceiptPrintData data, bool reprint, CancellationToken ct, bool provisional = false);
 }
 
 public record ReceiptPrintData(
@@ -317,6 +322,134 @@ public class PrintReceiptHandler : IRequestHandler<PrintReceiptCommand, Result<P
             "Payment",
             cmd.PaymentId.ToString(),
             details: new { reprint = cmd.Request.Reprint },
+            cancellationToken: ct);
+
+        return Result<PrintReceiptResult>.Success(new PrintReceiptResult(pdfBytes, receiptNo));
+    }
+}
+
+// ── PrintProvisionalReceiptHandler (BM-126) ──────────────────────────────────
+// In PHIEU THU TAM theo billing: khong can Payment, khong chan DRAFT. So tien tam phai thu
+// lay tu patient_payable. Day KHONG phai chung tu chinh thuc (in dam dong canh bao tren phieu).
+
+public class PrintProvisionalReceiptHandler : IRequestHandler<PrintProvisionalReceiptCommand, Result<PrintReceiptResult>>
+{
+    private readonly IDapperConnectionFactory _dapper;
+    private readonly ITenantProvider _tenant;
+    private readonly ICurrentUser _user;
+    private readonly IAuditService _audit;
+    private readonly IReceiptPdfGenerator _pdfGen;
+
+    public PrintProvisionalReceiptHandler(
+        IDapperConnectionFactory dapper,
+        ITenantProvider tenant,
+        ICurrentUser user,
+        IAuditService audit,
+        IReceiptPdfGenerator pdfGen)
+    {
+        _dapper = dapper;
+        _tenant = tenant;
+        _user = user;
+        _audit = audit;
+        _pdfGen = pdfGen;
+    }
+
+    public async Task<Result<PrintReceiptResult>> Handle(PrintProvisionalReceiptCommand cmd, CancellationToken ct)
+    {
+        var tenantId = _tenant.TenantId;
+        var billingIdStr = cmd.BillingId.ToString();
+
+        string? patientName = "-";
+        string? patientCode = null;
+        string? phone = null;
+        string? tenantName = null;
+        string? tenantAddress = null;
+        string? tenantCskcbCode = null;
+        string? cashierName = null;
+        decimal payable = 0;
+        string? billNo = null;
+        LetterheadDto? letterhead = null;
+        var lines = new List<ReceiptLineDto>();
+
+        using (var conn = _dapper.CreateConnection())
+        {
+            var billing = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT bill_no, patient_payable FROM diab_his_bil_billing WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { id = billingIdStr, tenantId });
+            if (billing == null)
+                return Result<PrintReceiptResult>.Failure("BILLING_NOT_FOUND", "Khong tim thay hoa don.");
+            billNo = (string?)billing.bill_no;
+            payable = (decimal)billing.patient_payable;
+
+            var items = await conn.QueryAsync<dynamic>(
+                "SELECT name, quantity, unit_price, line_total FROM diab_his_bil_billing_items WHERE billing_id = @id",
+                new { id = billingIdStr });
+            foreach (var it in items)
+                lines.Add(new ReceiptLineDto((string)it.name, (decimal)it.quantity, (decimal)it.unit_price, (decimal)it.line_total));
+
+            var patRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                @"SELECT p.full_name, p.phone_enc, p.code
+                  FROM diab_his_pat_patients p
+                  JOIN diab_his_bil_billing b ON b.patient_id = p.id
+                  WHERE b.id = @billingId AND b.tenant_id = @tenantId AND p.deleted_at IS NULL LIMIT 1",
+                new { billingId = billingIdStr, tenantId });
+            if (patRow != null)
+            {
+                patientName = (string?)patRow.full_name ?? "-";
+                patientCode = (string?)patRow.code;
+                phone = PiiCrypto.Unprotect((string?)patRow.phone_enc);
+            }
+
+            var tenantRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT name, address, cskcb_code FROM diab_his_sys_tenants WHERE id = @tenantId AND deleted_at IS NULL",
+                new { tenantId });
+            if (tenantRow != null)
+            {
+                tenantName = (string?)tenantRow.name;
+                tenantAddress = (string?)tenantRow.address;
+                tenantCskcbCode = (string?)tenantRow.cskcb_code;
+            }
+
+            letterhead = await conn.QueryFirstOrDefaultAsync<LetterheadDto>(
+                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                         slogan AS Slogan, website AS Website
+                  FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
+
+            if (_user.UserId.HasValue)
+            {
+                var cashierRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT full_name FROM diab_his_sec_users WHERE id = @id AND deleted_at IS NULL",
+                    new { id = _user.UserId.Value.ToString() });
+                cashierName = (string?)cashierRow?.full_name;
+            }
+        }
+
+        var receiptNo = $"TT-{DateTime.UtcNow:yyMMdd}-{cmd.BillingId.ToString("N")[..6].ToUpper()}";
+
+        var data = new ReceiptPrintData(
+            receiptNo,
+            tenantName,
+            tenantAddress,
+            tenantCskcbCode,
+            patientCode,
+            patientName,
+            phone,
+            DateTime.UtcNow,
+            string.Empty,   // chua chon phuong thuc (phieu tam)
+            payable,        // so tien tam phai thu
+            billNo,         // tham chieu hoa don
+            cashierName,
+            lines,
+            letterhead);
+
+        var pdfBytes = await _pdfGen.GenerateAsync(data, reprint: false, ct, provisional: true);
+
+        await _audit.LogAsync(
+            "cashier.provisional_receipt.print",
+            "Billing",
+            cmd.BillingId.ToString(),
+            details: new { bill_no = billNo, payable },
             cancellationToken: ct);
 
         return Result<PrintReceiptResult>.Success(new PrintReceiptResult(pdfBytes, receiptNo));

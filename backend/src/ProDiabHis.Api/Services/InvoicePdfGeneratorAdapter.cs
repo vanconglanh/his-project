@@ -34,7 +34,8 @@ public class ReceiptPdfGeneratorAdapter : IReceiptPdfGenerator
     public Task<byte[]> GenerateAsync(
         ReceiptPrintData data,
         bool reprint,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool provisional = false)
     {
         var receiptData = new ReceiptData(
             data.ReceiptNo,
@@ -52,6 +53,6 @@ public class ReceiptPdfGeneratorAdapter : IReceiptPdfGenerator
             data.Lines.Select(l => new ReceiptLineItem(l.Name, l.Quantity, l.UnitPrice, l.LineTotal)).ToList(),
             data.Letterhead);
 
-        return _svc.GenerateReceiptPdfAsync(receiptData, reprint, ct);
+        return _svc.GenerateReceiptPdfAsync(receiptData, reprint, ct, provisional);
     }
 }

@@ -19,8 +19,13 @@ public class ReceiptPdfService : IReceiptPdfService
     public Task<byte[]> GenerateReceiptPdfAsync(
         ReceiptData receipt,
         bool reprint = false,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        bool provisional = false)
     {
+        // BM-126: phieu thu tam dung chung layout bien lai, chi doi tieu de/nhan tien + them canh bao.
+        var docTitle = provisional ? "PHIẾU THU TẠM" : "BIÊN LAI THU TIỀN";
+        var receiptNoLabel = provisional ? "Số phiếu tạm" : "Số biên lai";
+        var amountLabel = provisional ? "SỐ TIỀN TẠM PHẢI THU:" : "TỔNG TIỀN:";
         var lh = receipt.Letterhead ?? new LetterheadDto(
             receipt.TenantName ?? "Pro-Diab HIS", receipt.TenantCskcbCode, null, receipt.TenantAddress,
             null, null, null, null);
@@ -37,7 +42,10 @@ public class ReceiptPdfService : IReceiptPdfService
 
                 page.Header().Column(col =>
                 {
-                    if (reprint)
+                    if (provisional)
+                        col.Item().AlignRight()
+                            .Text("[PHIẾU TẠM]").FontSize(8).FontColor(ReportPdfCommon.Brand).Bold();
+                    else if (reprint)
                         col.Item().AlignRight()
                             .Text("[IN LẠI]").FontSize(8).FontColor(ReportPdfCommon.Brand).Bold();
 
@@ -46,7 +54,7 @@ public class ReceiptPdfService : IReceiptPdfService
 
                 page.Content().PaddingTop(8).Column(col =>
                 {
-                    col.Item().Element(c => ReportPdfCommon.RenderTitle(c, "BIÊN LAI THU TIỀN"));
+                    col.Item().Element(c => ReportPdfCommon.RenderTitle(c, docTitle));
 
                     // Thong tin bien lai
                     col.Item().PaddingTop(8).Table(table =>
@@ -63,7 +71,7 @@ public class ReceiptPdfService : IReceiptPdfService
                             table.Cell().PaddingBottom(2).Text(value ?? "—");
                         }
 
-                        Row("Số biên lai", receipt.ReceiptNo);
+                        Row(receiptNoLabel, receipt.ReceiptNo);
                         Row("Ngày", receipt.PaidAt.ToString("dd/MM/yyyy HH:mm"));
                         Row("Bệnh nhân", receipt.PatientName);
                         if (!string.IsNullOrEmpty(receipt.PatientCode))
@@ -105,7 +113,7 @@ public class ReceiptPdfService : IReceiptPdfService
                     // Tong tien
                     col.Item().PaddingTop(8).Row(row =>
                     {
-                        row.RelativeItem(2).Text("TỔNG TIỀN:").Bold().FontSize(11).FontColor(ReportPdfCommon.Ink);
+                        row.RelativeItem(2).Text(amountLabel).Bold().FontSize(11).FontColor(ReportPdfCommon.Ink);
                         row.RelativeItem(3).AlignRight()
                             .Text($"{receipt.Amount:N0} VNĐ").Bold().FontSize(13)
                             .FontColor(ReportPdfCommon.Brand);
@@ -114,8 +122,18 @@ public class ReceiptPdfService : IReceiptPdfService
                     col.Item().PaddingTop(3).Row(row =>
                     {
                         row.RelativeItem(2).Text("Phương thức:").FontColor(ReportPdfCommon.Muted).FontSize(9);
-                        row.RelativeItem(3).AlignRight().Text(receipt.Method).FontSize(9);
+                        // Phieu tam chua chon phuong thuc -> hien o tick de thu ngan danh dau tay.
+                        row.RelativeItem(3).AlignRight()
+                            .Text(provisional && string.IsNullOrEmpty(receipt.Method)
+                                ? "[ ] Tiền mặt   [ ] Chuyển khoản   [ ] Quẹt thẻ"
+                                : receipt.Method).FontSize(9);
                     });
+
+                    if (provisional)
+                        col.Item().PaddingTop(6)
+                            .Background("#FFF7E6").Padding(5)
+                            .Text("* Đây là PHIẾU THU TẠM, chưa phải chứng từ chính thức. Hoá đơn/biên lai sẽ được xuất khi hoàn tất thanh toán.")
+                            .Italic().FontSize(8f).FontColor(ReportPdfCommon.Muted);
 
                     if (!string.IsNullOrEmpty(receipt.Reference))
                         col.Item().Row(row =>

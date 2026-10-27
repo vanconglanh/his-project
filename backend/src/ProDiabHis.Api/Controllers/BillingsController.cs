@@ -266,4 +266,24 @@ public class BillingsController : ControllerBase
         Response.Headers["X-Invoice-Archived-Url"] = value.ArchivedUrl;
         return File(value.PdfBytes, "application/pdf");
     }
+
+    /// <summary>BM-126: In PHIEU THU TAM (A5 PDF) theo hoa don — khong can giao dich, khong chan DRAFT.</summary>
+    // POST /api/v1/billings/{id}/provisional-receipt
+    [HttpPost("{id:guid}/provisional-receipt")]
+    [RequirePermission("cashier.print_receipt")]
+    public async Task<IActionResult> PrintProvisionalReceipt(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new PrintProvisionalReceiptCommand(id), ct);
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode switch
+            {
+                "BILLING_NOT_FOUND" => NotFound(new { error = new { code = result.ErrorCode, message = result.ErrorMessage } }),
+                _ => Problem(result.ErrorMessage, statusCode: 400)
+            };
+        }
+        var value = result.Value!;
+        Response.Headers["Content-Disposition"] = $"inline; filename=\"provisional-{value.ReceiptNo}.pdf\"";
+        return File(value.PdfBytes, "application/pdf");
+    }
 }

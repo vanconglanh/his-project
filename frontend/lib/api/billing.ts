@@ -215,3 +215,10 @@ export async function printBillingPdf(id: string): Promise<void> {
   const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
   await printPdfBlob(url);
 }
+
+/** BM-126: in PHIẾU THU TẠM theo hoá đơn (số tiền tạm phải thu), kể cả khi chưa thanh toán. Endpoint POST. */
+export async function printProvisionalReceiptPdf(id: string): Promise<void> {
+  const url = `${apiClient.defaults.baseURL}/billings/${id}/provisional-receipt`;
+  const { printPdfBlob } = await import("@/lib/utils/printPdfBlob");
+  await printPdfBlob(url, "POST");
+}
