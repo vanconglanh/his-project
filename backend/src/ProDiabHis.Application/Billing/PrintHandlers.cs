@@ -96,6 +96,42 @@ public record ReceiptPrintData(
 
 public record ReceiptLineDto(string Name, decimal Quantity, decimal UnitPrice, decimal LineTotal);
 
+// ── BillingPrintData: du lieu dung chung cho cac ban in hoa don ──────────────
+
+internal static class BillingPrintData
+{
+    public static async Task<(BillingResponse Dto, LetterheadDto? Letterhead)> LoadAsync(
+        IDapperConnectionFactory dapper, Domain.Entities.Billing billing, int tenantId)
+    {
+        PatientSummaryDto? patient = null;
+        LetterheadDto? letterhead;
+        using (var conn = dapper.CreateConnection())
+        {
+            var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT full_name, dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND tenant_id = @tenantId AND deleted_at IS NULL",
+                new { id = billing.PatientId.ToString(), tenantId });
+
+            if (row != null)
+            {
+                patient = new PatientSummaryDto(
+                    (string)row.full_name,
+                    row.dob == null ? null : DateOnly.FromDateTime((DateTime)row.dob),
+                    (string?)row.gender,
+                    PiiCrypto.Unprotect((string?)row.phone_enc),
+                    null);
+            }
+
+            letterhead = await conn.QueryFirstOrDefaultAsync<LetterheadDto>(
+                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
+                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
+                         slogan AS Slogan, website AS Website
+                  FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
+        }
+
+        return (BillingMapper.ToDto(billing, patient), letterhead);
+    }
+}
+
 // ── PrintBillingHandler ──────────────────────────────────────────────────────
 
 public class PrintBillingHandler : IRequestHandler<PrintBillingCommand, Result<PrintBillingResult>>
@@ -137,36 +173,7 @@ public class PrintBillingHandler : IRequestHandler<PrintBillingCommand, Result<P
         if (billing.Status == BillingStatus.Draft)
             return Result<PrintBillingResult>.Failure("BILLING_NOT_FINALIZED", "Hoa don chua chot, khong the in ban chinh thuc.");
 
-        // Lay thong tin benh nhan
-        PatientSummaryDto? patient = null;
-        using (var conn = _dapper.CreateConnection())
-        {
-            var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT full_name, dob, gender, phone_enc FROM diab_his_pat_patients WHERE id = @id AND deleted_at IS NULL",
-                new { id = billing.PatientId.ToString() });
-
-            if (row != null)
-            {
-                patient = new PatientSummaryDto(
-                    (string)row.full_name,
-                    row.dob == null ? null : DateOnly.FromDateTime((DateTime)row.dob),
-                    (string?)row.gender,
-                    PiiCrypto.Unprotect((string?)row.phone_enc),
-                    null);
-            }
-        }
-
-        var dto = BillingMapper.ToDto(billing, patient);
-
-        LetterheadDto? letterhead = null;
-        using (var conn = _dapper.CreateConnection())
-        {
-            letterhead = await conn.QueryFirstOrDefaultAsync<LetterheadDto>(
-                @"SELECT name AS ClinicName, cskcb_code AS CskcbCode, company_name AS CompanyName, address AS Address,
-                         phone AS Phone, email AS Email, email_support AS EmailSupport, logo_url AS LogoUrl,
-                         slogan AS Slogan, website AS Website
-                  FROM diab_his_sys_tenants WHERE id = @tenantId", new { tenantId });
-        }
+        var (dto, letterhead) = await BillingPrintData.LoadAsync(_dapper, billing, tenantId);
 
         var pdfBytes = await _pdfGen.GenerateAsync(dto, cmd.Request.CopyLabel, cmd.Request.Reprint, ct, letterhead);
 

@@ -521,11 +521,14 @@ public class GetBillingByEncounterHandler : IRequestHandler<GetBillingByEncounte
 public class ExportBillingPdfHandler : IRequestHandler<ExportBillingPdfQuery, Result<byte[]>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly IDapperConnectionFactory _dapper;
     private readonly ITenantProvider _tenant;
+    private readonly IInvoicePdfGenerator _pdfGen;
 
-    public ExportBillingPdfHandler(IApplicationDbContext db, ITenantProvider tenant)
+    public ExportBillingPdfHandler(IApplicationDbContext db, IDapperConnectionFactory dapper,
+        ITenantProvider tenant, IInvoicePdfGenerator pdfGen)
     {
-        _db = db; _tenant = tenant;
+        _db = db; _dapper = dapper; _tenant = tenant; _pdfGen = pdfGen;
     }
 
     public async Task<Result<byte[]>> Handle(ExportBillingPdfQuery query, CancellationToken ct)
@@ -534,25 +537,11 @@ public class ExportBillingPdfHandler : IRequestHandler<ExportBillingPdfQuery, Re
             .FirstOrDefaultAsync(x => x.Id == query.Id && x.TenantId == _tenant.TenantId, ct);
         if (b == null) return Result<byte[]>.Failure("BILLING_NOT_FOUND", "Khong tim thay hoa don");
 
-        // Simple PDF placeholder via QuestPDF
-        QuestPDF.Settings.License = LicenseType.Community;
-        var pdf = Document.Create(doc =>
-        {
-            doc.Page(page =>
-            {
-                page.Size(PageSizes.A4);
-                page.Margin(2, QuestPDF.Infrastructure.Unit.Centimetre);
-                page.Content().Column(col =>
-                {
-                    col.Item().Text($"HOA DON: {b.BillNo}").FontSize(18).Bold();
-                    col.Item().Text($"Trang thai: {b.Status}");
-                    col.Item().Text($"Tong tien: {b.PatientPayable:N0} VND");
-                    foreach (var item in b.Items)
-                        col.Item().Text($"- {item.Name}: {item.Quantity} x {item.UnitPrice:N0} = {item.LineTotal:N0}");
-                });
-            });
-        }).GeneratePdf();
-
+        // Dung chung template hoa don (letterhead tenant); hoa don chua chot in nhan "BAN NHAP"
+        var (dto, letterhead) = await BillingPrintData.LoadAsync(_dapper, b, _tenant.TenantId);
+        var copyLabel = b.Status == BillingStatus.Draft ? "BẢN NHÁP — chưa chốt hoá đơn" : "BẢN XEM";
+        var pdf = await _pdfGen.GenerateAsync(dto, copyLabel, false, ct, letterhead);
         return Result<byte[]>.Success(pdf);
     }
 }
+

@@ -74,11 +74,11 @@ public class CostStatementPdfBuilder : ICostStatementPdfBuilder
                     {
                         table.ColumnsDefinition(c =>
                         {
-                            c.ConstantColumn(18);
-                            c.ConstantColumn(34);
+                            c.ConstantColumn(28);
+                            c.ConstantColumn(52);
                             c.RelativeColumn(3);
-                            c.ConstantColumn(24);
-                            c.ConstantColumn(20);
+                            c.ConstantColumn(32);
+                            c.ConstantColumn(26);
                             c.RelativeColumn(1.4f);
                             c.RelativeColumn(1.5f);
                         });
