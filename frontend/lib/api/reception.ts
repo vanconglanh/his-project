@@ -144,11 +144,11 @@ export async function resumeTicket(
 // ─── BM-92: Chỉ định dịch vụ không khám ──────────────────────────────────────
 
 export interface ServiceOnlyRequest {
-  patientId: string;
-  serviceIds: string[];
-  servicePackageIds: string[];
+  patient_id: string;
+  service_ids: string[];
+  service_package_ids: string[];
   note?: string;
-  externalFileIds?: string[];
+  external_file_ids?: string[];
 }
 
 export interface ServiceOnlyResult {

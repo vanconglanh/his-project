@@ -260,6 +260,22 @@ public class ListVitalSignsByEncounterQueryHandler
             .OrderBy(v => v.RecordedAt)
             .ToListAsync(ct);
 
+        // BM-125: luot kham chua co sinh hieu (vd do o tiep don thuoc encounter check-in khac)
+        // -> fallback lay sinh hieu cua benh nhan, dong pham vi voi lich su (GetVitalSignsHistoryQuery)
+        //    de man Dieu duong dong bo voi man Bac si (xem fallback BM-115 o GetEncounterDetailQueryHandler).
+        if (items.Count == 0)
+        {
+            var enc = await _db.Encounters.AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id.ToString() == encIdStr, ct);
+            if (enc is not null)
+            {
+                items = await _db.VitalSigns
+                    .Where(v => v.PatientId == enc.PatientId)
+                    .OrderBy(v => v.RecordedAt)
+                    .ToListAsync(ct);
+            }
+        }
+
         var responses = new List<VitalSignsResponse>();
         foreach (var v in items)
         {

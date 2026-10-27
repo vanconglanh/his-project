@@ -17,15 +17,17 @@ namespace ProDiabHis.Infrastructure.InBody;
 public class InBodyPdfTextProvider : IInBodyDataProvider
 {
     private readonly IPdfTextExtractor _pdfText;
+    private readonly IOcrTextProvider _ocr;
     private readonly ILogger<InBodyPdfTextProvider> _logger;
 
-    public InBodyPdfTextProvider(IPdfTextExtractor pdfText, ILogger<InBodyPdfTextProvider> logger)
+    public InBodyPdfTextProvider(IPdfTextExtractor pdfText, IOcrTextProvider ocr, ILogger<InBodyPdfTextProvider> logger)
     {
         _pdfText = pdfText;
+        _ocr = ocr;
         _logger = logger;
     }
 
-    public async Task<Result<InBodyReportData>> ExtractAsync(Stream fileStream, string fileName, CancellationToken ct)
+    public async Task<Result<InBodyReportData>> ExtractAsync(Stream fileStream, string fileName, string? contentType, CancellationToken ct)
     {
         try
         {
@@ -41,12 +43,22 @@ public class InBodyPdfTextProvider : IInBodyDataProvider
                 bytes = ms.ToArray();
             }
 
-            var textResult = await _pdfText.ExtractTextAsync(bytes, fileName, ct);
+            // BM-120: phieu InBody co the la ANH (jpeg/png) -> OCR Tesseract truc tiep;
+            // PDF (text layer hoac scan) -> IPdfTextExtractor (co fallback render->OCR). Cung khuon LabOcrTextProvider.
+            var mime = (contentType ?? string.Empty).ToLowerInvariant();
+            var name = (fileName ?? string.Empty).ToLowerInvariant();
+            var isPdf = mime == "application/pdf" || name.EndsWith(".pdf")
+                || (string.IsNullOrEmpty(mime) && !name.EndsWith(".jpg") && !name.EndsWith(".jpeg")
+                    && !name.EndsWith(".png") && !name.EndsWith(".webp"));
+
+            var textResult = isPdf
+                ? await _pdfText.ExtractTextAsync(bytes, fileName, ct)
+                : await _ocr.ExtractTextAsync(bytes, fileName, ct);
             if (!textResult.IsSuccess)
             {
-                _logger.LogWarning("InBody: lay text that bai cho {FileName}: {Err}", fileName, textResult.ErrorMessage);
+                _logger.LogWarning("InBody: lay text that bai cho {FileName} (pdf={IsPdf}): {Err}", fileName, isPdf, textResult.ErrorMessage);
                 return Result<InBodyReportData>.Failure(
-                    "INBODY_EXTRACT_FAILED", "Không đọc được file PDF, vui lòng kiểm tra lại file hoặc nhập tay");
+                    "INBODY_EXTRACT_FAILED", "Không đọc được file, vui lòng kiểm tra lại file hoặc nhập tay");
             }
 
             var data = InBodyReportParser.Parse(textResult.Value);

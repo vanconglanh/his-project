@@ -200,7 +200,60 @@ public class GetTodayReportHandler : IRequestHandler<GetTodayReportQuery, Result
         }
 
         var s = MapShift(shift);
+        // bug(b) "Tong thu hom nay"=0: cac cot total_* tren row ca chi duoc ghi LUC DONG CA
+        // (CalculateShiftSummaryAsync). Khi ca DANG MO, chung van = 0 du da co giao dich ->
+        // tinh LIVE tu bang payments de thu ngan thay dung tong thu trong ca hien tai.
+        if (s.Status == "OPEN")
+            await RecalcLiveFromPaymentsAsync(conn, s);
         return Result<CashierClosingResponse>.Success(ShiftMapper.ToDto(s, (string?)shift.cashier_name));
+    }
+
+    // Nhan ban logic CalculateShiftSummaryAsync (Infrastructure) nhung chi DOC, khong ghi DB.
+    private static async Task RecalcLiveFromPaymentsAsync(System.Data.IDbConnection conn, CashierShift shift)
+    {
+        var payments = await conn.QueryAsync<dynamic>(
+            @"SELECT method, status, amount FROM diab_his_bil_payments
+              WHERE cashier_shift_id = @shiftId AND tenant_id = @tenantId",
+            new { shiftId = shift.Id.ToString(), tenantId = shift.TenantId });
+
+        decimal totalCash = 0, totalCard = 0, totalTransfer = 0, totalQr = 0, totalOther = 0;
+        decimal totalRefund = 0, totalVoid = 0;
+        int count = 0;
+        var breakdown = new Dictionary<string, (decimal Amount, int Count)>();
+
+        foreach (var pmt in payments)
+        {
+            var method = (string)pmt.method;
+            var status = (string)pmt.status;
+            var amount = (decimal)pmt.amount;
+
+            if (status == PaymentStatus.Void) { totalVoid += Math.Abs(amount); continue; }
+            if (status == PaymentStatus.Refunded || amount < 0) { totalRefund += Math.Abs(amount); continue; }
+
+            count++;
+            switch (method)
+            {
+                case "CASH": totalCash += amount; break;
+                case "VISA": case "MASTER": totalCard += amount; break;
+                case "BANK_TRANSFER": totalTransfer += amount; break;
+                case "QR_VIETQR": case "QR_MOMO": case "QR_VNPAY": totalQr += amount; break;
+                default: totalOther += amount; break;
+            }
+
+            if (!breakdown.ContainsKey(method)) breakdown[method] = (0, 0);
+            breakdown[method] = (breakdown[method].Amount + amount, breakdown[method].Count + 1);
+        }
+
+        shift.TotalCash = totalCash;
+        shift.TotalCard = totalCard;
+        shift.TotalTransfer = totalTransfer;
+        shift.TotalQr = totalQr;
+        shift.TotalOther = totalOther;
+        shift.TotalRefund = totalRefund;
+        shift.TotalVoid = totalVoid;
+        shift.CountTransactions = count;
+        shift.BreakdownJson = JsonSerializer.Serialize(
+            breakdown.Select(kv => new { method = kv.Key, amount = kv.Value.Amount, count = kv.Value.Count }));
     }
 
     public static CashierShift MapShift(dynamic r) => new()

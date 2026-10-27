@@ -193,7 +193,11 @@ export function SmartUploadDialog({
                 <label className="text-sm font-medium" htmlFor="smart-upload-encounter">
                   Lượt khám liên quan (tuỳ chọn — áp dụng cho tất cả tệp)
                 </label>
-                <Select value={encounterId || undefined} onValueChange={(v) => setEncounterId(v ?? "")}>
+                <Select
+                  items={Object.fromEntries(encounterOptions.map((o) => [o.id, o.label]))}
+                  value={encounterId || undefined}
+                  onValueChange={(v) => setEncounterId(v ?? "")}
+                >
                   <SelectTrigger id="smart-upload-encounter">
                     <SelectValue placeholder="Không chọn — để trống nếu chưa rõ" />
                   </SelectTrigger>
@@ -565,7 +569,11 @@ function RequiresEncounterPanel({
       <AlertDescription className="space-y-3">
         <p>Đây là kết quả xét nghiệm — vui lòng chọn lượt khám để hệ thống dò khớp chỉ định đang chờ kết quả.</p>
         {encounterOptions.length > 0 ? (
-          <Select value={encounterId || undefined} onValueChange={(v) => onEncounterChange(v ?? "")}>
+          <Select
+            items={Object.fromEntries(encounterOptions.map((o) => [o.id, o.label]))}
+            value={encounterId || undefined}
+            onValueChange={(v) => onEncounterChange(v ?? "")}
+          >
             <SelectTrigger aria-label="Chọn lượt khám">
               <SelectValue placeholder="Chọn lượt khám..." />
             </SelectTrigger>

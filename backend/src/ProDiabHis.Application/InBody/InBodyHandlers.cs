@@ -57,8 +57,18 @@ public class UploadInBodyReportCommandHandler : IRequestHandler<UploadInBodyRepo
     private readonly IInBodyDataProvider _provider;
     private readonly IAuditService _audit;
 
-    private static readonly string[] AllowedMimes = { "application/pdf" };
+    // BM-120: phieu InBody nhan duoc co nhieu format -> cho phep PDF + anh (jpeg/png/webp).
+    private static readonly string[] AllowedMimes = { "application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp" };
     private const long MaxBytes = 15L * 1024 * 1024;
+
+    private static string ExtForContentType(string? contentType, string? fileName) => (contentType ?? string.Empty).ToLowerInvariant() switch
+    {
+        "image/jpeg" or "image/jpg" => ".jpg",
+        "image/png" => ".png",
+        "image/webp" => ".webp",
+        "application/pdf" => ".pdf",
+        _ => System.IO.Path.GetExtension(fileName ?? "").ToLowerInvariant() is { Length: > 0 } ext ? ext : ".bin",
+    };
 
     public UploadInBodyReportCommandHandler(IDapperConnectionFactory db, ITenantProvider tenant,
         ICurrentUser user, IFileStorage storage, IInBodyDataProvider provider, IAuditService audit)
@@ -68,8 +78,8 @@ public class UploadInBodyReportCommandHandler : IRequestHandler<UploadInBodyRepo
 
     public async Task<Result<InBodyReportResponse>> Handle(UploadInBodyReportCommand cmd, CancellationToken ct)
     {
-        if (!AllowedMimes.Contains(cmd.ContentType))
-            return Result<InBodyReportResponse>.Failure("INBODY_INVALID_FORMAT", "Chỉ chấp nhận file PDF");
+        if (!AllowedMimes.Contains((cmd.ContentType ?? string.Empty).ToLowerInvariant()))
+            return Result<InBodyReportResponse>.Failure("INBODY_INVALID_FORMAT", "Chỉ chấp nhận file PDF hoặc ảnh (JPG, PNG)");
 
         using var conn = (IDbConnection)_db.CreateConnection();
         var patientIdStr = cmd.PatientId.ToString();
@@ -96,7 +106,7 @@ public class UploadInBodyReportCommandHandler : IRequestHandler<UploadInBodyRepo
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(90));
             try
             {
-                extractResult = await _provider.ExtractAsync(buffer, cmd.FileName, timeoutCts.Token);
+                extractResult = await _provider.ExtractAsync(buffer, cmd.FileName, cmd.ContentType, timeoutCts.Token);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !ct.IsCancellationRequested)
             {
@@ -109,7 +119,7 @@ public class UploadInBodyReportCommandHandler : IRequestHandler<UploadInBodyRepo
         var data = extractResult.Value!;
 
         var fileId = Guid.NewGuid();
-        var objectKey = $"inbody/{_tenant.TenantId}/{cmd.PatientId}/{DateTime.UtcNow:yyyy/MM/dd}/{fileId}.pdf";
+        var objectKey = $"inbody/{_tenant.TenantId}/{cmd.PatientId}/{DateTime.UtcNow:yyyy/MM/dd}/{fileId}{ExtForContentType(cmd.ContentType, cmd.FileName)}";
 
         buffer.Position = 0;
         await _storage.UploadAsync(FileBuckets.InBodyReports, objectKey, buffer, cmd.ContentType, ct);

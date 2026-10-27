@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +19,8 @@ const schema = z.object({
   items: z.array(
     z.object({
       drug_id: z.string().min(1, "Chọn thuốc"),
+      // Nhan hien thi "code — name_vi" gan lien voi dong du lieu (khong gui len BE).
+      drug_label: z.string().optional(),
       batch_no: z.string().min(1, "Bắt buộc"),
       manufacture_date: z.string().optional(),
       expiry_date: z.string().min(1, "Bắt buộc"),
@@ -49,12 +51,10 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
     resolver: zodResolver(schema) as any,
     defaultValues: {
       received_at: new Date().toISOString().slice(0, 16),
-      items: [{ drug_id: "", batch_no: "", expiry_date: "", quantity_received: 1, unit_cost: 0 }],
+      items: [{ drug_id: "", drug_label: "", batch_no: "", expiry_date: "", quantity_received: 1, unit_cost: 0 }],
     },
   });
 
-  // Nhãn hiển thị "code — name_vi" theo field.id (chỉ để UX, không gửi lên BE)
-  const [drugLabels, setDrugLabels] = useState<Record<string, string>>({});
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
       return;
     }
     // Chuẩn hoá items: ngày rỗng ("") -> undefined (DateOnly? backend không parse được ""), ép kiểu số.
-    const items = (data.items ?? []).map((it) => ({
+    const items = (data.items ?? []).map(({ drug_label: _drugLabel, ...it }) => ({
       ...it,
       manufacture_date: it.manufacture_date ? it.manufacture_date : undefined,
       quantity_received: Number(it.quantity_received),
@@ -111,7 +111,7 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label>Chi tiết nhập kho (theo lô)</Label>
-          <Button type="button" variant="outline" size="sm" onClick={() => append({ drug_id: "", batch_no: "", expiry_date: "", quantity_received: 1, unit_cost: 0 })}>
+          <Button type="button" variant="outline" size="sm" onClick={() => append({ drug_id: "", drug_label: "", batch_no: "", expiry_date: "", quantity_received: 1, unit_cost: 0 })}>
             <Plus className="h-4 w-4 mr-1" />Thêm lô
           </Button>
         </div>
@@ -123,10 +123,10 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
                 <Label className="text-xs">Thuốc</Label>
                 {watch(`items.${idx}.drug_id`) ? (
                   <div className="flex items-center gap-1">
-                    <div className="flex-1 truncate rounded-md border px-3 h-10 flex items-center text-sm" title={drugLabels[field.id]}>
-                      {drugLabels[field.id] || watch(`items.${idx}.drug_id`)}
+                    <div className="flex-1 truncate rounded-md border px-3 h-10 flex items-center text-sm" title={watch(`items.${idx}.drug_label`)}>
+                      {watch(`items.${idx}.drug_label`) || watch(`items.${idx}.drug_id`)}
                     </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setValue(`items.${idx}.drug_id`, "")}>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setValue(`items.${idx}.drug_id`, ""); setValue(`items.${idx}.drug_label`, ""); }}>
                       Đổi
                     </Button>
                   </div>
@@ -135,7 +135,7 @@ export function GrnForm({ poId, onSuccess, formId = "grn-form", onSubmittingChan
                     placeholder="Tìm theo tên hoặc mã..."
                     onSelect={(d) => {
                       setValue(`items.${idx}.drug_id`, d.id, { shouldValidate: true });
-                      setDrugLabels((m) => ({ ...m, [field.id]: `${d.code} — ${d.name_vi}` }));
+                      setValue(`items.${idx}.drug_label`, `${d.code} — ${d.name_vi}`);
                     }}
                   />
                 )}

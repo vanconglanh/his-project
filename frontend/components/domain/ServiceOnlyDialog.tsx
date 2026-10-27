@@ -118,11 +118,11 @@ export function ServiceOnlyDialog({ open, onOpenChange, initialPatient }: Props)
         externalFileIds.push(up.id);
       }
       return createServiceOnly({
-        patientId: patient!.id,
-        serviceIds,
-        servicePackageIds: packageIds,
+        patient_id: patient!.id,
+        service_ids: serviceIds,
+        service_package_ids: packageIds,
         note: note.trim() || undefined,
-        externalFileIds: externalFileIds.length ? externalFileIds : undefined,
+        external_file_ids: externalFileIds.length ? externalFileIds : undefined,
       });
     },
     onSuccess: (res) => {

@@ -18,13 +18,14 @@ public sealed record InBodyReportData(string RawText, IReadOnlyList<InBodyFieldR
 }
 
 /// <summary>
-/// Nguon du lieu InBody. MVP: <c>InBodyPdfTextProvider</c> (doc text layer PDF, KHONG OCR anh).
+/// Nguon du lieu InBody. <c>InBodyPdfTextProvider</c>: PDF (text layer + fallback OCR) VA anh (OCR Tesseract).
 /// Dinh huong tuong lai: them <c>InBodyApiProvider</c> goi thang API may InBody, dang ky DI khac,
 /// khong doi contract nay.
 /// </summary>
 public interface IInBodyDataProvider
 {
-    Task<Result<InBodyReportData>> ExtractAsync(Stream fileStream, string fileName, CancellationToken ct);
+    // BM-120: truyen contentType de provider chon nhanh PDF hay anh (jpeg/png).
+    Task<Result<InBodyReportData>> ExtractAsync(Stream fileStream, string fileName, string? contentType, CancellationToken ct);
 }
 
 /// <summary>Danh sach ma indicator_type chuan cho ket qua InBody.</summary>
