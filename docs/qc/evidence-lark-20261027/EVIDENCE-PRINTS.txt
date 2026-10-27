@@ -1,0 +1,7 @@
+PASS  Phieu thu tam: POST /api/v1/billings/f88e4ced-b984-433b-8704-80c84c752597/provisional-receipt -> status=200, ct=application/pdf, bytes=121646 -> pdf/01-phieu-thu-tam.pdf
+PASS  Bang ke chi phi: POST /api/v1/billings/f88e4ced-b984-433b-8704-80c84c752597/cost-statement -> status=200, ct=application/pdf, bytes=112680 -> pdf/02-bang-ke-chi-phi.pdf
+PASS  Phieu thu chinh thuc (hoa don): GET /api/v1/billings/f88e4ced-b984-433b-8704-80c84c752597/pdf -> status=200, ct=application/pdf, bytes=21335 -> pdf/03-hoa-don-dich-vu.pdf
+PASS  Bien lai thu tien (official receipt): POST /api/v1/cashier/receipts/3fc36aaa-2162-47fe-a6bd-198933ee8a78/print -> status=200, ct=application/pdf, bytes=112557 -> pdf/04-bien-lai-thu-tien.pdf
+PASS  Don thuoc: GET /api/v1/prescriptions/de4d792b-8752-46f3-a010-a7c3fb2df54c/pdf -> status=200, ct=application/pdf, bytes=116577 -> pdf/05-don-thuoc.pdf
+PASS  Phieu chi dinh XN: GET /api/v1/encounters/0efa6b11-dd40-4ae2-b7a4-6fa4ffbb562e/lab-orders/pdf -> status=200, ct=application/pdf, bytes=131817 -> pdf/06-chi-dinh-xet-nghiem.pdf
+PASS  Phieu chi dinh CDHA: GET /api/v1/encounters/5dc2557f-e7eb-492b-a143-6adcbf59793f/rad-orders/pdf -> status=200, ct=application/pdf, bytes=129426 -> pdf/07-chi-dinh-cdha.pdf

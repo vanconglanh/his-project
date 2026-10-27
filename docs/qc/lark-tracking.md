@@ -184,3 +184,26 @@ Rà board DiaB His(Web): xoá 1 record rỗng tạo nhầm khi thao tác grid (v
 - **Giả định** (ghi trong comment Lark): "lượt khám/giao dịch" = 1 billing (có encounter_id); phiếu thu tạm in theo billing hiện có, số tiền = patient_payable; chữ ký giữ 1 ô "NGƯỜI THU TIỀN" theo layout biên lai chuẩn (Figma có 4 ô — rút gọn để đồng bộ hạ tầng in sẵn có, có thể mở rộng sau).
 - Deploy staging image từ HEAD `72e9574`. Rollback: `prev-20261027-1753`. Regression 12/0.
 - Verify E2E: `docs/qc/evidence-lark-20261027/EVIDENCE-BM126.txt` — Kế toán POST provisional-receipt trên billing DRAFT HD-202610-A8A4B → 200, application/pdf, 117KB (official print vốn chặn DRAFT); Lễ tân 403 (không có quyền — đúng). → Lark **In test**.
+
+### BM-126 mở rộng (2026-10-27) — Khớp Figma 5 phiếu in (theo chỉ đạo coordinator, user đồng ý)
+
+Nguồn Figma: file `rBtBhmMx50Xo0b2Rxj1kHo` "DiaB | HIS - Prints". Mọi phiếu lấy thông tin phòng khám từ **tenant letterhead** (name/address/phone/email/cskcb_code/company), KHÔNG hardcode. Commit `08379c8` (4 phiếu + bảng kê) + `b0276fb` (fix đơn thuốc layout).
+
+| Phiếu | Figma node (page) | Template file | Trạng thái | Evidence |
+|---|---|---|---|---|
+| Phiếu thu tạm | 0:1 | ReceiptPdfService.cs (provisional) | ✅ thêm đủ 4 ô chữ ký (Người nộp/Người thu/Thu ngân/Kế toán) | 01-phieu-thu-tam.pdf (200, 121KB) |
+| Phiếu thu chính thức / biên lai | 7:785 | ReceiptPdfService.cs (biên lai) + InvoicePdfService.cs | ✅ biên lai 3 ô chữ ký (Người lập/Người nộp/Thu ngân) | 04-bien-lai-thu-tien.pdf, 03-hoa-don-dich-vu.pdf |
+| Bảng kê chi phí | 8:785 | **CostStatementPdfBuilder.cs (MỚI)** + endpoint POST /billings/{id}/cost-statement + nút /cashier | ✅ tạo mới: nhóm theo item_type, khối tổng (tổng/giảm giá/đã thu tạm/CÒN PHẢI THU), 3 chữ ký | 02-bang-ke-chi-phi.pdf (200, 112KB) |
+| Đơn thuốc | 11:785 | PrescriptionPdfBuilder.cs | ✅ header công ty + ĐƠN THUỐC/Prescription, bảng Sáng/Trưa/Chiều/Tối, LỜI DẶN, chữ ký BS (fix lỗi QuestPDF layout) | 05-don-thuoc.pdf (200, 116KB) |
+| Phiếu chỉ định CLS | 10:785 | ClsOrderSlipPdfBuilder.cs | ✅ A4, nhóm XN/CĐHA, cột Chuẩn bị trước khi làm, 2 chữ ký, Lưu ý, mã vạch | 06-chi-dinh-xet-nghiem.pdf, 07-chi-dinh-cdha.pdf |
+
+**Verify**: `docs/qc/evidence-lark-20261027/verify-prints.js` tải 7 PDF thật từ staging (Kế toán + Bác sĩ) → **7/7 PASS** (200, application/pdf). Spot-check text: đúng tiêu đề/mục/chữ ký/tổng theo Figma. Build 0 lỗi, FE typecheck pass, unit test PDF 317 pass + 2 test render đơn thuốc mới. Regression 12/0.
+
+**Chỗ lệch Figma còn lại** (thiếu data trong model hiện tại — để trống/—, không bịa):
+- Đơn thuốc: cân nặng, Mã KH, liều tách Sáng/Trưa/Chiều/Tối (hiện gộp vào cột cách dùng), dòng Tái khám (không có data). Số đơn/Ngày chuyển lên dòng phải trên tiêu đề (không cạnh letterhead như Figma) do letterhead full-width.
+- Phiếu chỉ định CLS: Số thứ tự, SĐT/Địa chỉ/Phòng khám bệnh nhân, nhóm THĂM DÒ CHỨC NĂNG (mỗi phiếu chỉ 1 nhóm XN hoặc CĐHA theo kiến trúc hiện tại), cột SL mặc định 1, "Chuẩn bị trước khi làm" lấy từ Note dịch vụ.
+- Bảng kê chi phí: ĐVT, Mã DV (nếu item không có code), Chương trình/gói & Đợt dịch vụ.
+- Phiếu thu chính thức: Figma là A5 **ngang** (landscape) với khối "đối trừ phiếu thu tạm" + tổng hợp nhiều dòng; template hiện giữ **A5 dọc** tái dùng layout biên lai (redesign landscape là hạng mục lớn hơn, chưa làm).
+- Comment Figma của Minh Chi liệt kê 5 phiếu — đã phủ đủ 5 loại.
+
+**Deploy**: image staging `prodiab-his-backend:latest` + `prodiab-his-frontend:latest` từ HEAD `b0276fb`. Rollback backend `prev-20261027-1920`, trước đó `prev-20261027-1913` (full). Chỉ staging.
